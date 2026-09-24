@@ -1,0 +1,2656 @@
+
+    <style>
+        /* Genel tipografi ve zemin */
+        :root {
+            --bg1: #00c6ff;
+            --bg2: #006166;
+            --hover: #008ba7;
+        }
+
+        body {
+            margin: 0;
+            padding: 0 12px 16px;
+            font-family: "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+            background: #f3f4f6;
+            color: #0f1115;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #111;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .icon:hover {
+            color: #0F5DB6;
+        }
+
+        .icon:active {
+            transform: scale(0.92);
+            color: #0C4790;
+        }
+
+        .container {
+            width: 400px;
+            min-width: 400px;
+            max-width: 400px;
+            min-height: 400px;
+            max-height: 90vh;
+            margin: 16px auto;
+            padding: 14px 14px 14px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            text-align: center;
+            position: relative;
+            resize: none;
+            overflow: auto;
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 10px #17DB4E;
+            }
+            to {
+                box-shadow: 0 0 20px #17DB4E;
+            }
+        }
+
+        /* Sabit işlem barı (Add Custom Field & Add Action) */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 10px 16px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+            margin-bottom: 16px;
+            gap: 10px;
+        }
+
+        /* Tüm butonlar ve dropdownlar için temel stil */
+        button,
+        select {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid #d6d8dc;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            margin: 10px 10px;
+            background-color: #fff;
+        }
+
+        button:hover,
+        select:hover {
+            background-color: #f7f9fb;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        button:active,
+        select:active {
+            transform: translateY(1px);
+        }
+
+        /* Action Dropdown ve Token Uyumu */
+        #actionSelect,
+        .action {
+            border-color: #0f66c2;
+            background-color: #0f66c2;
+            color: white;
+        }
+
+        /* Custom Field Dropdown ve Token Uyumu */
+        #customFieldSelect,
+        .custom-field {
+            border-color: #006166;
+            background-color: #006166;
+            color: white;
+        }
+
+        /* Token genel stil */
+        .token {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin: 4px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Zorunlu - Kırmızı */
+        .mandatory {
+            border-color: #ff4d4f;
+            background-color: #fff5f5;
+            color: #c62828;
+        }
+
+        /* Opsiyonel - Mavi-Yeşil */
+        .optional {
+            border-color: #22a087;
+            background-color: #e9faf6;
+            color: #0f6a5c;
+        }
+
+        /* Kontrol - Yeşil */
+        .control {
+            border-color: #17DB4E;
+            background-color: #edfff4;
+            color: #0a512a;
+        }
+
+        /* Editlenebilir Alan */
+        .editable-container {
+            border: 1px solid #dfe3e8;
+            border-radius: 12px;
+            padding: 20px 16px 20px;
+            background-color: #fff;
+            min-height: 200px;
+            max-height: 62vh;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            line-height: 1.6;
+            text-align: left;
+            word-wrap: break-word;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 820px;
+            margin: 18px auto 18px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Dropdown Menüler */
+        .dropdown-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 8px 0 14px;
+        }
+
+        select {
+            width: 180px;
+        }
+
+        /* Toggle alanı */
+        .toggle-container { display:none; }
+        .floating-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: 1px solid #d6d8df;
+            background: #f8f9fb;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        .floating-toggle .ft-track {
+            position: relative;
+            width: 66px;
+            height: 32px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #e6eaef, #dfe3e8);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+            transition: background 0.2s ease;
+        }
+        .floating-toggle .ft-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+            transition: transform 0.2s ease;
+        }
+        .floating-toggle .ft-label {
+            font-weight: 700;
+            font-size: 13px;
+            color: #0f1115;
+            white-space: nowrap;
+        }
+        .floating-toggle.active .ft-track {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+        .floating-toggle.active .ft-thumb {
+            transform: translateX(34px);
+        }
+
+        /* Save ve Test Butonları */
+        #saveButton,
+        #testButton {
+            background-color: #0f66c2;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 3px 8px rgba(15, 102, 194, 0.18);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 700;
+        }
+
+        #saveButton:hover {
+            background-color: #0c549f;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(15, 102, 194, 0.22);
+        }
+
+        #saveButton.clean,
+        #saveButton:disabled {
+            background-color: #e5e7eb;
+            color: #6b7280;
+            border: 1px dashed #cbd5e1;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Test Prompt gizli */
+        #testButton {
+            display: none;
+        }
+
+        /* Dropdownlar ve butonlar arasındaki mesafe */
+        button,
+        select {
+            margin: 10px 10px;
+        }
+
+        /* Resize handle (manuel sürükleme) */
+        .resize-handle {
+            display: none;
+        }
+
+        /* === CSVBOX MODAL OVERRIDE ===================================== */
+        .csvbox-import-btn {
+            all: unset;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            max-width: 420px;
+            padding: 18px 24px;
+            font: 600 18px/1.1 "Inter", sans-serif;
+            letter-spacing: 0.25px;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--bg1), var(--bg2));
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+            transition: 0.25s cubic-bezier(0.4, 0.8, 0.4, 1);
+        }
+
+        .csvbox-import-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: transform 0.35s cubic-bezier(0.4, 0.8, 0.4, 1);
+        }
+
+        .csvbox-import-btn:hover {
+            background: var(--hover);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+        }
+
+        .csvbox-import-btn:hover svg {
+            transform: rotate(90deg) scale(1.08);
+        }
+
+        .csvbox-import-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+        }
+
+        .csvbox-import-btn:focus-visible {
+            outline: 3px solid rgba(0, 198, 255, 0.4);
+            outline-offset: 2px;
+        }
+
+    .inline-hint {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #6b7280;
+        margin: 4px 0 8px 2px;
+        justify-content: flex-start;
+    }
+    .top-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 14px 0 10px;
+    }
+    .palette {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2147483638;
+        background: transparent;
+    }
+    .palette.active {
+        pointer-events: auto;
+    }
+    .palette-panel {
+        display: none;
+        position: fixed !important;
+        width: 360px;
+        max-width: calc(100vw - 24px);
+        height: 420px;
+        max-height: calc(100dvh - 48px);
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 0;
+        box-shadow: 0 8px 32px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.06);
+        z-index: 2147483640 !important;
+        pointer-events: auto;
+        overflow: hidden;
+        flex-direction: column;
+        transition: opacity 0.1s;
+    }
+    .palette.active .palette-panel { display: flex; }
+
+    /* ── Tam-ekran palette layout ─────────────────────────── */
+    .palette-fs-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px 10px;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        flex-shrink: 0;
+    }
+    .palette-fs-search {
+        flex: 1;
+        height: 38px;
+        border: 1px solid #e5e7eb;
+        border-radius: 9px;
+        padding: 0 12px 0 36px;
+        font-size: 13px;
+        outline: none;
+        background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
+        transition: border-color 0.15s;
+    }
+    .palette-fs-search:focus { border-color: #6366f1; background-color: #fff; }
+    .palette-fs-close {
+        width: 34px; height: 34px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.12s;
+    }
+    .palette-fs-close:hover { background: #e2e8f0; color: #0f172a; }
+
+    .palette-fs-tabs {
+        display: flex;
+        gap: 0;
+        padding: 0 16px;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        flex-shrink: 0;
+    }
+    .palette-fs-tab {
+        padding: 9px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition: color 0.12s, border-color 0.12s;
+        white-space: nowrap;
+    }
+    .palette-fs-tab:hover { color: #334155; }
+    .palette-fs-tab.ptab-active { color: #6366f1; border-bottom-color: #6366f1; }
+
+    .palette-fs-body {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    /* Sol: app sütunu */
+    .palette-fs-apps {
+        width: 200px;
+        flex-shrink: 0;
+        border-right: 1px solid #e5e7eb;
+        background: #fff;
+        overflow-y: auto;
+        padding: 10px 8px;
+    }
+
+    /* Sağ: içerik alanı */
+    .palette-fs-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 16px;
+        background: #f8fafc;
+    }
+
+    .palette-fs-full {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 16px;
+        background: #f8fafc;
+    }
+    .palette-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #9aa0a6;
+        margin: 10px 0 6px;
+    }
+    .palette-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .palette-item {
+        border: 1px solid #dce0e5;
+        background: #f7f9fb;
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 12px;
+        line-height: 1.2;
+        color: #1b1d21;
+        cursor: pointer;
+        transition: all 0.12s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 0;
+        width: 100%;
+    }
+    .palette-item:hover {
+        border-color: #0f66c2;
+        background: #eef3fb;
+        color: #0f66c2;
+    }
+    .palette-item.is-active {
+        outline: 2px solid #0f66c2;
+        outline-offset: 1px;
+        background: #eef3fb;
+        border-color: #0f66c2;
+        color: #0f66c2;
+    }
+    .palette-badge {
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        background: #e9ecf1;
+        color: #4a5568;
+        border: 1px solid #d5d9df;
+        text-transform: capitalize;
+    }
+    /* ── Palette tabs (3-tab structure) ─────────────────────────────────── */
+    .ptab-bar {
+        display: flex;
+        gap: 3px;
+        margin: 8px 0 6px;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 6px;
+    }
+    .ptab {
+        flex: 1;
+        padding: 5px 2px;
+        font-size: 10.5px;
+        font-weight: 600;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        cursor: pointer;
+        transition: background 0.12s, color 0.12s;
+        transform: none;
+    }
+    .ptab:hover { background: #f3f4f6; color: #374151; }
+    .ptab.ptab-active {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+    .ptab-pane { display: none; }
+    .ptab-pane.ptab-pane-active { display: block; }
+    /* apps tab: display:contents — çocukları flex-body'e doğrudan dahil et */
+    #ptab-apps.ptab-pane-active { display: contents; }
+
+    /* ── App icon grid inside palette ────────────────────────────────────── */
+    #paletteAppGrid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
+        overflow-y: visible;
+        margin-bottom: 8px;
+    }
+    .papp-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 2px 5px;
+        border-radius: 8px;
+        border: 1.5px solid #e5e7eb;
+        background: #f9fafb;
+        cursor: pointer;
+        transition: all 0.12s;
+        gap: 3px;
+    }
+    .papp-tile:hover { border-color: #93c5fd; background: #eff6ff; }
+    .papp-tile.papp-active { border-color: #0f66c2; background: #dbeafe; }
+    .papp-tile-icon { font-size: 20px; line-height: 1; }
+    .papp-tile img { width: 20px; height: 20px; object-fit: contain; border-radius: 4px; flex-shrink: 0; }
+    .token img { width: 14px; height: 14px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .papp-tile-name {
+        font-size: 8.5px;
+        font-weight: 600;
+        color: #374151;
+        text-align: center;
+        line-height: 1.2;
+        max-width: 56px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .papp-tile.papp-active .papp-tile-name { color: #1d4ed8; }
+
+    #paletteToolsHint {
+        font-size: 11px;
+        color: #94a3b8;
+        padding: 4px 2px;
+        text-align: center;
+    }
+    /* Action / MCP tool tokens: distinct blue pill with left accent */
+    .token.action,
+    .token.tool {
+        border: 1.5px solid #3b82f6;
+        border-left: 3px solid #1d4ed8;
+        background: #dbeafe;
+        color: #1e40af;
+        font-weight: 700;
+        box-shadow: 0 1px 3px rgba(29,78,216,0.12);
+    }
+    /* Unconnected action/tool token: amber warning */
+    .token.action.auth-warn,
+    .token.tool.auth-warn {
+        border-color: #f59e0b;
+        border-left-color: #d97706;
+        background: #fffbeb;
+        color: #92400e;
+    }
+    .palette-trigger {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 1px solid #d6d8dc;
+        background: #fdfefe;
+        color: #0f66c2;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+        backdrop-filter: blur(6px);
+        opacity: 0.96;
+    }
+    .palette-trigger:hover {
+        background: #eef3fb;
+        border-color: #0f66c2;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+    .editor-shell {
+        position: relative;
+    }
+    .fixed-trigger {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        z-index: 120;
+        display: flex;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: #f7f9fb;
+        color: #0f66c2;
+        border: 1px solid #d6d8dc;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+    .fixed-trigger:hover {
+        background: #eef3fb;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
+    }
+    .fixed-trigger:active {
+        transform: translateY(1px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    }
+    /* Tools picker */
+    .tools-trigger {
+        position: absolute;
+        top: 14px;
+        right: 56px;
+        z-index: 120;
+    }
+    .tools-picker-panel {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 6px;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.13);
+        min-width: 230px;
+        z-index: 130;
+    }
+    .tools-picker-panel.active { display: block; }
+    .tpp-header {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #9ca3af;
+        padding: 2px 6px 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .tpp-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: 7px;
+        cursor: pointer;
+        transition: background 0.12s;
+        font-size: 12px;
+        color: #1f2937;
+        user-select: none;
+    }
+    .tpp-item:hover:not(.tpp-upcoming) { background: #f3f4f6; }
+    .tpp-item.tpp-upcoming { opacity: 0.45; cursor: not-allowed; }
+    .tpp-check {
+        width: 15px;
+        height: 15px;
+        border-radius: 4px;
+        border: 1.5px solid #d1d5db;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: transparent;
+        flex-shrink: 0;
+        transition: all 0.13s;
+    }
+    .tpp-item.tpp-active .tpp-check {
+        border-color: #17DB4E;
+        background: #17DB4E;
+        color: #fff;
+    }
+    .tpp-badge {
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #9ca3af;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 1px 4px;
+        flex-shrink: 0;
+    }
+    .tpp-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpp-icon { font-size: 14px; flex-shrink: 0; }
+    .tools-trigger.has-active { color: #059669; border-color: #17DB4E; background: #edfff4; }
+    /* Selected tools chips bar */
+    #toolsSelectedBar {
+        display: none;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 6px 10px;
+        border-top: 1px solid #f1f5f9;
+        background: #fafbfc;
+    }
+    .tool-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px 3px 7px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 600;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+        max-width: 140px;
+        cursor: default;
+    }
+    .tool-chip.native { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    .tool-chip-remove {
+        font-size: 11px;
+        line-height: 1;
+        color: #9ca3af;
+        cursor: pointer;
+        flex-shrink: 0;
+        padding: 0 1px;
+        margin-left: 1px;
+    }
+    .tool-chip-remove:hover { color: #ef4444; }
+    .tool-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Unconnected MCP tool chip — amber tint */
+    .tool-chip-unconnected {
+        border-color: #fde68a !important;
+        background: #fffbeb !important;
+        color: #92400e !important;
+    }
+    .tool-chip-warn {
+        font-size: 11px;
+        color: #f59e0b;
+        flex-shrink: 0;
+        margin-right: 1px;
+    }
+    /* Auth warning banner — shown below toolsSelectedBar */
+    #pb-auth-warn {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        margin: 2px 0 6px;
+        border-radius: 8px;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        font-size: 11px;
+        color: #78350f;
+        text-align: left;
+    }
+    #pb-auth-warn.visible { display: flex; }
+    #pb-auth-warn-text { flex: 1; line-height: 1.4; }
+    #pb-auth-warn-connect {
+        all: unset;
+        background: #f59e0b;
+        color: #fff;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.15s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    #pb-auth-warn-connect:hover { background: #d97706; }
+    /* Reasoning picker */
+    .reasoning-trigger { color: #7c3aed; border-color: #a78bfa; }
+    .reasoning-trigger.has-active { color: #6d28d9; border-color: #7c3aed; background: #ede9fe; }
+    .reasoning-picker-panel {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 6px;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.13);
+        min-width: 160px;
+        z-index: 130;
+    }
+    .reasoning-picker-panel.active { display: block; }
+    .rpp-header {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #9ca3af;
+        padding: 2px 6px 6px;
+    }
+    .rpp-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: 7px;
+        cursor: pointer;
+        transition: background 0.12s;
+        font-size: 12px;
+        color: #1f2937;
+        user-select: none;
+    }
+    .rpp-item:hover { background: #f3f4f6; }
+    .rpp-dot {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        border: 1.5px solid #d1d5db;
+        flex-shrink: 0;
+        transition: all 0.13s;
+        background: transparent;
+    }
+    .rpp-item.rpp-selected .rpp-dot {
+        border-color: #7c3aed;
+        background: #7c3aed;
+        box-shadow: inset 0 0 0 3px #fff;
+    }
+    .rpp-name { font-weight: 500; white-space: nowrap; }
+    .palette-search {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d6d8dc;
+        border-radius: 8px;
+        font-size: 12px;
+        margin-bottom: 10px;
+        outline: none;
+        transition: border 0.15s ease, box-shadow 0.15s ease;
+    }
+    .palette-search:focus {
+        border-color: #0f66c2;
+        box-shadow: 0 0 0 3px rgba(15, 102, 194, 0.12);
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="inline-hint">
+            <strong>/</strong> to add a custom field or action
+        </div>
+
+        <div class="editor-shell">
+            <!-- Tools picker -->
+            <div class="tools-trigger fixed-trigger palette-trigger" id="toolsPickerWrap" style="position:absolute;top:56px;right:14px;z-index:120;">
+                <button id="toolsTriggerBtn" class="fixed-trigger palette-trigger tools-trigger" type="button" title="Tools" onclick="toggleToolsPicker()" style="position:static;width:34px;height:34px;border-radius:8px;margin:0;padding:0;">
+                    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                </button>
+                <!-- Fallback panel — sadece Architect yüklü değilken görünür -->
+                <div class="tools-picker-panel" id="toolsPickerPanel" style="max-height:320px;overflow-y:auto;width:220px;">
+                    <div class="tpp-header">Native Tools</div>
+                    <div class="tpp-item" id="tpp-image_generation" onclick="toggleTool('image_generation')">
+                        <span class="tpp-check">✓</span>
+                        <span class="tpp-icon">🎨</span>
+                        <span class="tpp-name">Image Generation</span>
+                    </div>
+                    <div class="tpp-item" id="tpp-web_search" onclick="toggleTool('web_search')">
+                        <span class="tpp-check">✓</span>
+                        <span class="tpp-icon">🔍</span>
+                        <span class="tpp-name">Web Search</span>
+                    </div>
+                    <div class="tpp-item" id="tpp-code_interpreter" onclick="toggleTool('code_interpreter')">
+                        <span class="tpp-check">✓</span>
+                        <span class="tpp-icon">💻</span>
+                        <span class="tpp-name">Code Interpreter</span>
+                    </div>
+                    <div class="tpp-item" id="tpp-file_search" onclick="toggleTool('file_search')">
+                        <span class="tpp-check">✓</span>
+                        <span class="tpp-icon">📁</span>
+                        <span class="tpp-name">File Search</span>
+                    </div>
+                    <div style="padding:10px 6px 4px;border-top:1px solid #f3f4f6;margin-top:6px;text-align:center;font-size:10px;color:#6366f1;">
+                        Entegrasyon eklemek için AI Architect panelini açın
+                    </div>
+                </div>
+            </div>
+            <!-- Reasoning picker -->
+            <div id="reasoningPickerWrap" style="position:absolute;top:100px;right:14px;z-index:120;">
+                <button id="reasoningTriggerBtn" class="fixed-trigger palette-trigger reasoning-trigger" type="button" title="Reasoning" onclick="toggleReasoningPicker()" style="position:static;width:34px;height:34px;border-radius:8px;margin:0;padding:0;">
+                    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+                        <circle cx="12" cy="11" r="5"/>
+                        <path d="M12 2v2M12 18v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                </button>
+                <div class="reasoning-picker-panel" id="reasoningPickerPanel">
+                    <div class="rpp-header">Reasoning</div>
+                    <div class="rpp-item" data-level="" onclick="setReasoning('')">
+                        <span class="rpp-dot"></span>
+                        <span class="rpp-name">Off</span>
+                    </div>
+                    <div class="rpp-item" data-level="low" onclick="setReasoning('low')">
+                        <span class="rpp-dot"></span>
+                        <span class="rpp-name">Low</span>
+                    </div>
+                    <div class="rpp-item" data-level="medium" onclick="setReasoning('medium')">
+                        <span class="rpp-dot"></span>
+                        <span class="rpp-name">Medium</span>
+                    </div>
+                    <div class="rpp-item" data-level="high" onclick="setReasoning('high')">
+                        <span class="rpp-dot"></span>
+                        <span class="rpp-name">High</span>
+                    </div>
+                </div>
+            </div>
+            <div id="fixedTrigger" class="palette-trigger fixed-trigger" title="Open menu">+</div>
+            <!-- BUBBLE DYNAMIC: editableText (önce doldur) -->
+            <div class="editable-container" contenteditable="true" id="editableText" spellcheck="false">
+                <!-- bubble_editable_template içerik buraya hydrate edilir -->
+            </div>
+        </div>
+
+        <!-- Selected tools chips — auto-hidden when empty -->
+        <div id="toolsSelectedBar"></div>
+        <!-- Auth warning banner — visible when unconnected apps detected -->
+        <div id="pb-auth-warn">
+            <span id="pb-auth-warn-text"></span>
+            <button id="pb-auth-warn-connect" onclick="window._pbTriggerAuth()">Bağla</button>
+        </div>
+
+        <div class="top-actions">
+            <button id="saveButton" onclick="savePrompt()">Save</button>
+            <button id="testButton" onclick="testPrompt()">Test Prompt</button>
+        </div>
+        <div class="palette" id="palettePanel">
+            <div class="palette-panel">
+                <!-- Header: arama + kapat -->
+                <div class="palette-fs-header">
+                    <input
+                        id="paletteSearch"
+                        class="palette-fs-search"
+                        type="text"
+                        name="paletteSearch"
+                        inputmode="search"
+                        placeholder="Search across 1000+ apps..."
+                        autocomplete="new-password"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        aria-autocomplete="none"
+                    />
+                    <button class="palette-fs-close" id="paletteCloseBtn" title="Kapat (Esc)">×</button>
+                </div>
+                <!-- Tab bar -->
+                <div class="palette-fs-tabs" id="ptabBar">
+                  <button class="palette-fs-tab ptab ptab-active" data-ptab="apps">🔧 Uygulamalar</button>
+                  <button class="palette-fs-tab ptab"             data-ptab="fields">📋 Alanlar</button>
+                  <button class="palette-fs-tab ptab"             data-ptab="actions">🔀 Yönlendiriciler</button>
+                </div>
+                <!-- Body -->
+                <div class="palette-fs-body">
+                  <!-- Tab: Uygulamalar — split view -->
+                  <div class="ptab-pane ptab-pane-active" id="ptab-apps" style="display:contents;">
+                    <div class="palette-fs-apps">
+                      <div id="paletteAppGrid"></div>
+                    </div>
+                    <div class="palette-fs-content">
+                      <div class="palette-list" id="paletteTools"></div>
+                      <div id="paletteToolsHint"></div>
+                      <!-- Force Tools toggle — araçlar sekmesinin altında -->
+                      <div id="ptab-force-tools-footer" style="margin-top:auto;padding:7px 10px 5px;border-top:1px solid #f0f4f8;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+                        <span style="font-size:11px;font-weight:600;color:#475569;">🔒 Araçları zorla kullandır</span>
+                        <button id="toggleForceTools" class="floating-toggle" type="button" onclick="toggleOption('force_tools')" title="AI agent'ı seçili araçları kesinlikle çalıştırmaya zorlar." style="margin:0;">
+                          <span class="ft-track"><span class="ft-thumb"></span></span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Tab: Alanlar -->
+                  <div class="ptab-pane" id="ptab-fields" style="display:none;flex:1;">
+                    <div class="palette-fs-full">
+                      <div class="palette-list" id="paletteCustom"></div>
+                    </div>
+                  </div>
+                  <!-- Tab: Yönlendiriciler -->
+                  <div class="ptab-pane" id="ptab-actions" style="display:none;flex:1;overflow:hidden;">
+                    <div id="paletteActions" style="display:flex;flex-direction:column;flex:1;overflow:hidden;"></div>
+                  </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="resizeHandle" class="resize-handle" title="Drag from corner to resize"></div>
+
+        <script>
+(function() {
+    // ── TANI: IIFE başında erişilebilen bubble_fn'leri logla ────────────────────
+    console.log('%c[PB IIFE START]', 'color:#6366f1;font-weight:bold',
+        '| window.bubble_fn_savePrompt:', typeof window.bubble_fn_savePrompt,
+        '| window._callBubbleSave:', typeof window._callBubbleSave,
+        '| window.bubble_fn_testPrompt:', typeof window.bubble_fn_testPrompt);
+
+    const state = window.__FLOW_BUILDER_STATE__ || { customFields: [], actions: [], toggles: new Set(), enabledTools: new Set(), mcpTools: new Map(), savedRange: null, reasoningLevel: '' };
+    window.__FLOW_BUILDER_STATE__ = state;
+    if (!state.mcpTools || typeof state.mcpTools.clear !== 'function') state.mcpTools = new Map();
+    // Always clear stale Range references from previous renders — they point to removed DOM nodes
+    // and cause insertNode errors when positionPalette() tries to use them.
+    state.savedRange = null;
+
+    // OpenAI Responses API native tool definitions
+    const NATIVE_TOOLS = {
+        image_generation: { type: 'image_generation' },
+        web_search:        { type: 'web_search' },
+        code_interpreter:  { type: 'code_interpreter' },
+        file_search:       { type: 'file_search' }
+    };
+    // Keep legacy alias so older saves still parse
+    const TOOLS_CATALOG = NATIVE_TOOLS;
+
+    const palettePanel   = document.getElementById('palettePanel');
+    const paletteCustom  = document.getElementById('paletteCustom');
+    const paletteActions = document.getElementById('paletteActions');
+    const paletteTools   = document.getElementById('paletteTools');
+    const paletteAppGrid = document.getElementById('paletteAppGrid');
+    const paletteSearch  = document.getElementById('paletteSearch');
+
+    let _pTab         = 'apps';  // active tab: 'apps' | 'fields' | 'actions'
+    let _pAppKey      = null;   // selected app key in the apps tab
+    let _cachedAppTools = {};   // persistent tool list per slug across palette open/close
+    const fixedTrigger = document.getElementById('fixedTrigger');
+    const editableText = document.getElementById('editableText');
+    const paletteInner = palettePanel ? palettePanel.querySelector('.palette-panel') : null;
+    const container = document.querySelector('.container');
+    const SAFE_MARGIN = 12;
+    let baselineHTML = '';
+    let baselineTogglesKey = '';
+    let baselineToolsKey = '';
+    let baselineReasoningKey = '';
+    let isDirty = false;
+
+    let paletteItems = [];
+    let selectedIndex = -1;
+
+    // Bubble'ın [[{...}]], ["string"], string JSON ve normal [{...}] formatlarını hepsini çözer
+    function normalizeTools(raw) {
+        if (!raw) return [];
+        if (typeof raw === 'string') {
+            const splitIdx = raw.indexOf('_-@SPLITTER@-_');
+            if (splitIdx !== -1) raw = raw.slice(0, splitIdx);
+            try { raw = JSON.parse(raw); } catch(e) { return []; }
+        }
+        if (!Array.isArray(raw)) return [];
+        // Çift sarmal: [[{type:...}]] → [{type:...}]
+        if (raw.length > 0 && Array.isArray(raw[0])) raw = raw[0];
+        // String sarmal: ["[{...}]"] → parse et
+        if (raw.length === 1 && typeof raw[0] === 'string') {
+            try {
+                const parsed = JSON.parse(raw[0]);
+                if (Array.isArray(parsed)) raw = parsed;
+            } catch(e) {}
+        }
+        return raw.filter(t => t && typeof t.type === 'string');
+    }
+
+    // Composio ACTION_ID → app slug çözücü (window.__MCP_CATALOG__ ters arama).
+    // Server sözleşmesi app'siz Composio tool'u HİÇ işlemiyor — app her çıkışta dolu olmalı.
+    function _pbResolveToolApp(toolId) {
+        try {
+            const cat = window.__MCP_CATALOG__ || {};
+            for (const slug in cat) {
+                if ((cat[slug].tools || []).some(t => t && t.id === toolId)) return slug;
+            }
+        } catch (e) {}
+        return '';
+    }
+
+    // Base64 self-heal: savePrompt output4[6] (innerpromptBase64) Bubble WF'te decode
+    // edilmeden prompt alanına yazılırsa DB'de ham base64 kalır ve editör base64 metin
+    // gösterir. Blob base64'e benziyorsa ve decode gerçek metin/HTML veriyorsa onar.
+    function _pbMaybeDecodeB64Html(s) {
+        const raw = String(s || '').trim();
+        if (raw.indexOf('<') !== -1) return s;              // zaten HTML
+        const compact = raw.replace(/\s+/g, '');
+        if (compact.length < 60) return s;                   // kısa metin — dokunma
+        if (!/^[A-Za-z0-9+/]+={0,2}$/.test(compact) || compact.length % 4 !== 0) return s;
+        try {
+            const dec = decodeURIComponent(escape(atob(compact)));
+            if (dec && (dec.indexOf('<') !== -1 || dec.indexOf(' ') !== -1)) {
+                console.warn('[PB] editableHTML ham BASE64 geldi — decode edilerek onarıldı. ' +
+                    'Bubble savePrompt WF\'inin output4 item#6 için decode adımını kontrol edin.');
+                return dec;
+            }
+        } catch (e) {}
+        return s;
+    }
+
+    const clamp = (value, min, max) => {
+        if (Number.isNaN(value)) return min;
+        return Math.min(Math.max(value, min), max);
+    };
+
+    function hardenPaletteSearch() {
+        if (!paletteSearch) return;
+        const randomName = `ps_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+        paletteSearch.setAttribute('name', randomName);
+        paletteSearch.setAttribute('autocomplete', 'off');
+        paletteSearch.setAttribute('aria-autocomplete', 'none');
+        paletteSearch.setAttribute('autocorrect', 'off');
+        paletteSearch.setAttribute('autocapitalize', 'off');
+        paletteSearch.setAttribute('spellcheck', 'false');
+        paletteSearch.setAttribute('data-lpignore', 'true');
+        paletteSearch.setAttribute('data-form-type', 'other');
+        paletteSearch.addEventListener('focus', () => {
+            paletteSearch.setAttribute('autocomplete', 'off');
+        });
+    }
+
+    function currentStateSnapshot() {
+        const html = (editableText?.innerHTML || '').trim();
+        const togglesKey = JSON.stringify(Array.from(state.toggles || []).sort());
+        // Include both native tools AND MCP tools in dirty detection
+        const nativeKeys = Array.from(state.enabledTools || []).sort();
+        const mcpKeys = Array.from(state.mcpTools?.keys() || []).sort();
+        const toolsKey = JSON.stringify({ native: nativeKeys, mcp: mcpKeys });
+        const reasoningKey = state.reasoningLevel || '';
+        return { html, togglesKey, toolsKey, reasoningKey };
+    }
+
+    function updateSaveButtonState() {
+        const btn = document.getElementById('saveButton');
+        if (!btn) return;
+        btn.disabled = !isDirty;
+        btn.classList.toggle('clean', !isDirty);
+        btn.title = isDirty ? 'Save changes' : 'No changes to save';
+    }
+
+    function captureBaseline() {
+        const snap = currentStateSnapshot();
+        baselineHTML = snap.html;
+        baselineTogglesKey = snap.togglesKey;
+        baselineToolsKey = snap.toolsKey;
+        baselineReasoningKey = snap.reasoningKey;
+        isDirty = false;
+        updateSaveButtonState();
+    }
+
+    function markDirty() {
+        const snap = currentStateSnapshot();
+        const dirtyNow = snap.html !== baselineHTML
+            || snap.togglesKey !== baselineTogglesKey
+            || snap.toolsKey !== baselineToolsKey
+            || snap.reasoningKey !== baselineReasoningKey;
+        if (dirtyNow === isDirty) return;
+        isDirty = dirtyNow;
+        updateSaveButtonState();
+    }
+
+    function saveCurrentRangeIfEditable() {
+        const sel = window.getSelection();
+        if (sel?.rangeCount) {
+            const r = sel.getRangeAt(0);
+            if (editableText && editableText.contains(r.commonAncestorContainer)) {
+                state.savedRange = r.cloneRange();
+                return state.savedRange;
+            }
+        }
+        return null;
+    }
+
+    // ── HYDRATION KİMLİĞİ (bayat-ajan fix'i, 2026-07-30) ─────────────────────────
+    // Bug: "asistanı tablodan açtığımda o sürecin asistanı açılmadı; ikinci kez
+    // girince açıldı." Kök neden — PB yalnız editör BOŞKEN yeniden hydrate oluyordu
+    // (aşağıdaki 250ms/800ms retry'ları `innerHTML.trim()` boş mu diye bakar). A
+    // ajanı yüklüyken B ajanına tıklanınca editör dolu olduğu için hiçbir retry
+    // çalışmıyor → GAD, PB'nin O ANKİ (A'ya ait) state'ini okuyup açıyordu. Üstelik
+    // gaiaExtractAndEdit'teki kapı yalnız BOŞLUĞU kontrol ediyordu, BAYATLIĞI değil.
+    //
+    // Çözüm: PB'nin hydrate olduğu veri kaynağının imzasını tut. Kaynak İKİ yerden
+    // gelir (bubble-options DOM düğümü + window.BUBBLE_CONFIG); ikisi de imzaya girer,
+    // böylece hangisi öncelikli olursa olsun DEĞİŞİM yakalanır. Otomatik/arka planda
+    // yeniden hydrate YOK — kaydetme sonrası Bubble re-render'ı ile yarışıp kullanıcının
+    // düzenlemesini ezme riski var (29.07 dersi). Yeniden hydrate YALNIZ Architect'in
+    // açık talebiyle (_pbRehydrateNow) yapılır: kullanıcı zaten başka bir ajana geçiyor.
+    function _pbReadBubbleOptionsRaw() {
+        const optsEl = document.getElementById('bubble-options');
+        if (!optsEl) return '';
+        let rawText = (optsEl.textContent || '').trim();
+        const firstBrace = rawText.indexOf('{');
+        if (firstBrace === -1) return rawText;
+        // String literal içindeki { } karakterlerini atla; gerçek JSON sonu'nu bul.
+        let depth = 0, end = -1, inStr = false, esc = false;
+        for (let i = firstBrace; i < rawText.length; i++) {
+            const ch = rawText[i];
+            if (esc) { esc = false; continue; }
+            if (ch === '\\' && inStr) { esc = true; continue; }
+            if (ch === '"') { inStr = !inStr; continue; }
+            if (inStr) continue;
+            if (ch === '{') depth++;
+            else if (ch === '}') { depth--; if (depth === 0) { end = i; break; } }
+        }
+        if (end !== -1) return rawText.slice(firstBrace, end + 1);
+        console.warn('[PB] bubble-options: dengeli } bulunamadı, ham metin deneniyor');
+        return rawText;
+    }
+
+    function _pbHash(s) {
+        // djb2 — kısa, çakışma riski bu kullanım için ihmal edilebilir.
+        let h = 5381;
+        for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+        return String(h >>> 0) + ':' + s.length;
+    }
+
+    // Kaynak verinin ŞU ANKİ imzası (PB henüz okumamış olabilir).
+    window._pbBubbleOptionsSig = function () {
+        try {
+            let winPart = '';
+            try { winPart = JSON.stringify(window.BUBBLE_CONFIG || {}); } catch (e) { winPart = ''; }
+            const raw = _pbReadBubbleOptionsRaw();
+            if (!raw && !winPart) return '';
+            return _pbHash(raw + '|' + winPart);
+        } catch (e) { return ''; }
+    };
+    // PB'nin EN SON hydrate olduğu verinin imzası.
+    window._pbHydratedSig = function () { return window.__PB_HYDRATED_SIG__ || ''; };
+
+    function hydrateFromBubbleConfig() {
+        let cfg = {};
+        const optsEl = document.getElementById('bubble-options');
+        if (optsEl) {
+            try {
+                // bubble-options içeriği: Bubble dynamic JSON + arkasında JS bridge code.
+                // lastIndexOf('}') bridge code'daki son } 'yi bulur → JSON.parse patlıyor.
+                // Çözüm: ilk { 'den başlayarak dengeli parantez sayarak gerçek JSON sınırını bul.
+                const rawText = _pbReadBubbleOptionsRaw();
+                console.log('[PB] bubble-options raw prefix (ilk 120 karakter):', rawText.substring(0, 120));
+                cfg = JSON.parse(rawText);
+                console.log('[PB] bubble-options parse OK | customFields:', (cfg.customFields||[]).length,
+                    '| actions:', (cfg.actions||[]).length, '| tools:', (cfg.tools||[]).length);
+            } catch (err) {
+                console.warn('[PB] bubble-options parse error:', err.message,
+                    '| raw prefix:', (optsEl.textContent||'').substring(0, 200));
+                cfg = {};
+            }
+        }
+
+        const winCfg = window.BUBBLE_CONFIG || {};
+        // Orijinal parse'ı sakla — cfg yeniden atanınca stage_id/list_id/data_flow_rules kaybolur
+        const _rawCfg = cfg;
+        cfg = {
+            editableHTML: winCfg.editableHTML || cfg.editableHTML || '',
+            customFields: (Array.isArray(winCfg.customFields) && winCfg.customFields.length)
+                ? winCfg.customFields
+                : (Array.isArray(cfg.customFields) ? cfg.customFields : []),
+            actions: (Array.isArray(winCfg.actions) && winCfg.actions.length)
+                ? winCfg.actions
+                : (Array.isArray(cfg.actions) ? cfg.actions : []),
+            toggles: (winCfg.toggles && Object.keys(winCfg.toggles || {}).length)
+                ? winCfg.toggles
+                : (cfg.toggles || {}),
+            tools: (normalizeTools(winCfg.tools).length)
+                ? normalizeTools(winCfg.tools)
+                : normalizeTools(cfg.tools),
+            effort: winCfg.effort || cfg.effort || '',
+            tool_required: winCfg.tool_required !== undefined ? winCfg.tool_required : (cfg.tool_required !== undefined ? cfg.tool_required : null)
+        };
+
+        // stage_id / list_id → global'e al (data topology: create_new için gerekli)
+        // _rawCfg kullan — cfg yeniden atamadan sonra bu alanlar silinir
+        const _cfgStageId = winCfg.stage_id || _rawCfg.stage_id || '';
+        const _cfgListId  = winCfg.list_id  || _rawCfg.list_id  || '';
+        if (_cfgStageId) window.__GAD_STAGE_ID__ = _cfgStageId;
+        if (_cfgListId)  window.__GAD_LIST_ID__  = _cfgListId;
+        console.log('[PB] stage_id:', _cfgStageId || '(yok)', '| list_id:', _cfgListId || '(yok)');
+
+        // data_flow_rules → _gadTrigModes'u doldur (mevcut agent edit açılışında modları geri yükle)
+        // _rawCfg kullan — cfg yeniden atamadan sonra data_flow_rules silinir
+        const _cfgDFR = winCfg.data_flow_rules || _rawCfg.data_flow_rules || null;
+        if (_cfgDFR) {
+            try {
+                const _dfrObj = (typeof _cfgDFR === 'string') ? JSON.parse(_cfgDFR) : _cfgDFR;
+                if (_dfrObj && Array.isArray(_dfrObj.triggers) && _dfrObj.triggers.length > 0) {
+                    if (!window._gadTrigModes) window._gadTrigModes = {};
+                    _dfrObj.triggers.forEach(function(t) {
+                        if (t && t.trigger_id && t.mode) {
+                            window._gadTrigModes[t.trigger_id] = {
+                                mode: t.mode,
+                                search_keys: Array.isArray(t.search_keys) ? t.search_keys : []
+                            };
+                        }
+                    });
+                    console.log('[PB] data_flow_rules → _gadTrigModes yüklendi:', Object.keys(window._gadTrigModes));
+                }
+                // manual_wake → window._gadManualWake (sayfa yüklenir yüklenmez doğru olsun).
+                // KRİTİK: tablo "Ask Assistant" butonu modu BURADAN okur (resolveWakeMode).
+                // Bu olmadan kayıtlı bulk_create agent'ı tabloda update_known sanılıp "no records" diyordu.
+                if (_dfrObj && _dfrObj.manual_wake && typeof _dfrObj.manual_wake === 'object') {
+                    window._gadManualWake = {
+                        enabled: (_dfrObj.manual_wake.enabled !== false),
+                        mode: _dfrObj.manual_wake.mode || '',
+                        search_keys: Array.isArray(_dfrObj.manual_wake.search_keys) ? _dfrObj.manual_wake.search_keys : []
+                    };
+                    console.log('[PB] data_flow_rules → _gadManualWake yüklendi | mode:', window._gadManualWake.mode || '(unset)');
+                }
+            } catch(_dfrE) {
+                console.warn('[PB] data_flow_rules parse hatası:', _dfrE);
+            }
+        }
+
+        const editableTemplate = document.getElementById('bubble-editable-template');
+        // _pbMaybeDecodeB64Html: DB'ye ham base64 yazılmış prompt'u görüntüde onarır (self-heal)
+        const editableHTML = _pbMaybeDecodeB64Html(cfg.editableHTML || (editableTemplate ? editableTemplate.innerHTML.trim() : ''));
+        if (editableText && editableHTML) {
+            editableText.innerHTML = editableHTML;
+            // UUID → label migrasyonu: eski DB kayıtlarındaki UUID data-id'leri label'a çevir (tek seferlik)
+            const _uuidPat = /^\d{10,}x\d{10,}$/;
+            const _uuidToLabel = new Map();
+            (cfg.customFields || []).forEach(function(f) { if (f.id && f.label) _uuidToLabel.set(f.id, f.label); });
+            let _migrated = false;
+            editableText.querySelectorAll('.token[data-id]').forEach(function(span) {
+                const _oldId = span.getAttribute('data-id');
+                if (_uuidPat.test(_oldId)) {
+                    const _lbl = _uuidToLabel.get(_oldId);
+                    if (_lbl) { span.setAttribute('data-id', _lbl); _migrated = true; }
+                }
+            });
+            if (_migrated) {
+                // GÖRÜNTÜ-ONLY migrasyon — otomatik savePrompt YOK.
+                // Eski davranış (markDirty+savePrompt 300ms): açılışta TAM-OVERRIDE kayıt atıyordu;
+                // (1) outputlist1-3'e UUID yerine LABEL gidiyordu (Bubble UUID bekler → alan
+                // bağları bozulur), (2) GAD approve'un taze kaydını 300ms sonra ESKİ içerikle
+                // ezebiliyordu (yarış), (3) hydration bitmeden boş/bayat state kaydedilebiliyordu.
+                // Kayıt, kullanıcı gerçekten kaydettiğinde (save/approve) zaten label→UUID
+                // dönüşümüyle yapılır — burada persist etmeye gerek yok.
+                console.log('[PB] UUID→label migrasyonu yapıldı (yalnız görüntüde — otomatik kayıt yok).');
+            }
+            // data-logoapp attribute'lu token'lara logo DOM olarak ekle
+            _gaiaInjectTokenLogos(editableText);
+        }
+
+        state.customFields = Array.isArray(cfg.customFields) ? cfg.customFields : [];
+        state.actions = Array.isArray(cfg.actions) ? cfg.actions : [];
+        const togglesCfg = cfg.toggles && typeof cfg.toggles === 'object' ? cfg.toggles : {};
+        state.toggles = new Set(
+            Object.entries(togglesCfg)
+                .filter(([, value]) => !!value)
+                .map(([key]) => key)
+        );
+
+        // Tools — normalizeTools çift sarmalı array ve string formatlarını handle eder
+        try {
+            const toolsCfg = normalizeTools(cfg.tools);
+            state.enabledTools = new Set();
+            if (!state.mcpTools || typeof state.mcpTools.clear !== 'function') state.mcpTools = new Map();
+            state.mcpTools.clear();
+            toolsCfg.forEach(t => {
+                if (!t || !t.type) return;
+                if (NATIVE_TOOLS[t.type]) {
+                    state.enabledTools.add(t.type);        // Native tool
+                } else if (t.type === 'mcp_tool' && t.tool) {
+                    state.mcpTools.set(t.tool, t);         // MCP tool (iç şekil)
+                } else if (/^[A-Z][A-Z0-9_]{2,}$/.test(t.type)) {
+                    // Server/GAD şekli: {type:'GMAIL_SEND_EMAIL', app:'gmail'}.
+                    // Eski kod bu şekli SESSİZCE düşürüyordu → tool state'e girmiyor,
+                    // sonraki savePrompt DB'den siliyordu ("tool önce görünüp kayboluyor").
+                    state.mcpTools.set(t.type, {
+                        type: 'mcp_tool',
+                        tool: t.type,
+                        app: String(t.app || _pbResolveToolApp(t.type) || '').toLowerCase(),
+                        display_name: t.display_name || t.type
+                    });
+                }
+            });
+            applyToolCards();
+        } catch(e) {
+            console.warn('[PB] tools hydration error (non-fatal):', e);
+            if (!state.enabledTools) state.enabledTools = new Set();
+            if (!state.mcpTools || typeof state.mcpTools.clear !== 'function') state.mcpTools = new Map();
+        }
+
+        // tool_required: Bubble DB'den gelen override → force_tools toggle'ını güncelle
+        if (cfg.tool_required === 'required') {
+            state.toggles.add('force_tools');
+        } else if (cfg.tool_required === 'auto') {
+            state.toggles.delete('force_tools');
+        }
+        // null/undefined → cfg.toggles'tan gelen değer korunur
+
+        // Reasoning — cfg.effort alanından oku (Bubble'da effort field'ı ayrı tutulur)
+        state.reasoningLevel = cfg.effort || '';
+        applyReasoningUI();
+
+        // Bu tur hangi veriyle hydrate olduğumuzu işaretle — bayatlık kapısı bunu okur.
+        // (Fonksiyonun SONUNDA: yarıda hata alırsak imza yazılmasın, PB "güncel" sanılmasın.)
+        try { window.__PB_HYDRATED_SIG__ = window._pbBubbleOptionsSig(); } catch (e) {}
+    }
+
+    // Architect'in açık talebiyle yeniden hydrate — kullanıcı BAŞKA bir ajana geçerken
+    // (gaiaExtractAndEdit) çağrılır. Arka planda kendiliğinden ÇALIŞMAZ: kaydetme sonrası
+    // Bubble re-render'ı ile yarışıp kullanıcının kaydedilmemiş düzenlemesini ezerdi.
+    window._pbRehydrateNow = function () {
+        const before = window.__PB_HYDRATED_SIG__ || '';
+        try { hydrateFromBubbleConfig(); } catch (e) { console.error('[PB] _pbRehydrateNow hatası:', e); return false; }
+        try { applyToggles(); } catch (e) {}
+        try { renderPalette(); } catch (e) {}
+        try { positionPalette(); } catch (e) {}
+        try { captureBaseline(); } catch (e) {}
+        const after = window.__PB_HYDRATED_SIG__ || '';
+        console.log('[PB] _pbRehydrateNow | imza:', before || '(yok)', '→', after || '(yok)',
+            '| değişti:', before !== after);
+        return true;
+    };
+
+    const NATIVE_TOOL_ICONS = {
+        image_generation: '🎨',
+        web_search: '🔍',
+        code_interpreter: '💻',
+        file_search: '📁'
+    };
+
+    function renderToolChips() {
+        const bar = document.getElementById('toolsSelectedBar');
+        if (!bar) return;
+        bar.innerHTML = '';
+
+        // Native tools
+        for (const toolId of (state.enabledTools || [])) {
+            const chip = document.createElement('span');
+            chip.className = 'tool-chip native';
+            const icon = NATIVE_TOOL_ICONS[toolId] || '⚙️';
+            const label = toolId.replace(/_/g, ' ');
+            chip.innerHTML = `<span class="tool-chip-name">${icon} ${label}</span><span class="tool-chip-remove" title="Kaldır">×</span>`;
+            chip.querySelector('.tool-chip-remove').onclick = () => {
+                state.enabledTools.delete(toolId);
+                applyToolCards();
+                isDirty = true; updateSaveButtonState(); savePrompt();
+            };
+            bar.appendChild(chip);
+        }
+
+        // MCP tools
+        for (const [key, toolObj] of (state.mcpTools?.entries() || [])) {
+            const chip = document.createElement('span');
+            chip.className = 'tool-chip';
+            const label = toolObj.display_name || toolObj.tool || key;
+            const appSlug = (toolObj.app || '').toLowerCase();
+            const appPrefix = appSlug ? `${appSlug}/` : '';
+            if (appSlug) chip.dataset.app = appSlug;
+            chip.innerHTML = `<span class="tool-chip-name" title="${appPrefix}${toolObj.tool || key}">🔧 ${label}</span><span class="tool-chip-remove" title="Kaldır">×</span>`;
+            chip.querySelector('.tool-chip-remove').onclick = () => {
+                state.mcpTools.delete(key);
+                applyToolCards();
+                isDirty = true; updateSaveButtonState(); savePrompt();
+            };
+            bar.appendChild(chip);
+        }
+
+        bar.style.display = bar.children.length > 0 ? 'flex' : 'none';
+    }
+
+    // ── AUTH CONNECTION HELPERS ───────────────────────────────────────────────
+    // Reads the gaia-connected-accounts DOM node (written by Bubble) and returns
+    // a Set of connected toolkit slugs (lowercase).
+    function _pbGetConnectedSlugs() {
+        const nodes = document.querySelectorAll('[id="gaia-connected-accounts"]');
+        const node = nodes.length > 0 ? nodes[nodes.length - 1] : null;
+        if (!node) return new Set();
+        try {
+            const raw = (node.textContent || '').trim();
+            if (!raw || raw.includes('format as text') || raw.includes('buraya')) return new Set();
+            const data = JSON.parse(raw);
+            const items = data.items || [];
+            return new Set(
+                items.map(i => i.toolkit && i.toolkit.slug && i.toolkit.slug.toLowerCase())
+                     .filter(Boolean)
+            );
+        } catch (e) { return new Set(); }
+    }
+
+    // Returns a Set of app slugs currently selected (MCP tools + triggers).
+    function _pbGetToolAppSlugs() {
+        const slugs = new Set();
+        for (const t of (state.mcpTools?.values() || [])) {
+            if (t.app) slugs.add(t.app.toLowerCase());
+        }
+        for (const t of (state.triggerSelections || [])) {
+            const slug = (t.app_slug || t.slug || '').toLowerCase();
+            if (slug) slugs.add(slug);
+        }
+        return slugs;
+    }
+
+    // Returns array of app slugs that are selected but NOT connected.
+    function _pbCheckUnconnected() {
+        const connected = _pbGetConnectedSlugs();
+        const toolSlugs = _pbGetToolAppSlugs();
+        return [...toolSlugs].filter(s => !connected.has(s));
+    }
+
+    // Updates auth warning banner and chip indicators.
+    function _pbUpdateAuthWarning() {
+        const unconnected = _pbCheckUnconnected();
+        const bar = document.getElementById('toolsSelectedBar');
+        if (bar) {
+            bar.querySelectorAll('.tool-chip').forEach(chip => {
+                const appSlug = (chip.dataset.app || '').toLowerCase();
+                const isNative = chip.classList.contains('native');
+                if (isNative || !appSlug) return;
+                const ok = !unconnected.includes(appSlug);
+                chip.classList.toggle('tool-chip-unconnected', !ok);
+                let warn = chip.querySelector('.tool-chip-warn');
+                if (!ok && !warn) {
+                    warn = document.createElement('span');
+                    warn.className = 'tool-chip-warn';
+                    warn.textContent = '⚠';
+                    warn.title = 'Bu uygulama bağlı değil — Kaydet\'e basınca bağlantı istenir';
+                    chip.insertBefore(warn, chip.querySelector('.tool-chip-name'));
+                } else if (ok && warn) {
+                    warn.remove();
+                }
+            });
+        }
+        const warnBanner = document.getElementById('pb-auth-warn');
+        if (warnBanner) {
+            if (unconnected.length > 0) {
+                const appNames = unconnected
+                    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+                    .join(', ');
+                const textEl = document.getElementById('pb-auth-warn-text');
+                if (textEl) textEl.textContent = `⚠ Bağlantı gerekli: ${appNames}`;
+                warnBanner.classList.add('visible');
+            } else {
+                warnBanner.classList.remove('visible');
+            }
+        }
+    }
+
+    // Trigger auth for all unconnected apps — called by banner button or savePrompt.
+    window._pbTriggerAuth = function () {
+        const unconnected = _pbCheckUnconnected();
+        if (unconnected.length === 0) return;
+        if (typeof window.gaiaStartAuthFlow === 'function') {
+            console.log('[PB] Auth başlatılıyor — bağlantısız uygulamalar:', unconnected);
+            window.gaiaStartAuthFlow(unconnected, null);
+        } else {
+            console.warn('[PB] gaiaStartAuthFlow bulunamadı — Architect yüklü değil');
+        }
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
+    function applyToolCards() {
+        const mcpCount    = (state.mcpTools?.size || 0);
+        const nativeCount = state.enabledTools.size;
+        const totalCount  = nativeCount + mcpCount;
+        const btn = document.getElementById('toolsTriggerBtn');
+        if (btn) {
+            btn.classList.toggle('has-active', totalCount > 0);
+            btn.title = totalCount > 0
+                ? `${nativeCount} native, ${mcpCount} MCP tool seçili`
+                : 'Tools seç';
+        }
+        // Update native tool checkboxes in fallback panel
+        Object.keys(NATIVE_TOOLS).forEach(toolType => {
+            const item = document.getElementById(`tpp-${toolType}`);
+            if (!item) return;
+            item.classList.toggle('tpp-active', state.enabledTools.has(toolType));
+        });
+        // Render chips strip
+        renderToolChips();
+        // Auth warning — check connections after chips render
+        _pbUpdateAuthWarning();
+    }
+
+    function toggleTool(toolType) {
+        // Only native tools togglable from the fallback panel
+        if (!NATIVE_TOOLS[toolType]) return;
+        if (state.enabledTools.has(toolType)) state.enabledTools.delete(toolType);
+        else state.enabledTools.add(toolType);
+        applyToolCards();
+        markDirty();
+    }
+    window.toggleTool = toggleTool;
+
+    function toggleToolsPicker() {
+        // AI Architect picker varsa onu aç (drawer olarak açılır, tool seçimi oradan)
+        if (typeof window.gaiaOpenToolPicker === 'function') {
+            // Mevcut seçimleri tools array formatında geç
+            const currentTools = [];
+            for (const toolId of state.enabledTools) {
+                if (NATIVE_TOOLS[toolId]) currentTools.push(NATIVE_TOOLS[toolId]);
+            }
+            for (const t of (state.mcpTools?.values() || [])) {
+                currentTools.push(t);
+            }
+            window.gaiaOpenToolPicker(currentTools, function(newTools, triggers) {
+                // newTools: [{type:'image_generation'}, {type:'mcp_tool', app:'github', tool:'GITHUB_CREATE_ISSUE', ...}]
+                // triggers: [{slug, app_slug, trigger_id, display_name}] veya boş dizi
+                state.enabledTools = new Set();
+                if (!state.mcpTools) state.mcpTools = new Map();
+                state.mcpTools.clear();
+                (newTools || []).forEach(t => {
+                    if (!t || !t.type) return;
+                    if (NATIVE_TOOLS[t.type]) {
+                        state.enabledTools.add(t.type);
+                    } else if (t.type === 'mcp_tool' && t.tool) {
+                        state.mcpTools.set(t.tool, t);
+                    }
+                });
+                // Trigger seçimleri varsa hepsini sakla
+                state.triggerSelections = (triggers && triggers.length > 0) ? triggers : [];
+                applyToolCards();
+                // Auto-save: Architect drawer kapandıktan sonra Prompt Builder
+                // erişilemez hale gelebilir. Seçim onaylanınca hemen kaydet.
+                // isDirty kontrolü bypass edilir — kullanıcı kasıtlı "Uygula" dedi.
+                isDirty = true;
+                updateSaveButtonState();
+                savePrompt();
+            });
+            return;
+        }
+        // Fallback: Architect sayfada yoksa yerel native panel
+        const panel = document.getElementById('toolsPickerPanel');
+        if (panel) panel.classList.toggle('active');
+    }
+    window.toggleToolsPicker = toggleToolsPicker;
+
+    function applyReasoningUI() {
+        const level = state.reasoningLevel || '';
+        const btn = document.getElementById('reasoningTriggerBtn');
+        if (btn) btn.classList.toggle('has-active', level !== '');
+        document.querySelectorAll('.rpp-item').forEach(item => {
+            item.classList.toggle('rpp-selected', item.dataset.level === level);
+        });
+    }
+
+    function setReasoning(level) {
+        state.reasoningLevel = level;
+        applyReasoningUI();
+        markDirty();
+    }
+    window.setReasoning = setReasoning;
+
+    function toggleReasoningPicker() {
+        const panel = document.getElementById('reasoningPickerPanel');
+        if (panel) panel.classList.toggle('active');
+    }
+    window.toggleReasoningPicker = toggleReasoningPicker;
+
+    function buildToolsOutput() {
+        const arr = [];
+        // Native OpenAI tools
+        for (const toolId of state.enabledTools) {
+            if (NATIVE_TOOLS[toolId]) arr.push(NATIVE_TOOLS[toolId]);
+        }
+        // MCP tools from Composio (selected individual tools)
+        // ÇIKIŞ ŞEKLİ = SERVER SÖZLEŞMESİ: {type:<ACTION_ID>, app:<slug>}.
+        // İç 'mcp_tool' şekli olduğu gibi yazılırsa server action granülaritesini kaybeder;
+        // app'siz yazılırsa server Composio bloğunu HİÇ çalıştırmaz (tool modele gitmez).
+        for (const toolObj of (state.mcpTools?.values() || [])) {
+            if (toolObj && toolObj.type === 'mcp_tool' && toolObj.tool) {
+                arr.push({
+                    type: toolObj.tool,
+                    app: String(toolObj.app || _pbResolveToolApp(toolObj.tool) || '').toLowerCase(),
+                    display_name: toolObj.display_name || toolObj.tool
+                });
+            } else {
+                arr.push(toolObj);
+            }
+        }
+        const isForced = state.toggles.has('force_tools') ? 'required' : 'auto';
+        const trigIds = (state.triggerSelections || []).map(t => t.trigger_id || '').filter(s => s !== '');
+        const trigIdsStr = trigIds.join(';');
+        // data_flow_rules splitter'a EKLENMEZ — savePrompt sırasında output4'ün sonuna (item 7) eklenir
+        try {
+            let _dfrJson = '';
+            if (typeof window._gadBuildDataFlowRules === 'function') {
+                _dfrJson = window._gadBuildDataFlowRules(trigIds.length > 0 ? trigIds : null);
+            } else {
+                const _gadTrigModes = window._gadTrigModes || {};
+                const _gadTrigMeta  = window._gadTrigMeta  || {};
+                if (trigIds.length === 0) {
+                    _dfrJson = JSON.stringify({ mode: 'update_known', triggers: [], system_block_text: 'Bu görev mevcut bir Gaia kaydı için çalışıyor. SADECE JSON çıktısı üret — GAIA_CREATE_OBJECT veya GAIA_MODIFY_OBJECT ÇAĞIRMA.' });
+                } else {
+                    const _trigs = trigIds.map(tid => {
+                        const m = _gadTrigModes[tid] || {};
+                        return { trigger_id: tid, mode: m.mode || 'external_only', search_keys: m.search_keys || [] };
+                    });
+                    const _lines = _trigs.map(t => {
+                        const meta = _gadTrigMeta[t.trigger_id] || {};
+                        const tLabel = meta.display_name || t.trigger_id;
+                        if (t.mode === 'create_new') return '• ' + tLabel + ': Webhook tetiklendi → GAIA_LIST_FIELDS → GAIA_CREATE_OBJECT ile yeni kayıt oluştur.';
+                        if (t.mode === 'find_update') {
+                            const skStr = t.search_keys.length > 0 ? t.search_keys.join(', ') : 'mevcut kontrol alanları';
+                            return '• ' + tLabel + ': Webhook tetiklendi → GAIA_SEARCH_OBJECT ile [' + skStr + '] üzerinden kayıt bul → GAIA_MODIFY_OBJECT ile güncelle.';
+                        }
+                        return '• ' + tLabel + ': Webhook tetiklendi → yalnızca dış araçları kullan; GAIA_CREATE_OBJECT / GAIA_MODIFY_OBJECT ÇAĞIRMA.';
+                    });
+                    _dfrJson = JSON.stringify({ triggers: _trigs, system_block_text: _lines.join('\n') });
+                }
+            }
+            window.__GAD_DFR_JSON__ = _dfrJson;
+        } catch(e) { window.__GAD_DFR_JSON__ = ''; }
+        return `${JSON.stringify(arr)}_-@SPLITTER@-_${state.reasoningLevel || ''}_-@SPLITTER@-_${isForced}_-@SPLITTER@-_${trigIdsStr}`;
+    }
+
+    // Click-outside: picker'ları kapat
+    document.addEventListener('click', (e) => {
+        const toolsWrap = document.getElementById('toolsPickerWrap');
+        const toolsPanel = document.getElementById('toolsPickerPanel');
+        if (toolsPanel && toolsWrap && !toolsWrap.contains(e.target)) {
+            toolsPanel.classList.remove('active');
+        }
+        const reasoningWrap = document.getElementById('reasoningPickerWrap');
+        const reasoningPanel = document.getElementById('reasoningPickerPanel');
+        if (reasoningPanel && reasoningWrap && !reasoningWrap.contains(e.target)) {
+            reasoningPanel.classList.remove('active');
+        }
+    });
+
+    function updateToggleVisuals() {
+        // toggleAutoflow artık GAD'de — window üzerinden bildir
+        const autoEl = document.getElementById('toggleAutoflow');
+        if (autoEl) autoEl.classList.toggle('active', state.toggles.has('autoflow'));
+        if (typeof window._gadUpdateAutoflowToggle === 'function') window._gadUpdateAutoflowToggle();
+
+        const forceToolsEl = document.getElementById('toggleForceTools');
+        if (forceToolsEl) forceToolsEl.classList.toggle('active', state.toggles.has('force_tools'));
+    }
+
+    function applyToggles() {
+        updateToggleVisuals();
+    }
+
+            function createToken(content, className, dataId) {
+                const token = document.createElement('span');
+        token.classList.add('token');
+        if (className) token.classList.add(className);
+                token.textContent = content;
+                token.dataset.id = dataId;
+                token.onclick = () => { token.remove(); markDirty(); };
+                token.contentEditable = "false";
+                token.draggable = false;
+                return token;
+            }
+
+    // data-logoapp attribute'lu token'lara logo img DOM ile ekle (HTML escape sorunu yok)
+    function _gaiaInjectTokenLogos(root) {
+        root = root || editableText;
+        if (!root) return;
+        root.querySelectorAll('.token[data-logoapp]').forEach(span => {
+            if (span.querySelector('img')) return; // zaten eklenmiş
+            const appKey = span.getAttribute('data-logoapp');
+            if (!appKey) return;
+            const tk  = (window.__TOOLKITS_CACHE__ || []).find(t => (t.slug||'').toLowerCase() === appKey);
+            const url = tk && ((tk.meta && (tk.meta.logo_url || tk.meta.logo)) || tk.logo_url || tk.logo);
+            if (url) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.setAttribute('data-slug', appKey);
+                img.style.cssText = 'width:14px;height:14px;object-fit:contain;border-radius:3px;flex-shrink:0;';
+                img.onerror = function(){ if (window._gaiaImgErr) window._gaiaImgErr(this); };
+                span.insertBefore(img, span.firstChild);
+            }
+        });
+    }
+    window._gaiaInjectTokenLogos = _gaiaInjectTokenLogos; // global erişim
+
+    function insertTokenFromItem(item, fallbackClass = 'action') {
+        if (!item) return;
+        const className = item.class || fallbackClass;
+        const rawLabel  = (item.label || '').split(' (')[0];
+        // Custom field token'larda data-id = label (taşınabilir, UUID yerine)
+        const _isFieldToken = ['mandatory', 'optional', 'control'].includes(className);
+        const id = _isFieldToken ? rawLabel : (item.id || '');
+        if (!rawLabel) return;
+
+        // Baştaki emoji/ikon prefix'ini temizle — logo DOM'dan eklenecek
+        const label = rawLabel
+            .replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{FE00}-\u{FEFF}\u{1F900}-\u{1FAFF}\u{231A}-\u{27BF}\s]+/u, '')
+            .trim() || rawLabel;
+
+        // Cursor fix: savedRange'i focus() ÖNCE yakala.
+        // focus() bir event tetikleyebilir ve ensureActiveRange() sonra başa konumlandırabilir.
+        let _targetRange = null;
+        if (state.savedRange) {
+            try {
+                const _rc = state.savedRange.cloneRange();
+                if (editableText.contains(_rc.commonAncestorContainer)) _targetRange = _rc;
+            } catch(_) {}
+        }
+
+        editableText.focus();
+
+        // focus() sonrası range'i açıkça geri yükle — ensureActiveRange() ÇAĞIRMA
+        // (ensureActiveRange mevcut seçimi "geçerli" sayar ve savedRange'i üzerine yazar)
+        {
+            const _sel = window.getSelection();
+            _sel?.removeAllRanges?.();
+            if (_targetRange) {
+                _sel?.addRange?.(_targetRange);
+            } else {
+                const _r = document.createRange();
+                _r.selectNodeContents(editableText);
+                _r.collapse(false); // fallback: sona ekle
+                _sel?.addRange?.(_r);
+            }
+        }
+
+        // execCommand: sadece sade metin token — HTML attribute içine logo HTML gömülmez
+        // (execCommand HTML parser'ı nested quote'larda bozuluyor)
+        const tempKey  = `tk_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`;
+        const escId    = id.replace(/"/g, '&quot;');
+        const escLabel = label.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const html = ` <span class="token ${className}" data-id="${escId}" data-tkey="${tempKey}" contenteditable="false" draggable="false">${escLabel}</span> `;
+
+        document.execCommand('insertHTML', false, html);
+
+        // Token'ı bul, onclick + logo'yu DOM üzerinden ekle (quote problemi yok)
+        let inserted = editableText.querySelector(`[data-tkey="${tempKey}"]`);
+
+        // Fallback: execCommand silently failed (e.g. no valid range) — insert directly via DOM
+        if (!inserted) {
+            const range = ensureActiveRange();
+            if (range) {
+                try {
+                    const newSpan = document.createElement('span');
+                    newSpan.className = `token ${className}`;
+                    newSpan.dataset.id = id;
+                    newSpan.dataset.tkey = tempKey;
+                    newSpan.contentEditable = 'false';
+                    newSpan.draggable = false;
+                    newSpan.textContent = label;
+                    range.deleteContents();
+                    const spAfter = document.createTextNode(' ');
+                    const spBefore = document.createTextNode(' ');
+                    range.insertNode(spAfter);
+                    range.insertNode(newSpan);
+                    range.insertNode(spBefore);
+                    // Move caret after inserted span
+                    const newRange = document.createRange();
+                    newRange.setStartAfter(spAfter);
+                    newRange.collapse(true);
+                    const sel2 = window.getSelection();
+                    sel2?.removeAllRanges?.();
+                    sel2?.addRange?.(newRange);
+                    inserted = newSpan;
+                    console.log('[PB insertToken] execCommand başarısız — DOM fallback kullanıldı');
+                } catch (domErr) {
+                    console.warn('[PB insertToken] DOM fallback da başarısız:', domErr);
+                }
+            }
+        }
+
+        if (inserted) {
+            inserted.removeAttribute('data-tkey');
+            inserted.style.cssText += ';display:inline-flex;align-items:center;gap:4px;vertical-align:middle;';
+            inserted.onclick = () => { inserted.remove(); markDirty(); };
+
+            // Logo: app key'i çıkar, toolkitsCache'ten bul, img DOM node olarak prepend
+            const appKey = item.app || (id.startsWith('mcp_') ? id.slice(4) : null);
+            if (appKey) {
+                const tk = (window.__TOOLKITS_CACHE__ || []).find(t => (t.slug||'').toLowerCase() === appKey);
+                const url = tk && ((tk.meta && (tk.meta.logo_url || tk.meta.logo)) || tk.logo_url || tk.logo);
+                if (url) {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.setAttribute('data-slug', appKey);
+                    img.style.cssText = 'width:14px;height:14px;object-fit:contain;border-radius:3px;flex-shrink:0;';
+                    img.onerror = function(){ if (window._gaiaImgErr) window._gaiaImgErr(this); };
+                    inserted.insertBefore(img, inserted.firstChild);
+                }
+            }
+        }
+
+        setTimeout(() => { saveCurrentRangeIfEditable(); markDirty(); }, 50);
+    }
+
+    function currentRangeRect() {
+        const sel = window.getSelection();
+        let range = sel?.rangeCount ? sel.getRangeAt(0) : null;
+        if (!(range && editableText.contains(range.commonAncestorContainer))) {
+            range = state.savedRange;
+        }
+        if (!range) return null;
+
+        // Use a marker span to get a reliable caret box even at line starts/empty lines
+        const marker = document.createElement('span');
+        marker.textContent = '\u200b';
+        marker.style.display = 'inline-block';
+        marker.style.width = '1px';
+        marker.style.height = '1em';
+
+        try {
+            const clone = range.cloneRange();
+            clone.collapse(true);
+            clone.insertNode(marker);
+            const rect = marker.getBoundingClientRect();
+            marker.remove();
+            return rect;
+        } catch(e) {
+            // Stale range (e.g. from a previous Bubble render) — clear it and give up
+            state.savedRange = null;
+            marker.remove();
+            return null;
+        }
+    }
+
+    function ensureActiveRange() {
+        if (!editableText) return null;
+        const sel = window.getSelection();
+        if (sel?.rangeCount) {
+            const r = sel.getRangeAt(0);
+            if (editableText.contains(r.commonAncestorContainer)) {
+                const clone = r.cloneRange();
+                state.savedRange = clone.cloneRange();
+                return clone;
+            }
+        }
+        if (state.savedRange) {
+            const clone = state.savedRange.cloneRange();
+            sel?.removeAllRanges?.();
+            sel?.addRange?.(clone);
+            return clone;
+        }
+        const fallback = document.createRange();
+        fallback.selectNodeContents(editableText);
+        fallback.collapse(false);
+        state.savedRange = fallback.cloneRange();
+        sel?.removeAllRanges?.();
+        sel?.addRange?.(fallback);
+        return fallback;
+    }
+
+    function restoreSavedSelection() {
+        if (!state.savedRange || !editableText) return;
+        const sel = window.getSelection();
+        const clone = state.savedRange.cloneRange();
+        sel?.removeAllRanges?.();
+        sel?.addRange?.(clone);
+    }
+
+            function getAllElements(className) {
+        if (!editableText) {
+                    console.error('Editable container not found.');
+                    return [];
+                }
+        const elements = editableText.querySelectorAll(`.${className}`);
+                return Array.from(elements).map(element => element.dataset.id);
+            }
+
+            function savePrompt() {
+        if (!isDirty) return;
+        const promptContentText = editableText.innerText.trim();
+        const promptContentHTML = editableText.innerHTML.trim();
+
+                const mandatoryFieldsOutput = getAllElements('mandatory');
+                const optionalFieldsOutput = getAllElements('optional');
+                const controlFieldsOutput = getAllElements('control');
+                const actionsOutput = getAllElements('action');
+        const toolsOutput = buildToolsOutput();
+        const autoflowOutput = state.toggles.has('autoflow');
+
+        // ── BOŞ-KAYIT KORUMASI ────────────────────────────────────────────────
+        // savePrompt TAM-OVERRIDE'dır: her kayıt agent'ın tüm içeriğini ezer.
+        // Editör boşken (Bubble hydration bitmeden, yanlış agent'ken veya PB restore
+        // yarışında) giden bir kayıt agent'ı DB'de SIFIRLAR. Boş full-override asla gönderilmez.
+        const _hasAnyToken = !!(editableText && editableText.querySelector('[data-id]'));
+        if (!promptContentText && !_hasAnyToken
+            && mandatoryFieldsOutput.length === 0 && optionalFieldsOutput.length === 0
+            && controlFieldsOutput.length === 0 && actionsOutput.length === 0) {
+            console.error('[PB savePrompt] ENGELLENDİ — editör tamamen boş; full-override boş kayıt agent\'ı siler. Kayıt atlandı.');
+            return;
+        }
+
+                // Öncelik (eski çalışan versiyondan restore):
+                //   1. bubble_fn_savePrompt      → Bubble global scope (JavascriptToBubble elementi)
+                //   2. window._callBubbleSave    → Bubble workflow'dan set edilmiş köprü
+                //   3. window.bubble_fn_savePrompt → window prefix ile (timing farkı için)
+                //   4. null → log + skip
+                // bubble_fn_savePrompt: Bubble HTML element scope'da YOK (global değil).
+                // Direkt referans ReferenceError verir — typeof ile kontrol et, direkt kullanma.
+                var _closureSaveFn = (typeof bubble_fn_savePrompt === 'function') ? bubble_fn_savePrompt : null; // typeof safe
+                var _saveFn = _closureSaveFn
+                    || (typeof window._callBubbleSave === 'function' ? window._callBubbleSave : null)
+                    || (typeof window.bubble_fn_savePrompt === 'function' ? window.bubble_fn_savePrompt : null);
+                var _saveLabel = _closureSaveFn ? 'closure-direct ✓'
+                    : (typeof window._callBubbleSave === 'function') ? 'bridge'
+                    : (typeof window.bubble_fn_savePrompt === 'function') ? 'window-direct'
+                    : 'NULL — kayıt atlanacak!';
+                console.log('[PB savePrompt]',
+                    '| closure bubble_fn_savePrompt:', typeof bubble_fn_savePrompt,
+                    '| window._callBubbleSave:', typeof window._callBubbleSave,
+                    '| window.bubble_fn_savePrompt:', typeof window.bubble_fn_savePrompt,
+                    '| seçilen:', _saveLabel);
+                // Auth check: trigger auth for any unconnected apps on Save
+                // (runs in parallel with save — user connects while prompt is being saved)
+                try {
+                    var _unconnectedOnSave = _pbCheckUnconnected();
+                    if (_unconnectedOnSave.length > 0 && typeof window.gaiaStartAuthFlow === 'function') {
+                        console.log('[PB savePrompt] Auth gerekli — başlatılıyor:', _unconnectedOnSave);
+                        window.gaiaStartAuthFlow(_unconnectedOnSave, null);
+                    }
+                } catch (_authErr) { console.warn('[PB savePrompt] auth check error (non-fatal):', _authErr); }
+
+                if (typeof _saveFn === 'function') {
+                    var _savePayload = {
+                        output1: promptContentText,
+                        output2: promptContentHTML,
+                        outputlist1: mandatoryFieldsOutput,
+                        outputlist2: optionalFieldsOutput,
+                        outputlist3: controlFieldsOutput,
+                        outputlist4: actionsOutput,
+                        output3: autoflowOutput,
+                        output4: toolsOutput
+                    };
+                    // GAD tools override: gaiaApproveAgentDashboard buildToolsOutput'u bypass eder
+                    // (PB restore/re-create sırasında state.mcpTools temizlenebilir — güvenilmez)
+                    // __GAD_TOOLS_OVERRIDE__ = "tools_-@SPLITTER@-_effort_-@SPLITTER@-_forced_-@SPLITTER@-_trigIds"
+                    // output4 SAVEPROMPT KESIN INDEX DÜZENİ (her zaman 7 segment):
+                    //   [1] tools JSON  [2] effort  [3] forced  [4] trigIds
+                    //   [5] cfFieldsBase64       (boş olabilir — yeni alan eklenmediyse "")
+                    //   [6] innerpromptBase64    (boş olabilir)
+                    //   [7] data_flow_rules      (her zaman dolu — Bubble buradan okur)
+                    var _baseOut = toolsOutput;
+                    if (window.__GAD_TOOLS_OVERRIDE__) {
+                        _baseOut = window.__GAD_TOOLS_OVERRIDE__;
+                        window.__GAD_TOOLS_OVERRIDE__ = null;
+                    }
+                    var _cfFieldsB64 = '';
+                    var _innerPB64   = '';
+                    if (window.__GAD_NEW_FIELDS__ && window.__GAD_NEW_FIELDS__.cfFieldsBase64) {
+                        _cfFieldsB64 = window.__GAD_NEW_FIELDS__.cfFieldsBase64 || '';
+                        _innerPB64   = window.__GAD_NEW_FIELDS__.innerpromptBase64 || '';
+                        window.__GAD_NEW_FIELDS__ = null;
+                    }
+                    var _dfrFinal = window.__GAD_DFR_JSON__ || '';
+                    window.__GAD_DFR_JSON__ = null;
+                    _savePayload.output4 = _baseOut
+                        + '_-@SPLITTER@-_' + _cfFieldsB64
+                        + '_-@SPLITTER@-_' + _innerPB64
+                        + '_-@SPLITTER@-_' + _dfrFinal;
+                    console.log('[PB] output4 7-segment | cfFields:', _cfFieldsB64.length, '| innerprompt:', _innerPB64.length, '| dfr:', _dfrFinal.length);
+                    console.log('[PB savePrompt] payload özetlendi | output1 uzunluk:', _savePayload.output1.length,
+                        '| mandatory IDs:', _savePayload.outputlist1,
+                        '| optional IDs:', _savePayload.outputlist2,
+                        '| control IDs:', _savePayload.outputlist3,
+                        '| action IDs:', _savePayload.outputlist4,
+                        '| output4 prefix (80 chr):', (_savePayload.output4||'').substring(0,80));
+                    _saveFn(_savePayload);
+                } else {
+                    console.warn('[PB] bubble_fn_savePrompt tanımlı değil — kayıt atlandı.');
+                }
+
+                captureBaseline();
+            }
+
+            function testPrompt() {
+                // NOT: bubble_fn_testPrompt artık test-modu DURUM KANALI'dır
+                // (output1=referedeğer, output2=test modu true/false). Eski çoklu-output
+                // kontratı (promptText/promptHTML/outputlist…) ARTIK ANLAMSIZ — kanalı
+                // kirletmemek için buradan o şekilde yayın YAPMIYORUZ.
+                // Gerçek test akışı GAD'taki Test Agent butonu → window._gadFireTestPrompt'tan geçer.
+                if (typeof window._gadFireTestPrompt === 'function') {
+                    try {
+                        const promptContentText = editableText.innerText.trim();
+                        window._gadFireTestPrompt(promptContentText);
+                    } catch (e) { console.error('[PB] _gadFireTestPrompt hata:', e); }
+                } else {
+                    console.warn('[PB] _gadFireTestPrompt yok — testi Agent Dashboard içinden çalıştır.');
+                }
+    }
+
+    function toggleOption(option) {
+        if (state.toggles.has(option)) {
+            state.toggles.delete(option);
+        } else {
+            state.toggles.add(option);
+        }
+        updateToggleVisuals();
+        markDirty();
+    }
+    window.toggleOption = toggleOption;
+    window.savePrompt   = savePrompt;
+    window.testPrompt   = testPrompt;
+
+    // Dashboard edit modundan çağrılır — isDirty bypass eder, trigger ID'lerini sync'ler.
+    // savePrompt() → window._callBubbleSave köprüsü → bubble_fn_savePrompt (ilk script closure).
+    // __GAD_NEW_FIELDS__ savePrompt() içinde okunur ve output4'e eklenir; burada temizlenmez.
+    window._pbForceSave = function(triggerIds) {
+        if (Array.isArray(triggerIds) && triggerIds.length > 0) {
+            state.triggerSelections = triggerIds.map(function(id) { return { trigger_id: id }; });
+        }
+        isDirty = true;
+        updateSaveButtonState();
+        console.log('[_pbForceSave] tetiklendi | triggerIds:', triggerIds,
+            '| customFields in state:', state.customFields.length,
+            '| editableText token sayısı (mandatory):', document.querySelectorAll('#editableText .mandatory').length,
+            '| closure bubble_fn_savePrompt:', typeof bubble_fn_savePrompt,
+            '| window.bubble_fn_savePrompt:', typeof window.bubble_fn_savePrompt,
+            '| _callBubbleSave:', typeof window._callBubbleSave);
+        savePrompt();
+    };
+
+    // ── Bubble-callable: Ajana ait custom field'ları PB state'ine bildir ─────
+    // Bubble tarafından "Run JavaScript in element" ile çağrılır.
+    // Kullanım: window.bubble_fn_notifyCustomFields(jsonStringVeyaDizi)
+    // GAD edit modunda _gadAllFields kaynağı __FLOW_BUILDER_STATE__.customFields olduğundan
+    // bu fonksiyon, GAD açılmadan ÖNCE çağrılmalıdır.
+    window.bubble_fn_notifyCustomFields = function(cfData) {
+        try {
+            var arr = typeof cfData === 'string' ? JSON.parse(cfData) : cfData;
+            if (!Array.isArray(arr)) arr = [];
+            state.customFields = arr;
+            if (window.__FLOW_BUILDER_STATE__) window.__FLOW_BUILDER_STATE__.customFields = arr;
+            console.log('[PB] bubble_fn_notifyCustomFields: ' + arr.length + ' alan set edildi',
+                arr.map(function(f){ return f.label || f.id || '?'; }));
+            // Palette açıksa yenile
+            try { renderPalette(); } catch(_re) {}
+        } catch(e) {
+            console.warn('[PB] bubble_fn_notifyCustomFields hata:', e);
+        }
+    };
+
+    function renderPalette(filterText = '') {
+        const q = filterText.trim().toLowerCase();
+        paletteItems = [];
+        selectedIndex = -1;
+
+        // ── Tab: Uygulamalar ─────────────────────────────────────────────────
+        if (_pTab === 'apps') {
+            const cat      = window.__MCP_CATALOG__      || {};
+            const allInteg = window.__ALL_INTEGRATIONS__ || cat;
+
+            // Aktif app'leri işaretle (yeşil nokta)
+            const activeSlugs = new Set(
+                (window._gadCurrentTools || []).map(t => {
+                    if (t.app) return t.app;
+                    const fn = Object.entries(cat).find(([,a]) => a.tools && a.tools.some(x => x.id === t.type));
+                    return fn ? fn[0] : null;
+                }).filter(Boolean)
+            );
+
+            // App grid — toolkitsCache direkt iterate (slug araması yok → overlap imkansız)
+            if (paletteAppGrid) {
+                paletteAppGrid.innerHTML = '';
+
+                // Native OpenAI tools — grid'in üstünde sabit
+                const NATIVE_TOOLS = [
+                    { id: 'native_image_gen',    label: 'Image Generation', icon: '🎨' },
+                    { id: 'native_web_search',   label: 'Web Search',       icon: '🔍' },
+                    { id: 'native_code',         label: 'Code Interpreter', icon: '💻' },
+                    // file_search palette'den gizlendi — bilgi kısmından yönetiliyor
+                ];
+                if (!q) {
+                    NATIVE_TOOLS.forEach(nt => {
+                        const tile = document.createElement('div');
+                        tile.className = 'papp-tile' + (_pAppKey === nt.id ? ' papp-active' : '');
+                        tile.innerHTML = `<span class="papp-tile-icon">${nt.icon}</span>`
+                            + `<span class="papp-tile-name" style="color:#7c3aed;">${nt.label}</span>`;
+                        tile.onclick = () => { _pAppKey = _pAppKey === nt.id ? null : nt.id; renderPalette(paletteSearch ? paletteSearch.value : ''); };
+                        paletteAppGrid.appendChild(tile);
+                    });
+                }
+
+                // Kaynak: __TOOLKITS_CACHE__ direkt (tk objesi, slug araması yok)
+                const tkCache = window.__TOOLKITS_CACHE__ || [];
+
+                // Cache boşsa fetch tetikle
+                if (tkCache.length === 0 && typeof window.bubble_fn_gaia_toolkits === 'function') {
+                    window.bubble_fn_gaia_toolkits({ output1: '', output2: '', output3: '' });
+                }
+
+                // Yükleniyor — emoji gösterme, spinner göster
+                if (tkCache.length === 0 && !q) {
+                    const spin = document.createElement('div');
+                    spin.style.cssText = 'grid-column:span 4;display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 0;';
+                    spin.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border:2px solid #e2e8f0;'
+                        + 'border-top-color:#6366f1;border-radius:50%;animation:spin 0.7s linear infinite;"></span>'
+                        + '<span style="font-size:10px;color:#94a3b8;">Uygulamalar yükleniyor...</span>';
+                    paletteAppGrid.appendChild(spin);
+                    return; // tools hint'i gösterme
+                }
+
+                const gridSource = tkCache.length > 0
+                    ? tkCache
+                    : Object.entries(allInteg).map(([k, v]) => ({ slug: k, name: v.label, meta: {} }));
+
+                gridSource.forEach(tk => {
+                    const key = (tk.slug || '').toLowerCase();
+                    if (!key) return;
+                    const label = tk.name || (allInteg[key] && allInteg[key].label) || key;
+                    if (q) {
+                        const catApp = cat[key];
+                        const nameMatch = label.toLowerCase().includes(q) || key.includes(q);
+                        const toolMatch = catApp && catApp.tools && catApp.tools.some(t =>
+                            t.label.toLowerCase().includes(q) || t.id.toLowerCase().includes(q));
+                        if (!nameMatch && !toolMatch) return;
+                    }
+                    // tk objesi direkt → _gaiaLogoFromTK slug araması yapmaz → tek element, overlap yok
+                    const logoHTML = (typeof window._gaiaLogoFromTK === 'function')
+                        ? window._gaiaLogoFromTK(tk, 20)
+                        : `<span class="papp-tile-icon">${(cat[key] && cat[key].icon) || (allInteg[key] && allInteg[key].icon) || '🔧'}</span>`;
+                    const dot = activeSlugs.has(key)
+                        ? '<span style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block;flex-shrink:0;"></span>'
+                        : '';
+                    const tile = document.createElement('div');
+                    tile.className = 'papp-tile' + (_pAppKey === key ? ' papp-active' : '');
+                    tile.innerHTML = `${logoHTML}${dot}<span class="papp-tile-name">${label}</span>`;
+                    tile.onclick = () => { _pAppKey = _pAppKey === key ? null : key; renderPalette(paletteSearch ? paletteSearch.value : ''); };
+                    paletteAppGrid.appendChild(tile);
+                });
+
+                // Daha Fazla butonu
+                if (typeof window._gaiaHubHasMore === 'function' && window._gaiaHubHasMore() && !q) {
+                    const total = typeof window._gaiaHubTotalCount === 'function' ? window._gaiaHubTotalCount() : 0;
+                    const loaded = tkCache.length;
+                    const moreBtn = document.createElement('div');
+                    moreBtn.style.cssText = 'grid-column:span 4;text-align:center;padding:6px 0;';
+                    moreBtn.innerHTML = `<button onclick="window.gaiaHubLoadMore()" style="padding:4px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;font-weight:600;cursor:pointer;">↓ Daha Fazla ${total ? '('+loaded+'/'+total+')' : ''}</button>`;
+                    paletteAppGrid.appendChild(moreBtn);
+                }
+            }
+
+            // Seçili uygulamanın araçları
+            const hintEl = document.getElementById('paletteToolsHint');
+            if (paletteTools) {
+                paletteTools.innerHTML = '';
+                if (hintEl) hintEl.textContent = '';
+
+                if (!_pAppKey) {
+                    if (hintEl) hintEl.textContent = 'Araç eklemek için bir uygulama seçin ↑';
+                } else {
+                    // Native tool seçildiyse tek item
+                    const NATIVE_MAP = {
+                        native_image_gen:   { id: 'native_image_gen',   label: '🎨 Image Generation', class: 'action' },
+                        native_web_search:  { id: 'native_web_search',  label: '🔍 Web Search',       class: 'action' },
+                        native_code:        { id: 'native_code',        label: '💻 Code Interpreter', class: 'action' },
+                        native_file_search: { id: 'native_file_search', label: '📁 File Search',      class: 'action' },
+                    };
+                    if (NATIVE_MAP[_pAppKey]) {
+                        const items = [NATIVE_MAP[_pAppKey]];
+                        items.forEach(item => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button'; btn.className = 'palette-item';
+                            const lbl = document.createElement('span'); lbl.textContent = item.label;
+                            const badge = document.createElement('span'); badge.className = 'palette-badge'; badge.textContent = 'native';
+                            btn.append(lbl, badge);
+                            btn.onclick = () => { insertTokenFromItem(item, 'action'); hidePalette(); };
+                            paletteTools.appendChild(btn);
+                            paletteItems.push({ type: 'tool', data: item, btn });
+                        });
+                    } else {
+                    const catApp   = cat[_pAppKey];
+                    const appInfo  = allInteg[_pAppKey] || catApp || {};
+                    const tkEntry  = (window.__TOOLKITS_CACHE__ || []).find(t => (t.slug||'').toLowerCase() === _pAppKey);
+                    const icon     = (catApp && catApp.icon) || appInfo.icon || '🔧';
+                    const appLabel = (tkEntry && tkEntry.name) || appInfo.label || _pAppKey;
+                    const appItem  = { id: `mcp_${_pAppKey}`, label: appLabel, class: 'action', app: _pAppKey };
+
+                    // Tool sources (priority order):
+                    //  1. Static catalog (__MCP_CATALOG__)
+                    //  2. Architect hub cache (hub.toolsCache when hub.slug matches)
+                    //  3. Per-app persistent cache (_cachedAppTools) — survives palette reopen
+                    const _hub     = window.__GAIA_HUB__;
+                    const hubTools = (_hub && (_hub.slug || '').toLowerCase() === _pAppKey) ? (_hub.toolsCache || []) : null;
+                    const catTools = (catApp && catApp.tools && catApp.tools.length > 0) ? catApp.tools : null;
+                    const rawTools = catTools
+                        || (hubTools && hubTools.length > 0 ? hubTools : null)
+                        || _cachedAppTools[_pAppKey]
+                        || null;
+
+                    // Cache whatever we found so next palette open still has data
+                    if (rawTools && rawTools.length > 0) {
+                        _cachedAppTools[_pAppKey] = rawTools;
+                    }
+
+                    let items = [appItem];
+                    if (rawTools && rawTools.length > 0) {
+                        items = items.concat(rawTools.map(t => ({
+                            id: t.id || t.slug || t.action_id || t.enum_value,
+                            label: t.label || t.name || t.display_name || t.id,
+                            class: 'action',
+                            app: _pAppKey
+                        })));
+                    }
+
+                    // Helper: build logo element for a palette-item button
+                    function _mkLogoEl() {
+                        const s = document.createElement('span');
+                        s.style.cssText = 'width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;line-height:1;';
+                        if (tkEntry && typeof window._gaiaLogoFromTK === 'function') {
+                            s.innerHTML = window._gaiaLogoFromTK(tkEntry, 14);
+                        } else {
+                            s.textContent = icon;
+                        }
+                        return s;
+                    }
+
+                    items
+                        .filter(item => !q || (item.label || '').toLowerCase().includes(q))
+                        .forEach(item => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'palette-item';
+                            btn.append(_mkLogoEl());
+                            const lbl = document.createElement('span');
+                            lbl.textContent = item.label || item.id;
+                            const badge = document.createElement('span');
+                            badge.className = 'palette-badge';
+                            badge.textContent = item.id === `mcp_${_pAppKey}` ? 'app' : 'fn';
+                            btn.append(lbl, badge);
+                            btn.onclick = () => { insertTokenFromItem(item, 'action'); hidePalette(); };
+                            paletteTools.appendChild(btn);
+                            paletteItems.push({ type: 'tool', data: item, btn });
+                        });
+                    } // end else (non-native app)
+                }
+            }
+        }
+
+        // ── Tab: Alanlar ─────────────────────────────────────────────────────
+        if (_pTab === 'fields' && paletteCustom) {
+            const _ftIcon = t => ({ text:'T', long_text:'≡', multiline_text:'¶', number:'#',
+                dropdown:'⌄', checkbox:'✓', date:'◫', reference:'⇗',
+                image_pdf:'⊞', phone:'☎', embed:'{}', user:'◉', email:'@' }[t] || '◻');
+            paletteCustom.innerHTML = '';
+            state.customFields
+                .filter(item => !['sys_cf','action_cf'].includes(item.type))
+                .filter(item => !q || (item.label || '').toLowerCase().includes(q))
+                .forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'palette-item';
+                    const icon = document.createElement('span');
+                    icon.textContent = _ftIcon(item.type);
+                    icon.style.cssText = 'font-size:10px;color:#94a3b8;min-width:14px;text-align:center;font-family:monospace;';
+                    const label = document.createElement('span');
+                    label.textContent = item.label || 'Untitled';
+                    const badge = document.createElement('span');
+                    badge.className = 'palette-badge';
+                    badge.textContent = item.class || 'field';
+                    btn.append(icon, label, badge);
+                    btn.onclick = () => { insertTokenFromItem(item, item.class || 'optional'); hidePalette(); };
+                    paletteCustom.appendChild(btn);
+                    paletteItems.push({ type: 'field', data: item, btn });
+                });
+        }
+
+        // ── Tab: Yönlendiriciler — routing UI'ı inline göster ────────────────
+        if (_pTab === 'actions' && paletteActions) {
+            paletteActions.innerHTML = '';
+            // gad-routing-inner kutusu palette'e taşınır; tüm JS ID'leri & fonksiyonlar korunur
+            if (typeof window._gadRoutingInlineTo === 'function') {
+                window._gadRoutingInlineTo(paletteActions);
+            } else {
+                // Fallback: Architect henüz yüklenmediyse basit mesaj
+                const msg = document.createElement('div');
+                msg.style.cssText = 'font-size:11px;color:#94a3b8;text-align:center;padding:32px 8px;';
+                msg.textContent = 'Yönlendirici paneli yüklenemedi.';
+                paletteActions.appendChild(msg);
+            }
+        }
+
+        if (paletteItems.length) {
+            selectedIndex = 0;
+            updateSelection();
+        }
+    }
+
+    function updateSelection() {
+        paletteItems.forEach((item, idx) => {
+            item.btn.classList.toggle('is-active', idx === selectedIndex);
+        });
+    }
+
+    function moveSelection(delta) {
+        if (!paletteItems.length) return;
+        selectedIndex = (selectedIndex + delta + paletteItems.length) % paletteItems.length;
+        updateSelection();
+    }
+
+    function activateSelection() {
+        if (selectedIndex < 0 || !paletteItems[selectedIndex]) return;
+        const sel = paletteItems[selectedIndex];
+        insertTokenFromItem(sel.data, sel.type === 'field' ? (sel.data.class || 'optional') : (sel.data.class || 'action'));
+        hidePalette();
+    }
+
+    function positionPalette() {
+        if (!paletteInner) return;
+        const PW = 360, PH = 420;
+        let x = 0, y = 0, anchored = false;
+        try {
+            const r = state.savedRange && state.savedRange.getBoundingClientRect();
+            if (r && (r.left || r.top || r.width)) { x = r.left; y = r.bottom + 8; anchored = true; }
+        } catch(_) {}
+        if (!anchored && fixedTrigger) {
+            const r = fixedTrigger.getBoundingClientRect();
+            x = r.left; y = r.bottom + 8; anchored = true;
+        }
+        if (!anchored && editableText) {
+            const r = editableText.getBoundingClientRect();
+            x = r.left; y = r.bottom + 8;
+        }
+        const vw = window.innerWidth, vh = window.innerHeight;
+        x = Math.max(8, Math.min(x, vw - PW - 8));
+        if (y + PH > vh - 8) {
+            try {
+                const r = state.savedRange && state.savedRange.getBoundingClientRect();
+                y = r ? Math.max(8, r.top - PH - 8) : Math.max(8, y - PH - 16);
+            } catch(_) { y = Math.max(8, y - PH - 16); }
+        }
+        paletteInner.style.top  = y + 'px';
+        paletteInner.style.left = x + 'px';
+        paletteInner.style.transform = 'none';
+    }
+
+    function showPalette(focusSearch = true) {
+        ensureActiveRange();
+
+        // Palette her açıldığında apps tab'ına dön ve tüm pane display'lerini sıfırla
+        _pTab = 'apps';
+        document.querySelectorAll('#ptabBar .ptab').forEach(t =>
+            t.classList.toggle('ptab-active', t.dataset.ptab === 'apps'));
+        ['apps', 'fields', 'actions'].forEach(name => {
+            const pane = document.getElementById(`ptab-${name}`);
+            if (!pane) return;
+            const isActive = name === 'apps';
+            pane.classList.toggle('ptab-pane-active', isActive);
+            pane.style.display = isActive ? 'contents' : 'none';
+        });
+
+        renderPalette('');
+        positionPalette();
+        palettePanel?.classList.add('active');
+        paletteInner?.classList.add('active');
+        if (paletteSearch && focusSearch) {
+            paletteSearch.value = '';
+            paletteSearch.focus();
+        }
+    }
+
+    function hidePalette(restoreSelection = false) {
+        // Routing UI palette'e taşındıysa orijinal yerine geri al
+        if (typeof window._gadRoutingRestoreFromInline === 'function') {
+            window._gadRoutingRestoreFromInline();
+        }
+        palettePanel?.classList.remove('active');
+        paletteInner?.classList.remove('active');
+        selectedIndex = -1;
+        if (restoreSelection) {
+            restoreSavedSelection();
+            editableText?.focus();
+        }
+    }
+
+    // Global erişim — dashboard "Tool Ekle" butonu buradan palette'yi açar
+    window._pbOpenPalette = function() {
+        // toolkitsCache boşsa Bubble'dan çek (logolar için)
+        if ((!window.__TOOLKITS_CACHE__ || window.__TOOLKITS_CACHE__.length === 0)
+            && typeof window.bubble_fn_gaia_toolkits === 'function') {
+            window.bubble_fn_gaia_toolkits({ output1: '', output2: '', output3: '' });
+        }
+        ensureActiveRange();
+        showPalette(true);
+        // editableText görünür değilse container'ı scroll et
+        if (editableText) editableText.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    // toolkitsCache güncellenince açık palette'yi yenile + token logolarını güncelle (Architect'ten çağrılır)
+    window._pbRerenderPalette = function() {
+        if (palettePanel && palettePanel.classList.contains('active')) {
+            renderPalette(paletteSearch ? paletteSearch.value : '');
+        }
+        // Prompt alanındaki data-logoapp token'larına logo ekle (palette kapalı olsa bile)
+        _gaiaInjectTokenLogos();
+    };
+
+    fixedTrigger?.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (palettePanel?.classList.contains('active')) hidePalette(true);
+        else {
+            ensureActiveRange();
+            showPalette(true);
+        }
+    });
+
+    editableText?.addEventListener('keydown', (e) => {
+        if (e.key === '/') {
+            e.preventDefault();
+            saveCurrentRangeIfEditable();
+            showPalette(true);
+        } else if (e.key === 'Escape') {
+            hidePalette(true);
+        }
+    });
+
+    paletteSearch?.addEventListener('input', (e) => {
+        renderPalette(e.target.value || '');
+        positionPalette();
+    });
+
+    // Tab switching — delegated on palette panel
+    document.getElementById('ptabBar')?.addEventListener('click', e => {
+        const tab = e.target.closest('.ptab[data-ptab]');
+        if (!tab) return;
+        _pTab = tab.dataset.ptab;
+        _pAppKey = null;   // reset app selection on tab change
+        // Update active tab button
+        document.querySelectorAll('#ptabBar .ptab').forEach(t =>
+            t.classList.toggle('ptab-active', t === tab));
+        // Show/hide tab panes — inline style zorunlu: CSS class'ı inline style'ı override edemez
+        ['apps','fields','actions'].forEach(name => {
+            const pane = document.getElementById(`ptab-${name}`);
+            if (!pane) return;
+            const isActive = name === _pTab;
+            pane.classList.toggle('ptab-pane-active', isActive);
+            // apps: display:contents (flex-body'e doğrudan dahil), diğerleri: flex:1
+            pane.style.display = isActive ? (name === 'apps' ? 'contents' : 'flex') : 'none';
+        });
+        renderPalette(paletteSearch ? paletteSearch.value : '');
+    });
+
+    editableText?.addEventListener('input', () => {
+        markDirty();
+    });
+
+    paletteSearch?.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            moveSelection(1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            moveSelection(-1);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            activateSelection();
+        } else if (e.key === 'Escape') {
+            hidePalette(true);
+        }
+    });
+
+    // Tam-ekran kapatma butonu
+    document.getElementById('paletteCloseBtn')?.addEventListener('click', () => hidePalette(true));
+
+    ['keyup','mouseup','input','focus'].forEach(evt => {
+        editableText?.addEventListener(evt, () => {
+            saveCurrentRangeIfEditable();
+            positionPalette();
+        });
+    });
+    // Palette dışına (editableText dahil) tıklanınca kapat — capture fazında yakala
+    // çünkü palette aktifken editableText üzerindeki tıklamalar önce palette'ye gider.
+    document.addEventListener('mousedown', (e) => {
+        if (!palettePanel?.classList.contains('active')) return;
+        const inside = paletteInner?.contains(e.target) || fixedTrigger?.contains(e.target);
+        if (!inside) hidePalette(true);
+    }, true);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            hidePalette(true);
+        }
+    });
+    document.addEventListener('selectionchange', () => {
+        saveCurrentRangeIfEditable();
+    });
+
+    function _initAll() {
+        try { hydrateFromBubbleConfig(); } catch(e) { console.error('[PB] hydrateFromBubbleConfig error:', e); }
+        try { applyToggles(); } catch(e) {}
+        try { renderPalette(); } catch(e) {}
+        try { positionPalette(); } catch(e) {}
+        try { captureBaseline(); } catch(e) {}
+    }
+
+    hardenPaletteSearch();
+    _initAll();
+
+    document.addEventListener('DOMContentLoaded', _initAll);
+
+    // Retry if editor is still empty after 250ms (Bubble may set BUBBLE_CONFIG after element renders)
+    setTimeout(() => {
+        if (!document.getElementById('editableText')?.innerHTML.trim()) {
+            _initAll();
+        }
+    }, 250);
+
+    // Also retry at 800ms for slow Bubble workflows
+    setTimeout(() => {
+        if (!document.getElementById('editableText')?.innerHTML.trim()) {
+            _initAll();
+        }
+    }, 800);
+
+    // Bubble-callable: call this from a "Run JavaScript in element" action after setting BUBBLE_CONFIG
+    window.bubble_fn_hydratePromptBuilder = function(cfg) {
+        if (cfg && typeof cfg === 'object') window.BUBBLE_CONFIG = cfg;
+        _initAll();
+    };
+
+    container?.addEventListener('scroll', () => {
+        positionPalette();
+    });
+})();
+        </script>
+    </div>
+</body>
+</html>
