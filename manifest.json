@@ -1,0 +1,40 @@
+{
+    "repo":  "SaltukKirac/gaia-elements",
+    "channel":  "main",
+    "rev":  1,
+    "updated":  "2026-09-24T20:35:50Z",
+    "elements":  {
+                     "chat":  {
+                                  "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
+                                  "path":  "el/chat.html",
+                                  "blob":  "c6ab4bbd7c2288cf7231b57e00ed4381846c1213",
+                                  "bytes":  2781952,
+                                  "title":  "Architect / GAD chat (+ Octo shell)",
+                                  "updated":  "2026-09-24T20:35:50Z"
+                              },
+                     "form":  {
+                                  "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
+                                  "path":  "el/form.html",
+                                  "blob":  "24bba233c3e7abe213de77ac988348d34fff39d8",
+                                  "bytes":  781725,
+                                  "title":  "Dynamic form",
+                                  "updated":  "2026-09-24T20:35:50Z"
+                              },
+                     "prompt-builder":  {
+                                            "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
+                                            "path":  "el/prompt-builder.html",
+                                            "blob":  "e836e467272cbadcdef2856cafbcd06b3e22b281",
+                                            "bytes":  119543,
+                                            "title":  "Prompt Builder",
+                                            "updated":  "2026-09-24T20:35:50Z"
+                                        },
+                     "table":  {
+                                   "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
+                                   "path":  "el/table.html",
+                                   "blob":  "b91012c38963c61947753d10f999b8b326b92d14",
+                                   "bytes":  322553,
+                                   "title":  "Dynamic table (tablev2)",
+                                   "updated":  "2026-09-24T20:35:50Z"
+                               }
+                 }
+}
