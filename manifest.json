@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "main",
-    "rev":  5,
-    "updated":  "2026-09-24T21:46:46Z",
+    "rev":  6,
+    "updated":  "2026-09-24T22:28:46Z",
     "elements":  {
                      "architect":  {
                                        "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
@@ -45,12 +45,12 @@
                                             "updated":  "2026-09-24T20:35:50Z"
                                         },
                      "table":  {
-                                   "commit":  "d8309fd1c0e168b3d83e994981ecd6a2e3fb7cc9",
+                                   "commit":  "01602442e66507fd3f33f8e6eb356d707b74cd73",
                                    "path":  "el/table.html",
-                                   "blob":  "73060a4899d05e0db4439ea90107ba575bf693e8",
-                                   "bytes":  330055,
-                                   "title":  "Dynamic table (tablev2)",
-                                   "updated":  "2026-09-24T21:33:22Z"
+                                   "blob":  "88c5f452bd636f5c8cad3817659eff0cb9a4794d",
+                                   "bytes":  332446,
+                                   "title":  "Dynamic table (tablev2) - app page",
+                                   "updated":  "2026-09-24T22:28:46Z"
                                },
                      "template-page":  {
                                            "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
