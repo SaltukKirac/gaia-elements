@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing | Gaia</title>
+<meta name="description" content="Scale your operations, control your costs. Every feature is free to use. Pay only for the completed jobs the agent runs on its own. 100 flows free every month.">
+<!--
+  GAIA pricing: Apple design system. Static, fast. Interactive Cost Estimator (flow slider + seat steppers → live monthly total).
+  A "flow" = one completed job (one whole task). Anything done by hand is always free; a job the agent starts on its own = 1 flow. Edit APP_URL / DOCS.
+  14.09 (partner F1/F2/F3/F3b): APP_URL /version-test -> /app; ?from=<slug> or ?use_flagship=<slug> carries the product into the app
+  (same gx_flagship_pending payload as _gx_product_card.html go()); enterprise CTA = "Read the docs" until founders name a real
+  contact channel (Q7); email-agent flow section added; no metering claims beyond the single unit (Q2-Q5 open); no model cost claim (Q6).
+  Payment logos via jsDelivr (aaronfagan), lazy. Apple Pay/Google Pay/Cash App/iyzico/troy: add your own SVGs (not in any public set).
+-->
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--ink:#1d1d1f;--sec:#6e6e73;--blue:#0071e3;--blue-h:#0077ed;--gray:#f5f5f7;--line:#d2d2d7;--green:#1d7a3e;--r:18px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{font-family:var(--font);color:var(--ink);background:#fff;line-height:1.47}
+  a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+  .container{max-width:980px;margin:0 auto;padding:0 22px}.center{text-align:center}
+  .band{background:var(--gray)}section{padding:80px 0}
+
+  .hero{text-align:center;padding:84px 0 56px}
+  .hero h1{font-size:clamp(38px,6vw,56px);font-weight:600;letter-spacing:-.015em;line-height:1.06}
+  .hero .sub{font-size:clamp(19px,2.4vw,23px);font-weight:400;color:var(--sec);max-width:640px;margin:18px auto 0;line-height:1.4}
+  .keybadge{display:inline-flex;align-items:center;gap:9px;margin-top:24px;font-size:15px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:980px;padding:10px 18px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+  .keybadge b{font-weight:600}.keybadge .k{font-size:13px;color:#fff;background:var(--blue);border-radius:980px;padding:2px 9px;font-weight:600}
+
+  .stitle{font-size:clamp(28px,4vw,40px);font-weight:600;letter-spacing:-.012em;text-align:center;line-height:1.1}
+  .ssub{font-size:17px;color:var(--sec);text-align:center;margin-top:10px;line-height:1.45;max-width:640px;margin-left:auto;margin-right:auto}
+
+  /* flow slider */
+  .flowbox{max-width:640px;margin:40px auto 0;text-align:center}
+  .flabel{font-size:17px;color:var(--sec);font-weight:500}.flabel b{color:var(--ink);font-weight:600}
+  .fprice{font-size:clamp(44px,8vw,62px);font-weight:600;letter-spacing:-.02em;line-height:1.05;margin:6px 0 4px}
+  .fprice span{font-size:23px;font-weight:500;color:var(--sec);letter-spacing:0}
+  .fsub{font-size:16px;color:var(--sec);min-height:22px;margin-bottom:28px;line-height:1.4}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:980px;outline:none;display:block;background:linear-gradient(90deg,var(--blue) 0%,var(--blue) var(--pct,0%),#d6d6db var(--pct,0%),#d6d6db 100%)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.28);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:28px;height:28px;border:none;border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.28);cursor:pointer}
+  .ticks{display:flex;justify-content:space-between;margin-top:11px;font-size:12px;color:#86868b}
+  .freenote{max-width:620px;margin:26px auto 0;font-size:15px;color:var(--sec);line-height:1.5;text-align:center}
+  .freenote b{color:var(--ink);font-weight:600}
+
+  /* how counted: timeline */
+  .tl{max-width:540px;margin:40px auto 0}
+  .tl .row{display:flex;gap:16px;align-items:flex-start;padding-bottom:22px;position:relative}
+  .tl .row:not(:last-child):before{content:"";position:absolute;left:13px;top:30px;bottom:0;width:2px;background:var(--line)}
+  .tl .dot{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--blue);z-index:1}
+  .tl .tx{font-size:16px;color:var(--ink);line-height:1.45;padding-top:3px}
+  .tl .tag{display:inline-block;margin-top:18px;font-size:15px;font-weight:600;color:var(--blue);background:#eaf3fe;border-radius:980px;padding:8px 18px}
+
+  /* email agents: what starts a job */
+  section.tight{padding-top:0}
+  .rules{list-style:none;max-width:560px;margin:32px auto 0}
+  .rules li{position:relative;padding:0 0 16px 26px;font-size:16px;color:var(--ink);line-height:1.45}
+  .rules li:before{content:"";position:absolute;left:4px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--blue)}
+
+  /* estimator + seats */
+  .toggle{display:inline-flex;background:#e8e8ed;border-radius:980px;padding:3px}
+  .toggle button{border:none;background:none;padding:9px 22px;border-radius:980px;font-size:15px;font-weight:500;color:var(--ink);cursor:pointer;font-family:var(--font)}
+  .toggle button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .save{font-size:12px;font-weight:700;color:var(--green);margin-left:6px}
+  .seats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;max-width:960px;margin:32px auto 0}
+  @media(max-width:860px){.seats{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.seats{grid-template-columns:1fr}}
+  .seat{background:#fff;border-radius:var(--r);padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.05);display:flex;flex-direction:column}
+  .seat .rn{font-size:16px;font-weight:600;margin-bottom:3px}
+  .seat .rd{font-size:13px;color:var(--sec);line-height:1.4;min-height:36px;margin-bottom:12px}
+  .seat .rp{font-size:24px;font-weight:600;letter-spacing:-.02em}.seat .rp small{font-size:13px;font-weight:500;color:var(--sec);letter-spacing:0}
+  .seat .free{font-size:12px;color:var(--green);font-weight:600;margin-top:3px;min-height:16px}
+  .step{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+  .step button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:18px;color:var(--ink);cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center}
+  .step button:hover{background:#f5f5f7}.step .q{font-size:17px;font-weight:600;min-width:24px;text-align:center}
+
+  .estimate{max-width:560px;margin:48px auto 0;background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px 28px;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+  .estimate h3{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--sec);margin-bottom:14px}
+  .estimate .ln{display:flex;justify-content:space-between;font-size:15px;color:var(--ink);padding:7px 0}
+  .estimate .ln span:last-child{font-weight:600}
+  .estimate .ln.sub span{color:var(--sec);font-weight:400;font-size:14px}
+  .estimate .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);margin-top:10px;padding-top:16px}
+  .estimate .tot b{font-size:17px;font-weight:600}.estimate .tot .v{font-size:30px;font-weight:600;letter-spacing:-.02em}.estimate .tot .v small{font-size:15px;color:var(--sec);font-weight:500}
+  .foot-note{font-size:13px;color:#86868b;text-align:center;max-width:620px;margin:18px auto 0;line-height:1.5}
+
+  .btn{border:none;border-radius:980px;padding:13px 30px;font-size:17px;font-weight:400;cursor:pointer;font-family:var(--font);transition:background .2s;text-decoration:none;display:inline-block}
+  .btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-h);text-decoration:none}
+  .docs{color:var(--blue);font-weight:500}
+
+  /* enterprise */
+  .ent{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 30px;max-width:800px;margin:38px auto 30px;text-align:left}
+  .entitem{display:flex;gap:11px;align-items:flex-start;font-size:16px;color:var(--ink);line-height:1.4}
+  .entitem svg{flex-shrink:0;margin-top:2px}
+  @media(max-width:740px){.ent{grid-template-columns:1fr;max-width:380px}}
+
+  /* payments */
+  .pay{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin-top:24px}
+  .pay img{height:30px;width:auto;display:block;border-radius:5px}
+
+  footer{background:var(--gray);border-top:1px solid var(--line)}
+  footer .container{padding-top:22px;padding-bottom:30px}
+  footer .fl{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:12px}
+  footer a{font-size:12px;color:var(--sec)}footer a:hover{color:var(--ink)}
+  footer .cp{font-size:12px;color:#86868b;line-height:1.5}
+  @media(max-width:740px){section{padding:56px 0}.hero{padding:56px 0 40px}}
+</style>
+</head>
+<body>
+  <section class="hero"><div class="container">
+    <h1>Scale your operations.<br>Control your costs.</h1>
+    <p class="sub">You pay when automation runs without you. Every feature is free to use. You only pay for completed work.</p>
+  </div></section>
+
+  <!-- FLOWS / cost slider -->
+  <section class="band"><div class="container">
+    <h2 class="stitle">Flows</h2>
+    <p class="ssub">A flow is one <b>completed job</b>, however many tools or how much data it touches inside. For an agent that works one item at a time, one processed item is one job. No per-step metering. Every agent shows the model tier it runs on before you activate it.</p>
+    <div class="flowbox">
+      <div class="flabel"><b id="fCount">100</b> flows / month</div>
+      <div class="fprice" id="fPrice">Free</div>
+      <div class="fsub" id="fSub">100 flows included every month. No card needed.</div>
+      <input type="range" id="slider" min="0" max="8" step="1" value="0" aria-label="Flows per month">
+      <div class="ticks"><span>100</span><span>2.5k</span><span>10k</span><span>50k</span><span>100k+</span></div>
+    </div>
+    <p class="freenote"><b>Always free:</b> anything you do by hand in the app, including editing or sending a draft yourself. A job the agent starts on its own counts as one flow, even when you are the one who presses send at the end. No credit card to start.</p>
+  </div></section>
+
+  <!-- HOW A FLOW IS COUNTED -->
+  <section><div class="container">
+    <h2 class="stitle">How a flow is counted</h2>
+    <p class="ssub">One whole task, however many steps it takes inside.</p>
+    <div class="tl">
+      <div class="row"><span class="dot">1</span><span class="tx">A trigger fires: a new ticket, email, or event comes in.</span></div>
+      <div class="row"><span class="dot">2</span><span class="tx">The agent reads it, decides on its own, and completes the task, calling as many tools as it needs.</span></div>
+      <div class="row"><span class="dot">3</span><span class="tx">It updates your records and notifies the team. Done.</span></div>
+      <div class="center"><span class="tag">That whole journey = 1 flow</span></div>
+    </div>
+  </div></section>
+
+  <!-- EMAIL AGENTS: WHAT STARTS A JOB (F1, decisions.md section 5 verbatim) -->
+  <section class="tight"><div class="container">
+    <h2 class="stitle">Email agents: what starts a job</h2>
+    <p class="ssub">An email agent works one message at a time. A message only reaches it if it passes the scope you set during setup.</p>
+    <ul class="rules">
+      <li>Promotions, social and forum mail never starts a job. It is filtered out before the agent wakes up.</li>
+      <li>You choose the scope at setup: your whole inbox, a single label, or starred mail only. Narrow the scope and the count drops with it.</li>
+      <li>The preview you see before you switch it on reads up to five of your own recent messages and writes nothing.</li>
+      <li><b>One message in scope that the agent works on is one flow.</b></li>
+    </ul>
+    <p class="foot-note">A typical professional mailbox sees 20 to 40 messages in scope a day. That is an estimate to check against your own mail, not a measured result.</p>
+  </div></section>
+
+  <!-- SEATS + ESTIMATOR -->
+  <section class="band"><div class="container">
+    <h2 class="stitle">Team seats</h2>
+    <p class="ssub">Role-based access control. Your account always includes <b>1 free Editor</b>. Add seats only for the roles your team needs.</p>
+    <div class="center" style="margin-top:26px"><div class="toggle"><button id="tMo" class="on">Monthly</button><button id="tYr">Annual<span class="save">save 25%</span></button></div></div>
+    <div class="seats" id="seats"></div>
+
+    <div class="estimate" id="estimate">
+      <h3>Your estimated plan</h3>
+      <div class="ln"><span>Flows</span><span id="eFlows">100 / mo, free</span></div>
+      <div class="ln sub" id="eSeatsWrap"><span id="eSeats">1 Editor (free)</span><span id="eSeatsP">$0.00</span></div>
+      <div class="tot"><b>Estimated total</b><span class="v" id="eTotal">$0.00<small>/mo</small></span></div>
+      <div class="center" style="margin-top:20px"><a class="btn btn-primary" id="eCta" href="https://gaiasphere.io/app">Start free</a></div>
+    </div>
+    <p class="foot-note">Annual billing saves 25% on <b>seats</b>. The 25% annual discount does not apply to flow usage. Flows are billed monthly with no lock-in.</p>
+  </div></section>
+
+  <!-- ENTERPRISE -->
+  <section><div class="container center">
+    <h2 class="stitle">Enterprise</h2>
+    <p class="ssub">For organizations that need more than self-serve, built around your scale, security and governance.</p>
+    <div class="ent">
+      <div class="entitem"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="#0071e3"/><path d="M6 10.5l2.5 2.5L14 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Custom flow volume beyond 100k / month</span></div>
+      <div class="entitem"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="#0071e3"/><path d="M6 10.5l2.5 2.5L14 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>SSO &amp; SAML single sign-on</span></div>
+      <div class="entitem"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="#0071e3"/><path d="M6 10.5l2.5 2.5L14 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>On-premise or private deployment</span></div>
+      <div class="entitem"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="#0071e3"/><path d="M6 10.5l2.5 2.5L14 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>SLA &amp; priority support</span></div>
+      <div class="entitem"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="#0071e3"/><path d="M6 10.5l2.5 2.5L14 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Dedicated onboarding &amp; success manager</span></div>
+      <div class="entitem"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="#0071e3"/><path d="M6 10.5l2.5 2.5L14 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Advanced security &amp; compliance</span></div>
+    </div>
+    <p class="ssub" style="margin:0 auto 18px">Custom volume, SSO, private deployment and SLA are arranged directly with our team.</p>
+    <a class="btn btn-primary" href="https://flow-7.gitbook.io/gaia">Read the docs</a>
+  </div></section>
+
+  <!-- PAYMENTS -->
+  <section><div class="container center">
+    <h2 class="stitle">Secure checkout</h2>
+    <p class="ssub">Payments handled by LemonSqueezy. Cancel anytime.</p>
+    <div class="pay">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/visa.svg" alt="Visa" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/mastercard.svg" alt="Mastercard" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/amex.svg" alt="American Express" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/paypal.svg" alt="PayPal" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/discover.svg" alt="Discover" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/jcb.svg" alt="JCB" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/unionpay.svg" alt="UnionPay" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/alipay.svg" alt="Alipay" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/maestro.svg" alt="Maestro" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/diners.svg" alt="Diners Club" loading="lazy">
+      <!-- TODO drop your own SVGs (not in any public set): apple-pay, google-pay, cash-app, iyzico, troy
+      <img src="/payment-logos/apple-pay.svg" alt="Apple Pay" loading="lazy"> … -->
+    </div>
+  </div></section>
+
+  <footer><div class="container">
+    <div class="fl">
+      <a href="/">Home</a><a href="/templates">All Assistants</a><a href="/pricing">Pricing</a>
+      <a href="/privacy_policy">Privacy Policy</a><a href="/terms_of_service">Terms of Service</a>
+      <a href="/disclaimer">Disclaimer</a><a href="/sitemap-index.xml">Sitemap</a>
+    </div>
+    <div class="cp">© Gaia. AI assistants for every workflow. Start free, pay as you go.</div>
+  </div></footer>
+
+<script>
+(function(){
+  "use strict";
+  // F3 (14.09): /version-test canliya gidiyordu -> /app (_gx_product_card.html APP_URL ile ayni).
+  var APP_URL="https://gaiasphere.io/app",DOCS="https://flow-7.gitbook.io/gaia";
+  // Urun secimi tasima: ?from=<slug> veya ?use_flagship=<slug> varsa Start free urunu app'e tasir.
+  // Bubble login yonlendirmesi query'yi dusurdugu icin ayni gx_flagship_pending anahtari (go() ile ayni payload) tiklamada yazilir.
+  var FROM=(location.search.match(/[?&](?:from|use_flagship)=([a-z0-9-]{2,60})(?:&|$)/i)||[])[1]||'';
+  function startHref(){return FROM?(APP_URL+'?use_flagship='+encodeURIComponent(FROM)+'&intent=preview'):APP_URL;}
+  function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+  function money(n){return '$'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d)\.)/g,',');}
+
+  // ---- flows ----
+  var FLOWS=[{f:100,p:0},{f:500,p:44},{f:2500,p:158},{f:5000,p:266},{f:10000,p:432},{f:20000,p:772},{f:50000,p:1430},{f:100000,p:2000},{f:-1,p:-1}];
+  var idx=0;
+  var slider=document.getElementById('slider'),fCount=document.getElementById('fCount'),fPrice=document.getElementById('fPrice'),fSub=document.getElementById('fSub');
+  function paintFlow(){
+    var t=FLOWS[idx];slider.style.setProperty('--pct',(idx/(FLOWS.length-1))*100+'%');
+    if(t.f===-1){fCount.textContent='100,000+';fPrice.innerHTML='Enterprise';fSub.textContent='Custom volume, priority support and SLA are arranged directly with our team.';}
+    else if(t.p===0){fCount.textContent='100';fPrice.innerHTML='Free';fSub.textContent='100 flows included every month. No card needed.';}
+    else{fCount.textContent=fmt(t.f);fPrice.innerHTML='$'+fmt(t.p)+'<span>/mo</span>';fSub.textContent='Pay only for the volume you run, billed monthly.';}
+    estimate();
+  }
+  slider.addEventListener('input',function(){idx=+slider.value;paintFlow();});
+
+  // ---- seats ----
+  var ROLES=[
+    {n:'Editor',p:99.99,d:'Full access: create, manage and automate flows.'},
+    {n:'Flow User',p:74.99,d:'Runs the flows assigned to them.'},
+    {n:'Searcher + Creator',p:39.99,d:'Hybrid: can both search and create.'},
+    {n:'Searcher',p:19.99,d:'Search across records only.'},
+    {n:'Creator',p:9.99,d:'Create records, but can\'t run or edit.'}
+  ];
+  var annual=false, qty=[1,0,0,0,0];  // 1 free Editor by default
+  var seatsEl=document.getElementById('seats');
+  function priceEach(i){return annual?ROLES[i].p*0.75:ROLES[i].p;}
+  function paintSeats(){
+    seatsEl.innerHTML=ROLES.map(function(r,i){
+      var pe=priceEach(i);
+      var freeTag=(i===0)?'<div class="free">1st Editor included free</div>':'<div class="free"></div>';
+      return '<div class="seat"><div class="rn">'+r.n+'</div><div class="rd">'+r.d+'</div>'
+        +'<div class="rp">'+money(pe)+'<small>/seat/mo</small></div>'+freeTag
+        +'<div class="step"><button data-i="'+i+'" data-d="-1">−</button><span class="q" id="q'+i+'">'+qty[i]+'</span><button data-i="'+i+'" data-d="1">+</button></div></div>';
+    }).join('');
+    Array.prototype.forEach.call(seatsEl.querySelectorAll('button'),function(b){
+      b.onclick=function(){var i=+b.getAttribute('data-i'),d=+b.getAttribute('data-d');qty[i]=Math.max(0,qty[i]+d);document.getElementById('q'+i).textContent=qty[i];estimate();};
+    });
+  }
+  var tMo=document.getElementById('tMo'),tYr=document.getElementById('tYr');
+  tMo.onclick=function(){annual=false;tMo.classList.add('on');tYr.classList.remove('on');paintSeats();estimate();};
+  tYr.onclick=function(){annual=true;tYr.classList.add('on');tMo.classList.remove('on');paintSeats();estimate();};
+
+  // ---- estimator ----
+  var eFlows=document.getElementById('eFlows'),eSeats=document.getElementById('eSeats'),eSeatsP=document.getElementById('eSeatsP'),eTotal=document.getElementById('eTotal'),eCta=document.getElementById('eCta');
+  function estimate(){
+    var t=FLOWS[idx], ent=(t.f===-1);
+    eFlows.textContent= ent?'100,000+ / mo, custom' : (t.p===0?'100 / mo, free':fmt(t.f)+' / mo, '+money(t.p));
+    // seats: sum, minus one free Editor
+    var seatSum=0, parts=[];
+    ROLES.forEach(function(r,i){ if(qty[i]>0){ seatSum+=qty[i]*priceEach(i); parts.push(qty[i]+'× '+r.n); }});
+    var freeCredit= qty[0]>0 ? priceEach(0) : 0;
+    var seatNet=Math.max(0,seatSum-freeCredit);
+    eSeats.textContent = parts.length? parts.join(', ')+(qty[0]>0?' (1 Editor free)':'') : 'No paid seats';
+    eSeatsP.textContent = money(seatNet);
+    if(ent){ eTotal.innerHTML='Custom'; eCta.textContent='Read the docs'; eCta.href=DOCS; }
+    else{ eTotal.innerHTML=money(t.p+seatNet)+'<small>/mo</small>'; eCta.textContent='Start free'; eCta.href=startHref(); }
+  }
+  eCta.addEventListener('click',function(){
+    if(!FROM||eCta.href.indexOf(APP_URL)!==0)return;
+    // K2b: kart go() gibi hem sessionStorage hem localStorage aynasi (kayit ikinci sekmede biterse).
+    var pend=JSON.stringify({slug:FROM,instant:false,intent:'preview',ts:Date.now()});
+    try{sessionStorage.setItem('gx_flagship_pending',pend);}catch(e){}
+    try{localStorage.setItem('gx_flagship_pending',pend);}catch(e){}
+  });
+
+  paintFlow();paintSeats();estimate();
+})();
+</script>
+</body>
+</html>

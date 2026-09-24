@@ -1,0 +1,601 @@
+<!-- ========================================================================
+     GAIA - Flagship home MOUNT. Bu parca artik KART CIZMEZ: ana sayfadaki
+     kart ile Templates sekmesinin ustundeki kart AYNI cizicidir
+     (window.gaiaRenderFlagshipCard, HTM icinde). Burada yalnizca mount,
+     HTM gelene kadarki iskelet ve "Browse all templates" linki vardir.
+     Ayni Bubble HTML elementi; yeni element, alan, workflow, bubble_fn YOK.
+
+     BUBBLE EDITOR (tek seferlik olcu ayari): bu elementin yuksekligini
+     "Fit height to content" yapin ve genisligini 100% (yuzde) alin. Kart
+     artik ortak kart oldugu icin eski 70 px / 150 px olculeri GECERSIZ.
+     Olculen (12.09, gad-home 8128, ortak kart cizili):
+       masaustu 1280 px -> element 202 px (kart 150 + link 44 + 8 bosluk)
+       telefon  375 px  -> element 335 px (kart 283 + link 44 + 8 bosluk;
+                           kart telefonda dikey diziliyor: rozet + baslik +
+                           aciklama + cipler + 48 px birincil + 44 px ikincil)
+     Kart cizilemedigi durumda (urun yayinda degilse) iskelet kalir:
+       masaustu 126 px, telefon 177 px (iki satirlik metin).
+     Sabit yukseklik verilecekse en buyugu (telefon 335 px) alinmali;
+     kirpilmamasi icin en guvenlisi yine "Fit height to content".
+
+     Davranis: tek giris noktasi window.gaiaStartProductSetup (HTM icinde).
+     Bu parca analytics ATMAZ; kartin gosterim olayini cizici atar (cift
+     sayim olmasin diye burada gxaTrack cagrisi YOKTUR).
+     Niyet sahipligi: sessionStorage['gx_flagship_pending'] yazilmadan once
+     window.__GX_FLAGSHIP_BOOTED__ konur; boylece HTM'nin deep link IIFE'si
+     ayni niyeti STRING slug ile ikinci kez acmaz (tek sheet, hata sheet'i yok).
+     ======================================================================== -->
+<style>
+/* Tum kurallar #gx-home-setup ile prefixli; Bubble sayfasina hicbir sey sizmaz.
+   Kartin kendi gorunumu (.tmpl-hero-*) HTM'nin belge duzeyindeki <style>'indan
+   gelir; burada KART ICIN hicbir kural yazilmaz, yoksa iki yuzey ayrisir.
+   DIKKAT: koke yazilan KALITILAN ozellikler (font-family, tap-highlight) ve
+   evrensel secici (*) kartin ICINE isler; onlar da bir ayrisma kanalidir. Bu
+   yuzden kok yalnizca kendi kutusunu tanimlar, kalitilan ozellikler mount'ta
+   MODULUN degeriyle AYNI yazilir, box-sizing yalniz bizim parcalarimiza konur. */
+#gx-home-setup{box-sizing:border-box;width:100%;}
+/* Mount: sabit genislik YOK, min-width:0 (kart kendi genisligini alsin).
+   font-family = .gaia-automation-module ile AYNI yigin (HTM ~798), dokunus
+   vurgusu = tarayici varsayilani; kart iki yuzeyde ayni degeri kalitir. */
+#gx-home-setup .gxhs-mount{width:100%;min-width:0;font-family:"Inter","SF Pro Text",system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:rgba(0,0,0,.18);}
+/* Bizim parcalarimiz (iskelet + link): kutu modeli ve dokunus vurgusu yalniz burada. */
+#gx-home-setup .gxhs-skel,#gx-home-setup .gxhs-skel *,#gx-home-setup .gxhs-browse{box-sizing:border-box;-webkit-tap-highlight-color:rgba(0,0,0,0);}
+/* Iskelet: kart cizilene kadar (veya hic cizilemezse) duran durust yedek. */
+#gx-home-setup .gxhs-skel{display:flex;flex-direction:column;gap:10px;width:100%;min-width:0;background:#fff;border:1px solid #EDEFF3;border-radius:14px;padding:14px;}
+#gx-home-setup .gxhs-line{font-size:13px;line-height:1.45;color:#64748b;min-width:0;}
+#gx-home-setup .gxhs-cta{display:block;width:100%;height:48px;min-height:48px;border:0;border-radius:12px;background:#4F46E5;color:#fff;font-family:inherit;font-size:14px;font-weight:700;line-height:1;cursor:pointer;-webkit-appearance:none;appearance:none;transition:background .15s,opacity .15s;}
+#gx-home-setup .gxhs-cta[disabled]{opacity:.6;cursor:default;}
+/* waiting / checking: buton TIKLANABILIR kalir (dokunus kaybolmasin), yalnizca
+   soluk gorunur. aria-disabled KULLANILMAZ; yoksa ekran okuyucu "devre disi"
+   der ama buton tiklanir. */
+#gx-home-setup[data-state="waiting"] .gxhs-cta,#gx-home-setup[data-state="checking"] .gxhs-cta{opacity:.6;}
+#gx-home-setup .gxhs-cta:focus-visible{outline:2px solid #4F46E5;outline-offset:2px;}
+#gx-home-setup[data-state="unavailable"] .gxhs-cta,#gx-home-setup[data-state="offline"] .gxhs-cta{background:#fff;color:#4F46E5;border:1px solid #C7D2FE;}
+/* Link KARTIN DISINDA ve ALTINDA durur: kart innerHTML ile degistirildigi icin
+   mount'un icine konursa ilk cizimde silinirdi. Dokunma hedefi 44 px. */
+#gx-home-setup .gxhs-browse{display:block;font-family:"Inter","SF Pro Text",system-ui,-apple-system,sans-serif;margin-top:8px;height:44px;line-height:44px;padding:0 8px;text-align:center;font-size:12px;color:#64748b;text-decoration:none;cursor:pointer;}
+#gx-home-setup .gxhs-browse:focus-visible{outline:2px solid #4F46E5;outline-offset:2px;border-radius:8px;}
+@media (min-width:481px){
+  #gx-home-setup .gxhs-skel{flex-direction:row;align-items:center;gap:12px;}
+  #gx-home-setup .gxhs-line{flex:1 1 auto;}
+  #gx-home-setup .gxhs-cta{width:auto;min-width:150px;padding:0 18px;height:44px;min-height:44px;flex:0 0 auto;}
+  #gx-home-setup .gxhs-browse{text-align:left;padding:0;}
+}
+@media (hover:hover){
+  #gx-home-setup .gxhs-cta:hover:not([disabled]){background:#4338CA;}
+  #gx-home-setup .gxhs-browse:hover{color:#4F46E5;text-decoration:underline;}
+}
+</style>
+
+<div id="gx-home-setup" data-slug="inbox-chief-of-staff" data-state="waiting">
+
+  <!-- Paylasilan kart TAM BURAYA dusuyor (icerik degistirilir, dugum degil). -->
+  <div class="gxhs-mount">
+    <div class="gxhs-skel">
+      <span class="gxhs-line">Getting your setup ready.</span>
+      <button type="button" class="gxhs-cta" aria-busy="true">Getting ready...</button>
+    </div>
+  </div>
+
+  <a href="javascript:void(0)" class="gxhs-browse"
+     onclick="if(window.gaiaSetTab){window.gaiaSetTab('templates');var m=document.getElementById('gaia-automation-module');if(m){m.classList.remove('is-hidden');m.style.display='';}}">Browse all templates</a>
+
+</div>
+
+<script>
+/* Tek IIFE. window'a yalnizca niyet sahipligi bayragi yazilir
+   (window.__GX_FLAGSHIP_BOOTED__, HTM'nin kendi kullandigi bayrak). */
+(function () {
+  var SLUG = 'inbox-chief-of-staff';
+  var PENDING_KEY = 'gx_flagship_pending';   /* HTM _FLAG_PENDING_KEY ile AYNI anahtar */
+  var PENDING_TTL = 1800000;                 /* HTM ile ayni 30 dk tazelik penceresi */
+
+  /* Kural 8: her basili ornek KENDI kokunu baglar. Element iki kez yapistirilsa
+     bile ikinci kart olu kalmaz; her script ornegi baglanmamis ilk koku alir. */
+  var root = null;
+  try {
+    var me = document.currentScript;
+    var prev = me ? me.previousElementSibling : null;
+    if (prev && prev.id === 'gx-home-setup' && prev.getAttribute('data-wired') !== '1') { root = prev; }
+  } catch (e) {}
+  if (!root) {
+    var roots = document.querySelectorAll('#gx-home-setup');
+    for (var ri = 0; ri < roots.length; ri++) {
+      if (roots[ri].getAttribute('data-wired') !== '1') { root = roots[ri]; break; }
+    }
+  }
+  if (!root) { return; }
+  root.setAttribute('data-wired', '1');
+
+  /* id yerine sinif: cift yapistirmada tekrarli id olmaz, her kart kendi ogesini bulur. */
+  var mountEl = root.querySelector('.gxhs-mount');
+  var browse = root.querySelector('.gxhs-browse');
+
+  /* ISKELET KOPYASI: yalnizca kart cizilemedigi surece gosterilir. Kartin kendi
+     metinleri (baslik, aciklama, rozetler, buton) HTM'de tek yerde durur ve
+     BURADA TEKRARLANMAZ; yoksa iki yuzey yeniden ayrisir. Hepsi Ingilizce,
+     em/en dash yok, "running" kelimesi hicbir durumda gecmez. Urun adi
+     iskelette YAZILMAZ: satir cozulmeden urun hakkinda iddia edilmez (kural 4). */
+  var COPY = {
+    waiting:       { line: 'Getting your setup ready.',                                     cta: 'Getting ready...' },
+    checking:      { line: 'Looking up your setup.',                                        cta: 'Getting ready...' },
+    starting:      { line: 'Opening your setup.',                                           cta: 'Opening...' },
+    hired_armed:   { line: 'Already hired. Open it to review the setup or hire another copy.', cta: 'Open setup' },
+    hired_manual:  { line: 'Set up in Manual mode. Open it to review the setup.',            cta: 'Open setup' },
+    hired_pending: { line: 'Setup sent. Confirmation pending.',                              cta: 'Check setup' },
+    unavailable:   { line: 'Setup is not available right now. Browse the templates instead.', cta: 'Browse AI templates' },
+    offline:       { line: 'Could not reach setup. Check your connection.',                  cta: 'Try again' }
+  };
+
+  var pendingTap = false;   /* kabuk hazir olmadan yapilan dokunus */
+  var retryFn = null;       /* offline durumunda cagirana verilen tekrar deneme */
+  var sawState = false;     /* gaiaStartProductSetup en az bir durum bildirdi mi */
+  var statusAsked = false;  /* gaiaFlagshipStatus'a source yalnizca ilk okumada verilir */
+  var timer = null;
+  var tries = 0;
+  var phase = 'fast';      /* nobet fazi: 200 ms x 50 -> 1000 ms x 50 */
+  var shellGaveUp = false; /* 'unavailable' kabugun gec kalmasindan mi geldi (kurtarilabilir) */
+  var graceTimer = null;   /* satir arayisi icin sabir penceresi */
+  var GRACE_MS = 8000;
+  /* Sabir penceresi HARCANDI mi. Satir arayisi oturum basina TEK kez yapiliyor
+     (HTM _gxCardKickResolve slug basina bir deneme). O deneme bittikten sonra
+     her yeniden boyamada "Looking up your setup." demek, olmayan bir isi var
+     gostermek olur (kural 4: veriye dayanmayan durum gosterilmez). Bayrak bir
+     kez true olunca yalnizca GERCEKTEN suren bir arayis (cardPending() === true)
+     pencereyi yeniden acabilir. */
+  var graceSpent = false;
+
+  /* Iskelet hala ekranda mi? Kart cizildigi an mount'un icerigi degisir ve
+     .gxhs-skel yok olur; o andan sonra metni KART yonetir, biz degil. */
+  function skelLive() {
+    try { return !!(mountEl && mountEl.querySelector('.gxhs-skel')); } catch (e) {}
+    return false;
+  }
+
+  function setState(name) {
+    var c = COPY[name];
+    if (!c) { return; }
+    /* Kart ciziliyse (iskelet gitmis) kokteki etiket iskelet durumunu DEGIL kartin
+       varligini anlatir: 'card' notr, hicbir CSS kurali onu hedeflemez. Kart
+       defterden (renderTmplGrid -> _gxCardRepaintAll) cizilmis olabilir, yani
+       tryRender'dan gecmeden; etiketi burada tureterek o yolu da kapatiyoruz. */
+    if (!skelLive()) {                /* kart ciziliyse buton/metin KARTIN isi */
+      try { root.setAttribute('data-state', 'card'); } catch (e) {}
+      return;
+    }
+    root.setAttribute('data-state', name);
+    var line = mountEl.querySelector('.gxhs-line');
+    var cta = mountEl.querySelector('.gxhs-cta');
+    if (line) { line.textContent = c.line; }
+    if (!cta) { return; }
+    cta.textContent = c.cta;
+    /* starting: gercekten disabled (hizli cift dokunus ikinci sheet uretemez).
+       waiting / checking: gorsel olarak pasif ama TIKLANABILIR kalir; yoksa kabuk
+       hazir olmadan yapilan dokunus kaybolur (bkz. armPendingTap). */
+    if (name === 'starting') {
+      cta.disabled = true;
+      cta.setAttribute('aria-busy', 'true');
+    } else if (name === 'waiting' || name === 'checking') {
+      cta.disabled = false;
+      cta.setAttribute('aria-busy', 'true');
+    } else {
+      cta.disabled = false;
+      cta.removeAttribute('aria-busy');
+    }
+  }
+
+  /* --- Paylasilan kart --------------------------------------------------
+     Tek cizici: window.gaiaRenderFlagshipCard. true -> mount'un icerigi kartla
+     degisti. false -> mount'a HIC dokunulmadi, iskelet ekranda kalir; cizici
+     mount'u yine de defterine yazdigi icin satir sonradan gelirse kart kendi
+     kendine ayni yere duser (bizden ikinci cagri beklemez). */
+  function tryRender() {
+    if (typeof window.gaiaRenderFlagshipCard !== 'function') { return false; }
+    var ok = false;
+    try {
+      ok = window.gaiaRenderFlagshipCard(mountEl, {
+        slug: SLUG,
+        source: 'home_card',
+        secondary: 'detail',
+        onState: onState
+      });
+    } catch (e) { ok = false; }
+    if (ok) {
+      stopGrace();
+      /* Kart cizildi: kokteki durum etiketi ARTIK iskeletin degil kartin durumunu
+         anlatmali. Eskiden son iskelet durumu ('unavailable' / 'offline') takili
+         kaliyordu; o etiket iskelet CSS'ini surdugu icin yaniltici bir kanal.
+         'card' notr bir degerdir: hicbir kural onu hedeflemez, kartin kendi
+         gorunumu HTM'nin belge duzeyindeki stilinden gelir. */
+      try { root.setAttribute('data-state', 'card'); } catch (e2) {}
+    }
+    return !!ok;
+  }
+
+  function stopGrace() {
+    if (graceTimer) { window.clearTimeout(graceTimer); graceTimer = null; }
+  }
+
+  /* Satir yalniz Data API'den gelebiliyorsa cevap birkac saniye surebilir.
+     O pencerede "unavailable" demek yalan olur; once 'checking' denir, sabir
+     penceresi dolunca durust bicimde 'unavailable'a dusulur. */
+  function armGrace() {
+    if (graceTimer) { return; }
+    graceTimer = window.setTimeout(function () {
+      graceTimer = null;
+      graceSpent = true;   /* pencere kapandi: bir daha kendiliginden acilmaz */
+      if (!skelLive()) { return; }
+      if (String(root.getAttribute('data-state') || '') !== 'checking') { return; }
+      setState('unavailable');
+    }, GRACE_MS);
+  }
+
+  /* Satir arayisi GERCEKTEN suruyor mu? Yeni cizici bunu bildiriyorsa dogrudan
+     sorulur (true/false); bildirmiyorsa cevap BILINMEZ (null) olur ve sabir
+     penceresi oturum basina bir kez harcanir. */
+  function cardPending() {
+    try {
+      if (typeof window.gaiaFlagshipCardPending === 'function') {
+        return !!window.gaiaFlagshipCardPending(SLUG);
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /* Arayis bitmis (veya hic baslamamis): oturmus durust yedek gosterilir.
+     'offline' bilgisi korunur, cunku tekrar deneme yolu (retryFn) hala gecerli. */
+  function paintSettled() {
+    stopGrace();
+    var st = String(root.getAttribute('data-state') || '');
+    setState(st === 'offline' ? 'offline' : 'unavailable');
+  }
+
+  /* Kabuk sayfada var mi: ikisinden biri yeterli (bugunku inline onclick ile ayni test). */
+  function shellPresent() {
+    try {
+      if (typeof window.gaiaSetTab === 'function') { return true; }
+      return !!document.getElementById('gaia-automation-module');
+    } catch (e) {}
+    return false;
+  }
+
+  /* Kabuk hic yokken tek geri bildirim: 1200 ms 'Loading...'. Yonlendirme YOK,
+     sessiz hicbir sey yapmama YOK (kural 7). Hem buton hem link bunu paylasir. */
+  function flashLoading(el) {
+    if (!el) { return; }
+    if (el.getAttribute('data-busy') === '1') { return; }
+    el.setAttribute('data-busy', '1');
+    var prev = el.textContent;
+    el.textContent = 'Loading...';
+    window.setTimeout(function () {
+      /* Arada durum degistiyse (kabuk geldi, kart yeniden boyandi) metne dokunmaz. */
+      if (el.textContent === 'Loading...') { el.textContent = prev; }
+      el.removeAttribute('data-busy');
+    }, 1200);
+  }
+
+  /* Bugunku inline davranisin aynisi: modulu gorunur yap + Templates sekmesi.
+     Kabuk yoksa cikmaz sokak degil: flashLoading ile geri bildirim verilir. */
+  function openTemplates(feedbackEl) {
+    if (!shellPresent()) { flashLoading(feedbackEl); return; }
+    try {
+      if (typeof window.gaiaSetTab === 'function') { window.gaiaSetTab('templates'); }
+      var m = document.getElementById('gaia-automation-module');
+      if (m) { m.classList.remove('is-hidden'); m.style.display = ''; }
+    } catch (e) {}
+  }
+
+  /* Isaret okuyucu: once HTM'nin resmi okuyucusu, yoksa localStorage'i TTL ile kendi okur.
+     Isaret yoksa hicbir sey iddia edilmez (kural 4). */
+  function readMarker() {
+    try {
+      if (typeof window.gaiaFlagshipStatus === 'function') {
+        var s = window.gaiaFlagshipStatus(SLUG, statusAsked ? '' : 'home_card');
+        statusAsked = true;
+        if (s && s.hired && s.trigger) { return String(s.trigger); }
+        return '';
+      }
+      var raw = window.localStorage ? window.localStorage.getItem('gx_flagship_done:' + SLUG) : '';
+      if (!raw) { return ''; }
+      var o = JSON.parse(raw);
+      var tr = (o && o.trigger) ? String(o.trigger) : '';
+      var ts = (o && o.ts) ? Number(o.ts) : 0;
+      var age = Date.now() - ts;
+      var ttl = (tr === 'pending') ? 1800000 : 604800000;
+      if (tr && ts && age >= 0 && age < ttl) { return tr; }
+    } catch (e) {}
+    return '';
+  }
+
+  /* Iskelet bosta ne der: isaret varsa isaretin dedigi, yoksa 'checking'. */
+  function paintIdle() {
+    var tr = readMarker();
+    /* data-state kart ciziliyken de guncel tutulur (setState metne dokunmaz),
+       yoksa oznitelik 'starting'de takili kalir ve iskelet geri donerse yaniltir. */
+    if (tr === 'armed' || tr === 'manual' || tr === 'pending') { setState('hired_' + tr); return; }
+    var pend = cardPending();
+    /* Cizici "arayis suruyor" diyorsa 'checking' veriye dayanir: pencere acilir. */
+    if (pend === true) { setState('checking'); if (skelLive()) { armGrace(); } return; }
+    /* Arayis bitmis (false) ya da pencere daha once harcanmis: beklemeye
+       donulmez, oturmus yedek ekranda kalir. */
+    if (pend === false || graceSpent) { paintSettled(); return; }
+    setState('checking');
+    if (skelLive()) { armGrace(); }
+  }
+
+  function onState(state, detail) {
+    sawState = true;
+    detail = detail || {};
+    if (state === 'waiting') { setState('waiting'); return; }
+    if (state === 'starting') { setState('starting'); return; }
+    /* Terminal durumlarda niyet anahtari TUKETILIR: bayat bir niyet sonraki
+       yuklemede konfiguratoru kendiliginden acmaz (kural 8). */
+    if (state === 'opened') { clearPending(); tryRender(); paintIdle(); return; }
+    if (state === 'already_hired') {
+      clearPending();
+      tryRender();   /* urun kesin var: kart cizilebiliyorsa iskeletin yerini alsin */
+      var tr = String(detail.trigger || '');
+      if (tr === 'armed' || tr === 'manual' || tr === 'pending') { setState('hired_' + tr); }
+      else { paintIdle(); }
+      return;
+    }
+    if (state === 'unavailable' || state === 'refused') {
+      clearPending();
+      releaseIntent();   /* urun acilamadi: gercek deep link / oturum devami engellenmesin */
+      shellGaveUp = false;
+      stopGrace();
+      graceSpent = true;   /* cevap geldi: bir daha "bakiyorum" denmez */
+      setState('unavailable');
+      return;
+    }
+    if (state === 'offline') {
+      retryFn = (typeof detail.retry === 'function') ? detail.retry : null;
+      stopGrace();
+      graceSpent = true;
+      setState('offline');
+      return;
+    }
+    /* 'busy': sheet zaten acik, hicbir sey degistirilmez. */
+  }
+
+  /* --- Niyet sahipligi (deep link anahtari) -----------------------------
+     HTM'nin _flagshipDeepLink IIFE'si AYNI anahtari parse aninda okuyor ve
+     gaiaUseFlagship'e STRING slug veriyor; yayinda olmayan urunde bu, ana
+     sayfada "Could not load this product" hata sheet'i demek (kural 7) ve
+     yayindaysa bizim actigimiz sheet'i yikip ikinci sheet kurmak demek
+     (kural 8). Bu yuzden anahtari yazmadan ONCE window.__GX_FLAGSHIP_BOOTED__
+     konur: o IIFE erken doner, niyetin tek sahibi bu script olur ve cagri
+     her zaman OBJE yolundan (gaiaStartProductSetup) gider. */
+
+  function ownIntent() {
+    try {
+      /* Gercek bir ?use_flagship deep link'i varsa ona dokunulmaz. */
+      if (String((window.location && window.location.search) || '').indexOf('use_flagship') !== -1) { return false; }
+      window.__GX_FLAGSHIP_BOOTED__ = 1;
+      return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function releaseIntent() {
+    try { window.__GX_FLAGSHIP_BOOTED__ = false; } catch (e) {}
+  }
+
+  function readPending() {
+    try {
+      if (!window.sessionStorage) { return null; }
+      var raw = window.sessionStorage.getItem(PENDING_KEY);
+      if (!raw) { return null; }
+      var o = JSON.parse(raw);
+      if (!o || String(o.slug || '').toLowerCase() !== SLUG) { return null; }
+      var age = Date.now() - Number(o.ts || 0);
+      if (!o.ts || age < 0 || age >= PENDING_TTL) { return null; }
+      return o;
+    } catch (e) {}
+    return null;
+  }
+
+  /* Yalnizca BIZIM slug'imizin (veya bozuk kaydin) niyeti silinir. */
+  function clearPending() {
+    try {
+      if (!window.sessionStorage) { return; }
+      var raw = window.sessionStorage.getItem(PENDING_KEY);
+      if (!raw) { return; }
+      var o = null;
+      try { o = JSON.parse(raw); } catch (pe) { o = null; }
+      if (!o || String(o.slug || '').toLowerCase() === SLUG) { window.sessionStorage.removeItem(PENDING_KEY); }
+    } catch (e) {}
+  }
+
+  /* Kabuk hazir degilken yapilan dokunus kaybolmaz: dokunus once BELLEKTE
+     tutulur (nobet hazir dedigi an bir kez dispatch edilir). Anahtar ancak
+     sahiplik alinabiliyorsa yazilir; boylece yenileme de kurulumu acar ama
+     niyeti ikinci bir sahip (HTM'nin deep link IIFE'si) tuketemez. */
+  function armPendingTap() {
+    pendingTap = true;
+    if (ownIntent()) {
+      try {
+        if (window.sessionStorage) {
+          window.sessionStorage.setItem(PENDING_KEY, JSON.stringify({
+            slug: SLUG, instant: false, intent: 'preview', ts: Date.now()
+          }));
+        }
+      } catch (e) {}
+    }
+    setState('waiting');
+  }
+
+  function dispatch(preBoot) {
+    if (typeof window.gaiaStartProductSetup !== 'function') { armPendingTap(); return; }
+    sawState = false;
+    var ok = true;
+    try {
+      ok = window.gaiaStartProductSetup(SLUG, {
+        source: 'home_card',
+        preBoot: !!preBoot,
+        onState: onState
+      });
+    } catch (e) {
+      /* onState uzerinden gecilir: niyet anahtari da temizlenir, sahiplik birakilir. */
+      onState('unavailable', { reason: 'exception' });
+      return;
+    }
+    /* ok === false: busy / refused. onState zaten bildirdi, kart oldugu gibi kalir. */
+    if (ok !== false && !sawState) { setState('starting'); }
+  }
+
+  function onCta() {
+    var st = root.getAttribute('data-state');
+    if (st === 'starting') { return; }
+    /* Kabuk nobet suresini asmis ama SONRADAN gelmis olabilir (telefonda yavas
+       ag olagandir, hata degil). O halde birincil eylem yine kurulumu baslatir. */
+    if (shellGaveUp && shellReady()) { shellGaveUp = false; tryRender(); dispatch(false); return; }
+    if (st === 'unavailable') { openTemplates(mountEl.querySelector('.gxhs-cta')); return; }
+    if (st === 'offline') {
+      var r = retryFn;
+      retryFn = null;
+      if (r) {
+        setState('starting');
+        try { r(); } catch (e) { onState('unavailable', { reason: 'exception' }); }
+      } else {
+        dispatch(false);
+      }
+      return;
+    }
+    if (shellReady()) { dispatch(false); return; }
+    armPendingTap();
+  }
+
+  /* Dinleyici MOUNT'a baglanir, butona degil: kart cizildiginde iskeletin
+     butonu DOM'dan kalkar. Yalnizca iskelet butonu ele alinir; kartin kendi
+     butonlari (.tmpl-hero-cta / .tmpl-hero-sec) inline onclick ile kendi
+     yolundan gider, burada ikinci kez islenmez (cift sheet olmaz). */
+  function isSkelCta(node) {
+    while (node && node !== mountEl) {
+      try {
+        if (node.nodeType === 1 && node.className &&
+            String(node.className).indexOf('gxhs-cta') !== -1) { return true; }
+      } catch (e) {}
+      node = node.parentNode;
+    }
+    return false;
+  }
+  if (mountEl) {
+    mountEl.addEventListener('click', function (ev) {
+      if (!skelLive()) { return; }
+      if (!isSkelCta(ev.target)) { return; }
+      onCta();
+    });
+  }
+
+  /* TEK SAYFA MIMARISI: kurulum ayni sayfada bitiyor, yenileme YOK. HTM isaret her
+     degistiginde 'gx-flagship-state' olayini yayar (_gadFlagshipAnnounceState).
+     Kart ciziliyse tazelemeyi CIZICININ kendi defteri yapar (biz karismayiz,
+     yoksa ayni dugum iki kez boyanir). Yalnizca iskelet ekrandayken kendi
+     yedegimizi tazeleriz. Kosan bir kurulum (starting/waiting) ASLA ezilmez. */
+  function repaintFromMarker(ev) {
+    try {
+      if (ev && ev.detail && ev.detail.slug && String(ev.detail.slug) !== SLUG) { return; }
+      /* Kart cizici tarafindan (defter yoluyla) basilmis olabilir; o yolda buraya
+         hic ugranmadigi icin kokteki etiket eski iskelet durumunda kalirdi. Once
+         etiketi gercekle esitle, sonra cik: tazeleme kartin kendi isi. */
+      if (!skelLive()) { try { root.setAttribute('data-state', 'card'); } catch (e2) {} return; }
+      var st = root ? String(root.getAttribute('data-state') || '') : '';
+      if (st === 'starting' || st === 'waiting') { return; }   /* kosan kurulum ezilmez */
+      if (tryRender()) { return; }
+      paintIdle();
+    } catch (e) {}
+  }
+  /* Kart cizici tarafindan (renderTmplGrid -> _gxCardRepaintAll) basildiginda bu
+     parca hic cagrilmaz; iskelet yok olur ama koktoki etiket eski iskelet
+     durumunda kalirdi (tek etkisi teshiste yanlis okuma, gorsel etki YOK).
+     Tek gozlemci: iskelet mount'tan cikinca etiketi 'card' yapar. */
+  try {
+    if (window.MutationObserver && mountEl) {
+      var _mo = new window.MutationObserver(function () {
+        try { if (!skelLive()) { root.setAttribute('data-state', 'card'); } } catch (e) {}
+      });
+      _mo.observe(mountEl, { childList: true });
+    }
+  } catch (e) {}
+
+  window.addEventListener('gx-flagship-state', repaintFromMarker);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') { repaintFromMarker(null); }
+  });
+
+  /* Browse linki her durumda calisir (inline onclick bugunku davranis).
+     Kabuk hic yoksa yonlendirme YOK: butonla AYNI geri bildirim. */
+  if (browse) {
+    browse.addEventListener('click', function () {
+      if (typeof window.gaiaSetTab === 'function') { return; }   /* inline onclick zaten yapti */
+      openTemplates(browse);   /* modul varsa gorunur yapar, hic yoksa 'Loading...' */
+    });
+  }
+
+  function onReady() {
+    shellGaveUp = false;
+    /* Once kart: ekranda dogru sey dursun, sonra bekleyen dokunus dispatch edilsin. */
+    if (!tryRender()) { paintIdle(); }
+    if (pendingTap) { pendingTap = false; dispatch(true); }
+  }
+
+  /* --- Hazirlik nobeti -------------------------------------------------
+     Faz 1: 200 ms x 50 (10 sn) hizli yoklama.
+     Faz 2: 1000 ms x 50 (+50 sn) yavas yoklama. Telefonda kabuk buyuk bir
+     HTML elementidir; 10 sn'yi asmak yavas ag demektir, urunun yoklugu
+     demek DEGILDIR, bu yuzden kart 10. saniyede hala 'waiting' kalir ve
+     bekleyen dokunus dusurulmez.
+     Faz 2 de bitince iskelet 'unavailable' olur ama kurtarma acik kalir:
+     shellGaveUp bayragi sayesinde kabuk sonradan gelirse ilk dokunus
+     yeniden kurulumu baslatir (onCta). */
+  var FAST_MS = 200, FAST_MAX = 50;
+  var SLOW_MS = 1000, SLOW_MAX = 50;
+
+  /* Cizici ile kurulum girisi AYNI IIFE'de tanimlanir; ikisini birden bekleriz
+     ki nobet bittiginde hem kart cizilebilsin hem dokunus dispatch edilebilsin. */
+  function shellReady() {
+    return (typeof window.gaiaStartProductSetup === 'function' &&
+            typeof window.gaiaRenderFlagshipCard === 'function');
+  }
+
+  function stopWatch() {
+    if (timer) { window.clearInterval(timer); timer = null; }
+  }
+
+  function tick() {
+    tries++;
+    if (shellReady()) { stopWatch(); onReady(); return; }
+    if (phase === 'fast' && tries >= FAST_MAX) {
+      stopWatch();
+      phase = 'slow';
+      tries = 0;
+      timer = window.setInterval(tick, SLOW_MS);
+      return;
+    }
+    if (phase === 'slow' && tries >= SLOW_MAX) {
+      stopWatch();
+      shellGaveUp = true;
+      stopGrace();
+      /* Kabuk hic gelmedi: hicbir arayis baslamadi, sabir penceresi de acilmaz. */
+      graceSpent = true;
+      setState('unavailable');
+    }
+  }
+
+  setState('waiting');
+
+  /* Yenilemeden sag kalmis BIZE ait niyet: sahipligi hemen aliriz ki HTM'nin
+     deep link IIFE'si ayni niyeti STRING slug ile acmasin. HTM daha once
+     parse olup sahipligi zaten almissa ikinci sahip olmayiz (tek sheet). */
+  if (readPending()) {
+    if (!window.__GX_FLAGSHIP_BOOTED__ && ownIntent()) { pendingTap = true; }
+  }
+
+  if (shellReady()) {
+    onReady();
+  } else {
+    timer = window.setInterval(tick, FAST_MS);
+  }
+})();
+</script>

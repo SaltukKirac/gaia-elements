@@ -1,0 +1,1338 @@
+<!--
+  ============================================================================
+  GAIA DIRECTORY  —  /guides + /apps  ·  "PAGE HTML HEADER" BUILD   (07.08)
+  ============================================================================
+  SORUN (canli olcumle dogrulandi, 07.08):
+     https://gaiasphere.io/guides   -> HTTP 200, <title> BOS, body.innerText = 0 karakter
+     https://gaiasphere.io/apps     -> ayni
+  Cunku iki sayfa da "type of content" sayfasi: govdedeki tek HTML elementi
+  `Current Page guides'in body_html`ini basiyor. Slug yoksa Current Page thing
+  de yok -> element BOS string basiyor -> BOMBOS beyaz sayfa. Yani /guides ve
+  /apps bugun *var olan ama higbir sey gostermeyen* iki indexlenebilir URL.
+  (template-page.html bunu 1066-1068. satirda coktan cozmus: son segment
+  'templates' ise slug yok sayilir ve BROWSE modu acilir. Bu dosya ayni deseni
+  guides + apps yuzeylerine tasir.)
+
+  YAPISTIRMA YERI — AYNI DOSYA IKI SAYFAYA (icerik birebir ayni, degistirme):
+     Bubble editor -> `guides` sayfasi -> Page property editor -> SEO/metatags
+        -> "Script/meta tags in header" -> BU DOSYANIN TAMAMI
+     Bubble editor -> `apps` sayfasi   -> ayni alan -> BU DOSYANIN TAMAMI
+     Dosya hangi sayfada oldugunu URL'den kendisi anlar (yuzey = 'guides'|'apps').
+     HTML ELEMENTINE YAPISTIRMA: header alani sunucudan gelen ham HTML'in
+     icindedir, Bubble motoru boot etmeden calisir (home-page.html §6g dersi).
+
+  IKI MOD (tek dosya):
+   A) DIZIN modu  (/guides, /apps  ·  slug YOK)
+      - Bubble'in bos govdesini gizler (yalnizca bu modda!) ve dizini cizer:
+        hero + arama + kume basliklari + kartlar + A-Z tam liste + CTA + footer.
+      - Sayfanin <title>, meta description ve JSON-LD'sini (CollectionPage +
+        ItemList + BreadcrumbList) JS ile doldurur. Bugun ikisi de BOS.
+   B) DETAY modu  (/guides/<slug>, /apps/<slug>  ·  slug VAR)
+      - Govdeye DOKUNMAZ. Govde (Bubble HTML elementi) SONRADAN enjekte edildigi
+        icin gelene kadar bekler (whenBody), sonra rehberde "On this page" TOC ve
+        altina prev/next koyar. (11.09'a kadar DOMContentLoaded'da calisip govdeyi
+        bulamiyordu: canli rehberlerde TOC hic cikmiyordu, olculdu.)
+      - Karsilikli baglanti (11.09): hub'da "Guides for <App>" bolumu (SSS'den once),
+        rehberde "App page for this guide" karti (prev/next'ten once). Eslesme yoksa yok.
+
+  RAY (SOL MENU) ARTIK BU DOSYANIN ISI DEGIL (11.09):
+     gx-rail v3 modulu dosyanin SONUNDAKI GX-RAIL-V3 araliginda; kaynak
+     _gx_rail_v3.html, araligi sync_rail.ps1 yazar (elle duzenleme). Ray grup
+     basliklarini link yapar, canli sayilari tasir, govdeye pismis v2 raylari siler.
+     (v2 bu dosyada DOMContentLoaded'da ray kuruyordu; Bubble govdeyi sonra enjekte
+     edince hub/rehber sayfalarinda IKI ray kaliyordu.) Bu dosya yalniz dizini cizer
+     ve /guides'ta rehberleri raydaki satirlarla AYNI siniflamayla (guideType) gruplar:
+     id'ler getting-started, by-app, by-workflow, by-role (ray bu capalara link verir).
+
+  KART LOGOSU (07.08 kullanici geri bildirimi, hala gecerli):
+     logos.composio.dev/api/<slug> HER slug icin 128x128 gorsel doner (uydurma slug
+     dahil, olculdu) -> `onerror` ile temizlemek IMKANSIZ, tahmin yanlis logo basar.
+     Bu yuzden rehberin app'i BEYAZ LISTEDEN bulunur (APPS = _cards.json'daki kartlarin
+     integrations alanindan cikan 29 toolkit). Eslesme yoksa logo hic basilmaz.
+  OLCEK / VERI BUTCESI (durust sinir, gizlenmiyor):
+     Bubble Data API alan secmeye izin vermiyor; her kayit body_html ile birlikte
+     geliyor (rehber ~17 KB, hub ~48 KB). Bu yuzden dizin, kayitlari 25'erli
+     sayfalarla ve PROGRESIF ceker; MAX_REC (400 kayit) VEYA MAX_BYTES (~2,6 MB)
+     sinirina gelince crawl'i DURDURUR. Kalanlar kaybolmaz:
+       - tam slug listesi /sitemap-<yuzey>.xml'den (URL basina ~60 bayt) alinir,
+         "All guides A-Z" bolumunde link olarak cikar (ic-link grafigi tam kalir),
+       - arama, yerel sette bulamazsa Data API'ye `text contains` sorgusu atar,
+         yani 1000 sayfanin 1000'i de aranabilir kalir.
+     ~300 rehberi gecince DOGRU cozum slim bir index kaynagidir (ayri `guide_index`
+     tipi ya da yayinla birlikte guncellenen tek JSON dosyasi). Degistirilecek TEK
+     yer asagidaki `loadIndex` fonksiyonu; gerisi aynen calisir.
+
+  BILINEN SINIRLAR (sessizce "yapilmis" sayilmiyor):
+   - Dizin icerigi JS ile cizilir (template-page.html browse modu ile ayni durum;
+     Google render ediyor, ilk 299 template bu yolla indexlendi).
+   - og:/twitter: etiketleri buradan basilamaz — Bubble kendi og etiketlerini
+     <head>'de DAHA ONCE basar, crawler ilkini alir. Dizin sayfalarinin sosyal
+     onizlemesi icin Bubble sayfa SEO alanlari kullanilmali (checklist §6b deseni).
+   - Cok dilli icerik cevirisi YOK (template-page.html'deki MT katmani buraya
+     tasinmadi). Dizin Ingilizce kalir; UI dili kurali zaten Ingilizce.
+   - `/apps` sitemap'te DEGIL (canli kontrol: /sitemap-apps.xml -> "null"), yani
+     hub'lar Google'a yalnizca ic linklerden ulasiyor. Bubble Settings -> SEO'da
+     apps sayfa tipi isaretlenmeli (BUBBLE_SEO_DEPLOYMENT_CHECKLIST §6d).
+
+  KOPYA KURALLARI: dil INGILIZCE (project_ui_language_rule) · EM DASH YASAK ·
+  uydurma sayi YOK (dizindeki her sayi canli kayittan gelir).
+-->
+
+<link rel="preconnect" href="https://logos.composio.dev" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+
+<style>
+/* ---------------------------------------------------------------------------
+   1) BUBBLE GOVDESINI GIZLE — YALNIZCA DIZIN MODUNDA.
+   `gx-dir-index` sinifini script <html>'e ancak URL'de slug YOKKEN basar.
+   Detay sayfalarinda (rehber/hub govdesi .main-page icindedir) bu kural HIC
+   devreye girmez. Ek emniyet: script kendini bir Bubble HTML elementinin
+   icinde bulursa sinifi geri alir (home-page.html §6g kendini-gizleme tuzagi).
+   --------------------------------------------------------------------------- */
+html.gx-dir-index body > .main-page{display:none!important}
+
+/* ---------------------------------------------------------------------------
+   2) KESIF KABUGU -> gx-rail v3 modulu (dosyanin sonundaki GX-RAIL-V3 araligi;
+      kaynak _gx_rail_v3.html). Ray stili orada; burada ray kurali YOK.
+   --------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------
+   3) DIZIN YUZEYI (#gxDir) — yalnizca dizin modunda cizilir.
+   Gorsel dil: gx-guide / template-page ile ayni (Inter, ink #0f172a, indigo
+   #6366f1, kart kenari #EDEFF3, radius 14).
+   --------------------------------------------------------------------------- */
+#gxDir{--ink:#0f172a;--sec:#475569;--faint:#94a3b8;--blue:#6366f1;--blue-h:#4f46e5;--line:#e2e8f0;--hair:#eef2f7;--gray:#f8fafc;
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--ink);line-height:1.55;letter-spacing:-.002em;background:#fff;-webkit-font-smoothing:antialiased}
+#gxDir *{box-sizing:border-box}
+#gxDir a{color:var(--blue);text-decoration:none}
+#gxDir .d-wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+#gxDir .d-hero{padding:60px 0 26px;text-align:center}
+#gxDir .d-crumb{font-size:12.5px;color:var(--faint);margin-bottom:14px}
+#gxDir .d-crumb a{color:var(--faint)}
+#gxDir .d-crumb a:hover{color:var(--sec)}
+#gxDir .d-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin-bottom:12px}
+#gxDir h1{font-size:clamp(30px,4.4vw,44px);font-weight:700;letter-spacing:-.024em;line-height:1.12;margin:0}
+#gxDir .d-sub{font-size:clamp(16px,1.7vw,18.5px);color:var(--sec);max-width:640px;margin:16px auto 0;line-height:1.6}
+#gxDir .d-search{display:flex;align-items:center;gap:10px;max-width:520px;margin:28px auto 0;border:1.5px solid var(--line);border-radius:14px;background:#fff;padding:0 16px;height:52px;transition:border-color .18s,box-shadow .18s}
+#gxDir .d-search:focus-within{border-color:#c7d2fe;box-shadow:0 0 0 4px rgba(99,102,241,.10)}
+#gxDir .d-search svg{color:var(--faint);flex:0 0 auto}
+#gxDir .d-search input{flex:1;border:0;outline:0;font-family:inherit;font-size:15.5px;color:var(--ink);background:transparent;min-width:0}
+#gxDir .d-count{margin-top:14px;font-size:13.5px;color:var(--faint)}
+#gxDir .d-sec{padding:12px 0 0}
+#gxDir .d-gh{display:flex;align-items:baseline;gap:10px;margin:34px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--hair)}
+#gxDir .d-gh h2{font-size:19px;font-weight:700;letter-spacing:-.014em;margin:0}
+#gxDir .d-gh .d-gn{font-size:12.5px;font-weight:600;color:var(--faint)}
+#gxDir .d-gh{scroll-margin-top:24px}
+@media(max-width:1079.98px){#gxDir .d-gh{scroll-margin-top:76px}}
+#gxDir .d-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+#gxDir .d-card{display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid #EDEFF3;border-radius:14px;padding:16px 16px 14px;color:inherit;transition:border-color .2s,box-shadow .25s,transform .2s}
+#gxDir .d-card:hover{border-color:#c7d2fe;box-shadow:0 8px 26px -14px rgba(15,23,42,.28);transform:translateY(-1px)}
+#gxDir .d-ct{display:flex;align-items:center;gap:10px}
+#gxDir .d-logo{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto;overflow:hidden}
+#gxDir .d-logo img{width:20px;height:20px;object-fit:contain}
+#gxDir .d-name{font-size:15.5px;font-weight:600;line-height:1.3;color:var(--ink);letter-spacing:-.008em}
+#gxDir .d-desc{font-size:13.5px;color:var(--sec);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#gxDir .d-more{margin-top:auto;font-size:12.5px;font-weight:600;color:var(--blue)}
+#gxDir .d-more:after{content:" \203A"}
+#gxDir .d-az{margin-top:44px;border-top:1px solid var(--hair);padding-top:22px}
+#gxDir .d-az h2{font-size:16px;font-weight:700;margin:0 0 4px}
+#gxDir .d-az p{font-size:13px;color:var(--faint);margin:0 0 14px}
+#gxDir .d-azlist{columns:3;column-gap:26px;font-size:13.5px;line-height:1.9}
+#gxDir .d-azlist a{display:block;break-inside:avoid;color:var(--sec)}
+#gxDir .d-azlist a:hover{color:var(--blue-h)}
+#gxDir .d-state{padding:44px 0;text-align:center;color:var(--faint);font-size:14.5px}
+#gxDir .d-spin{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--blue);border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:9px;animation:gxdspin .7s linear infinite}
+@keyframes gxdspin{to{transform:rotate(360deg)}}
+#gxDir .d-band{background:var(--gray);margin-top:60px;padding:60px 0;text-align:center}
+#gxDir .d-band .d-bt{font-size:clamp(23px,3vw,30px);font-weight:700;letter-spacing:-.016em;margin-bottom:10px}
+#gxDir .d-band .d-bs{font-size:16px;color:var(--sec);max-width:520px;margin:0 auto 24px;line-height:1.6}
+#gxDir .d-btn{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;padding:12px 26px;font-size:16px;font-weight:500;transition:background .2s}
+#gxDir .d-btn:hover{background:var(--blue-h)}
+#gxDir .d-ft{border-top:1px solid var(--hair);padding:32px 0 44px;background:#fff}
+#gxDir .d-ft .d-fl{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13.5px;margin-bottom:12px}
+#gxDir .d-ft .d-fl a{color:var(--sec)}
+#gxDir .d-ft .d-fl a:hover{color:var(--ink)}
+#gxDir .d-ft .d-cp{font-size:12.5px;color:var(--faint)}
+@media(max-width:900px){#gxDir .d-azlist{columns:2}}
+@media(max-width:640px){#gxDir .d-hero{padding:38px 0 20px}#gxDir .d-azlist{columns:1}#gxDir .d-grid{grid-template-columns:1fr}}
+
+/* ---------------------------------------------------------------------------
+   4) DETAY MODU EKLENTILERI — "On this page" TOC + prev/next.
+   TOC yalnizca genis ekranda ve yalnizca rehber govdesinde (692px dar sutun)
+   acilir; hub govdesi 1060px oldugu icin orada acilmaz (carpisma olurdu).
+   --------------------------------------------------------------------------- */
+/* Iki sunum: (1) sag kenarda sabit sutun, (2) makalenin basinda satir-ici kart.
+   Hangisi oldugu OLCULEREK secilir (bkz. placeToc): makalenin sagindaki bosluk
+   gercekten yetiyorsa sabit sutun, yetmiyorsa satir-ici. Sabit genislik varsaymak
+   yanlisti; ilk olcumde TOC makalenin uzerine 51px biniyordu. */
+#gxToc{position:fixed;top:0;right:0;width:216px;max-height:100vh;overflow-y:auto;padding:96px 14px 40px 6px;font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;z-index:40;display:none}
+#gxToc .t-h{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#94a3b8;margin-bottom:10px;padding-left:10px}
+#gxToc a{display:block;font-size:12.6px;line-height:1.45;color:#64748b;text-decoration:none;padding:6px 10px;border-left:2px solid #eef2f7;border-radius:0 7px 7px 0}
+#gxToc a:hover{color:#0f172a;background:#f8fafc}
+#gxToc a.on{color:#4f46e5;border-left-color:#6366f1;background:#eef2ff;font-weight:600}
+#gxTocIn{display:none;margin:0 0 26px;border:1px solid #EDEFF3;border-radius:14px;background:#fff;padding:4px 16px 6px;font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}
+#gxTocIn>summary{list-style:none;cursor:pointer;padding:12px 0;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#94a3b8;display:flex;align-items:center;justify-content:space-between}
+#gxTocIn>summary::-webkit-details-marker{display:none}
+#gxTocIn>summary:after{content:"\203A";transform:rotate(90deg);font-size:15px;color:#94a3b8;transition:transform .18s}
+#gxTocIn[open]>summary:after{transform:rotate(-90deg)}
+#gxTocIn .t-in{padding:2px 0 12px;display:grid;grid-template-columns:1fr 1fr;gap:2px 18px}
+#gxTocIn a{font-size:13.5px;line-height:1.45;color:#475569;text-decoration:none;padding:5px 0}
+#gxTocIn a:hover{color:#4f46e5}
+@media(max-width:640px){#gxTocIn .t-in{grid-template-columns:1fr}}
+#gxPrevNext{max-width:692px;margin:0 auto;padding:26px 22px 6px;display:grid;grid-template-columns:1fr 1fr;gap:12px;font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}
+#gxPrevNext a{display:flex;flex-direction:column;gap:4px;border:1px solid #EDEFF3;border-radius:14px;padding:14px 16px;text-decoration:none;transition:border-color .2s,box-shadow .25s}
+#gxPrevNext a:hover{border-color:#c7d2fe;box-shadow:0 8px 26px -14px rgba(15,23,42,.28)}
+#gxPrevNext .pn-k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8}
+#gxPrevNext .pn-t{font-size:14px;font-weight:600;color:#0f172a;line-height:1.35}
+#gxPrevNext .pn-next{text-align:right}
+@media(max-width:640px){#gxPrevNext{grid-template-columns:1fr}#gxPrevNext .pn-next{text-align:left}}
+/* 5) KARSILIKLI BAGLANTI (ortak handoff'u, 11.09): hub'da o uygulamanin rehberleri (#gxRelG),
+      rehberde ilgili uygulama sayfasi (#gxRelA). Gorsel dil dizin kartlari ve prev/next ile ayni. */
+#gxRelG .rg-sub{text-align:center;color:#475569;font-size:16px;line-height:1.6;max-width:560px;margin:-6px auto 26px}
+#gxRelG .rg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+#gxRelG .rg-card{display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid #EDEFF3;border-radius:14px;padding:16px 16px 14px;text-decoration:none;color:#0f172a;transition:border-color .2s,box-shadow .25s}
+#gxRelG .rg-card:hover{border-color:#c7d2fe;box-shadow:0 8px 26px -14px rgba(15,23,42,.28)}
+#gxRelG .rg-k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6366f1}
+#gxRelG .rg-t{font-size:15.5px;font-weight:600;line-height:1.35}
+#gxRelG .rg-d{font-size:13.5px;color:#475569;line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#gxRelG .rg-m{margin-top:auto;font-size:12.5px;font-weight:600;color:#6366f1}
+#gxRelG .rg-m:after{content:" \203A"}
+#gxRelA{max-width:692px;margin:0 auto;padding:30px 22px 0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}
+#gxRelA .ra-h{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:10px}
+#gxRelA .ra-card{display:flex;align-items:center;gap:14px;border:1px solid #EDEFF3;border-radius:14px;padding:14px 16px;margin-bottom:10px;text-decoration:none;color:#0f172a;transition:border-color .2s,box-shadow .25s}
+#gxRelA .ra-card:hover{border-color:#c7d2fe;box-shadow:0 8px 26px -14px rgba(15,23,42,.28)}
+#gxRelA .ra-logo{width:40px;height:40px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+#gxRelA .ra-logo img{width:22px;height:22px;object-fit:contain}
+#gxRelA .ra-tx{flex:1;min-width:0}
+#gxRelA .ra-tx b{display:block;font-size:15px;font-weight:600;line-height:1.3}
+#gxRelA .ra-tx i{font-style:normal;font-size:13px;color:#475569;line-height:1.5;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#gxRelA .ra-go{font-size:20px;line-height:1;color:#94a3b8}</style>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ==========================================================================
+     0) YUZEY TESPITI — URL'den. '/version-test/guides/x' de dogru calisir:
+        segmentler icinde 'guides'|'apps' aranir, BIR SONRAKI segment slug'dir.
+        Nokta iceren segment (dosya) slug sayilmaz.
+     ========================================================================== */
+  var segs=location.pathname.split('/').filter(function(s){return !!s;});
+  var KEY='',SLUG='';
+  for(var i=0;i<segs.length;i++){
+    var s=segs[i].toLowerCase();
+    if(s==='guides'||s==='apps'){KEY=s;SLUG=segs[i+1]||'';break;}
+  }
+  if(!KEY)return;                       /* yanlis sayfaya yapistirilmis: hicbir sey yapma */
+  if(SLUG.indexOf('.')>-1)SLUG='';
+  try{SLUG=decodeURIComponent(SLUG);}catch(e){}
+  var IS_INDEX=!SLUG;
+
+  /* Dizin modunda Bubble'in bos govdesini gizleyen sinifi HEMEN bas (ilk boyadan once). */
+  if(IS_INDEX){document.documentElement.className+=' gx-dir-index';}
+
+  var API='https://gaiasphere.io/api/1.1/obj/';
+  var LOGO='https://logos.composio.dev/api/';
+  var SITE='https://gaiasphere.io';
+  var MAX_REC=400, MAX_BYTES=2600000, PAGE=25;   /* veri butcesi: dosya basligi "OLCEK" bolumu */
+  var CACHE_TTL=30*60*1000;
+
+  /* ==========================================================================
+     1) YUZEY YAPILANDIRMASI
+     ========================================================================== */
+  var CFG={
+    guides:{
+      key:'guides', type:'guides', base:'/guides', groupField:'cluster',
+      logos:false, sitemap:'/sitemap-guides.xml', toc:true,
+      title:'AI Automation Guides | Gaia',
+      meta:'Step by step guides for automating the work that arrives in your apps. Each guide shows the setup, the limits, and the assistant that runs it.',
+      eyebrow:'Guides', h1:'Guides',
+      sub:'Practical walkthroughs for the work that lands in your inbox, your tickets and your docs. Every guide ends with an assistant you can deploy.',
+      ph:'Search guides', unit:['guide','guides'],
+      empty:'No guides are published yet. The template library is already live.',
+      bandT:'Start from a template', bandS:'Every guide points at an assistant that is ready to run. Pick one and set the autonomy level yourself.'
+    },
+    apps:{
+      key:'apps', type:'hubs', base:'/apps', groupField:'hub_type',
+      logos:true, sitemap:'/sitemap-apps.xml', toc:false,
+      title:'AI Assistants by App | Gaia',
+      meta:'Browse Gaia assistants by the app your work already lives in. Each hub lists what the assistant can read, what it can do, and the templates ready to run.',
+      eyebrow:'App hub', h1:'AI assistants by app',
+      sub:'Pick the app your work already lives in. Each hub lists what an assistant can read there, what it can do, and which templates are ready to run.',
+      ph:'Search apps', unit:['app','apps'],
+      empty:'No app hubs are published yet. The template library is already live.',
+      bandT:'Pick an app, pick a template', bandS:'Connect once, then let the assistant work where the task already arrives. You decide what it does on its own.'
+    }
+  };
+  var C=CFG[KEY];
+
+  /* ==========================================================================
+     2) KUCUK YARDIMCILAR
+     ========================================================================== */
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function enc(o){return encodeURIComponent(JSON.stringify(o));}
+  function titleCase(s){return String(s||'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim().replace(/\b[a-z]/g,function(m){return m.toUpperCase();});}
+  /* "confluence-meeting-notes" -> "Confluence meeting notes" (pismis rayin kullandigi bicim) */
+  function sentenceCase(s){var t=String(s||'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'';}
+
+  /* ==========================================================================
+     2b) UYGULAMA TANIMA (rehber satirlarina logo icin)
+     DIKKAT: logos.composio.dev/api/<slug> HER slug icin 128x128 bir gorsel doner
+     (uydurma slug dahil; olculdu). Yani `onerror` HIC atesLENMEZ -> "dene, tutmazsa
+     gizle" YANLIS logo basar. Bu yuzden tanima BEYAZ LISTE ile yapilir.
+     Liste _cards.json'daki 487 kartin integrations alanindan cikarilan 29 farkli
+     toolkit slug'idir (yani sitenin GERCEKTEN destekledigi set) + canli hub slug'lari.
+     Yeni entegrasyon eklenince tek yer: APPS dizisi.
+     ========================================================================== */
+  var APPS=['gmail','apollo','slack','googlesheets','hubspot','jira','notion','googledocs','googlecalendar',
+            'zendesk','outlook','mailchimp','intercom','pipedrive','trello','calendly','gorgias','confluence',
+            'salesforce','linear','airtable','todoist','monday','freshdesk','clickup','asana','linkedin','stripe','excel'];
+  /* slug/kume icinde gecen ama toolkit adi FARKLI olan yazimlar */
+  var APP_ALIAS={sheets:'googlesheets','google-sheets':'googlesheets',spreadsheet:'googlesheets',
+                 docs:'googledocs','google-docs':'googledocs',
+                 calendar:'googlecalendar','google-calendar':'googlecalendar',gcal:'googlecalendar',
+                 'microsoft-excel':'excel',gsheets:'googlesheets'};
+  var LIVE_APPS={};                       /* canli hub slug'lari; API'den gelince dolar */
+  function knownApp(tok){
+    if(!tok)return '';
+    tok=tok.toLowerCase();
+    if(APP_ALIAS[tok])tok=APP_ALIAS[tok];
+    return (APPS.indexOf(tok)>-1||LIVE_APPS[tok])?tok:'';
+  }
+  /* Rehberin app'i: once kume alani, sonra slug parcalari (bitisik ikili denemesiyle
+     "google-sheets" gibi iki parcali adlar da yakalanir). Bulunamazsa logo YOK. */
+  function detectApp(it){
+    if(!it)return '';
+    var direct=knownApp(it.group);if(direct)return direct;
+    var parts=String((it.group||'')+'-'+(it.slug||'')).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    for(var i=0;i<parts.length;i++){
+      if(i+1<parts.length){var pair=knownApp(parts[i]+'-'+parts[i+1]);if(pair)return pair;}
+      var one=knownApp(parts[i]);if(one)return one;
+    }
+    return '';
+  }
+  function plural(n,u){return n+' '+(n===1?u[0]:u[1]);}
+  function ready(fn){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn);else fn();}
+  function idle(fn){if(window.requestIdleCallback)requestIdleCallback(fn,{timeout:2500});else setTimeout(fn,600);}
+  function gxGA(n,p){try{if(typeof window.gtag==='function')window.gtag('event',n,p||{});else (window.dataLayer=window.dataLayer||[]).push(['event',n,p||{}]);}catch(e){}}
+  function gxTrack(n,p){gxGA(n,p||{});try{if(typeof window.clarity==='function')window.clarity('event',n);}catch(e){}}
+  function gxTag(k,v){if(v==null||v==='')return;try{if(typeof window.clarity==='function')window.clarity('set',k,String(v));}catch(e){}}
+  function debounce(fn,ms){var t;return function(){var a=arguments,c=this;clearTimeout(t);t=setTimeout(function(){fn.apply(c,a);},ms);};}
+  function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}}
+  function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+  /* ==========================================================================
+     3) VERI KATMANI
+     slim() -> kayittan yalnizca dizinin ihtiyaci olan alanlari alir; body_html
+     BELLEKTE TUTULMAZ (yoksa 400 kayit = onlarca MB'lik JS heap).
+     ========================================================================== */
+  var CK='gx_dir_'+C.key+'_v1';
+  function slim(r){
+    return {
+      slug:String(r.Slug||''),
+      name:String(r.name||r.seo_title||''),
+      desc:String(r.meta_description||''),
+      group:String(r[C.groupField]||''),
+      mod:String(r['Modified Date']||r['Created Date']||'')
+    };
+  }
+  /* Data API tek istekte alan secmeye izin vermez; sayfa sayfa ceker, her sayfadan
+     sonra onPage ile ekrani tazeler (progresif boya), butce dolunca durur. */
+  function loadIndex(onPage,onDone){
+    var cached=lsGet(CK);
+    if(cached&&cached.items&&(Date.now()-(cached.ts||0)<CACHE_TTL)){
+      onPage(cached.items,cached.total,cached.truncated);
+    }
+    var out=[],cursor=0,bytes=0,total=0,sortable=true;
+    /* failed: "kayit yok" ile "kaydi CEKEMEDIK" ayri seylerdir. Ikisini ayni ekranla
+       gostermek yalan olurdu (bos katalog iddiasi); paint() bunlari ayri yazar. */
+    function finish(trunc,failed){
+      if(!failed)lsSet(CK,{ts:Date.now(),items:out,total:total||out.length,truncated:!!trunc});
+      onDone(out,total||out.length,!!trunc,!!failed&&!out.length);
+    }
+    function step(){
+      var url=API+C.type+'?limit='+PAGE+'&cursor='+cursor+(sortable?'&sort_field=Modified%20Date&descending=true':'');
+      fetch(url,{headers:{Accept:'application/json'}}).then(function(r){
+        /* Bubble bilinmeyen sort_field'da 404 doner -> sirasiz tekrar dene (tek sefer).
+           Sirasiz da basarisizsa AKISI KAPAT: yoksa "Loading" sonsuza kadar donerdi. */
+        if(!r.ok){if(sortable){sortable=false;step();}else{finish(false,true);}return null;}
+        return r.text();
+      }).then(function(t){
+        if(t==null)return;
+        bytes+=t.length;
+        var j;try{j=JSON.parse(t);}catch(e){finish(false,true);return;}
+        var res=j&&j.response;if(!res){finish(false,true);return;}
+        (res.results||[]).forEach(function(x){if(x&&x.Slug)out.push(slim(x));});
+        var remaining=res.remaining||0;
+        total=out.length+remaining;
+        onPage(out,total,remaining>0);
+        if(remaining>0&&out.length<MAX_REC&&bytes<MAX_BYTES){cursor+=PAGE;step();return;}
+        finish(remaining>0,false);
+      }).catch(function(){finish(false,true);});
+    }
+    step();
+  }
+  /* Sitemap yedegi: butce yuzunden cekilemeyen kayitlarin slug'lari da linklenebilsin
+     diye (ic-link grafigi eksik kalmasin). Bubble sayfa tipi sitemap'te degilse govde
+     "null" doner; o zaman sessizce atlanir. */
+  function loadSitemapSlugs(cb){
+    if(!C.sitemap){cb([]);return;}
+    fetch(C.sitemap).then(function(r){return r.ok?r.text():'';}).then(function(t){
+      if(!t||t.indexOf('<loc')<0){cb([]);return;}
+      var out=[],re=/<loc>\s*([^<\s]+)\s*<\/loc>/g,m;
+      while((m=re.exec(t))){
+        var parts=m[1].split('/').filter(Boolean);
+        var last=parts[parts.length-1];
+        if(last&&last!==C.key)out.push(decodeURIComponent(last));
+      }
+      cb(out);
+    }).catch(function(){cb([]);});
+  }
+  /* Butce disinda kalan kayitlar da ARANABILIR kalsin: sunucu tarafi `text contains`. */
+  function serverSearch(q,cb){
+    var u=API+C.type+'?limit=12&constraints='+enc([{key:'name',constraint_type:'text contains',value:q}]);
+    fetch(u,{headers:{Accept:'application/json'}}).then(function(r){return r.ok?r.json():null;})
+      .then(function(j){cb(((j&&j.response&&j.response.results)||[]).map(slim));}).catch(function(){cb([]);});
+  }
+
+  /* ==========================================================================
+     4) RAY BURADA DEGIL -> gx-rail v3 modulu (dosya sonundaki GX-RAIL-V3 araligi,
+        kaynak _gx_rail_v3.html). Bu dosya ray KURMAZ, DEGISTIRMEZ.
+     ========================================================================== */
+  /* Kart logosu: hub ise slug'in kendisi (API'den geldi, dogrulanmis),
+     rehber ise ancak BEYAZ LISTEDE eslesme varsa. */
+  function rowLogo(key,it){ return key==='apps'?it.slug:detectApp(it); }
+  /* Rehber turu: gx-rail v3 guideType() ile AYNI kural. Ray "Guides by app /
+     by workflow" satirlarini bu siniflamayla sayar; dizin ayni gruplari cizer. */
+  function guideType(it){
+    var c=String(it.group||'').toLowerCase(),s=String(it.slug||'').toLowerCase();
+    if(c==='getting-started'||s.indexOf('getting-started')===0)return 'start';
+    if(c.indexOf('role-')===0)return 'role';
+    return detectApp(it)?'app':'workflow';
+  }
+  var GUIDE_GROUPS=[['start','getting-started','Getting started'],['app','by-app','Guides by app'],
+                    ['workflow','by-workflow','Guides by workflow'],['role','by-role','Guides by role']];
+  /* Raydan /guides#by-app ile gelinince grup basliklari veri gelince cizilir; tarayicinin
+     ilk capa atlamasi bosa duser. Ilk dolu cizimden sonra bir kez kaydir. */
+  var HASH_DONE=false;
+  function jumpToHash(){
+    if(!IS_INDEX||HASH_DONE||STATE.q)return;
+    var h='';try{h=decodeURIComponent((location.hash||'').slice(1));}catch(e){}
+    if(!h)return;
+    var el=document.getElementById(h);if(!el)return;
+    HASH_DONE=true;
+    try{el.scrollIntoView({block:'start'});}catch(e){el.scrollIntoView();}
+  }
+  window.addEventListener('hashchange',function(){HASH_DONE=false;jumpToHash();});
+  /* Hub / rehber govdesi Bubble HTML elementi tarafindan SONRADAN enjekte edilir
+     (DOMContentLoaded'da henuz yok). v2 bu yuzden TOC'u hic kuramiyordu (11.09 canli:
+     8 h2'li rehberde "On this page" yoktu). Govde gelene kadar bekle (en fazla 20 sn). */
+  function whenBody(cb){
+    var sel='.gx-guide,.gx-hub';
+    if(document.querySelector(sel)){cb();return;}
+    var done=false,mo=null,iv=null;
+    function hit(){
+      if(done||!document.querySelector(sel))return;
+      done=true;if(mo)mo.disconnect();if(iv)clearInterval(iv);
+      setTimeout(cb,0);
+    }
+    if(window.MutationObserver){mo=new MutationObserver(hit);mo.observe(document.documentElement,{childList:true,subtree:true});}
+    iv=setInterval(hit,400);
+    setTimeout(function(){if(!done){done=true;if(mo)mo.disconnect();clearInterval(iv);}},20000);
+  }
+  /* ==========================================================================
+     5) DIZIN MODU
+     ========================================================================== */
+  function renderIndexShell(){
+    var d=document.createElement('div');
+    d.id='gxDir';
+    d.innerHTML=
+      '<header class="d-hero"><div class="d-wrap">'+
+        '<div class="d-crumb"><a href="/">Home</a> › <span>'+esc(C.eyebrow)+'</span></div>'+
+        '<div class="d-eyebrow">'+esc(C.eyebrow)+'</div>'+
+        '<h1>'+esc(C.h1)+'</h1>'+
+        '<p class="d-sub">'+esc(C.sub)+'</p>'+
+        '<div class="d-search">'+
+          '<svg width="19" height="19" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>'+
+          '<input id="gxDirQ" type="text" autocomplete="off" placeholder="'+esc(C.ph)+'" aria-label="'+esc(C.ph)+'">'+
+        '</div>'+
+        '<div class="d-count" id="gxDirCount"></div>'+
+      '</div></header>'+
+      '<main class="d-sec"><div class="d-wrap"><div id="gxDirBody"><div class="d-state"><span class="d-spin"></span>Loading</div></div></div></main>'+
+      '<section class="d-band"><div class="d-wrap">'+
+        '<div class="d-bt">'+esc(C.bandT)+'</div>'+
+        '<p class="d-bs">'+esc(C.bandS)+'</p>'+
+        '<a class="d-btn" href="/templates">Browse templates</a>'+
+      '</div></section>'+
+      '<footer class="d-ft"><div class="d-wrap">'+
+        '<div class="d-fl"><a href="/">Home</a><a href="/templates">All Assistants</a><a href="/apps">App Hub</a><a href="/guides">Guides</a><a href="/pricing">Pricing</a><a href="/privacy_policy">Privacy Policy</a><a href="/terms_of_service">Terms of Service</a><a href="/disclaimer">Disclaimer</a><a href="/sitemap-index.xml">Sitemap</a></div>'+
+        '<div class="d-cp">&copy; Gaia. AI assistants for every workflow. Start free, pay as you go.</div>'+
+      '</div></footer>';
+    document.body.appendChild(d);
+    /* KENDINI-GIZLEME KORUMASI: bu blok yanlislikla bir Bubble HTML ELEMENTININ
+       icine yapistirildiysa dizin de .main-page icinde kalir ve gizleme kurali
+       kendini gizlerdi. O durumda kurali geri al. */
+    if(d.closest&&d.closest('.main-page')){document.documentElement.className=document.documentElement.className.replace(/\s*\bgx-dir-index\b/,'');}
+    return d;
+  }
+  /* Gruplama: kume alani anlamli degilse (cogu kume tek elemanli) DUZ listeye duser.
+     Boylece "her rehber kendi kumesi" gibi anlamsiz bir dizin cikmaz. */
+  function groupItems(items){
+    /* Rehberler: tur gruplari. Kume alani cogu rehberde tek elemanli (11.09: 23 rehber,
+       19 kume) oldugundan kume gruplamasi bilgi katmiyordu. Sira: getting started,
+       by app (uygulamaya gore dizili), by workflow, by role. Bos grup cizilmez. */
+    if(KEY==='guides'){
+      var byT={start:[],app:[],workflow:[],role:[]};
+      items.forEach(function(it){byT[guideType(it)].push(it);});
+      var nm=function(a,b){return (a.name||a.slug).localeCompare(b.name||b.slug);};
+      byT.app.sort(function(a,b){return detectApp(a).localeCompare(detectApp(b))||nm(a,b);});
+      byT.start.sort(nm);byT.workflow.sort(nm);byT.role.sort(nm);
+      var outT=[];
+      GUIDE_GROUPS.forEach(function(g){if(byT[g[0]].length)outT.push({label:g[2],id:g[1],items:byT[g[0]]});});
+      return outT;
+    }
+    var by={},order=[];
+    items.forEach(function(it){
+      var g=(it.group||'').trim()||'other';
+      if(!by[g]){by[g]=[];order.push(g);}
+      by[g].push(it);
+    });
+    var singles=order.filter(function(g){return by[g].length===1;}).length;
+    /* Az sayida kayitta ya da kumelerin cogu tek uyeliyken gruplama BILGI KATMAZ,
+       yalnizca basliklar arasinda tek kart birakir -> duz liste. */
+    if(order.length<2||items.length<6||(order.length>4&&singles/order.length>0.6)){
+      return [{label:'All '+C.unit[1],items:items.slice()}];
+    }
+    order.sort(function(a,b){return by[b].length-by[a].length||a.localeCompare(b);});
+    return order.map(function(g){
+      var label=(KEY==='apps')?(g==='app'?'Apps':g==='category'?'Categories':titleCase(g)):titleCase(g);
+      return {label:label,items:by[g]};
+    });
+  }
+  function cardHtml(it){
+    var name=it.name||titleCase(it.slug);
+    /* rehber kartinda da app logosu: yalnizca beyaz listede eslesme varsa (bkz. detectApp) */
+    var lg=rowLogo(KEY,it);
+    var logo=lg?'<span class="d-logo"><img src="'+LOGO+encodeURIComponent(lg)+'" alt="" loading="lazy"></span>':'';
+    return '<a class="d-card" href="'+C.base+'/'+encodeURIComponent(it.slug)+'">'+
+      '<span class="d-ct">'+logo+'<span class="d-name">'+esc(name)+'</span></span>'+
+      (it.desc?'<span class="d-desc">'+esc(it.desc)+'</span>':'')+
+      '<span class="d-more">'+(KEY==='apps'?'Open hub':'Read guide')+'</span></a>';
+  }
+  var STATE={items:[],total:0,truncated:false,extra:[],q:'',remote:[],failed:false};
+  function paint(){
+    var body=document.getElementById('gxDirBody'),cnt=document.getElementById('gxDirCount');
+    if(!body)return;
+    var q=STATE.q.toLowerCase().trim();
+    var list=STATE.items.filter(function(it){
+      if(!q)return true;
+      return (it.name+' '+it.desc+' '+it.slug+' '+it.group).toLowerCase().indexOf(q)>-1;
+    });
+    /* butce disi kalanlardan gelen sunucu-arama sonuclarini ekle (tekrarsiz) */
+    if(q&&STATE.remote.length){
+      var seen={};list.forEach(function(it){seen[it.slug]=1;});
+      STATE.remote.forEach(function(it){if(!seen[it.slug]){seen[it.slug]=1;list.push(it);}});
+    }
+    if(cnt){
+      var head=plural(STATE.total||STATE.items.length,C.unit);
+      if(q)head=plural(list.length,C.unit)+' matching "'+esc(STATE.q.trim())+'"';
+      else if(STATE.truncated)head=head+'. Showing the '+STATE.items.length+' most recent below, search covers all of them.';
+      cnt.innerHTML=head;
+    }
+    if(!STATE.items.length&&!list.length){
+      body.innerHTML=STATE.failed
+        ? '<div class="d-state">We could not load this list right now. Please refresh, or <a href="/templates">browse templates</a>.</div>'
+        : '<div class="d-state">'+esc(C.empty)+' <a href="/templates">Browse templates</a></div>';
+      if(cnt&&STATE.failed)cnt.textContent='';
+      return;
+    }
+    var html='';
+    if(q){
+      html+= list.length
+        ? '<div class="d-grid">'+list.map(cardHtml).join('')+'</div>'
+        : '<div class="d-state">Nothing matches that yet. <a href="/templates">Browse templates</a></div>';
+    }else{
+      groupItems(STATE.items).forEach(function(g){
+        html+='<div class="d-gh"'+(g.id?' id="'+g.id+'"':'')+'><h2>'+esc(g.label)+'</h2><span class="d-gn">'+plural(g.items.length,C.unit)+'</span></div>'+
+              '<div class="d-grid">'+g.items.map(cardHtml).join('')+'</div>';
+      });
+      /* A-Z tam liste: cekilemeyen (butce disi) slug'lar dahil, ic-link grafigi tam kalsin */
+      var known={};STATE.items.forEach(function(it){known[it.slug]=it.name||titleCase(it.slug);});
+      var all=Object.keys(known);
+      STATE.extra.forEach(function(s){if(!known[s]){known[s]=titleCase(s);all.push(s);}});
+      if(all.length>STATE.items.length||all.length>12){
+        all.sort(function(a,b){return known[a].localeCompare(known[b]);});
+        html+='<div class="d-az"><h2>All '+C.unit[1]+' A-Z</h2><p>'+plural(all.length,C.unit)+' published.</p><div class="d-azlist">'+
+          all.map(function(s){return '<a href="'+C.base+'/'+encodeURIComponent(s)+'">'+esc(known[s])+'</a>';}).join('')+'</div></div>';
+      }
+    }
+    body.innerHTML=html;
+    if(!q)jumpToHash();
+  }
+  function setSeo(){
+    document.title=C.title;
+    var m=document.querySelector('meta[name="description"]');
+    if(!m){m=document.createElement('meta');m.setAttribute('name','description');document.head.appendChild(m);}
+    m.setAttribute('content',C.meta);
+    var cn=document.querySelector('link[rel="canonical"]');
+    if(!cn){cn=document.createElement('link');cn.setAttribute('rel','canonical');document.head.appendChild(cn);}
+    cn.setAttribute('href',SITE+C.base);
+  }
+  function setJsonLd(){
+    var items=STATE.items.slice(0,100).map(function(it,i){
+      return {"@type":"ListItem","position":i+1,"url":SITE+C.base+'/'+encodeURIComponent(it.slug),"name":it.name||titleCase(it.slug)};
+    });
+    var g={"@context":"https://schema.org","@graph":[
+      {"@type":"CollectionPage","@id":SITE+C.base+'#page',"url":SITE+C.base,"name":C.title,"description":C.meta,
+       "isPartOf":{"@type":"WebSite","url":SITE+'/',"name":"Gaia"}},
+      {"@type":"BreadcrumbList","itemListElement":[
+        {"@type":"ListItem","position":1,"name":"Home","item":SITE+'/'},
+        {"@type":"ListItem","position":2,"name":C.eyebrow,"item":SITE+C.base}]},
+      {"@type":"ItemList","name":C.h1,"numberOfItems":STATE.total||items.length,"itemListElement":items}
+    ]};
+    var old=document.getElementById('gxDirLd');if(old)old.parentNode.removeChild(old);
+    var s=document.createElement('script');s.type='application/ld+json';s.id='gxDirLd';
+    s.textContent=JSON.stringify(g);document.head.appendChild(s);
+  }
+  function startIndex(){
+    setSeo();
+    renderIndexShell();
+    gxTag('page_type',KEY+'_directory');gxTrack('directory_view',{surface:KEY});
+    var input=document.getElementById('gxDirQ');
+    var remote=debounce(function(q){
+      if(!STATE.truncated||q.length<2){STATE.remote=[];return;}
+      serverSearch(q,function(res){STATE.remote=res;paint();});
+    },500);
+    var track=debounce(function(q){if(q.trim().length>1)gxTrack('directory_search',{surface:KEY,search_term:q.trim()});},900);
+    if(input){
+      input.addEventListener('input',function(){STATE.q=this.value;paint();remote(this.value.trim());track(this.value);});
+      try{var pq=new URLSearchParams(location.search).get('q');if(pq){input.value=pq;STATE.q=pq;}}catch(e){}
+    }
+    loadIndex(function(items,total,trunc){
+      STATE.items=items;STATE.total=total;STATE.truncated=trunc;paint();
+    },function(items,total,trunc,failed){
+      /* Tazeleme basarisiz ama ekranda ONBELLEKTEN gelen gecerli bir liste varsa onu
+         silme: calisan bir dizini hata metniyle degistirmek geriye gidis olurdu. */
+      if(failed&&STATE.items.length)return;
+      STATE.items=items;STATE.total=total;STATE.truncated=trunc;STATE.failed=!!failed;
+      paint();setJsonLd();
+    });
+    loadSitemapSlugs(function(slugs){if(slugs.length){STATE.extra=slugs;paint();}});
+  }
+
+  /* ==========================================================================
+     6) DETAY MODU — dokuman gezinmesi
+     ========================================================================== */
+  function buildToc(){
+    if(!C.toc)return;
+    var art=document.querySelector('.gx-guide .g-art');
+    var col=(art&&art.querySelector('.g-narrow'))||art||document.querySelector('.gx-guide');
+    if(!art||!col)return;
+    var hs=Array.prototype.slice.call(art.querySelectorAll('h2')).filter(function(h){return (h.textContent||'').trim().length>1;});
+    if(hs.length<3)return;
+    var used={},links='';
+    hs.forEach(function(h,i){
+      var id=h.id;
+      if(!id){
+        id=(h.textContent||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||('s'+i);
+        if(used[id])id=id+'-'+i;
+        h.id=id;
+      }
+      used[id]=1;
+      h.style.scrollMarginTop='24px';
+      links+='<a href="#'+id+'" data-t="'+id+'">'+esc((h.textContent||'').trim())+'</a>';
+    });
+    var fixed=document.createElement('nav');
+    fixed.id='gxToc';fixed.setAttribute('aria-label','On this page');
+    fixed.innerHTML='<div class="t-h">On this page</div>'+links;
+    document.body.appendChild(fixed);
+    var inline=document.createElement('details');
+    inline.id='gxTocIn';inline.open=true;
+    inline.innerHTML='<summary>On this page</summary><div class="t-in">'+links+'</div>';
+    col.insertBefore(inline,col.firstChild);
+
+    /* Yerlesim OLCUMLE secilir: makalenin sagindaki bosluk TOC + nefes payini
+       aliyorsa sabit sutun, almiyorsa satir-ici kart. Yeniden boyutlandirmada
+       tekrar karar verilir. */
+    function place(){
+      var r=col.getBoundingClientRect();
+      /* clientWidth, innerWidth DEGIL: innerWidth kaydirma cubugunu da sayar ve
+         olcumu ~15px sisirir; ilk denemede TOC tam o kadar bindi. */
+      var vw=document.documentElement.clientWidth;
+      var gutter=vw-r.right;
+      var canFix=gutter>=236&&vw>=1080;
+      fixed.style.display=canFix?'block':'none';
+      inline.style.display=canFix?'none':'block';
+    }
+    place();
+    window.addEventListener('resize',debounce(place,180));
+
+    if(window.IntersectionObserver){
+      var obs=new IntersectionObserver(function(es){
+        es.forEach(function(e){
+          if(!e.isIntersecting)return;
+          Array.prototype.forEach.call(fixed.querySelectorAll('a'),function(a){
+            a.className=(a.getAttribute('data-t')===e.target.id)?'on':'';
+          });
+        });
+      },{rootMargin:'0px 0px -72% 0px',threshold:0});
+      hs.forEach(function(h){obs.observe(h);});
+    }
+  }
+  function buildPrevNext(sibs){
+    if(!C.toc||sibs.length<2)return;
+    var idx=-1;
+    sibs.forEach(function(s,i){if(s.slug===SLUG)idx=i;});
+    if(idx<0)return;
+    var prev=sibs[idx-1],next=sibs[idx+1];
+    if(!prev&&!next)return;
+    var host=document.querySelector('.gx-guide .g-band')||document.querySelector('.gx-guide');
+    if(!host)return;
+    var d=document.createElement('div');d.id='gxPrevNext';
+    d.innerHTML=
+      (prev?'<a href="'+C.base+'/'+encodeURIComponent(prev.slug)+'"><span class="pn-k">Previous</span><span class="pn-t">'+esc(prev.name||titleCase(prev.slug))+'</span></a>':'<span></span>')+
+      (next?'<a class="pn-next" href="'+C.base+'/'+encodeURIComponent(next.slug)+'"><span class="pn-k">Next</span><span class="pn-t">'+esc(next.name||titleCase(next.slug))+'</span></a>':'<span></span>');
+    host.parentNode.insertBefore(d,host);
+  }
+  /* Kardesler: ayni kumedeki kayitlar. Once yerel onbellek (bedava), yoksa iki
+     kucuk istek (kaydin kendisi -> kume -> kume uyeleri). Idle'da calisir, makale
+     boyamasini HIC bekletmez. */
+  function loadSiblings(cb){
+    var cached=lsGet(CK);
+    if(cached&&cached.items&&cached.items.length){
+      var me=null;cached.items.forEach(function(x){if(x.slug===SLUG)me=x;});
+      if(me){
+        var sibs=cached.items.filter(function(x){return (x.group||'')===(me.group||'');});
+        if(sibs.length>1){cb(sortByName(sibs),me);return;}
+      }
+    }
+    fetch(API+C.type+'?limit=1&constraints='+enc([{key:'Slug',constraint_type:'equals',value:SLUG}]),{headers:{Accept:'application/json'}})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(j){
+        var rec=j&&j.response&&j.response.results&&j.response.results[0];
+        if(!rec){cb([],null);return;}
+        var me=slim(rec);
+        if(!me.group){cb([],me);return;}
+        fetch(API+C.type+'?limit=10&constraints='+enc([{key:C.groupField,constraint_type:'equals',value:me.group}]),{headers:{Accept:'application/json'}})
+          .then(function(r){return r.ok?r.json():null;})
+          .then(function(j2){
+            var res=((j2&&j2.response&&j2.response.results)||[]).map(slim);
+            cb(sortByName(res),me);
+          }).catch(function(){cb([],me);});
+      }).catch(function(){cb([],null);});
+  }
+  function sortByName(a){return a.slice().sort(function(x,y){return (x.name||x.slug).localeCompare(y.name||y.slug);});}
+  /* ==========================================================================
+     7) KARSILIKLI BAGLANTI (ortak handoff'u, 11.09). 11.09 olcumu: hub govdelerinde
+        rehbere, rehber govdelerinde hub'a GERCEK link yoktu (tek baglar pismis
+        raydaydi ve v3 onu siliyor). Hub'da: o uygulamanin rehberleri. Rehberde:
+        ilgili uygulama sayfasi. Liste site haritasindan (~2 KB); adlar yalniz
+        eslesen kayitlar icin tek istekle gelir. Eslesme yoksa bolum CIZILMEZ.
+     ========================================================================== */
+  /* Rehberin andigi TUM uygulamalar (detectApp yalniz ilkini dondurur):
+     "gmail-to-google-sheets" -> gmail + googlesheets, "slack-jira-bot" -> slack + jira. */
+  function appsInGuide(it){
+    var out=[],seen={};
+    function add(a){if(a&&!seen[a]){seen[a]=1;out.push(a);}}
+    add(knownApp(it.group));
+    var p=String((it.group||'')+'-'+(it.slug||'')).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    for(var i=0;i<p.length;i++){
+      if(i+1<p.length){var two=knownApp(p[i]+'-'+p[i+1]);if(two){add(two);i++;continue;}}
+      add(knownApp(p[i]));
+    }
+    return out;
+  }
+  function shortHub(name,slug){return String(name||'').replace(/^\s*AI\s+Assistants?\s+for\s+/i,'').trim()||titleCase(slug);}
+  function relatedGuides(){
+    var host=document.querySelector('.gx-hub');
+    if(!host||document.getElementById('gxRelG'))return;
+    fetch('/sitemap-guides.xml').then(function(r){return r.ok?r.text():'';}).then(function(t){
+      if(!t||t.indexOf('<loc')<0)return;
+      var slugs=[],re=/<loc>\s*([^<\s]+)\s*<\/loc>/g,m;
+      while((m=re.exec(t))){var s=(m[1].split('/guides/')[1]||'').split(/[?#\/]/)[0];if(s){try{slugs.push(decodeURIComponent(s));}catch(e){slugs.push(s);}}}
+      var mine=slugs.filter(function(s){return appsInGuide({slug:s,group:''}).indexOf(SLUG)>-1;});
+      if(!mine.length)return;
+      var u=API+'guides?limit=10&constraints='+enc([{key:'Slug',constraint_type:'in',value:mine}]);
+      return fetch(u,{headers:{Accept:'application/json'}}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+        var list=((j&&j.response&&j.response.results)||[]).map(slim).filter(function(g){return g.slug;});
+        if(!list.length||document.getElementById('gxRelG'))return;
+        list.sort(function(a,b){return (a.name||a.slug).localeCompare(b.name||b.slug);});
+        var h1=host.querySelector('h1'),app=shortHub(h1?h1.textContent:'',SLUG);
+        var s=document.createElement('section');s.className='g-sec';s.id='gxRelG';
+        s.innerHTML='<div class="g-wrap"><h2 class="stitle">Guides for '+esc(app)+'</h2>'+
+          '<p class="rg-sub">Step by step walkthroughs for the work that arrives in '+esc(app)+'.</p><div class="rg-grid">'+
+          list.map(function(g){
+            return '<a class="rg-card" href="/guides/'+encodeURIComponent(g.slug)+'"><span class="rg-k">Guide</span>'+
+              '<span class="rg-t">'+esc(g.name||titleCase(g.slug))+'</span>'+(g.desc?'<span class="rg-d">'+esc(g.desc)+'</span>':'')+
+              '<span class="rg-m">Read guide</span></a>';
+          }).join('')+'</div></div>';
+        var faq=host.querySelector('.faq'),before=(faq&&faq.closest)?faq.closest('section'):null;
+        if(!before)before=host.querySelector('.g-cta');
+        if(before&&before.parentNode)before.parentNode.insertBefore(s,before);else host.appendChild(s);
+        gxTrack('related_guides_shown',{surface:'apps',app:SLUG,count:list.length});
+      });
+    }).catch(function(){});
+  }
+  function relatedApps(me){
+    var art=document.querySelector('.gx-guide');
+    if(!art||document.getElementById('gxRelA'))return;
+    var cands=appsInGuide(me||{slug:SLUG,group:''});
+    if(!cands.length)return;
+    var u=API+'hubs?limit=3&constraints='+enc([{key:'Slug',constraint_type:'in',value:cands}]);
+    fetch(u,{headers:{Accept:'application/json'}}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+      var hubs=((j&&j.response&&j.response.results)||[]).map(function(r){
+        return {slug:String(r.Slug||''),name:String(r.name||''),desc:String(r.meta_description||'')};
+      }).filter(function(h){return h.slug;});
+      if(!hubs.length||document.getElementById('gxRelA'))return;
+      hubs.sort(function(a,b){return cands.indexOf(a.slug)-cands.indexOf(b.slug);});
+      var d=document.createElement('div');d.id='gxRelA';
+      d.innerHTML='<div class="ra-h">'+(hubs.length>1?'App pages for this guide':'App page for this guide')+'</div>'+
+        hubs.map(function(h){
+          return '<a class="ra-card" href="/apps/'+encodeURIComponent(h.slug)+'"><span class="ra-logo"><img src="'+LOGO+encodeURIComponent(h.slug)+'" alt="" loading="lazy"></span>'+
+            '<span class="ra-tx"><b>AI assistants for '+esc(shortHub(h.name,h.slug))+'</b>'+(h.desc?'<i>'+esc(h.desc)+'</i>':'')+'</span><span class="ra-go">&rsaquo;</span></a>';
+        }).join('');
+      var pn=document.getElementById('gxPrevNext'),ref=(pn&&pn.parentNode)?pn:art.querySelector('.g-band');
+      if(ref&&ref.parentNode)ref.parentNode.insertBefore(d,ref);else art.appendChild(d);
+      gxTrack('related_apps_shown',{surface:'guides',guide:SLUG,count:hubs.length});
+    }).catch(function(){});
+  }
+  function startDetail(){
+    gxTag('page_type',KEY+'_detail');
+    whenBody(function(){
+      buildToc();
+      idle(function(){
+        loadSiblings(function(sibs,me){
+          if(sibs.length>1)buildPrevNext(sibs);
+          if(KEY==='guides')relatedApps(me);
+        });
+        if(KEY==='apps')relatedGuides();
+      });
+    });
+  }
+  ready(function(){ if(IS_INDEX)startIndex(); else startDetail(); });
+})();
+</script>
+
+<!-- gx-rail v3 kesif kabugu: header'in SONUNDA durur (stil head'de kalir, iskelet govdenin basina iner). -->
+<!-- GX-RAIL-V3:BEGIN  kaynak: _gx_rail_v3.html | sync_rail.ps1 yazar | ELLE DUZENLEME -->
+<style>
+:root{--gxr-w:232px}
+/* tek ray: pismis v2 ray (hub/rehber govdesi) ya da ikinci kopya asla gorunmez */
+#gxRail:not(.gxr3){display:none!important}
+html #gxRail.gxr3{
+  --g-ink:#0f172a;--g-ink2:#475569;--g-ink3:#94a3b8;
+  --g-line:#e2e8f0;--g-line2:#eef2f7;--g-bg:#f8fafc;--g-surf:#fff;
+  --g-pri:#6366f1;--g-deep:#4f46e5;--g-tint:#eef2ff;--g-tint2:#e0e7ff;
+  --g-ok:#15803d;--g-okbg:#dcfce7;
+  position:fixed;left:0;top:0;bottom:0;width:var(--gxr-w);height:auto;z-index:60;
+  display:flex;flex-direction:column;align-items:stretch;gap:0;margin:0;padding:0;
+  background:var(--g-surf);border:0;border-right:1px solid var(--g-line);
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.4;
+  color:var(--g-ink2);text-align:left;-webkit-font-smoothing:antialiased;box-sizing:border-box
+}
+html #gxRail.gxr3 *,html #gxRail.gxr3 *::before{box-sizing:border-box}
+html #gxRail.gxr3 a{text-decoration:none;color:inherit}
+html #gxRail.gxr3 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+html #gxRail.gxr3 svg{display:block;flex:0 0 auto}
+html #gxRail.gxr3 a:focus-visible,html #gxRail.gxr3 button:focus-visible{outline:2px solid var(--g-pri);outline-offset:1px}
+html #gxRail.gxr3 .gx3-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* marka */
+html #gxRail.gxr3 .gx3-brand{display:flex;align-items:center;gap:10px;padding:16px 16px 14px;border-bottom:1px solid var(--g-line2)}
+html #gxRail.gxr3 .gx3-mark{width:34px;height:34px;border-radius:9px;background:#0f172a;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+html #gxRail.gxr3 .gx3-mark img{width:20px;height:20px;display:block}
+html #gxRail.gxr3 .gx3-bt{display:block;min-width:0}
+html #gxRail.gxr3 .gx3-bt b{display:block;font-size:14.5px;font-weight:700;color:var(--g-ink);line-height:1.15}
+html #gxRail.gxr3 .gx3-bt i{display:block;font-style:normal;font-size:11px;font-weight:500;color:var(--g-ink3)}
+
+/* gezinme */
+html #gxRail.gxr3 .gx3-nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px 10px 10px;display:flex;flex-direction:column;gap:1px}
+html #gxRail.gxr3 .gx3-sec{margin:14px 10px 4px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-ink3)}
+html #gxRail.gxr3 .gx3-l{display:flex;align-items:center;gap:10px;min-height:36px;padding:7px 10px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--g-ink2)}
+html #gxRail.gxr3 .gx3-l svg{width:16px;height:16px}
+html #gxRail.gxr3 .gx3-tx{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html #gxRail.gxr3 .gx3-l:hover{background:var(--g-bg);color:var(--g-ink)}
+html #gxRail.gxr3 .gx3-l.is-cur{background:var(--g-tint);color:var(--g-deep)}
+html #gxRail.gxr3 .gx3-n{flex:0 0 auto;font-size:11px;font-weight:500;color:var(--g-ink3);font-variant-numeric:tabular-nums}
+html #gxRail.gxr3 .is-cur .gx3-n{color:var(--g-deep)}
+
+/* grup basligi: link + ok dugmesi (iki ayri kontrol) */
+html #gxRail.gxr3 .gx3-ph{display:flex;align-items:center;gap:2px}
+html #gxRail.gxr3 .gx3-ph .gx3-l{flex:1 1 auto;min-width:0}
+html #gxRail.gxr3 .gx3-grp.is-sec > .gx3-ph .gx3-l{color:var(--g-deep)}
+html #gxRail.gxr3 .gx3-chev{display:none;flex:0 0 auto;width:28px;height:28px;border-radius:8px;align-items:center;justify-content:center;color:var(--g-ink3)}
+html.gxr3-js #gxRail.gxr3 .gx3-chev{display:flex}
+html #gxRail.gxr3 .gx3-chev:hover{background:var(--g-bg);color:var(--g-ink)}
+html #gxRail.gxr3 .gx3-chev svg{width:14px;height:14px;transition:transform .16s ease}
+html #gxRail.gxr3 .gx3-grp.is-closed .gx3-chev svg{transform:rotate(-90deg)}
+html #gxRail.gxr3 .gx3-grp.is-closed > .gx3-kids{display:none}
+html #gxRail.gxr3 .gx3-badge{flex:0 0 auto;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:600;line-height:1.5;background:var(--g-deep);color:#fff;font-variant-numeric:tabular-nums}
+html #gxRail.gxr3 .gx3-badge.is-new{background:var(--g-okbg);color:var(--g-ok)}
+
+/* alt satirlar + dikey kilavuz cizgisi */
+html #gxRail.gxr3 .gx3-kids{position:relative;margin:1px 0 4px 18px;padding-left:12px}
+html #gxRail.gxr3 .gx3-kids::before{content:"";position:absolute;left:0;top:5px;bottom:5px;width:1px;background:var(--g-line)}
+html #gxRail.gxr3 .gx3-s{position:relative;display:flex;align-items:center;gap:8px;min-height:30px;padding:5px 8px;border-radius:8px;font-size:12.5px;font-weight:500;color:var(--g-ink2)}
+html #gxRail.gxr3 .gx3-s::before{content:"";position:absolute;left:-15.5px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--g-line);border:2px solid var(--g-surf)}
+html #gxRail.gxr3 .gx3-s img{width:15px;height:15px;object-fit:contain;flex:0 0 auto}
+html #gxRail.gxr3 .gx3-s:hover{background:var(--g-bg);color:var(--g-ink)}
+html #gxRail.gxr3 .gx3-s.is-cur{background:var(--g-tint);color:var(--g-deep);font-weight:600}
+html #gxRail.gxr3 .gx3-s.is-cur::before{background:var(--g-deep)}
+html #gxRail.gxr3 .gx3-s .gx3-tx.is-2l{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3}
+
+/* populer uygulama kisayollari */
+html #gxRail.gxr3 .gx3-apps{position:relative;display:flex;align-items:center;gap:4px;padding:4px 4px 5px 8px}
+html #gxRail.gxr3 .gx3-apps a{display:flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 5px;border-radius:8px;border:1px solid var(--g-line2);background:var(--g-surf)}
+html #gxRail.gxr3 .gx3-apps a:hover{border-color:var(--g-line);background:var(--g-bg)}
+html #gxRail.gxr3 .gx3-apps img{width:18px;height:18px;object-fit:contain;display:block}
+html #gxRail.gxr3 .gx3-apps a.is-cur{border-color:var(--g-deep);box-shadow:inset 0 0 0 1px var(--g-deep);background:var(--g-tint)}
+html #gxRail.gxr3 .gx3-apps .gx3-more{font-size:11px;font-weight:600;color:var(--g-deep);font-variant-numeric:tabular-nums}
+
+/* alt sabit alan */
+html #gxRail.gxr3 .gx3-foot{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;padding:10px;border-top:1px solid var(--g-line2)}
+html #gxRail.gxr3 .gx3-foot .gx3-l{font-size:13px;min-height:34px}
+html #gxRail.gxr3 .gx3-cta{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:var(--g-tint)}
+html #gxRail.gxr3 .gx3-cta:hover{background:var(--g-tint2)}
+html #gxRail.gxr3 .gx3-dot{width:28px;height:28px;border-radius:8px;background:var(--g-deep);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+html #gxRail.gxr3 .gx3-cta .gx3-bt{flex:1 1 auto}
+html #gxRail.gxr3 .gx3-cta .gx3-bt b{font-size:13px;font-weight:600}
+html #gxRail.gxr3 .gx3-cta .gx3-bt i{font-size:10.5px}
+html #gxRail.gxr3 .gx3-go{color:var(--g-deep)}
+html #gxRail.gxr3 .gx3-go svg{width:14px;height:14px}
+
+/* cekmece anahtari: masaustunde yok */
+html #gxRail.gxr3 .gx3-menu{display:none;position:absolute;width:1px;height:1px;margin:0;padding:0;opacity:0;pointer-events:none}
+html #gxRail.gxr3 .gx3-burger{display:none}
+
+/* sayfa payandasi (v2'nin body{padding-left:232px} kurallarini ezer) */
+@media(min-width:1080px){html.gxr3-on body{padding-left:var(--gxr-w)}}
+
+/* <1080: ust bar + cekmece (ortagin "mobilde drawer" karari) */
+@media(max-width:1079.98px){
+  html #gxRail.gxr3{position:sticky;top:0;bottom:auto;width:auto;height:56px;flex-direction:row;align-items:center;gap:4px;padding:0 10px;border-right:0;border-bottom:1px solid var(--g-line)}
+  html #gxRail.gxr3 .gx3-menu{display:block}
+  html #gxRail.gxr3 .gx3-burger{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;color:var(--g-ink2);cursor:pointer;flex:0 0 auto}
+  html #gxRail.gxr3 .gx3-burger:hover{background:var(--g-bg);color:var(--g-ink)}
+  html #gxRail.gxr3 .gx3-burger svg{width:20px;height:20px}
+  html #gxRail.gxr3 .gx3-burger .gx3-i2{display:none}
+  html #gxRail.gxr3 .gx3-menu:checked ~ .gx3-burger .gx3-i1{display:none}
+  html #gxRail.gxr3 .gx3-menu:checked ~ .gx3-burger .gx3-i2{display:block}
+  html #gxRail.gxr3 .gx3-menu:focus-visible ~ .gx3-burger{outline:2px solid var(--g-pri);outline-offset:1px}
+  html #gxRail.gxr3 .gx3-brand{padding:0 6px;border:0;gap:8px}
+  html #gxRail.gxr3 .gx3-mark{width:30px;height:30px;border-radius:8px}
+  html #gxRail.gxr3 .gx3-mark img{width:18px;height:18px}
+  html #gxRail.gxr3 .gx3-brand .gx3-bt i{display:none}
+  html #gxRail.gxr3 .gx3-nav{display:none;position:absolute;left:0;right:0;top:100%;max-height:calc(100vh - 56px);max-height:calc(100dvh - 56px);padding:8px 12px 16px;background:var(--g-surf);border-bottom:1px solid var(--g-line);box-shadow:0 18px 30px -18px rgba(15,23,42,.35)}
+  html #gxRail.gxr3 .gx3-menu:checked ~ .gx3-nav{display:flex}
+  html #gxRail.gxr3 .gx3-foot{margin-left:auto;flex-direction:row;align-items:center;gap:4px;padding:0;border:0}
+  html #gxRail.gxr3 .gx3-foot .gx3-l{min-width:40px;min-height:40px;justify-content:center;padding:8px}
+  html #gxRail.gxr3 .gx3-foot .gx3-l .gx3-tx{display:none}
+  html #gxRail.gxr3 .gx3-cta{padding:5px 12px 5px 5px;gap:8px}
+  html #gxRail.gxr3 .gx3-cta .gx3-bt i,html #gxRail.gxr3 .gx3-go{display:none}
+  html #gxRail.gxr3 .gx3-cta .gx3-bt b{white-space:nowrap}
+  html #gxRail.gxr3 .gx3-l{min-height:44px}
+  html #gxRail.gxr3 .gx3-s{min-height:40px}
+  html #gxRail.gxr3 .gx3-chev{width:40px;height:40px}
+  html #gxRail.gxr3 .gx3-apps a{min-width:40px;height:40px}
+  html.gxr3-lock,html.gxr3-lock body{overflow:hidden}
+}
+@media(max-width:420px){
+  html #gxRail.gxr3 .gx3-brand .gx3-bt{display:none}
+}
+@media(prefers-reduced-motion:reduce){html #gxRail.gxr3 .gx3-chev svg{transition:none}}
+</style>
+
+<!-- JS'siz / crawler yedegi. JS calisinca .gx3-nav icerigi canli veriyle yeniden cizilir. -->
+<nav id="gxRail" class="gxr3" aria-label="Gaiasphere" lang="en" data-gxr-v="3">
+  <input class="gx3-menu" type="checkbox" id="gx3Menu" aria-label="Menu" aria-controls="gx3Nav">
+  <label class="gx3-burger" for="gx3Menu" aria-hidden="true"><svg class="gx3-i1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="gx3-i2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></label>
+  <a class="gx3-brand" href="/"><span class="gx3-mark"><img src="https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1775473589151x893601606193553400/GAIA%20%282%29.svg" alt="Gaia" width="20" height="20"></span><span class="gx3-bt"><b>Gaiasphere</b><i>AI Agent Platform</i></span></a>
+  <div class="gx3-nav" id="gx3Nav">
+    <a class="gx3-l" href="/"><span class="gx3-tx">Home</span></a>
+    <a class="gx3-l" href="/templates"><span class="gx3-tx">Agent templates</span></a>
+    <div class="gx3-sec">Explore</div>
+    <div class="gx3-grp" data-gxr-grp="apps"><div class="gx3-ph"><a class="gx3-l" href="/apps"><span class="gx3-tx">App Hub</span><span class="gx3-badge">1,000+</span></a></div>
+      <div class="gx3-kids"><a class="gx3-s" href="/apps"><span class="gx3-tx">Browse all apps</span></a>
+        <div class="gx3-apps"><a href="/apps/gmail" aria-label="Gmail"><img src="https://logos.composio.dev/api/gmail" alt="" width="18" height="18" loading="lazy"></a><a href="/apps/apollo" aria-label="Apollo"><img src="https://logos.composio.dev/api/apollo" alt="" width="18" height="18" loading="lazy"></a><a href="/apps/googlesheets" aria-label="Google Sheets"><img src="https://logos.composio.dev/api/googlesheets" alt="" width="18" height="18" loading="lazy"></a><a href="/apps/slack" aria-label="Slack"><img src="https://logos.composio.dev/api/slack" alt="" width="18" height="18" loading="lazy"></a></div></div></div>
+    <div class="gx3-grp" data-gxr-grp="guides"><div class="gx3-ph"><a class="gx3-l" href="/guides"><span class="gx3-tx">Guides</span></a></div>
+      <div class="gx3-kids"><a class="gx3-s" href="/guides"><span class="gx3-tx">Browse all guides</span></a><a class="gx3-s" href="/guides#by-app"><span class="gx3-tx">Guides by app</span></a><a class="gx3-s" href="/guides#by-workflow"><span class="gx3-tx">Guides by workflow</span></a></div></div>
+    <div class="gx3-sec">Resources</div>
+    <a class="gx3-l" href="/#how"><span class="gx3-tx">How it works</span></a>
+    <a class="gx3-l" href="/pricing"><span class="gx3-tx">Pricing</span></a>
+  </div>
+  <div class="gx3-foot"><a class="gx3-l" href="/login"><span class="gx3-tx">Log in</span></a><a class="gx3-cta" href="/templates"><span class="gx3-bt"><b>Start building</b><i>Deploy your first agent</i></span></a></div>
+</nav>
+
+<script>
+(function(){
+  'use strict';
+  var W=window,D=document;
+  if(W.__gxRail3)return;W.__gxRail3=1;
+
+  /* ---- AYARLAR (sayfa bazinda window.GX_RAIL_CONFIG ile ezilebilir) ---- */
+  var CFG={
+    catalog:1043,                 /* Composio toolkits total_items, catalog/toolkits.json (2026-06-04) */
+    popular:[['gmail','Gmail'],['apollo','Apollo'],['googlesheets','Google Sheets'],['slack','Slack']],
+                                  /* 2026-09-11 canli hub sablon sayilari: 70 / 54 / 29 / 29 */
+    howUrl:'/#how',               /* ana sayfadaki M3 bolumu; ayri sayfa yok (/how-it-works 404) */
+    docsUrl:'',                   /* bos = Documentation satiri cizilmez (/docs 404) */
+    newDays:14,                   /* "New" rozeti: en yeni rehber bu kadar gun icindeyse */
+    facetMin:3,                   /* "Guides by X" satiri icin en az rehber */
+    ttl:864e5,                    /* canli veri onbellegi: 24 saat */
+    origin:'',                    /* bos = ayni kaynak; prototip 'https://gaiasphere.io' verir */
+    api:'/api/1.1/obj/',
+    logo:'https://logos.composio.dev/api/',
+    gaia:'https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1775473589151x893601606193553400/GAIA%20%282%29.svg'
+  };
+  var ov=W.GX_RAIL_CONFIG;if(ov){for(var k in ov)if(Object.prototype.hasOwnProperty.call(ov,k))CFG[k]=ov[k];}
+
+  /* rehber -> uygulama eslesmesi: directory-page.html ile AYNI beyaz liste */
+  var APPS=['gmail','apollo','slack','googlesheets','hubspot','jira','notion','googledocs','googlecalendar',
+            'zendesk','outlook','mailchimp','intercom','pipedrive','trello','calendly','gorgias','confluence',
+            'salesforce','linear','airtable','todoist','monday','freshdesk','clickup','asana','linkedin','stripe','excel'];
+  var APP_ALIAS={sheets:'googlesheets','google-sheets':'googlesheets',spreadsheet:'googlesheets',gsheets:'googlesheets',
+                 docs:'googledocs','google-docs':'googledocs',calendar:'googlecalendar','google-calendar':'googlecalendar',
+                 gcal:'googlecalendar','microsoft-excel':'excel'};
+  var APP_NAMES={gmail:'Gmail',apollo:'Apollo',slack:'Slack',googlesheets:'Google Sheets',hubspot:'HubSpot',jira:'Jira',
+                 notion:'Notion',googledocs:'Google Docs',googlecalendar:'Google Calendar',zendesk:'Zendesk',outlook:'Outlook',
+                 mailchimp:'Mailchimp',intercom:'Intercom',pipedrive:'Pipedrive',trello:'Trello',calendly:'Calendly',
+                 gorgias:'Gorgias',confluence:'Confluence',salesforce:'Salesforce',linear:'Linear',airtable:'Airtable',
+                 todoist:'Todoist',monday:'Monday.com',freshdesk:'Freshdesk',clickup:'ClickUp',asana:'Asana',
+                 linkedin:'LinkedIn',stripe:'Stripe',excel:'Excel'};
+
+  var SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  var IC={
+    home:SV+'<path d="M3 11l9-8 9 8"/><path d="M5 9.5V21h14V9.5"/></svg>',
+    tpl:SV+'<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',
+    apps:SV+'<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/><path d="M17 3.5v7M13.5 7h7"/></svg>',
+    book:SV+'<path d="M2.5 5h6a3.5 3.5 0 013.5 3.5V20a2.5 2.5 0 00-2.5-2.5h-7z"/><path d="M21.5 5h-6A3.5 3.5 0 0012 8.5V20a2.5 2.5 0 012.5-2.5h7z"/></svg>',
+    play:SV+'<circle cx="12" cy="12" r="9"/><path d="M10 8.7l5 3.3-5 3.3z"/></svg>',
+    tag:SV+'<path d="M20.6 13.4L13.4 20.6a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+    doc:SV+'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+    login:SV+'<path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
+    chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+    arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg>',
+    burger:'<svg class="gx3-i1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+    close:'<svg class="gx3-i2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+  };
+
+  /* ---- VERI ---- */
+  var DATA={templates:null,hubs:null,guides:null,hubList:null,guideList:null,newestGuide:null,categories:0,asOf:null,live:false};
+  function merge(d){if(!d)return;for(var k in d)if(Object.prototype.hasOwnProperty.call(d,k)&&d[k]!=null)DATA[k]=d[k];}
+  merge(W.GX_RAIL_SNAPSHOT);
+
+  function lsGet(k){try{var v=W.localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
+  function lsSet(k,v){try{W.localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function fmt(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+  function sentenceCase(s){var t=String(s||'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'';}
+  function titleCase(s){return String(s||'').replace(/[-_]+/g,' ').trim().replace(/\b[a-z]/g,function(m){return m.toUpperCase();});}
+  function knownApp(t){if(!t)return '';t=String(t).toLowerCase();if(APP_ALIAS[t])t=APP_ALIAS[t];return APPS.indexOf(t)>-1?t:'';}
+  function detectApp(g){
+    if(!g)return '';
+    var d=knownApp(g.cluster);if(d)return d;
+    var p=String((g.cluster||'')+'-'+(g.slug||'')).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    for(var i=0;i<p.length;i++){
+      if(i+1<p.length){var two=knownApp(p[i]+'-'+p[i+1]);if(two)return two;}
+      var one=knownApp(p[i]);if(one)return one;
+    }
+    return '';
+  }
+  function guideType(g){
+    var c=String(g.cluster||'').toLowerCase(),s=String(g.slug||'').toLowerCase();
+    if(c==='getting-started'||s.indexOf('getting-started')===0)return 'start';
+    if(c.indexOf('role-')===0)return 'role';
+    return detectApp(g)?'app':'workflow';
+  }
+  function facets(){
+    var L=DATA.guideList;if(!L||!L.length)return null;
+    var f={start:0,app:0,workflow:0,role:0};
+    for(var i=0;i<L.length;i++)f[guideType(L[i])]++;
+    return f;
+  }
+  function isNew(){
+    if(!DATA.newestGuide)return false;
+    var t=Date.parse(DATA.newestGuide);if(isNaN(t))return false;
+    return (Date.now()-t)/864e5<=CFG.newDays;
+  }
+  function find(list,slug){if(!list)return null;for(var i=0;i<list.length;i++)if(list[i].slug===slug)return list[i];return null;}
+  function appName(slug){var h=find(DATA.hubList,slug);return (h&&h.name)||APP_NAMES[slug]||titleCase(slug);}
+  /* Rehber basliklari 344-418 px istiyor (olculdu); 292 px'lik rayda bile sigmaz.
+     directory-page.html shortLabel ile ayni kural: iki nokta / " - " oncesi, uzunsa
+     slug'dan cumle duzeni, o da uzunsa kelime sinirindan kirp. Tam ad title'da. */
+  var LBL_MAX=44;   /* bulunulan rehber satiri 2 satira kadar kirilir (.is-2l) */
+  function guideLabel(slug){
+    var g=find(DATA.guideList,slug),n=g&&g.name?String(g.name):'';
+    var cut=n.split(':')[0].split(' - ')[0].trim();
+    if(cut&&cut.length<=LBL_MAX)return cut;
+    var fs=sentenceCase(slug);
+    if(fs&&fs.length<=LBL_MAX)return fs;
+    var base=fs||cut||n;
+    return base.length>LBL_MAX?base.slice(0,LBL_MAX).replace(/\s+\S*$/,'')+'…':base;
+  }
+
+  /* ---- KONUM ---- */
+  function path(){
+    var p=String(W.GX_RAIL_PATH||location.pathname||'/');
+    p=p.split('#')[0].split('?')[0].replace(/^\/version-[^\/]+/,'').replace(/\/+$/,'');
+    return p||'/';
+  }
+  function where(){var s=path().split('/');return {sec:s[1]||'home',slug:s[2]?decodeURIComponent(s[2]):''};}
+  function isMobile(){return W.matchMedia?W.matchMedia('(max-width:1079.98px)').matches:(W.innerWidth<1080);}
+
+  /* ---- GRUP DURUMU ---- */
+  var OPEN=lsGet('gx_rail3_open')||{};  /* masaustu, kalici */
+  var HERE={};                           /* bu sayfa gorunumunde kullanicinin yaptigi */
+  var MOPEN=null;                        /* mobil, gecici: acik tek grup */
+  function isOpen(key){
+    if(Object.prototype.hasOwnProperty.call(HERE,key))return HERE[key];
+    if(isMobile())return MOPEN===null?where().sec===key:MOPEN===key;
+    if(where().sec===key)return true;
+    return OPEN[key]!==false;
+  }
+
+  /* ---- CIZIM ---- */
+  function top(href,icon,label,cur,exact,count){
+    return '<a class="gx3-l'+(cur?' is-cur':'')+'" href="'+href+'"'+(exact?' aria-current="page"':'')+'>'+icon+
+      '<span class="gx3-tx">'+esc(label)+'</span>'+(count!=null?' <span class="gx3-n">'+fmt(count)+'</span>':'')+'</a>';
+  }
+  function kid(href,label,cur,logo,count,title,twoLine){
+    return '<a class="gx3-s'+(cur?' is-cur':'')+'" href="'+href+'"'+(cur?' aria-current="page"':'')+(title?' title="'+esc(title)+'"':'')+'>'+
+      (logo?'<img src="'+CFG.logo+encodeURIComponent(logo)+'" alt="" width="15" height="15" loading="lazy">':'')+
+      '<span class="gx3-tx'+(twoLine?' is-2l':'')+'">'+esc(label)+'</span>'+(count!=null?' <span class="gx3-n">'+fmt(count)+'</span>':'')+'</a>';
+  }
+  function group(key,o){
+    var open=isOpen(key),sec=where().sec===key,id='gx3Grp_'+key;
+    return '<div class="gx3-grp'+(sec?' is-sec':'')+(open?'':' is-closed')+'" data-gxr-grp="'+key+'">'+
+      '<div class="gx3-ph"><a class="gx3-l" href="'+o.href+'">'+o.icon+'<span class="gx3-tx">'+esc(o.label)+'</span>'+
+        (o.badge?' <span class="gx3-badge'+(o.badgeCls||'')+'"'+(o.badgeTitle?' title="'+esc(o.badgeTitle)+'"':'')+'>'+esc(o.badge)+'</span>'+(o.badgeSr?'<span class="gx3-sr"> '+esc(o.badgeSr)+'</span>':''):'')+
+      '</a><button class="gx3-chev" type="button" aria-expanded="'+open+'" aria-controls="'+id+'"><span class="gx3-sr">'+esc(o.label)+' links</span>'+IC.chev+'</button></div>'+
+      '<div class="gx3-kids" id="'+id+'">'+o.kids+'</div></div>';
+  }
+  function appKids(w){
+    var h=kid('/apps','Browse all apps',w.sec==='apps'&&!w.slug);
+    var pop=CFG.popular||[],shown=[];
+    h+='<div class="gx3-apps" role="group" aria-label="Popular apps">';
+    for(var i=0;i<pop.length;i++){
+      var s=pop[i][0],cur=(w.sec==='apps'&&w.slug===s);shown.push(s);
+      h+='<a href="/apps/'+s+'" title="'+esc(pop[i][1])+'" aria-label="'+esc(pop[i][1])+'"'+(cur?' class="is-cur" aria-current="page"':'')+'>'+
+         '<img src="'+CFG.logo+s+'" alt="" width="18" height="18" loading="lazy"></a>';
+    }
+    var more=DATA.hubs!=null?DATA.hubs-pop.length:0;
+    if(more>0)h+='<a class="gx3-more" href="/apps" title="'+more+' more app pages" aria-label="'+more+' more app pages">+'+more+'</a>';
+    h+='</div>';
+    if(w.sec==='apps'&&w.slug&&shown.indexOf(w.slug)<0)h+=kid('/apps/'+encodeURIComponent(w.slug),appName(w.slug),true,w.slug);
+    if(DATA.categories>0)h+=kid('/apps#categories','Browse by category',false);
+    return h;
+  }
+  function guideKids(w){
+    var f=facets(),min=CFG.facetMin;
+    var h=kid('/guides','Browse all guides',w.sec==='guides'&&!w.slug,'',DATA.guides);
+    if(f&&f.start>0)h+=kid('/guides#getting-started','Getting started',false);
+    if(f&&f.app>=min)h+=kid('/guides#by-app','Guides by app',false);
+    if(f&&f.workflow>=min)h+=kid('/guides#by-workflow','Guides by workflow',false);
+    if(f&&f.role>=min)h+=kid('/guides#by-role','Guides by role',false);
+    if(w.sec==='guides'&&w.slug){
+      var g=find(DATA.guideList,w.slug)||{slug:w.slug};
+      h+=kid('/guides/'+encodeURIComponent(w.slug),guideLabel(w.slug),true,detectApp(g),null,g.name||'',true);
+    }
+    return h;
+  }
+  function navHTML(){
+    var w=where(),h='';
+    h+=top('/',IC.home,'Home',w.sec==='home',w.sec==='home');
+    h+=top('/templates',IC.tpl,'Agent templates',w.sec==='templates',w.sec==='templates'&&!w.slug,DATA.templates);
+    h+='<div class="gx3-sec">Explore</div>';
+    var cat=CFG.catalog>=1000?fmt(Math.floor(CFG.catalog/1000)*1000)+'+':'';
+    h+=group('apps',{href:'/apps',icon:IC.apps,label:'App Hub',badge:cat,
+      badgeTitle:cat?'Your agents can connect to '+cat+' apps':'',badgeSr:cat?'apps your agents can connect to':'',kids:appKids(w)});
+    var nw=isNew();
+    h+=group('guides',{href:'/guides',icon:IC.book,label:'Guides',badge:nw?'New':'',badgeCls:' is-new',
+      badgeTitle:nw?'New guides this fortnight':'',badgeSr:nw?'new guides this fortnight':'',kids:guideKids(w)});
+    h+='<div class="gx3-sec">Resources</div>';
+    h+=top(CFG.howUrl,IC.play,'How it works',false,false);
+    h+=top('/pricing',IC.tag,'Pricing',w.sec==='pricing',w.sec==='pricing');
+    if(CFG.docsUrl)h+=top(CFG.docsUrl,IC.doc,'Documentation',false,false);
+    return h;
+  }
+  function shellHTML(){
+    return '<input class="gx3-menu" type="checkbox" id="gx3Menu" aria-label="Menu" aria-controls="gx3Nav">'+
+      '<label class="gx3-burger" for="gx3Menu" aria-hidden="true">'+IC.burger+IC.close+'</label>'+
+      '<a class="gx3-brand" href="/"><span class="gx3-mark"><img src="'+CFG.gaia+'" alt="Gaia" width="20" height="20"></span>'+
+        '<span class="gx3-bt"><b>Gaiasphere</b><i>AI Agent Platform</i></span></a>'+
+      '<div class="gx3-nav" id="gx3Nav"></div>'+
+      '<div class="gx3-foot">'+top('/login',IC.login,'Log in',false,false)+
+        '<a class="gx3-cta" href="/templates"><span class="gx3-dot">'+IC.plus+'</span>'+
+        '<span class="gx3-bt"><b>Start building</b><i>Deploy your first agent</i></span><span class="gx3-go">'+IC.arrow+'</span></a></div>';
+  }
+
+  var RAIL=null;
+  /* Tek ray kurali: sayfada v3 iskeleti varsa o kalir (ana sayfada #gxHome icinde,
+     template-page'de HTML elementi icinde; yeri korunur). Yoksa ilk #gxRail v3'e
+     cevrilir, hic yoksa govdenin basina kurulur. Geri kalan her #gxRail silinir. */
+  function mount(){
+    var all=D.querySelectorAll('[id="gxRail"]'),r=null,i;
+    for(i=0;i<all.length;i++)if(all[i].classList&&all[i].classList.contains('gxr3')){r=all[i];break;}
+    if(!r&&all.length)r=all[0];
+    for(i=0;i<all.length;i++)if(all[i]!==r&&all[i].parentNode)all[i].parentNode.removeChild(all[i]);
+    if(!r){r=D.createElement('nav');r.id='gxRail';D.body.insertBefore(r,D.body.firstChild);}
+    r.className='gxr3';
+    r.setAttribute('aria-label','Gaiasphere');r.setAttribute('lang','en');r.setAttribute('data-gxr-v','3');
+    r.innerHTML=shellHTML();
+    var h=D.documentElement;if(!/\bgxr3-on\b/.test(h.className))h.className+=' gxr3-on gxr3-js';
+    return r;
+  }
+  /* Bubble hub/rehber govdesini SONRADAN enjekte eder ve icinde pismis v2 ray gelir.
+     CSS onu aninda gizler; bu gozcu DOM'dan da siler (cift link, cift id kalmasin).
+     Enjeksiyon sayfa acilisinda bir kez olur: 30 sn sonra gozcu kapanir. */
+  function sweep(n){
+    if(!RAIL||!n||n.nodeType!==1)return;
+    if(n.id==='gxRail'&&n!==RAIL){if(n.parentNode)n.parentNode.removeChild(n);return;}
+    if(!n.querySelectorAll)return;
+    var q=n.querySelectorAll('[id="gxRail"]');
+    for(var i=0;i<q.length;i++)if(q[i]!==RAIL&&q[i].parentNode)q[i].parentNode.removeChild(q[i]);
+  }
+  function guard(){
+    if(!W.MutationObserver)return;
+    var mo=new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){var a=ms[i].addedNodes;for(var k=0;k<a.length;k++)sweep(a[k]);}
+    });
+    mo.observe(D.documentElement,{childList:true,subtree:true});
+    setTimeout(function(){try{mo.disconnect();}catch(e){}sweep(D.body);},30000);
+  }
+  function focusKey(){
+    var a=D.activeElement;if(!a||!RAIL||!RAIL.contains(a))return null;
+    if(a.classList&&a.classList.contains('gx3-chev'))return {chev:a.getAttribute('aria-controls')};
+    return {href:a.getAttribute('href')};
+  }
+  function restoreFocus(k){
+    if(!k)return;
+    var el=k.chev?RAIL.querySelector('.gx3-chev[aria-controls="'+k.chev+'"]'):(k.href?RAIL.querySelector('.gx3-nav a[href="'+k.href+'"]'):null);
+    if(el)try{el.focus({preventScroll:true});}catch(e){el.focus();}
+  }
+  function render(){
+    if(!RAIL)return;
+    var nav=RAIL.querySelector('.gx3-nav');if(!nav)return;
+    var fk=focusKey();
+    nav.innerHTML=navHTML();
+    var lg=RAIL.querySelector('.gx3-foot .gx3-l');
+    if(lg){var cur=where().sec==='login';lg.className='gx3-l'+(cur?' is-cur':'');if(cur)lg.setAttribute('aria-current','page');else lg.removeAttribute('aria-current');}
+    restoreFocus(fk);
+  }
+
+  /* ---- ETKILESIM ---- */
+  function track(n,p){
+    try{if(typeof W.gtag==='function')W.gtag('event',n,p);else if(W.dataLayer&&W.dataLayer.push)W.dataLayer.push(['event',n,p]);}catch(e){}
+    try{if(typeof W.clarity==='function')W.clarity('event',n);}catch(e){}
+  }
+  function setGroup(g,open){
+    g.classList[open?'remove':'add']('is-closed');
+    var b=g.querySelector('.gx3-chev');if(b)b.setAttribute('aria-expanded',String(open));
+  }
+  function drawer(open){
+    var m=RAIL&&RAIL.querySelector('.gx3-menu');if(!m)return;
+    m.checked=!!open;
+    D.documentElement.classList[open&&isMobile()?'add':'remove']('gxr3-lock');
+  }
+  function bind(){
+    RAIL.addEventListener('click',function(e){
+      var t=e.target;
+      var b=t.closest?t.closest('.gx3-chev'):null;
+      if(b){
+        var g=b.closest('.gx3-grp'),key=g.getAttribute('data-gxr-grp'),now=g.classList.contains('is-closed');
+        setGroup(g,now);HERE[key]=now;
+        if(isMobile()){
+          MOPEN=now?key:'';
+          if(now){var gs=RAIL.querySelectorAll('.gx3-grp');for(var i=0;i<gs.length;i++){if(gs[i]!==g){setGroup(gs[i],false);HERE[gs[i].getAttribute('data-gxr-grp')]=false;}}}
+        }else{OPEN[key]=now;lsSet('gx_rail3_open',OPEN);}
+        track('rail_toggle',{group:key,open:now});
+        return;
+      }
+      var a=t.closest?t.closest('a[href]'):null;
+      if(a){
+        var href=a.getAttribute('href');
+        track('rail_nav',{link_url:href,from_path:path()});
+        if(href.indexOf('#')>-1)drawer(false);
+      }
+    });
+    RAIL.addEventListener('change',function(e){
+      if(e.target&&e.target.classList&&e.target.classList.contains('gx3-menu'))drawer(e.target.checked);
+    });
+    D.addEventListener('keydown',function(e){
+      if((e.key==='Escape'||e.key==='Esc')&&RAIL.querySelector('.gx3-menu:checked')){
+        drawer(false);var m=RAIL.querySelector('.gx3-menu');if(m)m.focus();
+      }
+    });
+    if(W.matchMedia){
+      var mq=W.matchMedia('(max-width:1079.98px)');
+      var onMq=function(){drawer(false);HERE={};MOPEN=null;render();};
+      if(mq.addEventListener)mq.addEventListener('change',onMq);else if(mq.addListener)mq.addListener(onMq);
+    }
+  }
+
+  /* ---- CANLI VERI (24 saat onbellek) ---- */
+  function total(j){var r=j&&j.response;return r?(r.count||0)+(r.remaining||0):null;}
+  function getJSON(u,cb){try{fetch(u,{headers:{Accept:'application/json'}}).then(function(r){return r.ok?r.json():null;}).then(cb,function(){cb(null);});}catch(e){cb(null);}}
+  function getText(u,cb){try{fetch(u).then(function(r){return r.ok?r.text():'';}).then(cb,function(){cb('');});}catch(e){cb('');}}
+  function locs(xml,base){
+    if(!xml||xml.indexOf('<loc>')<0)return null;
+    var out=[],re=/<loc>\s*([^<\s]+)\s*<\/loc>/g,m;
+    while((m=re.exec(xml))){var u=m[1],i=u.indexOf(base);if(i>-1){var s=u.slice(i+base.length).split(/[?#\/]/)[0];if(s)out.push({slug:decodeURIComponent(s)});}}
+    return out;
+  }
+  function fetchLive(origin,done){
+    var d={},pend=4,O=origin||'';
+    /* site haritalari CORS basligi tasimaz: yalniz ayni kaynaktan okunur (canli sayfa). Prototip gibi
+       baska kaynakta dogrudan Data API'ye dusulur, konsolda bosuna CORS hatasi birakilmaz. */
+    var same=!O||O===location.origin;
+    function end(){if(--pend===0)done(d);}
+    getJSON(O+CFG.api+'templates?limit=1',function(j){var n=total(j);if(n!=null)d.templates=n;end();});
+    (same?getText:function(u,cb){cb('');})(O+'/sitemap-apps.xml',function(t){
+      var L=locs(t,'/apps/');
+      if(L&&L.length){d.hubs=L.length;end();return;}
+      getJSON(O+CFG.api+'hubs?limit=1',function(j){var n=total(j);if(n!=null)d.hubs=n;end();});
+    });
+    (same?getText:function(u,cb){cb('');})(O+'/sitemap-guides.xml',function(t){
+      var L=locs(t,'/guides/');
+      if(L&&L.length){
+        var old=DATA.guideList||[];
+        for(var i=0;i<L.length;i++){var o=find(old,L[i].slug);if(o){L[i].name=o.name;L[i].cluster=o.cluster;}}
+        d.guideList=L;d.guides=L.length;
+      }
+      end();
+    });
+    getJSON(O+CFG.api+'guides?limit=1&sort_field=Created%20Date&descending=true',function(j){
+      var r=j&&j.response;
+      if(r){if(d.guides==null)d.guides=total(j);var x=r.results&&r.results[0];if(x&&x['Created Date'])d.newestGuide=String(x['Created Date']).slice(0,10);}
+      end();
+    });
+  }
+  function refresh(origin,cb){
+    fetchLive(origin==null?CFG.origin:origin,function(d){
+      merge(d);DATA.live=true;DATA.asOf=new Date().toISOString().slice(0,10);
+      lsSet('gx_rail3_data',{ts:Date.now(),d:d});
+      render();if(cb)cb(d);
+    });
+  }
+  function idle(fn){if(W.requestIdleCallback)W.requestIdleCallback(fn,{timeout:2500});else setTimeout(fn,600);}
+
+  /* Onbellek (bayat da olsa) ilk cizimde kullanilir: sayilar sonradan "atlamasin".
+     Taze degilse bos zamanda canlidan tazelenip yeniden cizilir. */
+  function boot(){
+    RAIL=mount();bind();guard();
+    var c=lsGet('gx_rail3_data'),fresh=!!(c&&c.d&&Date.now()-(c.ts||0)<CFG.ttl);
+    if(c&&c.d)merge(c.d);
+    render();
+    if(!W.GX_RAIL_NOLIVE&&!fresh)idle(function(){refresh(CFG.origin);});
+  }
+  W.GXRail={
+    render:render,refresh:refresh,
+    setPath:function(p){W.GX_RAIL_PATH=p;HERE={};MOPEN=null;drawer(false);render();},
+    data:function(){return DATA;},config:CFG,facets:facets,guideType:guideType
+  };
+  /* Script ray iskeletinden SONRA gelir: govde varsa hemen basla (ilk boyada dogru ray). */
+  if(D.body)boot();else D.addEventListener('DOMContentLoaded',boot);
+})();
+</script>
+<!-- GX-RAIL-V3:END -->

@@ -1,0 +1,2015 @@
+<!--
+  ============================================================================
+  GAIA HOME  —  "PAGE HTML HEADER" BUILD  ·  MODULER v2  (31.07)
+  ============================================================================
+  YAPISTIRMA YERI (TEK YER):
+     Bubble editor -> home olacak sayfa -> Settings (page) -> "Script/meta tags
+     in header" alanina bu dosyanin TAMAMI yapistirilir.
+     HTML ELEMENTINE YAPISTIRMA. Neden: Bubble'in HTML elementi ancak motor
+     boot edip sayfayi cizdikten sonra gorunur; header alani ise sunucudan
+     gelen ham HTML'in icindedir -> hem daha erken boyanir hem de crawler JS
+     calistirmadan icerigi gorur (template CSR dersi).
+
+  !!! UYARI — ASAGIDAKI "BUBBLE GOVDESINI GIZLE" KURALI !!!
+     Bu dosya, yapistirildigi sayfanin TEK isinin home olduguna gore yazildi;
+     Bubble'in kendi sayfa govdesini (.main-page) gizler. Uygulamanin (GAD /
+     Prompt Builder / workspace) durdugu bir sayfaya yapistirilirsa uygulama
+     GORUNMEZ olur. Su an index'te uygulama duruyor: once uygulama kendi
+     sayfasina tasinmali, index yalinlasmali. Sayfada gosterilmesi gereken
+     Bubble elementi VARSA, isaretli tek CSS satirini sil.
+
+  HANGI SAYFA (31.07 kararı — "home" adında sayfa acmaya GEREK YOK):
+     PROVA : /landing  (zaten var; eski AppSumo pazarlama sayfasi, emekliye
+             ayrilacak) -> once buraya yapistirip dogrula.
+     ASIL  : index ("/")  -> uygulama once mevcut /app sayfasina tasinir
+             (orasi olu bir prototip), index yalinlasir, home "/" olur.
+     Gerekce + olcumler: SITE_REDESIGN_DEGERLENDIRME.md §6.
+
+  ---------------------------------------------------------------------------
+  v2 NE DEGISTI (31.07, "modul modul, Apple tarzi urun anlatimi" turu)
+  ---------------------------------------------------------------------------
+  Sayfa artik tek nefeslik bir pazarlama akisi degil, SIRAYLA OKUNAN 11 MODUL.
+  Her modulun tek isi var; her biri bagimsiz tasinabilir/silinebilir blok:
+
+    M0  rail          Kesif kabugu (gx-rail v3, tek kaynak _gx_rail_v3.html)
+    M1  hero          Vaat + tek ornek kosu paneli (urun yuzeyi, gorsel degil)
+    M2  problem       Villain: gunu yiyen kucuk kararlar yigini (StoryBrand)
+    M3  how           4 an: Listen / Understand / Act / Decide
+                      -> SCROLL-SENKRON sahne (sticky panel, IntersectionObserver)
+    M4  adaptation    "Surece o uyar" — 3 derin alt blok (TEMA: adaptasyon)
+    M5  autonomy      Otonomi = SENIN CUMLEN. 3 sekmeli canli ornek
+                      (TEMA: anlasilirlik; kural: feedback-autonomy-messaging)
+    M6  ease          3 adim + guvence satirlari (TEMA: kolaylik)
+    M7  apps          Uygulama bandi + hub/guide ic linkleri (SEO link grafigi)
+    M8  clarity       Kosu kaydi paneli + durustluk callout'u
+    M9  templates     Canli featured kartlar (tek kisitli istek)
+    M10 teams         Canli kategori sayilari (uydurma sayi yok)
+    M11 cta+footer    Kapanis
+
+  KOPYA KURALLARI (uretimde baglayici):
+   - Dil INGILIZCE (kural: project_ui_language_rule).
+   - EM DASH YASAK (kural: feedback-autonomy-messaging).
+   - "Insan onayi olmadan hareket etmez" iddiasi YASAK. Otonomi bir URUN
+     KISITI degil KULLANICI CUMLESIDIR: "draft" dersen bekler, "send" dersen
+     tam otomatik kosar. M5 bunu birebir bu dille anlatir.
+   - UYDURMA SAYI/METRIK YOK. Sayfadaki tek sayilar: canli kategori sayilari
+     (Data API'den) ve katalog gercegi olan "1,000+ business apps".
+   - M1/M3/M8 panellerindeki ornekler "Example" etiketiyle isaretlidir; gercek
+     musteri verisi ya da metrik gibi sunulmaz. Trigger adlari (orn.
+     GMAIL_NEW_GMAIL_MESSAGE) _trigger_catalog.json'dan gercek kayitlardir.
+
+  SAYFA SEO ALANLARI (Bubble sayfa ozellikleri; bu dosyada title/desc/og YOK —
+  Bubble kendi og etiketlerini <head>'de DAHA ONCE bastigi icin buraya konmaz):
+     Title (54):  AI Agents for Business Workflow Automation | Gaiasphere
+     Desc (153):  Gaia agents listen to the apps where your work arrives,
+                  understand what matters, and take the next step. You set the
+                  autonomy level. Start from a template.
+     og:title:    Add AI agents to your team | Gaiasphere
+     og:image:    1200x630 PNG/JPG (mevcut SVG sosyal onizlemede KIRIK)
+     Tam liste + noindex/sitemap isleri: BUBBLE_SEO_DEPLOYMENT_CHECKLIST.md §6.
+
+  KESIF KABUGU gx-rail v3 (11.09): TEK KAYNAK _gx_rail_v3.html; bu dosyadaki
+     GX-RAIL-V3 araligini sync_rail.ps1 yazar, elle duzenleme. Payanda artik
+     html.gxr3-on body{padding-left} (eski #gxHome 232px kurali kalkti).
+
+  PERFORMANS KURALLARI (bu dosyada bilerek yapilanlar):
+   - Global CSS reset YOK; her kural #gxHome / #gxRail altina kapsanmistir.
+   - Font render-blocking DEGIL (media=print/onload swap); ilk boya sistem
+     fontuyla yapilir.
+   - Gorsel varligi YOK: tum urun yuzeyleri (kosu paneli, sahne, kayit) saf
+     CSS/HTML. Yalnizca app logolari uzaktan gelir ve hepsi lazy.
+   - Featured kartlar: TEK kisitli istek (eski surum 466 kaydin tamamini
+     ~1.5 MB olarak cekiyordu).
+   - Kategori sayilari: kategori basina limit=1 istegi; sayi `remaining`
+     alanindan okunur (~1 KB). Sayi gelmezse cip cizilmez (uydurma sayi yok).
+   - Veri istekleri ilk boyayi beklemez, idle'a birakilir.
+   - Animasyon: yalnizca opacity/transform; IntersectionObserver ile tek geçis.
+     JS calismazsa TUM icerik gorunur kalir (gizleme sinifi JS ile aciliyor).
+     prefers-reduced-motion'da hareket kapanir.
+-->
+
+<link rel="preconnect" href="https://logos.composio.dev" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+
+<style>
+/* --- Bubble'in kendi sayfa govdesini gizle (bos sayfa payandasi kalmasin).
+       KENDINI-GIZLEME KORUMASI: bu blok yanlislikla bir Bubble HTML ELEMENTININ
+       icine yapistirilirsa element de .main-page'in icinde kalir ve kural kendini
+       gizler -> BOMBOS SAYFA. Asagidaki script boyle bir durumda <html>'e
+       `gx-inside-bubble` sinifini basar ve kural devre disi kalir.
+       Sayfada gosterilecek baska Bubble elementi varsa bu satiri silebilirsin. -- */
+html:not(.gx-inside-bubble) body > .main-page{display:none!important}
+/* ---------------------------------------------------------------------- */
+
+/* ==========================================================================
+   TOKENLAR + TABAN
+   Renkler marka token setinden gelir (redesign PDF'inin moru DEGIL).
+   ========================================================================== */
+#gxHome{
+  --gx-font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --gx-primary:#6366f1; --gx-primary-deep:#4f46e5;
+  --gx-ink:#0f172a; --gx-ink-2:#475569; --gx-ink-3:#94a3b8; --gx-ink-4:#64748b;
+  --gx-line:#e2e8f0; --gx-line-soft:#eef2f7;
+  --gx-bg:#f8fafc; --gx-surface:#ffffff; --gx-tint:#eef2ff; --gx-tintb:#dde5ff;
+  --gx-ok:#0f766e; --gx-okb:#ccfbf1;
+  --gx-ease:cubic-bezier(.16,1,.3,1);
+  --gx-sh:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.18);
+  font-family:var(--gx-font);color:var(--gx-ink);background:var(--gx-surface);
+  line-height:1.55;letter-spacing:-.002em;-webkit-font-smoothing:antialiased;
+  position:relative;z-index:1;text-align:left;
+}
+#gxHome *{box-sizing:border-box;margin:0;padding:0}
+#gxHome a{color:var(--gx-primary);text-decoration:none}
+#gxHome a:hover{text-decoration:underline}
+#gxHome img{max-width:100%}
+#gxHome .g-wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+#gxHome .g-narrow{max-width:780px;margin:0 auto;padding:0 24px}
+#gxHome .g-sec{padding:104px 0;scroll-margin-top:72px}
+#gxHome .g-band{background:var(--gx-bg)}
+#gxHome .g-hr{border-top:1px solid var(--gx-line-soft)}
+
+/* -- bolum basligi kalibi (her modul ayni ritmi kullanir) -- */
+#gxHome .eyebrow{display:block;font-size:11.5px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--gx-ink-3)}
+#gxHome .stitle{font-size:clamp(29px,4.2vw,44px);font-weight:700;letter-spacing:-.026em;
+  line-height:1.08;margin:14px 0 0;max-width:15ch}
+#gxHome .stitle.wide{max-width:20ch}
+#gxHome .slead{font-size:clamp(16.5px,1.6vw,19px);color:var(--gx-ink-2);line-height:1.6;
+  margin-top:18px;max-width:62ch}
+#gxHome .shead{max-width:820px}
+#gxHome .shead.mid{text-align:center;margin:0 auto}
+#gxHome .shead.mid .stitle,#gxHome .shead.mid .slead{margin-left:auto;margin-right:auto}
+#gxHome .shead.mid .stitle{max-width:20ch}
+
+/* -- butonlar -- */
+#gxHome .btn-p{display:inline-flex;align-items:center;gap:8px;background:var(--gx-primary);
+  color:#fff;border-radius:999px;padding:14px 28px;font-size:16px;font-weight:600;
+  transition:background .2s,transform .2s var(--gx-ease)}
+#gxHome .btn-p:hover{background:var(--gx-primary-deep);text-decoration:none;transform:translateY(-1px)}
+#gxHome .btn-s{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--gx-line);
+  color:var(--gx-ink);border-radius:999px;padding:12.5px 24px;font-size:16px;font-weight:600;
+  transition:border-color .2s,background .2s}
+#gxHome .btn-s:hover{border-color:#c7d2fe;background:var(--gx-bg);text-decoration:none}
+#gxHome .ctas{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:32px}
+#gxHome .ctas.mid{justify-content:center}
+
+/* -- ortak urun yuzeyi (panel) : M1 kosu, M3 sahne, M8 kayit ayni dili konusur -- */
+#gxHome .surf{background:#fff;border:1px solid var(--gx-line);border-radius:18px;
+  box-shadow:var(--gx-sh);overflow:hidden}
+#gxHome .surf-bar{display:flex;align-items:center;gap:8px;padding:11px 16px;
+  border-bottom:1px solid var(--gx-line-soft);background:#fcfdff}
+#gxHome .surf-dots{display:flex;gap:5px}
+#gxHome .surf-dots i{width:8px;height:8px;border-radius:50%;background:#e2e8f0;display:block}
+#gxHome .surf-tag{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--gx-ink-3)}
+#gxHome .surf-ttl{font-size:12.5px;font-weight:600;color:var(--gx-ink-4)}
+#gxHome .surf-b{padding:18px}
+#gxHome .app-i{width:20px;height:20px;border-radius:5px;object-fit:contain;flex:0 0 auto}
+#gxHome .app-w{width:30px;height:30px;border-radius:8px;background:#fff;border:1px solid var(--gx-line);
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+#gxHome .app-w img{width:17px;height:17px;object-fit:contain}
+#gxHome .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;
+  letter-spacing:-.01em}
+
+/* -- reveal (JS acar; JS yoksa icerik gorunur kalir) -- */
+#gxHome.rv-on .rv{opacity:0;transform:translateY(20px);
+  transition:opacity .75s var(--gx-ease),transform .75s var(--gx-ease);transition-delay:var(--d,0ms)}
+#gxHome.rv-on .rv.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  #gxHome.rv-on .rv{opacity:1!important;transform:none!important;transition:none!important}
+}
+
+/* ==========================================================================
+   M1 — HERO
+   ========================================================================== */
+#gxHome .hero{padding:92px 0 72px;text-align:center}
+#gxHome .hero .pill{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.09em;
+  color:var(--gx-primary-deep);background:var(--gx-tint);border:1px solid var(--gx-tintb);
+  border-radius:999px;padding:5px 15px;margin-bottom:22px;text-transform:uppercase}
+#gxHome .hero h1{font-size:clamp(40px,6.4vw,68px);font-weight:700;letter-spacing:-.032em;
+  line-height:1.02;margin:0;color:var(--gx-ink)}
+#gxHome .hero .sub{font-size:clamp(17px,2vw,21px);color:var(--gx-ink-2);max-width:640px;
+  margin:24px auto 0;line-height:1.55}
+#gxHome .hero .ctas{justify-content:center}
+#gxHome .runwrap{max-width:760px;margin:56px auto 0}
+#gxHome .run-row{display:flex;align-items:flex-start;gap:13px;padding:14px 0}
+#gxHome .run-row+.run-row{border-top:1px solid var(--gx-line-soft)}
+#gxHome .run-k{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--gx-ink-3);width:88px;flex:0 0 auto;padding-top:7px;text-align:left}
+#gxHome .run-c{flex:1;min-width:0;text-align:left}
+#gxHome .run-t{font-size:14.5px;font-weight:600;color:var(--gx-ink);line-height:1.4}
+#gxHome .run-d{font-size:13px;color:var(--gx-ink-4);line-height:1.5;margin-top:3px}
+#gxHome .run-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+  color:var(--gx-ink-4);background:var(--gx-bg);border:1px solid var(--gx-line);
+  border-radius:999px;padding:4px 10px;margin:7px 6px 0 0}
+#gxHome .run-chip img{width:13px;height:13px;object-fit:contain}
+#gxHome .run-chip.ok{color:var(--gx-ok);background:var(--gx-okb);border-color:#99f6e4}
+/* 14.09 A1/A2/A-BTN: hero = amiral urun (Inbox Chief of Staff). Iki kolon hero icin
+   baslik rampasi kucultuldu (68px tavan + <br> yarim kolona sigmiyordu). Ornek taslak
+   (.run-q) metni brief demo.focus.draft.body ile BIREBIR; bkz. HTML'deki IKIZ yorumu. */
+#gxHome .hero h1{font-size:clamp(34px,4.6vw,54px);text-wrap:balance}
+#gxHome .hero .hero-note{margin:14px auto 0;font-size:12.5px;line-height:1.55;color:var(--gx-ink-3);max-width:52ch}
+#gxHome .hero button.btn-p{border:0;cursor:pointer;font-family:inherit;line-height:inherit}
+#gxHome .hero button.btn-p[disabled]{opacity:.75;cursor:progress}
+#gxHome .run-q{white-space:pre-line;text-align:left;font-size:13.5px;line-height:1.62;color:var(--gx-ink);
+  background:var(--gx-bg);border:1px solid var(--gx-line-soft);border-left:3px solid var(--gx-tintb);
+  border-radius:10px;padding:12px 14px;margin-top:6px;overflow-wrap:anywhere}
+#gxHome .run-note{margin-top:10px;font-size:11.5px;color:var(--gx-ink-3);text-align:left}
+#gxHome .g-sec.g-plat{padding:44px 0}
+#gxHome .g-plat .slead{margin:0 auto}
+#gxHome .g-plat .ctas{margin-top:22px}
+@media(min-width:980px){
+  #gxHome .hero .g-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center;text-align:left}
+  #gxHome .hero .ctas{justify-content:flex-start}
+  #gxHome .hero .sub,#gxHome .hero .hero-note{margin-left:0;margin-right:0}
+  #gxHome .runwrap{margin:0;max-width:none}
+}
+@media(max-width:560px){
+  #gxHome .run-row{flex-direction:column;gap:6px}
+  #gxHome .run-k{width:auto;padding-top:0}
+  #gxHome .run-q{font-size:13px;padding:11px 12px}
+}
+/* A-CARD: kart hero'nun ALTINA tasindi; kenar hizasi .g-wrap ile ayni (blok icine dokunulmaz). */
+#gxHome #gx-product-card{margin-top:0;margin-bottom:8px}
+@media(min-width:980px){#gxHome #gx-product-card{max-width:1060px;padding:0 24px}}
+
+/* ==========================================================================
+   M2 — PROBLEM
+   ========================================================================== */
+#gxHome .prob h2{font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-.026em;
+  line-height:1.13;max-width:19ch}
+#gxHome .prob p{font-size:clamp(16.5px,1.7vw,19px);color:var(--gx-ink-2);line-height:1.62;
+  margin-top:20px;max-width:60ch}
+#gxHome .prob-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:1px;background:var(--gx-line-soft);border-top:1px solid var(--gx-line-soft);margin-top:44px}
+#gxHome .prob-list div{background:var(--gx-bg);padding:22px 20px;font-size:14.5px;
+  color:var(--gx-ink-2);line-height:1.55}
+#gxHome .prob-turn{font-size:clamp(19px,2.3vw,25px);font-weight:600;letter-spacing:-.018em;
+  line-height:1.35;margin-top:44px;max-width:24ch;color:var(--gx-ink)}
+
+/* ==========================================================================
+   M3 — HOW IT WORKS  (scroll senkron sahne)
+   ========================================================================== */
+#gxHome .wf{display:grid;grid-template-columns:1fr;gap:40px;margin-top:52px}
+/* top: dar ekranda rail yatay bar olur (~59px) -> sahne onun ALTINA yapisir */
+#gxHome .wf-stage{position:sticky;top:68px;z-index:2}
+#gxHome .wf-box{position:relative;min-height:300px}
+#gxHome .wff{position:absolute;inset:0;opacity:0;transform:translateY(12px) scale(.985);
+  transition:opacity .5s var(--gx-ease),transform .5s var(--gx-ease);pointer-events:none}
+#gxHome .wf-stage[data-on="1"] .wff[data-i="1"],
+#gxHome .wf-stage[data-on="2"] .wff[data-i="2"],
+#gxHome .wf-stage[data-on="3"] .wff[data-i="3"],
+#gxHome .wf-stage[data-on="4"] .wff[data-i="4"]{opacity:1;transform:none;pointer-events:auto}
+#gxHome .wf-steps{display:flex;flex-direction:column;gap:12px}
+#gxHome .wf-step{padding:24px 22px;border-radius:16px;border:1px solid transparent;
+  transition:background .35s var(--gx-ease),border-color .35s var(--gx-ease)}
+#gxHome .wf-step.on{background:#fff;border-color:var(--gx-line);box-shadow:var(--gx-sh)}
+#gxHome .wf-step .n{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--gx-ink-3);transition:color .35s}
+#gxHome .wf-step.on .n{color:var(--gx-primary-deep)}
+#gxHome .wf-step .n b{width:21px;height:21px;border-radius:50%;background:var(--gx-bg);
+  border:1px solid var(--gx-line);display:flex;align-items:center;justify-content:center;
+  font-size:10.5px;font-weight:700;color:inherit}
+#gxHome .wf-step.on .n b{background:var(--gx-tint);border-color:var(--gx-tintb)}
+#gxHome .wf-step h3{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:12px;line-height:1.25}
+#gxHome .wf-step p{font-size:15px;color:var(--gx-ink-2);line-height:1.6;margin-top:9px;max-width:52ch}
+/* sahne ic gorselleri */
+#gxHome .sg-line{display:flex;align-items:center;gap:11px;padding:11px 0}
+#gxHome .sg-line+.sg-line{border-top:1px solid var(--gx-line-soft)}
+#gxHome .sg-t{font-size:13.5px;font-weight:600;color:var(--gx-ink);line-height:1.35}
+#gxHome .sg-s{font-size:12px;color:var(--gx-ink-3);margin-top:2px}
+#gxHome .sg-r{margin-left:auto;font-size:11px;font-weight:600;color:var(--gx-ink-3);flex:0 0 auto}
+#gxHome .sg-kv{display:flex;justify-content:space-between;gap:14px;padding:9px 0;font-size:13px}
+#gxHome .sg-kv+.sg-kv{border-top:1px solid var(--gx-line-soft)}
+#gxHome .sg-kv span{color:var(--gx-ink-3)}
+#gxHome .sg-kv b{color:var(--gx-ink);font-weight:600;text-align:right}
+#gxHome .sg-note{font-size:12.5px;color:var(--gx-ink-4);line-height:1.55;margin-top:14px;
+  padding-top:13px;border-top:1px solid var(--gx-line-soft)}
+#gxHome .sg-say{font-size:14.5px;line-height:1.5;color:var(--gx-ink);background:var(--gx-tint);
+  border:1px solid var(--gx-tintb);border-radius:12px;padding:13px 15px}
+#gxHome .sg-say i{font-style:normal;color:var(--gx-primary-deep);font-weight:600}
+@media(min-width:900px){
+  #gxHome .wf{grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:56px;align-items:start}
+  #gxHome .wf-stage{top:96px;order:2}
+  #gxHome .wf-box{min-height:340px}
+  /* Sahnenin sabit kalabilmesi icin adim sutunu SCROLL YOLU uretmeli.
+     Yol KART UZATILARAK degil ARALIK acilarak kuruluyor: kart icerigine
+     yapisik kalir (ici bos beyaz kutu olmaz), aradaki bosluk sahneyi pinli tutar. */
+  #gxHome .wf-steps{order:1;gap:22vh}
+  #gxHome .wf-step{padding:28px 26px}
+}
+
+/* ==========================================================================
+   M4 — ADAPTATION
+   ========================================================================== */
+#gxHome .ad{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:52px}
+#gxHome .ad-c{background:#fff;border:1px solid var(--gx-line);border-radius:18px;padding:26px 24px 28px;
+  display:flex;flex-direction:column;   /* .ex tabana yapissin: 3 kartin alt bloklari hizali kalir */
+  transition:border-color .25s,box-shadow .3s var(--gx-ease),transform .3s var(--gx-ease)}
+#gxHome .ad-c:hover{border-color:#c7d2fe;box-shadow:var(--gx-sh);transform:translateY(-2px)}
+#gxHome .ad-c .ic{width:38px;height:38px;border-radius:11px;background:var(--gx-tint);
+  color:var(--gx-primary-deep);display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+#gxHome .ad-c .ic svg{width:19px;height:19px}
+#gxHome .ad-c h3{font-size:17.5px;font-weight:700;letter-spacing:-.014em;line-height:1.3}
+#gxHome .ad-c p{font-size:14.5px;color:var(--gx-ink-2);line-height:1.62;margin-top:10px}
+/* margin-top:auto -> kart icinde kalan bosluk .ex'in USTUNE gider; padding ile
+   minimum nefes garanti (en uzun kartta bile metne yapismaz). */
+#gxHome .ad-c .ex{margin-top:auto;padding-top:18px;border-top:1px solid var(--gx-line-soft);
+  font-size:13px;color:var(--gx-ink-4);line-height:1.55}
+#gxHome .ad-c p{margin-bottom:18px}
+#gxHome .ad-c .ex b{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--gx-ink-3);margin-bottom:5px}
+
+/* ==========================================================================
+   M5 — AUTONOMY  (sekmeli)
+   ========================================================================== */
+#gxHome .au{max-width:820px;margin:48px auto 0}
+#gxHome .au-seg{display:flex;gap:4px;background:var(--gx-bg);border:1px solid var(--gx-line);
+  border-radius:999px;padding:4px;width:fit-content;margin:0 auto;flex-wrap:wrap;justify-content:center}
+#gxHome .au-seg button{appearance:none;border:0;background:transparent;cursor:pointer;
+  font-family:inherit;font-size:14px;font-weight:600;color:var(--gx-ink-4);
+  border-radius:999px;padding:9px 20px;transition:background .25s var(--gx-ease),color .25s}
+#gxHome .au-seg button:hover{color:var(--gx-ink)}
+#gxHome .au-seg button[aria-selected="true"]{background:#fff;color:var(--gx-primary-deep);
+  box-shadow:0 1px 3px rgba(15,23,42,.10)}
+#gxHome .au-body{margin-top:28px;position:relative;min-height:250px}
+#gxHome .au-p{position:absolute;inset:0;opacity:0;transform:translateY(10px);pointer-events:none;
+  transition:opacity .4s var(--gx-ease),transform .4s var(--gx-ease)}
+#gxHome .au-p.on{opacity:1;transform:none;pointer-events:auto;position:relative}
+#gxHome .au-say{display:flex;gap:13px;align-items:flex-start;background:#fff;border:1px solid var(--gx-line);
+  border-radius:16px;padding:18px 20px;box-shadow:var(--gx-sh)}
+#gxHome .au-say .q{font-size:26px;line-height:1;color:var(--gx-tintb);font-weight:700;flex:0 0 auto}
+#gxHome .au-say p{font-size:17px;line-height:1.5;color:var(--gx-ink);font-weight:500}
+#gxHome .au-say small{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--gx-ink-3);margin-bottom:7px}
+#gxHome .au-out{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:16px}
+#gxHome .au-out div{background:var(--gx-bg);border:1px solid var(--gx-line-soft);border-radius:14px;padding:17px 18px}
+#gxHome .au-out b{display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--gx-ink-3);margin-bottom:7px}
+#gxHome .au-out p{font-size:14px;color:var(--gx-ink-2);line-height:1.58}
+#gxHome .au-foot{text-align:center;font-size:15px;color:var(--gx-ink-4);margin-top:30px}
+
+/* ==========================================================================
+   M6 — EASE
+   ========================================================================== */
+#gxHome .steps{max-width:680px;margin:48px auto 0;display:flex;flex-direction:column;gap:8px}
+#gxHome .stp{display:flex;gap:22px;align-items:flex-start;padding:22px 0}
+#gxHome .stp+.stp{border-top:1px solid var(--gx-line-soft)}
+#gxHome .stp .num{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:#fff;
+  border:1px solid var(--gx-line);font-size:16px;font-weight:600;display:flex;align-items:center;
+  justify-content:center;color:var(--gx-ink-4)}
+#gxHome .stp b{display:block;font-size:18px;font-weight:600;letter-spacing:-.014em;line-height:1.35}
+#gxHome .stp span{display:block;font-size:15px;color:var(--gx-ink-2);line-height:1.6;margin-top:6px}
+#gxHome .prom{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;
+  max-width:900px;margin:44px auto 0}
+#gxHome .prom div{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--gx-ink-2);
+  line-height:1.5;background:#fff;border:1px solid var(--gx-line-soft);border-radius:13px;padding:15px 16px}
+#gxHome .prom svg{width:16px;height:16px;flex:0 0 auto;color:var(--gx-ok);margin-top:1px}
+
+/* ==========================================================================
+   M7 — APPS
+   ========================================================================== */
+#gxHome .logos{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:38px auto 0;max-width:780px}
+#gxHome .logos span{width:48px;height:48px;border-radius:14px;background:#fff;border:1px solid var(--gx-line);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(15,23,42,.04);
+  transition:transform .25s var(--gx-ease),border-color .25s}
+#gxHome .logos span:hover{transform:translateY(-2px);border-color:#c7d2fe}
+#gxHome .logos img{width:26px;height:26px;object-fit:contain}
+#gxHome .apnote{max-width:640px;margin:30px auto 0;text-align:center;font-size:14.5px;
+  color:var(--gx-ink-4);line-height:1.6}
+#gxHome .hublinks{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:26px}
+#gxHome .hublinks a{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;
+  color:var(--gx-ink-2);background:#fff;border:1px solid var(--gx-line);border-radius:999px;padding:8px 16px}
+#gxHome .hublinks a:hover{border-color:#c7d2fe;color:var(--gx-ink);text-decoration:none}
+#gxHome .hublinks img{width:16px;height:16px;object-fit:contain}
+
+/* ==========================================================================
+   M8 — CLARITY
+   ========================================================================== */
+#gxHome .cl{display:grid;grid-template-columns:1fr;gap:44px;margin-top:52px;align-items:start}
+#gxHome .cl-log .lg{display:flex;gap:13px;padding:13px 0}
+#gxHome .cl-log .lg+.lg{border-top:1px solid var(--gx-line-soft)}
+#gxHome .cl-log .lt{width:52px;flex:0 0 auto;font-size:11px;color:var(--gx-ink-3);padding-top:2px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+#gxHome .cl-log .lb{flex:1;min-width:0}
+#gxHome .cl-log .lb b{display:block;font-size:13.5px;font-weight:600;color:var(--gx-ink);line-height:1.4}
+#gxHome .cl-log .lb span{display:block;font-size:12.5px;color:var(--gx-ink-4);line-height:1.5;margin-top:2px}
+#gxHome .cl-pts{display:flex;flex-direction:column;gap:22px}
+#gxHome .cl-pt b{display:block;font-size:16.5px;font-weight:600;letter-spacing:-.012em}
+#gxHome .cl-pt p{font-size:14.5px;color:var(--gx-ink-2);line-height:1.6;margin-top:6px}
+#gxHome .g-callout{background:var(--gx-tint);border:1px solid var(--gx-tintb);border-radius:16px;
+  padding:20px 24px;margin:48px auto 0;font-size:15px;line-height:1.65;max-width:760px}
+#gxHome .g-callout strong{color:var(--gx-primary-deep)}
+@media(min-width:900px){#gxHome .cl{grid-template-columns:1.05fr .95fr;gap:56px}}
+
+/* ==========================================================================
+   M9 — FEATURED TEMPLATES (bcard: template sayfasiyla AYNI kart)
+   ========================================================================== */
+#gxHome .rel{display:grid;grid-template-columns:repeat(auto-fill,minmax(262px,1fr));gap:18px;margin:44px auto 0}
+#gxHome .bcard{background:#fff;border:1px solid #EDEFF3;border-radius:14px;padding:12px 12px 14px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:10px;position:relative;cursor:pointer;transition:border-color .2s,box-shadow .25s,transform .2s}
+#gxHome .bcard:hover{border-color:#C7D2FE;box-shadow:0 8px 28px -12px rgba(99,102,241,.22),0 2px 8px -2px rgba(15,23,42,.06);transform:translateY(-2px);text-decoration:none}
+#gxHome .bcard-orbit{--orbit-r:38px;position:relative;height:112px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:12px;background:radial-gradient(ellipse 70% 70% at center,rgba(99,102,241,.04) 0%,transparent 80%),#FAFBFD}
+#gxHome .bcard-orbit::before,#gxHome .bcard-orbit::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px dashed rgba(99,102,241,.10);pointer-events:none}
+#gxHome .bcard-orbit::before{width:76px;height:76px}
+#gxHome .bcard-orbit::after{width:104px;height:104px}
+#gxHome .bcard-orbit-gaia{position:relative;z-index:2;width:46px;height:46px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(15,23,42,.08),0 2px 8px rgba(15,23,42,.06);display:flex;align-items:center;justify-content:center;overflow:hidden}
+#gxHome .bcard-orbit-gaia img{width:26px;height:26px;display:block;object-fit:contain}
+#gxHome .bcard-orbit-app{position:absolute;top:50%;left:50%;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(15,23,42,.06),0 2px 5px rgba(15,23,42,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:1}
+#gxHome .bcard-orbit-app img{width:18px;height:18px;display:block;object-fit:contain}
+#gxHome .bcard-orbit-more{position:absolute;top:50%;left:50%;width:26px;height:26px;border-radius:50%;background:#1E293B;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:1}
+#gxHome .bcard-feat{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.85);backdrop-filter:blur(6px);color:#4338CA;font-size:9px;font-weight:700;padding:3px 8px;border-radius:999px;letter-spacing:.4px;text-transform:uppercase;border:1px solid rgba(99,102,241,.18);z-index:3}
+#gxHome .bcard-cat{font-size:11px;font-weight:600;color:#6366F1}
+#gxHome .bcard-name{font-size:13.5px;font-weight:700;color:#0F172A;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#gxHome .bcard-desc{font-size:12px;color:#64748B;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#gxHome .bcard-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto;padding-top:4px}
+#gxHome .bcard-integs{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+#gxHome .bcard-integ{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:999px;color:#64748B;border:1px solid #E2E8F0;text-transform:lowercase;white-space:nowrap}
+#gxHome .seeall{text-align:center;margin-top:30px;font-size:16px;font-weight:600}
+
+/* ==========================================================================
+   M10 — TEAMS
+   ========================================================================== */
+#gxHome .chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:38px auto 0;max-width:800px}
+#gxHome .chips a{display:inline-flex;align-items:center;gap:9px;font-size:14.5px;font-weight:600;
+  color:var(--gx-ink-2);background:#fff;border:1px solid var(--gx-line);border-radius:999px;padding:10px 19px;
+  transition:border-color .2s,transform .2s var(--gx-ease)}
+#gxHome .chips a:hover{border-color:#c7d2fe;color:var(--gx-ink);text-decoration:none;transform:translateY(-1px)}
+#gxHome .chips a i{font-style:normal;font-size:11.5px;font-weight:600;color:var(--gx-ink-3);
+  background:var(--gx-bg);border-radius:999px;padding:1px 8px}
+
+/* ==========================================================================
+   M11 — FINAL CTA + FOOTER
+   ========================================================================== */
+#gxHome .g-cta{border-top:1px solid var(--gx-line-soft);text-align:center;padding:104px 0}
+#gxHome .g-bt{font-size:clamp(28px,3.8vw,40px);font-weight:700;letter-spacing:-.026em;line-height:1.12;
+  max-width:18ch;margin:0 auto}
+#gxHome .g-bs{font-size:17px;color:var(--gx-ink-2);max-width:560px;margin:18px auto 0;line-height:1.6}
+#gxHome .g-ft{border-top:1px solid var(--gx-line-soft);padding:36px 0 48px;background:var(--gx-bg)}
+#gxHome .g-ft .g-fl{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13.5px;margin-bottom:14px}
+#gxHome .g-ft .g-fl a{color:var(--gx-ink-2)}
+#gxHome .g-ft .g-fl a:hover{color:var(--gx-ink)}
+#gxHome .g-ft .g-cp{font-size:12.5px;color:var(--gx-ink-3)}
+
+/* Dar ekranda ortalanmis UZUN paragraf okunmuyor: bolum basliklarini sola al.
+   (hero ortali kalir; cip/logo siralari zaten flex ile ortali.) */
+@media(max-width:640px){
+  #gxHome .shead.mid{text-align:left}
+  #gxHome .shead.mid .stitle,#gxHome .shead.mid .slead{margin-left:0;margin-right:0}
+}
+@media(max-width:740px){
+  #gxHome .g-sec{padding:68px 0}
+  #gxHome .hero{padding:56px 0 48px}
+  #gxHome .g-cta{padding:72px 0}
+  #gxHome .run-k{width:70px;font-size:9.5px}
+  #gxHome .au-seg button{padding:8px 14px;font-size:13px}
+}
+
+/* gx-rail v3: stil + iskelet + betik asagida GX-RAIL-V3 araliginda (kaynak _gx_rail_v3.html). */
+</style>
+
+<script type="application/ld+json">
+[{"@context":"https://schema.org","@type":"Organization","name":"Gaiasphere","alternateName":"Gaia","url":"https://gaiasphere.io/","logo":"https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1775473589151x893601606193553400/GAIA%20%282%29.svg"},
+{"@context":"https://schema.org","@type":"WebSite","name":"Gaiasphere","url":"https://gaiasphere.io/","potentialAction":{"@type":"SearchAction","target":"https://gaiasphere.io/templates?q={search_term_string}","query-input":"required name=search_term_string"}},
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Gaiasphere","applicationCategory":"BusinessApplication","operatingSystem":"Web","url":"https://gaiasphere.io/","description":"AI agents that listen to the apps where work arrives, decide what matters, and take the next step inside your connected tools."}]
+</script>
+
+<div id="gxHome">
+
+  <!-- ══ M0 · gx-rail v3 (tek kaynak: _gx_rail_v3.html) ══ -->
+<!-- GX-RAIL-V3:BEGIN  kaynak: _gx_rail_v3.html | sync_rail.ps1 yazar | ELLE DUZENLEME -->
+<style>
+:root{--gxr-w:232px}
+/* tek ray: pismis v2 ray (hub/rehber govdesi) ya da ikinci kopya asla gorunmez */
+#gxRail:not(.gxr3){display:none!important}
+html #gxRail.gxr3{
+  --g-ink:#0f172a;--g-ink2:#475569;--g-ink3:#94a3b8;
+  --g-line:#e2e8f0;--g-line2:#eef2f7;--g-bg:#f8fafc;--g-surf:#fff;
+  --g-pri:#6366f1;--g-deep:#4f46e5;--g-tint:#eef2ff;--g-tint2:#e0e7ff;
+  --g-ok:#15803d;--g-okbg:#dcfce7;
+  position:fixed;left:0;top:0;bottom:0;width:var(--gxr-w);height:auto;z-index:60;
+  display:flex;flex-direction:column;align-items:stretch;gap:0;margin:0;padding:0;
+  background:var(--g-surf);border:0;border-right:1px solid var(--g-line);
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.4;
+  color:var(--g-ink2);text-align:left;-webkit-font-smoothing:antialiased;box-sizing:border-box
+}
+html #gxRail.gxr3 *,html #gxRail.gxr3 *::before{box-sizing:border-box}
+html #gxRail.gxr3 a{text-decoration:none;color:inherit}
+html #gxRail.gxr3 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+html #gxRail.gxr3 svg{display:block;flex:0 0 auto}
+html #gxRail.gxr3 a:focus-visible,html #gxRail.gxr3 button:focus-visible{outline:2px solid var(--g-pri);outline-offset:1px}
+html #gxRail.gxr3 .gx3-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* marka */
+html #gxRail.gxr3 .gx3-brand{display:flex;align-items:center;gap:10px;padding:16px 16px 14px;border-bottom:1px solid var(--g-line2)}
+html #gxRail.gxr3 .gx3-mark{width:34px;height:34px;border-radius:9px;background:#0f172a;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+html #gxRail.gxr3 .gx3-mark img{width:20px;height:20px;display:block}
+html #gxRail.gxr3 .gx3-bt{display:block;min-width:0}
+html #gxRail.gxr3 .gx3-bt b{display:block;font-size:14.5px;font-weight:700;color:var(--g-ink);line-height:1.15}
+html #gxRail.gxr3 .gx3-bt i{display:block;font-style:normal;font-size:11px;font-weight:500;color:var(--g-ink3)}
+
+/* gezinme */
+html #gxRail.gxr3 .gx3-nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px 10px 10px;display:flex;flex-direction:column;gap:1px}
+html #gxRail.gxr3 .gx3-sec{margin:14px 10px 4px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-ink3)}
+html #gxRail.gxr3 .gx3-l{display:flex;align-items:center;gap:10px;min-height:36px;padding:7px 10px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--g-ink2)}
+html #gxRail.gxr3 .gx3-l svg{width:16px;height:16px}
+html #gxRail.gxr3 .gx3-tx{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html #gxRail.gxr3 .gx3-l:hover{background:var(--g-bg);color:var(--g-ink)}
+html #gxRail.gxr3 .gx3-l.is-cur{background:var(--g-tint);color:var(--g-deep)}
+html #gxRail.gxr3 .gx3-n{flex:0 0 auto;font-size:11px;font-weight:500;color:var(--g-ink3);font-variant-numeric:tabular-nums}
+html #gxRail.gxr3 .is-cur .gx3-n{color:var(--g-deep)}
+
+/* grup basligi: link + ok dugmesi (iki ayri kontrol) */
+html #gxRail.gxr3 .gx3-ph{display:flex;align-items:center;gap:2px}
+html #gxRail.gxr3 .gx3-ph .gx3-l{flex:1 1 auto;min-width:0}
+html #gxRail.gxr3 .gx3-grp.is-sec > .gx3-ph .gx3-l{color:var(--g-deep)}
+html #gxRail.gxr3 .gx3-chev{display:none;flex:0 0 auto;width:28px;height:28px;border-radius:8px;align-items:center;justify-content:center;color:var(--g-ink3)}
+html.gxr3-js #gxRail.gxr3 .gx3-chev{display:flex}
+html #gxRail.gxr3 .gx3-chev:hover{background:var(--g-bg);color:var(--g-ink)}
+html #gxRail.gxr3 .gx3-chev svg{width:14px;height:14px;transition:transform .16s ease}
+html #gxRail.gxr3 .gx3-grp.is-closed .gx3-chev svg{transform:rotate(-90deg)}
+html #gxRail.gxr3 .gx3-grp.is-closed > .gx3-kids{display:none}
+html #gxRail.gxr3 .gx3-badge{flex:0 0 auto;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:600;line-height:1.5;background:var(--g-deep);color:#fff;font-variant-numeric:tabular-nums}
+html #gxRail.gxr3 .gx3-badge.is-new{background:var(--g-okbg);color:var(--g-ok)}
+
+/* alt satirlar + dikey kilavuz cizgisi */
+html #gxRail.gxr3 .gx3-kids{position:relative;margin:1px 0 4px 18px;padding-left:12px}
+html #gxRail.gxr3 .gx3-kids::before{content:"";position:absolute;left:0;top:5px;bottom:5px;width:1px;background:var(--g-line)}
+html #gxRail.gxr3 .gx3-s{position:relative;display:flex;align-items:center;gap:8px;min-height:30px;padding:5px 8px;border-radius:8px;font-size:12.5px;font-weight:500;color:var(--g-ink2)}
+html #gxRail.gxr3 .gx3-s::before{content:"";position:absolute;left:-15.5px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--g-line);border:2px solid var(--g-surf)}
+html #gxRail.gxr3 .gx3-s img{width:15px;height:15px;object-fit:contain;flex:0 0 auto}
+html #gxRail.gxr3 .gx3-s:hover{background:var(--g-bg);color:var(--g-ink)}
+html #gxRail.gxr3 .gx3-s.is-cur{background:var(--g-tint);color:var(--g-deep);font-weight:600}
+html #gxRail.gxr3 .gx3-s.is-cur::before{background:var(--g-deep)}
+html #gxRail.gxr3 .gx3-s .gx3-tx.is-2l{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3}
+
+/* populer uygulama kisayollari */
+html #gxRail.gxr3 .gx3-apps{position:relative;display:flex;align-items:center;gap:4px;padding:4px 4px 5px 8px}
+html #gxRail.gxr3 .gx3-apps a{display:flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 5px;border-radius:8px;border:1px solid var(--g-line2);background:var(--g-surf)}
+html #gxRail.gxr3 .gx3-apps a:hover{border-color:var(--g-line);background:var(--g-bg)}
+html #gxRail.gxr3 .gx3-apps img{width:18px;height:18px;object-fit:contain;display:block}
+html #gxRail.gxr3 .gx3-apps a.is-cur{border-color:var(--g-deep);box-shadow:inset 0 0 0 1px var(--g-deep);background:var(--g-tint)}
+html #gxRail.gxr3 .gx3-apps .gx3-more{font-size:11px;font-weight:600;color:var(--g-deep);font-variant-numeric:tabular-nums}
+
+/* alt sabit alan */
+html #gxRail.gxr3 .gx3-foot{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;padding:10px;border-top:1px solid var(--g-line2)}
+html #gxRail.gxr3 .gx3-foot .gx3-l{font-size:13px;min-height:34px}
+html #gxRail.gxr3 .gx3-cta{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:var(--g-tint)}
+html #gxRail.gxr3 .gx3-cta:hover{background:var(--g-tint2)}
+html #gxRail.gxr3 .gx3-dot{width:28px;height:28px;border-radius:8px;background:var(--g-deep);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+html #gxRail.gxr3 .gx3-cta .gx3-bt{flex:1 1 auto}
+html #gxRail.gxr3 .gx3-cta .gx3-bt b{font-size:13px;font-weight:600}
+html #gxRail.gxr3 .gx3-cta .gx3-bt i{font-size:10.5px}
+html #gxRail.gxr3 .gx3-go{color:var(--g-deep)}
+html #gxRail.gxr3 .gx3-go svg{width:14px;height:14px}
+
+/* cekmece anahtari: masaustunde yok */
+html #gxRail.gxr3 .gx3-menu{display:none;position:absolute;width:1px;height:1px;margin:0;padding:0;opacity:0;pointer-events:none}
+html #gxRail.gxr3 .gx3-burger{display:none}
+
+/* sayfa payandasi (v2'nin body{padding-left:232px} kurallarini ezer) */
+@media(min-width:1080px){html.gxr3-on body{padding-left:var(--gxr-w)}}
+
+/* <1080: ust bar + cekmece (ortagin "mobilde drawer" karari) */
+@media(max-width:1079.98px){
+  html #gxRail.gxr3{position:sticky;top:0;bottom:auto;width:auto;height:56px;flex-direction:row;align-items:center;gap:4px;padding:0 10px;border-right:0;border-bottom:1px solid var(--g-line)}
+  html #gxRail.gxr3 .gx3-menu{display:block}
+  html #gxRail.gxr3 .gx3-burger{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;color:var(--g-ink2);cursor:pointer;flex:0 0 auto}
+  html #gxRail.gxr3 .gx3-burger:hover{background:var(--g-bg);color:var(--g-ink)}
+  html #gxRail.gxr3 .gx3-burger svg{width:20px;height:20px}
+  html #gxRail.gxr3 .gx3-burger .gx3-i2{display:none}
+  html #gxRail.gxr3 .gx3-menu:checked ~ .gx3-burger .gx3-i1{display:none}
+  html #gxRail.gxr3 .gx3-menu:checked ~ .gx3-burger .gx3-i2{display:block}
+  html #gxRail.gxr3 .gx3-menu:focus-visible ~ .gx3-burger{outline:2px solid var(--g-pri);outline-offset:1px}
+  html #gxRail.gxr3 .gx3-brand{padding:0 6px;border:0;gap:8px}
+  html #gxRail.gxr3 .gx3-mark{width:30px;height:30px;border-radius:8px}
+  html #gxRail.gxr3 .gx3-mark img{width:18px;height:18px}
+  html #gxRail.gxr3 .gx3-brand .gx3-bt i{display:none}
+  html #gxRail.gxr3 .gx3-nav{display:none;position:absolute;left:0;right:0;top:100%;max-height:calc(100vh - 56px);max-height:calc(100dvh - 56px);padding:8px 12px 16px;background:var(--g-surf);border-bottom:1px solid var(--g-line);box-shadow:0 18px 30px -18px rgba(15,23,42,.35)}
+  html #gxRail.gxr3 .gx3-menu:checked ~ .gx3-nav{display:flex}
+  html #gxRail.gxr3 .gx3-foot{margin-left:auto;flex-direction:row;align-items:center;gap:4px;padding:0;border:0}
+  html #gxRail.gxr3 .gx3-foot .gx3-l{min-width:40px;min-height:40px;justify-content:center;padding:8px}
+  html #gxRail.gxr3 .gx3-foot .gx3-l .gx3-tx{display:none}
+  html #gxRail.gxr3 .gx3-cta{padding:5px 12px 5px 5px;gap:8px}
+  html #gxRail.gxr3 .gx3-cta .gx3-bt i,html #gxRail.gxr3 .gx3-go{display:none}
+  html #gxRail.gxr3 .gx3-cta .gx3-bt b{white-space:nowrap}
+  html #gxRail.gxr3 .gx3-l{min-height:44px}
+  html #gxRail.gxr3 .gx3-s{min-height:40px}
+  html #gxRail.gxr3 .gx3-chev{width:40px;height:40px}
+  html #gxRail.gxr3 .gx3-apps a{min-width:40px;height:40px}
+  html.gxr3-lock,html.gxr3-lock body{overflow:hidden}
+}
+@media(max-width:420px){
+  html #gxRail.gxr3 .gx3-brand .gx3-bt{display:none}
+}
+@media(prefers-reduced-motion:reduce){html #gxRail.gxr3 .gx3-chev svg{transition:none}}
+</style>
+
+<!-- JS'siz / crawler yedegi. JS calisinca .gx3-nav icerigi canli veriyle yeniden cizilir. -->
+<nav id="gxRail" class="gxr3" aria-label="Gaiasphere" lang="en" data-gxr-v="3">
+  <input class="gx3-menu" type="checkbox" id="gx3Menu" aria-label="Menu" aria-controls="gx3Nav">
+  <label class="gx3-burger" for="gx3Menu" aria-hidden="true"><svg class="gx3-i1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="gx3-i2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></label>
+  <a class="gx3-brand" href="/"><span class="gx3-mark"><img src="https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1775473589151x893601606193553400/GAIA%20%282%29.svg" alt="Gaia" width="20" height="20"></span><span class="gx3-bt"><b>Gaiasphere</b><i>AI Agent Platform</i></span></a>
+  <div class="gx3-nav" id="gx3Nav">
+    <a class="gx3-l" href="/"><span class="gx3-tx">Home</span></a>
+    <a class="gx3-l" href="/templates"><span class="gx3-tx">Agent templates</span></a>
+    <div class="gx3-sec">Explore</div>
+    <div class="gx3-grp" data-gxr-grp="apps"><div class="gx3-ph"><a class="gx3-l" href="/apps"><span class="gx3-tx">App Hub</span><span class="gx3-badge">1,000+</span></a></div>
+      <div class="gx3-kids"><a class="gx3-s" href="/apps"><span class="gx3-tx">Browse all apps</span></a>
+        <div class="gx3-apps"><a href="/apps/gmail" aria-label="Gmail"><img src="https://logos.composio.dev/api/gmail" alt="" width="18" height="18" loading="lazy"></a><a href="/apps/apollo" aria-label="Apollo"><img src="https://logos.composio.dev/api/apollo" alt="" width="18" height="18" loading="lazy"></a><a href="/apps/googlesheets" aria-label="Google Sheets"><img src="https://logos.composio.dev/api/googlesheets" alt="" width="18" height="18" loading="lazy"></a><a href="/apps/slack" aria-label="Slack"><img src="https://logos.composio.dev/api/slack" alt="" width="18" height="18" loading="lazy"></a></div></div></div>
+    <div class="gx3-grp" data-gxr-grp="guides"><div class="gx3-ph"><a class="gx3-l" href="/guides"><span class="gx3-tx">Guides</span></a></div>
+      <div class="gx3-kids"><a class="gx3-s" href="/guides"><span class="gx3-tx">Browse all guides</span></a><a class="gx3-s" href="/guides#by-app"><span class="gx3-tx">Guides by app</span></a><a class="gx3-s" href="/guides#by-workflow"><span class="gx3-tx">Guides by workflow</span></a></div></div>
+    <div class="gx3-sec">Resources</div>
+    <a class="gx3-l" href="/#how"><span class="gx3-tx">How it works</span></a>
+    <a class="gx3-l" href="/pricing"><span class="gx3-tx">Pricing</span></a>
+  </div>
+  <div class="gx3-foot"><a class="gx3-l" href="/login"><span class="gx3-tx">Log in</span></a><a class="gx3-cta" href="/templates"><span class="gx3-bt"><b>Start building</b><i>Deploy your first agent</i></span></a></div>
+</nav>
+
+<script>
+(function(){
+  'use strict';
+  var W=window,D=document;
+  if(W.__gxRail3)return;W.__gxRail3=1;
+
+  /* ---- AYARLAR (sayfa bazinda window.GX_RAIL_CONFIG ile ezilebilir) ---- */
+  var CFG={
+    catalog:1043,                 /* Composio toolkits total_items, catalog/toolkits.json (2026-06-04) */
+    popular:[['gmail','Gmail'],['apollo','Apollo'],['googlesheets','Google Sheets'],['slack','Slack']],
+                                  /* 2026-09-11 canli hub sablon sayilari: 70 / 54 / 29 / 29 */
+    howUrl:'/#how',               /* ana sayfadaki M3 bolumu; ayri sayfa yok (/how-it-works 404) */
+    docsUrl:'',                   /* bos = Documentation satiri cizilmez (/docs 404) */
+    newDays:14,                   /* "New" rozeti: en yeni rehber bu kadar gun icindeyse */
+    facetMin:3,                   /* "Guides by X" satiri icin en az rehber */
+    ttl:864e5,                    /* canli veri onbellegi: 24 saat */
+    origin:'',                    /* bos = ayni kaynak; prototip 'https://gaiasphere.io' verir */
+    api:'/api/1.1/obj/',
+    logo:'https://logos.composio.dev/api/',
+    gaia:'https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1775473589151x893601606193553400/GAIA%20%282%29.svg'
+  };
+  var ov=W.GX_RAIL_CONFIG;if(ov){for(var k in ov)if(Object.prototype.hasOwnProperty.call(ov,k))CFG[k]=ov[k];}
+
+  /* rehber -> uygulama eslesmesi: directory-page.html ile AYNI beyaz liste */
+  var APPS=['gmail','apollo','slack','googlesheets','hubspot','jira','notion','googledocs','googlecalendar',
+            'zendesk','outlook','mailchimp','intercom','pipedrive','trello','calendly','gorgias','confluence',
+            'salesforce','linear','airtable','todoist','monday','freshdesk','clickup','asana','linkedin','stripe','excel'];
+  var APP_ALIAS={sheets:'googlesheets','google-sheets':'googlesheets',spreadsheet:'googlesheets',gsheets:'googlesheets',
+                 docs:'googledocs','google-docs':'googledocs',calendar:'googlecalendar','google-calendar':'googlecalendar',
+                 gcal:'googlecalendar','microsoft-excel':'excel'};
+  var APP_NAMES={gmail:'Gmail',apollo:'Apollo',slack:'Slack',googlesheets:'Google Sheets',hubspot:'HubSpot',jira:'Jira',
+                 notion:'Notion',googledocs:'Google Docs',googlecalendar:'Google Calendar',zendesk:'Zendesk',outlook:'Outlook',
+                 mailchimp:'Mailchimp',intercom:'Intercom',pipedrive:'Pipedrive',trello:'Trello',calendly:'Calendly',
+                 gorgias:'Gorgias',confluence:'Confluence',salesforce:'Salesforce',linear:'Linear',airtable:'Airtable',
+                 todoist:'Todoist',monday:'Monday.com',freshdesk:'Freshdesk',clickup:'ClickUp',asana:'Asana',
+                 linkedin:'LinkedIn',stripe:'Stripe',excel:'Excel'};
+
+  var SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  var IC={
+    home:SV+'<path d="M3 11l9-8 9 8"/><path d="M5 9.5V21h14V9.5"/></svg>',
+    tpl:SV+'<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',
+    apps:SV+'<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/><path d="M17 3.5v7M13.5 7h7"/></svg>',
+    book:SV+'<path d="M2.5 5h6a3.5 3.5 0 013.5 3.5V20a2.5 2.5 0 00-2.5-2.5h-7z"/><path d="M21.5 5h-6A3.5 3.5 0 0012 8.5V20a2.5 2.5 0 012.5-2.5h7z"/></svg>',
+    play:SV+'<circle cx="12" cy="12" r="9"/><path d="M10 8.7l5 3.3-5 3.3z"/></svg>',
+    tag:SV+'<path d="M20.6 13.4L13.4 20.6a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+    doc:SV+'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+    login:SV+'<path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>',
+    chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+    arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg>',
+    burger:'<svg class="gx3-i1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+    close:'<svg class="gx3-i2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+  };
+
+  /* ---- VERI ---- */
+  var DATA={templates:null,hubs:null,guides:null,hubList:null,guideList:null,newestGuide:null,categories:0,asOf:null,live:false};
+  function merge(d){if(!d)return;for(var k in d)if(Object.prototype.hasOwnProperty.call(d,k)&&d[k]!=null)DATA[k]=d[k];}
+  merge(W.GX_RAIL_SNAPSHOT);
+
+  function lsGet(k){try{var v=W.localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
+  function lsSet(k,v){try{W.localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function fmt(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+  function sentenceCase(s){var t=String(s||'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'';}
+  function titleCase(s){return String(s||'').replace(/[-_]+/g,' ').trim().replace(/\b[a-z]/g,function(m){return m.toUpperCase();});}
+  function knownApp(t){if(!t)return '';t=String(t).toLowerCase();if(APP_ALIAS[t])t=APP_ALIAS[t];return APPS.indexOf(t)>-1?t:'';}
+  function detectApp(g){
+    if(!g)return '';
+    var d=knownApp(g.cluster);if(d)return d;
+    var p=String((g.cluster||'')+'-'+(g.slug||'')).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    for(var i=0;i<p.length;i++){
+      if(i+1<p.length){var two=knownApp(p[i]+'-'+p[i+1]);if(two)return two;}
+      var one=knownApp(p[i]);if(one)return one;
+    }
+    return '';
+  }
+  function guideType(g){
+    var c=String(g.cluster||'').toLowerCase(),s=String(g.slug||'').toLowerCase();
+    if(c==='getting-started'||s.indexOf('getting-started')===0)return 'start';
+    if(c.indexOf('role-')===0)return 'role';
+    return detectApp(g)?'app':'workflow';
+  }
+  function facets(){
+    var L=DATA.guideList;if(!L||!L.length)return null;
+    var f={start:0,app:0,workflow:0,role:0};
+    for(var i=0;i<L.length;i++)f[guideType(L[i])]++;
+    return f;
+  }
+  function isNew(){
+    if(!DATA.newestGuide)return false;
+    var t=Date.parse(DATA.newestGuide);if(isNaN(t))return false;
+    return (Date.now()-t)/864e5<=CFG.newDays;
+  }
+  function find(list,slug){if(!list)return null;for(var i=0;i<list.length;i++)if(list[i].slug===slug)return list[i];return null;}
+  function appName(slug){var h=find(DATA.hubList,slug);return (h&&h.name)||APP_NAMES[slug]||titleCase(slug);}
+  /* Rehber basliklari 344-418 px istiyor (olculdu); 292 px'lik rayda bile sigmaz.
+     directory-page.html shortLabel ile ayni kural: iki nokta / " - " oncesi, uzunsa
+     slug'dan cumle duzeni, o da uzunsa kelime sinirindan kirp. Tam ad title'da. */
+  var LBL_MAX=44;   /* bulunulan rehber satiri 2 satira kadar kirilir (.is-2l) */
+  function guideLabel(slug){
+    var g=find(DATA.guideList,slug),n=g&&g.name?String(g.name):'';
+    var cut=n.split(':')[0].split(' - ')[0].trim();
+    if(cut&&cut.length<=LBL_MAX)return cut;
+    var fs=sentenceCase(slug);
+    if(fs&&fs.length<=LBL_MAX)return fs;
+    var base=fs||cut||n;
+    return base.length>LBL_MAX?base.slice(0,LBL_MAX).replace(/\s+\S*$/,'')+'…':base;
+  }
+
+  /* ---- KONUM ---- */
+  function path(){
+    var p=String(W.GX_RAIL_PATH||location.pathname||'/');
+    p=p.split('#')[0].split('?')[0].replace(/^\/version-[^\/]+/,'').replace(/\/+$/,'');
+    return p||'/';
+  }
+  function where(){var s=path().split('/');return {sec:s[1]||'home',slug:s[2]?decodeURIComponent(s[2]):''};}
+  function isMobile(){return W.matchMedia?W.matchMedia('(max-width:1079.98px)').matches:(W.innerWidth<1080);}
+
+  /* ---- GRUP DURUMU ---- */
+  var OPEN=lsGet('gx_rail3_open')||{};  /* masaustu, kalici */
+  var HERE={};                           /* bu sayfa gorunumunde kullanicinin yaptigi */
+  var MOPEN=null;                        /* mobil, gecici: acik tek grup */
+  function isOpen(key){
+    if(Object.prototype.hasOwnProperty.call(HERE,key))return HERE[key];
+    if(isMobile())return MOPEN===null?where().sec===key:MOPEN===key;
+    if(where().sec===key)return true;
+    return OPEN[key]!==false;
+  }
+
+  /* ---- CIZIM ---- */
+  function top(href,icon,label,cur,exact,count){
+    return '<a class="gx3-l'+(cur?' is-cur':'')+'" href="'+href+'"'+(exact?' aria-current="page"':'')+'>'+icon+
+      '<span class="gx3-tx">'+esc(label)+'</span>'+(count!=null?' <span class="gx3-n">'+fmt(count)+'</span>':'')+'</a>';
+  }
+  function kid(href,label,cur,logo,count,title,twoLine){
+    return '<a class="gx3-s'+(cur?' is-cur':'')+'" href="'+href+'"'+(cur?' aria-current="page"':'')+(title?' title="'+esc(title)+'"':'')+'>'+
+      (logo?'<img src="'+CFG.logo+encodeURIComponent(logo)+'" alt="" width="15" height="15" loading="lazy">':'')+
+      '<span class="gx3-tx'+(twoLine?' is-2l':'')+'">'+esc(label)+'</span>'+(count!=null?' <span class="gx3-n">'+fmt(count)+'</span>':'')+'</a>';
+  }
+  function group(key,o){
+    var open=isOpen(key),sec=where().sec===key,id='gx3Grp_'+key;
+    return '<div class="gx3-grp'+(sec?' is-sec':'')+(open?'':' is-closed')+'" data-gxr-grp="'+key+'">'+
+      '<div class="gx3-ph"><a class="gx3-l" href="'+o.href+'">'+o.icon+'<span class="gx3-tx">'+esc(o.label)+'</span>'+
+        (o.badge?' <span class="gx3-badge'+(o.badgeCls||'')+'"'+(o.badgeTitle?' title="'+esc(o.badgeTitle)+'"':'')+'>'+esc(o.badge)+'</span>'+(o.badgeSr?'<span class="gx3-sr"> '+esc(o.badgeSr)+'</span>':''):'')+
+      '</a><button class="gx3-chev" type="button" aria-expanded="'+open+'" aria-controls="'+id+'"><span class="gx3-sr">'+esc(o.label)+' links</span>'+IC.chev+'</button></div>'+
+      '<div class="gx3-kids" id="'+id+'">'+o.kids+'</div></div>';
+  }
+  function appKids(w){
+    var h=kid('/apps','Browse all apps',w.sec==='apps'&&!w.slug);
+    var pop=CFG.popular||[],shown=[];
+    h+='<div class="gx3-apps" role="group" aria-label="Popular apps">';
+    for(var i=0;i<pop.length;i++){
+      var s=pop[i][0],cur=(w.sec==='apps'&&w.slug===s);shown.push(s);
+      h+='<a href="/apps/'+s+'" title="'+esc(pop[i][1])+'" aria-label="'+esc(pop[i][1])+'"'+(cur?' class="is-cur" aria-current="page"':'')+'>'+
+         '<img src="'+CFG.logo+s+'" alt="" width="18" height="18" loading="lazy"></a>';
+    }
+    var more=DATA.hubs!=null?DATA.hubs-pop.length:0;
+    if(more>0)h+='<a class="gx3-more" href="/apps" title="'+more+' more app pages" aria-label="'+more+' more app pages">+'+more+'</a>';
+    h+='</div>';
+    if(w.sec==='apps'&&w.slug&&shown.indexOf(w.slug)<0)h+=kid('/apps/'+encodeURIComponent(w.slug),appName(w.slug),true,w.slug);
+    if(DATA.categories>0)h+=kid('/apps#categories','Browse by category',false);
+    return h;
+  }
+  function guideKids(w){
+    var f=facets(),min=CFG.facetMin;
+    var h=kid('/guides','Browse all guides',w.sec==='guides'&&!w.slug,'',DATA.guides);
+    if(f&&f.start>0)h+=kid('/guides#getting-started','Getting started',false);
+    if(f&&f.app>=min)h+=kid('/guides#by-app','Guides by app',false);
+    if(f&&f.workflow>=min)h+=kid('/guides#by-workflow','Guides by workflow',false);
+    if(f&&f.role>=min)h+=kid('/guides#by-role','Guides by role',false);
+    if(w.sec==='guides'&&w.slug){
+      var g=find(DATA.guideList,w.slug)||{slug:w.slug};
+      h+=kid('/guides/'+encodeURIComponent(w.slug),guideLabel(w.slug),true,detectApp(g),null,g.name||'',true);
+    }
+    return h;
+  }
+  function navHTML(){
+    var w=where(),h='';
+    h+=top('/',IC.home,'Home',w.sec==='home',w.sec==='home');
+    h+=top('/templates',IC.tpl,'Agent templates',w.sec==='templates',w.sec==='templates'&&!w.slug,DATA.templates);
+    h+='<div class="gx3-sec">Explore</div>';
+    var cat=CFG.catalog>=1000?fmt(Math.floor(CFG.catalog/1000)*1000)+'+':'';
+    h+=group('apps',{href:'/apps',icon:IC.apps,label:'App Hub',badge:cat,
+      badgeTitle:cat?'Your agents can connect to '+cat+' apps':'',badgeSr:cat?'apps your agents can connect to':'',kids:appKids(w)});
+    var nw=isNew();
+    h+=group('guides',{href:'/guides',icon:IC.book,label:'Guides',badge:nw?'New':'',badgeCls:' is-new',
+      badgeTitle:nw?'New guides this fortnight':'',badgeSr:nw?'new guides this fortnight':'',kids:guideKids(w)});
+    h+='<div class="gx3-sec">Resources</div>';
+    h+=top(CFG.howUrl,IC.play,'How it works',false,false);
+    h+=top('/pricing',IC.tag,'Pricing',w.sec==='pricing',w.sec==='pricing');
+    if(CFG.docsUrl)h+=top(CFG.docsUrl,IC.doc,'Documentation',false,false);
+    return h;
+  }
+  function shellHTML(){
+    return '<input class="gx3-menu" type="checkbox" id="gx3Menu" aria-label="Menu" aria-controls="gx3Nav">'+
+      '<label class="gx3-burger" for="gx3Menu" aria-hidden="true">'+IC.burger+IC.close+'</label>'+
+      '<a class="gx3-brand" href="/"><span class="gx3-mark"><img src="'+CFG.gaia+'" alt="Gaia" width="20" height="20"></span>'+
+        '<span class="gx3-bt"><b>Gaiasphere</b><i>AI Agent Platform</i></span></a>'+
+      '<div class="gx3-nav" id="gx3Nav"></div>'+
+      '<div class="gx3-foot">'+top('/login',IC.login,'Log in',false,false)+
+        '<a class="gx3-cta" href="/templates"><span class="gx3-dot">'+IC.plus+'</span>'+
+        '<span class="gx3-bt"><b>Start building</b><i>Deploy your first agent</i></span><span class="gx3-go">'+IC.arrow+'</span></a></div>';
+  }
+
+  var RAIL=null;
+  /* Tek ray kurali: sayfada v3 iskeleti varsa o kalir (ana sayfada #gxHome icinde,
+     template-page'de HTML elementi icinde; yeri korunur). Yoksa ilk #gxRail v3'e
+     cevrilir, hic yoksa govdenin basina kurulur. Geri kalan her #gxRail silinir. */
+  function mount(){
+    var all=D.querySelectorAll('[id="gxRail"]'),r=null,i;
+    for(i=0;i<all.length;i++)if(all[i].classList&&all[i].classList.contains('gxr3')){r=all[i];break;}
+    if(!r&&all.length)r=all[0];
+    for(i=0;i<all.length;i++)if(all[i]!==r&&all[i].parentNode)all[i].parentNode.removeChild(all[i]);
+    if(!r){r=D.createElement('nav');r.id='gxRail';D.body.insertBefore(r,D.body.firstChild);}
+    r.className='gxr3';
+    r.setAttribute('aria-label','Gaiasphere');r.setAttribute('lang','en');r.setAttribute('data-gxr-v','3');
+    r.innerHTML=shellHTML();
+    var h=D.documentElement;if(!/\bgxr3-on\b/.test(h.className))h.className+=' gxr3-on gxr3-js';
+    return r;
+  }
+  /* Bubble hub/rehber govdesini SONRADAN enjekte eder ve icinde pismis v2 ray gelir.
+     CSS onu aninda gizler; bu gozcu DOM'dan da siler (cift link, cift id kalmasin).
+     Enjeksiyon sayfa acilisinda bir kez olur: 30 sn sonra gozcu kapanir. */
+  function sweep(n){
+    if(!RAIL||!n||n.nodeType!==1)return;
+    if(n.id==='gxRail'&&n!==RAIL){if(n.parentNode)n.parentNode.removeChild(n);return;}
+    if(!n.querySelectorAll)return;
+    var q=n.querySelectorAll('[id="gxRail"]');
+    for(var i=0;i<q.length;i++)if(q[i]!==RAIL&&q[i].parentNode)q[i].parentNode.removeChild(q[i]);
+  }
+  function guard(){
+    if(!W.MutationObserver)return;
+    var mo=new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){var a=ms[i].addedNodes;for(var k=0;k<a.length;k++)sweep(a[k]);}
+    });
+    mo.observe(D.documentElement,{childList:true,subtree:true});
+    setTimeout(function(){try{mo.disconnect();}catch(e){}sweep(D.body);},30000);
+  }
+  function focusKey(){
+    var a=D.activeElement;if(!a||!RAIL||!RAIL.contains(a))return null;
+    if(a.classList&&a.classList.contains('gx3-chev'))return {chev:a.getAttribute('aria-controls')};
+    return {href:a.getAttribute('href')};
+  }
+  function restoreFocus(k){
+    if(!k)return;
+    var el=k.chev?RAIL.querySelector('.gx3-chev[aria-controls="'+k.chev+'"]'):(k.href?RAIL.querySelector('.gx3-nav a[href="'+k.href+'"]'):null);
+    if(el)try{el.focus({preventScroll:true});}catch(e){el.focus();}
+  }
+  function render(){
+    if(!RAIL)return;
+    var nav=RAIL.querySelector('.gx3-nav');if(!nav)return;
+    var fk=focusKey();
+    nav.innerHTML=navHTML();
+    var lg=RAIL.querySelector('.gx3-foot .gx3-l');
+    if(lg){var cur=where().sec==='login';lg.className='gx3-l'+(cur?' is-cur':'');if(cur)lg.setAttribute('aria-current','page');else lg.removeAttribute('aria-current');}
+    restoreFocus(fk);
+  }
+
+  /* ---- ETKILESIM ---- */
+  function track(n,p){
+    try{if(typeof W.gtag==='function')W.gtag('event',n,p);else if(W.dataLayer&&W.dataLayer.push)W.dataLayer.push(['event',n,p]);}catch(e){}
+    try{if(typeof W.clarity==='function')W.clarity('event',n);}catch(e){}
+  }
+  function setGroup(g,open){
+    g.classList[open?'remove':'add']('is-closed');
+    var b=g.querySelector('.gx3-chev');if(b)b.setAttribute('aria-expanded',String(open));
+  }
+  function drawer(open){
+    var m=RAIL&&RAIL.querySelector('.gx3-menu');if(!m)return;
+    m.checked=!!open;
+    D.documentElement.classList[open&&isMobile()?'add':'remove']('gxr3-lock');
+  }
+  function bind(){
+    RAIL.addEventListener('click',function(e){
+      var t=e.target;
+      var b=t.closest?t.closest('.gx3-chev'):null;
+      if(b){
+        var g=b.closest('.gx3-grp'),key=g.getAttribute('data-gxr-grp'),now=g.classList.contains('is-closed');
+        setGroup(g,now);HERE[key]=now;
+        if(isMobile()){
+          MOPEN=now?key:'';
+          if(now){var gs=RAIL.querySelectorAll('.gx3-grp');for(var i=0;i<gs.length;i++){if(gs[i]!==g){setGroup(gs[i],false);HERE[gs[i].getAttribute('data-gxr-grp')]=false;}}}
+        }else{OPEN[key]=now;lsSet('gx_rail3_open',OPEN);}
+        track('rail_toggle',{group:key,open:now});
+        return;
+      }
+      var a=t.closest?t.closest('a[href]'):null;
+      if(a){
+        var href=a.getAttribute('href');
+        track('rail_nav',{link_url:href,from_path:path()});
+        if(href.indexOf('#')>-1)drawer(false);
+      }
+    });
+    RAIL.addEventListener('change',function(e){
+      if(e.target&&e.target.classList&&e.target.classList.contains('gx3-menu'))drawer(e.target.checked);
+    });
+    D.addEventListener('keydown',function(e){
+      if((e.key==='Escape'||e.key==='Esc')&&RAIL.querySelector('.gx3-menu:checked')){
+        drawer(false);var m=RAIL.querySelector('.gx3-menu');if(m)m.focus();
+      }
+    });
+    if(W.matchMedia){
+      var mq=W.matchMedia('(max-width:1079.98px)');
+      var onMq=function(){drawer(false);HERE={};MOPEN=null;render();};
+      if(mq.addEventListener)mq.addEventListener('change',onMq);else if(mq.addListener)mq.addListener(onMq);
+    }
+  }
+
+  /* ---- CANLI VERI (24 saat onbellek) ---- */
+  function total(j){var r=j&&j.response;return r?(r.count||0)+(r.remaining||0):null;}
+  function getJSON(u,cb){try{fetch(u,{headers:{Accept:'application/json'}}).then(function(r){return r.ok?r.json():null;}).then(cb,function(){cb(null);});}catch(e){cb(null);}}
+  function getText(u,cb){try{fetch(u).then(function(r){return r.ok?r.text():'';}).then(cb,function(){cb('');});}catch(e){cb('');}}
+  function locs(xml,base){
+    if(!xml||xml.indexOf('<loc>')<0)return null;
+    var out=[],re=/<loc>\s*([^<\s]+)\s*<\/loc>/g,m;
+    while((m=re.exec(xml))){var u=m[1],i=u.indexOf(base);if(i>-1){var s=u.slice(i+base.length).split(/[?#\/]/)[0];if(s)out.push({slug:decodeURIComponent(s)});}}
+    return out;
+  }
+  function fetchLive(origin,done){
+    var d={},pend=4,O=origin||'';
+    /* site haritalari CORS basligi tasimaz: yalniz ayni kaynaktan okunur (canli sayfa). Prototip gibi
+       baska kaynakta dogrudan Data API'ye dusulur, konsolda bosuna CORS hatasi birakilmaz. */
+    var same=!O||O===location.origin;
+    function end(){if(--pend===0)done(d);}
+    getJSON(O+CFG.api+'templates?limit=1',function(j){var n=total(j);if(n!=null)d.templates=n;end();});
+    (same?getText:function(u,cb){cb('');})(O+'/sitemap-apps.xml',function(t){
+      var L=locs(t,'/apps/');
+      if(L&&L.length){d.hubs=L.length;end();return;}
+      getJSON(O+CFG.api+'hubs?limit=1',function(j){var n=total(j);if(n!=null)d.hubs=n;end();});
+    });
+    (same?getText:function(u,cb){cb('');})(O+'/sitemap-guides.xml',function(t){
+      var L=locs(t,'/guides/');
+      if(L&&L.length){
+        var old=DATA.guideList||[];
+        for(var i=0;i<L.length;i++){var o=find(old,L[i].slug);if(o){L[i].name=o.name;L[i].cluster=o.cluster;}}
+        d.guideList=L;d.guides=L.length;
+      }
+      end();
+    });
+    getJSON(O+CFG.api+'guides?limit=1&sort_field=Created%20Date&descending=true',function(j){
+      var r=j&&j.response;
+      if(r){if(d.guides==null)d.guides=total(j);var x=r.results&&r.results[0];if(x&&x['Created Date'])d.newestGuide=String(x['Created Date']).slice(0,10);}
+      end();
+    });
+  }
+  function refresh(origin,cb){
+    fetchLive(origin==null?CFG.origin:origin,function(d){
+      merge(d);DATA.live=true;DATA.asOf=new Date().toISOString().slice(0,10);
+      lsSet('gx_rail3_data',{ts:Date.now(),d:d});
+      render();if(cb)cb(d);
+    });
+  }
+  function idle(fn){if(W.requestIdleCallback)W.requestIdleCallback(fn,{timeout:2500});else setTimeout(fn,600);}
+
+  /* Onbellek (bayat da olsa) ilk cizimde kullanilir: sayilar sonradan "atlamasin".
+     Taze degilse bos zamanda canlidan tazelenip yeniden cizilir. */
+  function boot(){
+    RAIL=mount();bind();guard();
+    var c=lsGet('gx_rail3_data'),fresh=!!(c&&c.d&&Date.now()-(c.ts||0)<CFG.ttl);
+    if(c&&c.d)merge(c.d);
+    render();
+    if(!W.GX_RAIL_NOLIVE&&!fresh)idle(function(){refresh(CFG.origin);});
+  }
+  W.GXRail={
+    render:render,refresh:refresh,
+    setPath:function(p){W.GX_RAIL_PATH=p;HERE={};MOPEN=null;drawer(false);render();},
+    data:function(){return DATA;},config:CFG,facets:facets,guideType:guideType
+  };
+  /* Script ray iskeletinden SONRA gelir: govde varsa hemen basla (ilk boyada dogru ray). */
+  if(D.body)boot();else D.addEventListener('DOMContentLoaded',boot);
+})();
+</script>
+<!-- GX-RAIL-V3:END -->
+
+  <!-- ══ M1 · HERO (14.09 A1/A2/A-BTN) ═════════════════════════════════════
+       Hero artik amiral urunu satar: vaat + gercek ornek taslak + kurulum dugmesi.
+       Platform anlatimi SILINMEDI; hemen alttaki tek banda indi (katalog girisi kalir).
+       Masaustunde (>=980px) iki kolon; altinda eski ortali tek kolon.
+       Dugme [data-gx-setup] -> sayfa IIFE'si window.__GX_FLAGSHIP_CARD__.go(slug,'home_hero')
+       (kart bloğu _gx_product_card.html ile ayni devir + ayni olay adlari; kart yoksa ayni
+       sozlesmeyi taklit eden yedek). -->
+  <header class="hero">
+    <div class="g-wrap">
+      <div class="hero-copy">
+        <span class="pill">Flagship - Inbox Chief of Staff</span>
+        <h1>Client emails, prioritized.<br>Replies, ready to review.</h1>
+        <p class="sub">Gaia works inside your Gmail. It shows which client messages need you first and why, and leaves the reply written in the thread. Sending stays your click. Google Calendar is optional, and this version only reads it.</p>
+        <div class="ctas">
+          <button type="button" class="btn-p" data-gx-setup="inbox-chief-of-staff">Connect Gmail and preview</button>
+          <a class="btn-s" href="/templates/inbox-chief-of-staff" data-gx-sample="inbox-chief-of-staff">See a sample result</a>
+        </div>
+        <p class="hero-note">Starting opens Gaia. If you do not have an account yet you create one first, then connect Gmail. The preview reads a few of your newest messages and writes nothing.</p>
+      </div>
+
+      <!-- A2: .rv YOK (gozlemci beklemeden ilk boyada gorunsun). -->
+      <div class="runwrap" id="gxHeroSample">
+        <div class="surf">
+          <div class="surf-bar">
+            <span class="surf-dots"><i></i><i></i><i></i></span>
+            <span class="surf-ttl">Inbox Chief of Staff</span>
+            <span class="surf-tag">Example</span>
+          </div>
+          <div class="surf-b">
+            <div class="run-row">
+              <div class="run-k">The message</div>
+              <div class="run-c">
+                <div class="run-t">Re: Q3 rollout - can we move Thursday?</div>
+                <div class="run-d">dana.whitfield@example.com</div>
+                <span class="run-chip"><img src="https://logos.composio.dev/api/gmail" alt="" loading="lazy">Gmail</span>
+              </div>
+            </div>
+            <div class="run-row">
+              <div class="run-k">Priority</div>
+              <div class="run-c">
+                <div class="run-t">Now</div>
+                <div class="run-d">A signature is blocked by a dated deliverable. Her legal team needs the revised data processing addendum before they can sign, and she asked for Friday.</div>
+              </div>
+            </div>
+            <div class="run-row">
+              <div class="run-k">Reply draft</div>
+              <div class="run-c">
+                <!-- IKIZ: bu govde flagships/inbox-chief-of-staff.json demo.focus.draft.body ile
+                     BIREBIR aynidir (template-page.html taslak karti onu cizer). Birini degistiren
+                     digerini de degistirir. white-space:pre-line; satir sonlari metnin parcasi. -->
+                <div class="run-q" lang="en">Hi Dana,
+
+Thanks for the update, and for flagging that your legal team needs the revised data processing addendum before signature.
+
+The addendum is with our side now. I will confirm a date once it has been reviewed internally, rather than commit to Friday before then.
+
+On Thursday: happy to move it. Tuesday 10:00, Wednesday 09:30 or Wednesday 11:00 CET are open here. Tell me which one works and I will confirm the new time. Thursday 14:00 stays in the calendar until you pick one.
+
+Best regards,</div>
+                <span class="run-chip ok"><img src="https://logos.composio.dev/api/gmail" alt="" loading="lazy">Draft in Gmail</span><span class="run-chip">Nothing sent</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="run-note">Example output, not a live run.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ M1a · URUN KARTI (14.09 A-CARD): hero'nun ALTINA tasindi. Aralik butunuyle tasindi;
+       icerigi sync_product_card.ps1 yazar, ELLE DUZENLEME. -->
+<!-- GX-PRODUCT-CARD:BEGIN  kaynak: _gx_product_card.html | sync_product_card.ps1 yazar | ELLE DUZENLEME -->
+<style id="gx-product-card-css">
+/* Kart kutusu ve tipografi: uygulamadaki .tmpl-hero-* ile AYNI değerler. */
+#gx-product-card{display:none;box-sizing:border-box;width:100%;max-width:1040px;margin:14px auto 0;padding:0 20px;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;}
+#gx-product-card.gx-on{display:block;}
+#gx-product-card *{box-sizing:border-box;}
+#gx-product-card .tmpl-hero-card{display:flex;align-items:center;gap:16px;padding:16px 18px;border:1px solid #C7D2FE;border-radius:14px;background:linear-gradient(135deg,#F5F3FF,#EEF2FF);min-width:0;}
+#gx-product-card .tmpl-hero-main{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:16px;}
+#gx-product-card .tmpl-hero-art{flex:0 1 96px;min-width:0;}
+#gx-product-card .tmpl-hero-body{flex:1 1 auto;min-width:0;}
+#gx-product-card .tmpl-hero-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
+#gx-product-card .tmpl-hero-pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#4F46E5;color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.4;}
+#gx-product-card .tmpl-hero-pill-alt{background:#fff;color:#4338CA;border:1px solid #C7D2FE;}
+#gx-product-card .tmpl-hero-title{font-size:16px;font-weight:700;color:#0f172a;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#gx-product-card .tmpl-hero-desc{margin-top:3px;font-size:12px;line-height:1.45;color:#475569;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+#gx-product-card .tmpl-hero-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+#gx-product-card .tmpl-hero-chip{display:inline-block;padding:3px 8px;border-radius:8px;background:#fff;border:1px solid #E0E7FF;color:#4338CA;font-size:11px;font-weight:600;line-height:1.4;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#gx-product-card .tmpl-hero-actions{flex:0 0 170px;min-width:0;display:flex;flex-direction:column;gap:8px;}
+#gx-product-card .tmpl-hero-cta{width:100%;min-height:44px;padding:0 16px;border:none;border-radius:12px;background:#4F46E5;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:box-shadow .2s,background .2s;}
+#gx-product-card .tmpl-hero-sec{display:flex;align-items:center;justify-content:center;width:100%;min-height:40px;padding:0 14px;border:1px solid #C7D2FE;border-radius:10px;background:#fff;color:#4338CA;font-family:inherit;font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .2s,background .2s;}
+#gx-product-card .tmpl-hero-cta:focus-visible,#gx-product-card .tmpl-hero-sec:focus-visible{outline:2px solid #4F46E5;outline-offset:2px;}
+/* Orbit: uygulamadaki .tmpl-orbit + hero ölçekleri (HTM 1563+ ve 1460-1470). */
+#gx-product-card .tmpl-orbit{--orbit-radius:26px;position:relative;height:76px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:12px;background:transparent;}
+#gx-product-card .tmpl-orbit::before,#gx-product-card .tmpl-orbit::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px dashed rgba(99,102,241,.10);pointer-events:none;}
+#gx-product-card .tmpl-orbit::before{width:48px;height:48px;}
+#gx-product-card .tmpl-orbit::after{width:66px;height:66px;}
+#gx-product-card .tmpl-orbit-gaia{position:relative;z-index:2;width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(15,23,42,.08),0 2px 8px rgba(15,23,42,.06);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#gx-product-card .tmpl-orbit-gaia img{width:16px;height:16px;display:block;object-fit:contain;}
+#gx-product-card .tmpl-orbit-app,#gx-product-card .tmpl-orbit-more{position:absolute;top:50%;left:50%;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.14);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#gx-product-card .tmpl-orbit-app img{width:12px;height:12px;display:block;object-fit:contain;}
+#gx-product-card .tmpl-orbit-more{font-size:9px;font-weight:700;color:#4338CA;letter-spacing:0;}
+@media (hover:hover){
+  #gx-product-card .tmpl-hero-cta:hover{background:#4338CA;box-shadow:0 4px 14px rgba(67,56,202,.42);}
+  #gx-product-card .tmpl-hero-sec:hover{background:#F5F3FF;border-color:#A5B4FC;}
+}
+/* Telefon: HTM 3367-3382 ile aynı; tek kolon, eylemler tam genişlik, CTA 48 px. */
+@media (max-width:640px){
+  #gx-product-card{padding:0 14px;margin-top:12px;}
+  #gx-product-card .tmpl-hero-card{flex-direction:column;align-items:stretch;padding:14px;gap:10px;}
+  #gx-product-card .tmpl-hero-main{align-items:flex-start;gap:12px;}
+  #gx-product-card .tmpl-hero-art{flex:0 0 72px;}
+  #gx-product-card .tmpl-orbit{height:72px;--orbit-radius:24px;}
+  #gx-product-card .tmpl-hero-title{font-size:15px;white-space:normal;}
+  #gx-product-card .tmpl-hero-actions{flex:1 1 auto;width:100%;}
+  #gx-product-card .tmpl-hero-cta{min-height:48px;}
+  #gx-product-card .tmpl-hero-sec{min-height:44px;}
+}
+</style>
+
+<!-- lang="en" ZORUNLU: rozetler `text-transform:uppercase` ile büyütülüyor ve Türkçe
+     yerelde "Flagship" → "FLAGSHİP" (noktalı İ) oluyordu. Kart metinleri kural gereği
+     İngilizce; lang bunu tarayıcıya da söyler. translate="no" + notranslate: sayfanın
+     makine çevirisi kartın İngilizce arayüz metnine dokunmasın. -->
+<div id="gx-product-card" data-slug="inbox-chief-of-staff" data-sec="detail" aria-live="polite"
+     lang="en" translate="no" class="notranslate"></div>
+
+<script>
+/* Tek IIFE; window'a yalnız `__GX_FLAGSHIP_CARD__` {tr,go} yazar (ana sayfa hero
+   ikizi aynı devri ve aynı olay yükünü kullansın diye); sınama tohumunu OKUR. */
+(function(){
+  "use strict";
+  var root=document.getElementById('gx-product-card');
+  if(!root||root.getAttribute('data-wired')==='1')return;
+  root.setAttribute('data-wired','1');
+
+  var API="https://gaiasphere.io/api/1.1/obj/templates";
+  /* 12.09 DEFO: APP_URL "https://gaiasphere.io" idi, yani SITE KÖKÜ. Kök artık pazarlama
+     ana sayfası; uygulama /app sayfasında. Kurulum düğmesi ziyaretçiyi ana sayfaya
+     geri atıyordu ve "çalışmıyor" görünüyordu. Doğru hedef /app; niyet ayrıca
+     sessionStorage'da gider, çünkü Bubble /app yönlendirmesinde query düşebiliyor. */
+  var APP_URL="https://gaiasphere.io/app";
+  var GAIA_LOGO="https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1775473589151x893601606193553400/GAIA%20%282%29.svg";
+  var GPT_LOGO="https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1721452081762x883347400097652500/ChatGPT_logo.svg";
+  var ORBIT_MAX=5;
+  /* 14.09 M1: olay yüzeyi. data-sec="scroll" yalnız template sayfasında kullanılır. */
+  var SURF=(String(root.getAttribute('data-sec')||'detail')==='scroll')?'template_card':'home_card';
+  var APP_DISP={gmail:'Gmail',outlook:'Outlook',slack:'Slack',intercom:'Intercom',googlesheets:'Google Sheets',googledocs:'Google Docs',googlecalendar:'Google Calendar',hubspot:'HubSpot',notion:'Notion'};
+
+  /* Kartın metinleri: uygulamadaki kartla BİREBİR aynı cümleler. */
+  var COPY={
+    pill:'Flagship',
+    hiredPill:'Already hired',
+    pendingPill:'Confirmation pending',
+    hiredArmed:'Open it to review the setup or hire another copy.',
+    hiredManual:'Set up in Manual mode. Open it to review the setup.',
+    hiredPending:'Setup sent. Confirmation pending.',
+    ctaReady:'Start setup',
+    ctaHired:'Open setup',
+    ctaPending:'Check setup',
+    sec:'See what it does',
+    steps:'3 steps',
+    preview:'Preview on your own data'
+  };
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+  function arr(v){return Array.isArray(v)?v.filter(Boolean):(v?[v]:[]);}
+  function appDisp(s){s=String(s||'').toLowerCase();return APP_DISP[s]||(s?s.charAt(0).toUpperCase()+s.slice(1):'');}
+
+  /* data-slug="auto" → sayfanın kendi slug'ı (template sayfası bunu kullanır). */
+  function wantedSlug(){
+    var a=String(root.getAttribute('data-slug')||'').trim();
+    if(a&&a!=='auto')return a.toLowerCase();
+    try{
+      var q=new URLSearchParams(location.search);
+      var s=q.get('slug')||q.get('id')||'';
+      if(!s){
+        var segs=location.pathname.split('/').filter(Boolean);
+        var last=segs.length?segs[segs.length-1]:'';
+        if(last&&last.indexOf('.')<0&&last!=='templates'&&last!=='template')s=last;
+      }
+      return String(s||'').toLowerCase();
+    }catch(e){return '';}
+  }
+
+  function parseDemo(t){
+    try{
+      var d=t&&(t.demo||t.demo_output);
+      if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return null;}}
+      if(!d||!d.blueprint||String(d.product_kind||'')!=='flagship')return null;
+      return d;
+    }catch(e){return null;}
+  }
+
+  /* Kurulu işareti: uygulama ile AYNI anahtar ve AYNI tazelik penceresi. */
+  function marker(slug){
+    try{
+      var raw=localStorage.getItem('gx_flagship_done:'+slug);
+      if(!raw)return '';
+      var o=JSON.parse(raw);
+      var trg=o&&o.trigger?String(o.trigger):'';
+      var ts=o&&o.ts?Number(o.ts):0;
+      var ttl=(trg==='pending')?1800000:604800000;
+      if(trg&&ts&&(Date.now()-ts)<ttl)return trg;
+      localStorage.removeItem('gx_flagship_done:'+slug);
+    }catch(e){}
+    return '';
+  }
+
+  function orbitHTML(integrations){
+    var incoming=arr(integrations).map(function(s){return String(s||'').toLowerCase().trim();})
+      .filter(function(s){return s&&['chatgpt','openai','gpt'].indexOf(s)<0;});
+    var list=['chatgpt'].concat(incoming);
+    var vis=list.slice(0,ORBIT_MAX), over=list.length-vis.length, n=vis.length, step=n?360/n:0;
+    var ring=vis.map(function(slug,i){
+      var ang=-90+step*i;
+      var tf='translate(-50%,-50%) rotate('+ang+'deg) translateY(calc(var(--orbit-radius) * -1)) rotate('+(-ang)+'deg)';
+      var src=(slug==='chatgpt')?GPT_LOGO:('https://logos.composio.dev/api/'+encodeURIComponent(slug));
+      return '<span class="tmpl-orbit-app" style="transform:'+tf+'"><img src="'+src+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"></span>';
+    }).join('');
+    var moreHTML='';
+    if(over>0){
+      var a2=-90+step*n;
+      var tf2='translate(-50%,-50%) rotate('+a2+'deg) translateY(calc(var(--orbit-radius) * -1)) rotate('+(-a2)+'deg)';
+      moreHTML='<span class="tmpl-orbit-more" style="transform:'+tf2+'">+'+over+'</span>';
+    }
+    return '<div class="tmpl-orbit" aria-hidden="true"><div class="tmpl-orbit-gaia"><img src="'+GAIA_LOGO+'" alt=""></div>'+ring+moreHTML+'</div>';
+  }
+
+  /* 14.09 M1: korumalı olay yardımcısı. Sayfaların gxTrack/track desenlerinin aynısı
+     (gtag yoksa dataLayer, ayrıca Clarity); hiçbir hata sayfaya taşmaz. site_lang
+     (M9) sayfa kökünün dilinden: kartın kendi lang="en"'i kullanılmaz. */
+  function tr(n,p){
+    p=p||{};
+    try{if(p.site_lang==null)p.site_lang=String(document.documentElement.getAttribute('lang')||'').toLowerCase().slice(0,5);}catch(e){}
+    try{if(typeof window.gtag==='function')window.gtag('event',n,p);else if(window.dataLayer&&window.dataLayer.push)window.dataLayer.push(['event',n,p]);}catch(e){}
+    try{if(typeof window.clarity==='function')window.clarity('event',n);}catch(e){}
+  }
+  /* 14.09 M3: tıklama başına birleştirme kimliği (8 hex). Kişi kimliği değildir. */
+  function newFid(){
+    var h='';
+    try{
+      if(window.crypto&&window.crypto.getRandomValues){
+        var b=new Uint8Array(4);window.crypto.getRandomValues(b);
+        for(var i=0;i<b.length;i++)h+=('0'+b[i].toString(16)).slice(-2);
+        return h;
+      }
+    }catch(e){}
+    for(var j=0;j<8;j++)h+=Math.floor(Math.random()*16).toString(16);
+    return h;
+  }
+  /* Kurulum devri: niyet sessionStorage'a, localStorage'a (K2b aynası: kayıt ikinci
+     sekmede biterse) ve query'ye yazılır (giriş yönlendirmesi query'yi düşürürse
+     uygulama anahtarı okur ve tüketir). Tıklama olayı gezinmeden ÖNCE gönderilir
+     (GA4 sendBeacon). surface verilmezse kartın kendi yüzeyi. */
+  function go(slug,surface){
+    var fid=newFid();
+    tr('flagship_card_click',{slug:slug,surface:surface||SURF,fid:fid});
+    var pend=JSON.stringify({slug:slug,instant:false,intent:'preview',ts:Date.now(),fid:fid});
+    try{sessionStorage.setItem('gx_flagship_pending',pend);}catch(e){}
+    try{localStorage.setItem('gx_flagship_pending',pend);}catch(e){}
+    location.href=APP_URL+'?use_flagship='+encodeURIComponent(slug)+'&intent=preview&fid='+fid;
+  }
+
+  function secondary(slug){
+    var mode=String(root.getAttribute('data-sec')||'detail');
+    if(mode==='none')return '';
+    if(mode==='scroll'){
+      /* Template sayfası: ayrıntı ZATEN bu sayfada; kart aşağı indirir. */
+      return '<button type="button" class="tmpl-hero-sec" data-gx-scroll="1">'+esc(COPY.sec)+'</button>';
+    }
+    return '<a class="tmpl-hero-sec" href="/templates/'+encodeURIComponent(slug)+'">'+esc(COPY.sec)+'</a>';
+  }
+
+  function render(t,demo){
+    var slug=String(t.Slug||t.slug||'').toLowerCase();
+    var st=marker(slug);
+    var pills='<span class="tmpl-hero-pill">'+esc(COPY.pill)+'</span>';
+    var desc=String(t.short_desc||'');
+    var cta=COPY.ctaReady;
+    if(st==='armed'||st==='manual'){
+      pills+='<span class="tmpl-hero-pill tmpl-hero-pill-alt">'+esc(COPY.hiredPill)+'</span>';
+      desc=(st==='armed')?COPY.hiredArmed:COPY.hiredManual;
+      cta=COPY.ctaHired;
+    }else if(st==='pending'){
+      pills+='<span class="tmpl-hero-pill tmpl-hero-pill-alt">'+esc(COPY.pendingPill)+'</span>';
+      desc=COPY.hiredPending;
+      cta=COPY.ctaPending;
+    }
+    /* Çipler: sabit iki çip + activation'daki ZORUNLU uygulamalar (yalnız
+       açıkça required:false olan satır atlanır; veri yoksa çip de yok). */
+    var chips=['<span class="tmpl-hero-chip">'+esc(COPY.steps)+'</span>','<span class="tmpl-hero-chip">'+esc(COPY.preview)+'</span>'];
+    var acts=arr(demo.activation&&demo.activation.apps);
+    for(var i=0;i<acts.length;i++){
+      var a=acts[i];
+      if(!a||typeof a!=='object'||a.required===false)continue;
+      var lbl=String(a.label||appDisp(a.slug)||'').trim();
+      if(lbl)chips.push('<span class="tmpl-hero-chip">'+esc(lbl)+'</span>');
+    }
+    root.innerHTML=
+      '<div class="tmpl-hero-card">'
+      +  '<div class="tmpl-hero-main">'
+      +    '<div class="tmpl-hero-art">'+orbitHTML(t.integrations||(demo.blueprint&&demo.blueprint.apps))+'</div>'
+      +    '<div class="tmpl-hero-body">'
+      +      '<div class="tmpl-hero-pills">'+pills+'</div>'
+      +      '<div class="tmpl-hero-title">'+esc(t.name||'')+'</div>'
+      +      '<div class="tmpl-hero-desc">'+esc(desc)+'</div>'
+      +      '<div class="tmpl-hero-chips">'+chips.join('')+'</div>'
+      +    '</div>'
+      +  '</div>'
+      +  '<div class="tmpl-hero-actions">'
+      +    '<button type="button" class="tmpl-hero-cta">'+esc(cta)+'</button>'
+      +    secondary(slug)
+      +  '</div>'
+      +'</div>';
+    root.classList.add('gx-on');
+    /* 14.09 M1: gösterim olayı sayfa yüklemesi başına BİR kez, kart en az %50
+       görünür olunca (IntersectionObserver yoksa hemen). */
+    if(!root.getAttribute('data-gx-shown')){
+      var fireShown=function(){
+        if(root.getAttribute('data-gx-shown'))return;
+        root.setAttribute('data-gx-shown','1');
+        tr('flagship_card_shown',{slug:slug,surface:SURF});
+      };
+      try{
+        if('IntersectionObserver' in window){
+          var io=new IntersectionObserver(function(ents){
+            for(var k=0;k<ents.length;k++){
+              if(ents[k].isIntersecting&&ents[k].intersectionRatio>=0.5){try{io.disconnect();}catch(e){}fireShown();break;}
+            }
+          },{threshold:[0.5]});
+          io.observe(root);
+        }else fireShown();
+      }catch(e){fireShown();}
+    }
+    var btn=root.querySelector('.tmpl-hero-cta');
+    if(btn)btn.addEventListener('click',function(){
+      btn.disabled=true;btn.setAttribute('aria-busy','true');btn.textContent='Opening...';
+      go(slug);
+      /* Gezinme engellenirse (popup/geri) düğme kilitli kalmasın. */
+      setTimeout(function(){try{btn.disabled=false;btn.removeAttribute('aria-busy');btn.textContent=cta;}catch(e){}},4000);
+    });
+    /* 14.09 M1: ikincil düğme (bağlantı ya da kaydırma) tek olay adıyla. */
+    var secEl=root.querySelector('.tmpl-hero-sec');
+    if(secEl)secEl.addEventListener('click',function(){tr('flagship_card_secondary',{slug:slug,surface:SURF});});
+    var sc=root.querySelector('[data-gx-scroll]');
+    if(sc)sc.addEventListener('click',function(){
+      /* 12.09 DEFO: hedef #root idi; sayfa içeriği kartın hemen altında başladığı için
+         kaydırma HİÇBİR ŞEY yapmıyor gibi görünüyordu ("incele çalışmıyor"). Artık
+         gerçekten aşağıda olan ilk anlamlı bölüme (demo paneli, adımlar, SSS) iner ve
+         kartın altında bir hedef bulamazsa hiç kaydırmaz. */
+      /* Hedef sırası: demo panelinin KÖKÜ (.gx-demo, canlı örnek burada başlar) →
+         adımlar → tablo → sayfa gövdesi. Panelin kökü seçilmezse kaydırma panelin
+         ortasına (tablonun üstüne) düşüyor ve bağlam kayboluyor. */
+      var cands=['.gx-demo','#gxSteps','#gxTbl','#gxCta','#related','main','#root'];
+      var myBottom=root.getBoundingClientRect().bottom;
+      var tgt=null,i,el;
+      for(i=0;i<cands.length;i++){
+        el=document.querySelector(cands[i]);
+        if(!el)continue;
+        var r=el.getBoundingClientRect();
+        if(r.height>40&&r.top>myBottom-4){tgt=el;break;}
+      }
+      if(!tgt)return;
+      /* 12.09 ÖLÇÜM: bu sayfada `window.scrollTo({behavior:'smooth'})` ÇAĞRILIYOR ama
+         kaydırma olmuyor (sayfanın kendi kaydırma dinleyicileri yumuşak kaydırmayı
+         hemen iptal ediyor). `scrollIntoView` aynı sayfada çalışıyor. O yüzden önce
+         scrollIntoView, 400 ms sonra hâlâ yerinde duruyorsak ANINDA atlıyoruz. */
+      var y0=(window.pageYOffset||document.documentElement.scrollTop||0);
+      try{tgt.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){try{tgt.scrollIntoView();}catch(e2){}}
+      setTimeout(function(){
+        var y1=(window.pageYOffset||document.documentElement.scrollTop||0);
+        if(Math.abs(y1-y0)>24)return;                       /* kaydı, karışmıyoruz */
+        var y=y0+tgt.getBoundingClientRect().top-12;
+        try{window.scrollTo(0,y);}catch(e){try{tgt.scrollIntoView();}catch(e2){}}
+      },400);
+    });
+  }
+
+  function tryRow(t){
+    if(!t)return false;
+    var d=parseDemo(t);
+    if(!d)return false;
+    try{render(t,d);}catch(e){return false;}
+    return true;
+  }
+
+  /* Ana sayfa hero ikizi için tek devir noktası (bkz. belge yorumu, İKİZ). Sabitler
+     yukarıda atandıktan SONRA yazılır; aksi halde go() APP_URL'yi undefined görürdü. */
+  try{if(!window.__GX_FLAGSHIP_CARD__)window.__GX_FLAGSHIP_CARD__={tr:tr,go:go};}catch(e){}
+  /* 14.09 A3 (+G1-D): sayfa kartı kapatabilir. data-slug="off" → hiç çizme, hiç
+     fetch etme (ürün sayfasında kart, sayfanın kendi hero'sunun kopyasıydı). */
+  if(String(root.getAttribute('data-slug')||'').trim().toLowerCase()==='off')return;
+  var slug=wantedSlug();
+  if(!slug)return;                                   /* slug yok → kart yok */
+  if(tryRow(window.__GX_CARD_ROW__))return;          /* yerel sınama tohumu */
+  /* Tek Data API çağrısı. Cevap yoksa, satır yoksa ya da flagship değilse
+     SESSİZ kalır: sayfanın kendi içeriği olduğu gibi görünür. */
+  try{
+    var isId=/^\d+x\d+$/.test(slug);
+    var url=isId?(API+'/'+encodeURIComponent(slug))
+                :(API+'?limit=1&constraints='+encodeURIComponent(JSON.stringify([{key:'Slug',constraint_type:'equals',value:slug}])));
+    fetch(url,{headers:{Accept:'application/json'}})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(j){
+        var rsp=(j&&j.response)||{};
+        var t=isId?rsp:((rsp.results&&rsp.results[0])||null);
+        tryRow(t);
+      },function(){});
+  }catch(e){}
+})();
+</script>
+<!-- GX-PRODUCT-CARD:END -->
+
+  <!-- ══ M1b · PLATFORM BANDI (14.09 A1) ═══════════════════════════════════
+       Eski hero'nun iki dugmesi burada yasar: /templates (466 SEO kartinin girisi) ve #how. -->
+  <section class="g-sec g-band g-plat">
+    <div class="g-wrap shead mid">
+      <p class="slead">Gaia is an agent platform. The same engine runs in the apps your team already uses, and there is a ready template for most jobs.</p>
+      <div class="ctas mid"><a class="btn-s" href="/templates">Browse agent templates</a><a class="btn-s" href="#how">See how it works</a></div>
+    </div>
+  </section>
+
+  <!-- ══ M2 · PROBLEM ═════════════════════════════════════════════════════
+       StoryBrand villain. Sayi yok, korku yok; sadece taniyacagi gunluk hal. -->
+  <section class="g-sec g-band">
+    <div class="g-wrap prob">
+      <div class="rv">
+        <span class="eyebrow">The part nobody has time for</span>
+        <h2>Work arrives faster than anyone can sort it.</h2>
+        <p>Every message, ticket, form and row that lands in your stack carries one small decision: what is this, who needs it, what happens next. On their own they take a minute. Together they take the day.</p>
+      </div>
+      <div class="prob-list rv" style="--d:80ms">
+        <div>A support inbox where the urgent one sits three screens down.</div>
+        <div>A CRM where the call notes get written tomorrow, if at all.</div>
+        <div>A form that waits until someone turns it into a ticket by hand.</div>
+      </div>
+      <p class="prob-turn rv" style="--d:160ms">None of it needs a whole person. All of it needs judgment.</p>
+    </div>
+  </section>
+
+  <!-- ══ M3 · HOW IT WORKS ════════════════════════════════════════════════
+       Scroll senkron: solda 4 an, sagda o ana ait urun yuzeyi.
+       JS yoksa ilk kare gorunur kalir (data-on="1" HTML'de basili). -->
+  <section class="g-sec" id="how">
+    <div class="g-wrap">
+      <div class="shead rv">
+        <span class="eyebrow">How an agent works</span>
+        <h2 class="stitle wide">Four moments, every single run.</h2>
+        <p class="slead">There is no black box to trust. An agent run is four things happening in order, and you can see all four.</p>
+      </div>
+
+      <div class="wf">
+        <!-- sahne -->
+        <div class="wf-stage" id="gxStage" data-on="1">
+          <div class="wf-box">
+            <!-- 1 Listen -->
+            <div class="wff surf" data-i="1">
+              <div class="surf-bar"><span class="surf-dots"><i></i><i></i><i></i></span><span class="surf-ttl">Incoming</span><span class="surf-tag">Example</span></div>
+              <div class="surf-b">
+                <div class="sg-line"><span class="app-w"><img src="https://logos.composio.dev/api/gmail" alt="" loading="lazy"></span><div><div class="sg-t">New message in Gmail</div><div class="sg-s">Invoice #4471 looks wrong</div></div><span class="sg-r">now</span></div>
+                <div class="sg-line"><span class="app-w"><img src="https://logos.composio.dev/api/slack" alt="" loading="lazy"></span><div><div class="sg-t">Message in #support</div><div class="sg-s">Customer asking about delivery</div></div><span class="sg-r">2m</span></div>
+                <div class="sg-line"><span class="app-w"><img src="https://logos.composio.dev/api/googlesheets" alt="" loading="lazy"></span><div><div class="sg-t">New row added</div><div class="sg-s">Demo request from the website form</div></div><span class="sg-r">6m</span></div>
+                <p class="sg-note">It watches the app for the exact thing you named, on a schedule you can see, and starts when that thing shows up.</p>
+              </div>
+            </div>
+            <!-- 2 Understand -->
+            <div class="wff surf" data-i="2">
+              <div class="surf-bar"><span class="surf-dots"><i></i><i></i><i></i></span><span class="surf-ttl">What the AI made of it</span><span class="surf-tag">Example</span></div>
+              <div class="surf-b">
+                <div class="sg-kv"><span>Type</span><b>Billing question</b></div>
+                <div class="sg-kv"><span>Customer</span><b>Existing, on a paid plan</b></div>
+                <div class="sg-kv"><span>Asking for</span><b>Corrected invoice</b></div>
+                <div class="sg-kv"><span>Priority</span><b>Answer today</b></div>
+                <div class="sg-kv"><span>Needs a human</span><b>No, this one follows the rule</b></div>
+                <p class="sg-note">Most of triage is deciding what to ignore. The agent reads the whole queue so the two that matter reach you first.</p>
+              </div>
+            </div>
+            <!-- 3 Act -->
+            <div class="wff surf" data-i="3">
+              <div class="surf-bar"><span class="surf-dots"><i></i><i></i><i></i></span><span class="surf-ttl">What it did</span><span class="surf-tag">Example</span></div>
+              <div class="surf-b">
+                <div class="sg-line"><span class="app-w"><img src="https://logos.composio.dev/api/gmail" alt="" loading="lazy"></span><div><div class="sg-t">Reply written</div><div class="sg-s">With the order history already in it</div></div></div>
+                <div class="sg-line"><span class="app-w"><img src="https://logos.composio.dev/api/jira" alt="" loading="lazy"></span><div><div class="sg-t">Issue filed for the billing team</div><div class="sg-s">Labelled, assigned, linked to the thread</div></div></div>
+                <div class="sg-line"><span class="app-w"><img src="https://logos.composio.dev/api/googlesheets" alt="" loading="lazy"></span><div><div class="sg-t">Tracking row updated</div><div class="sg-s">Status moved to awaiting correction</div></div></div>
+                <p class="sg-note">Whatever your account can do in an app, the agent can do on your behalf. Nothing more.</p>
+              </div>
+            </div>
+            <!-- 4 Decide -->
+            <div class="wff surf" data-i="4">
+              <div class="surf-bar"><span class="surf-dots"><i></i><i></i><i></i></span><span class="surf-ttl">Your instruction</span><span class="surf-tag">Example</span></div>
+              <div class="surf-b">
+                <div class="sg-say"><i>&ldquo;Answer delivery questions and send. For anything about money, write the draft and leave it for me.&rdquo;</i></div>
+                <div style="margin-top:16px">
+                  <div class="sg-kv"><span>Delivery question</span><b>Answered and sent</b></div>
+                  <div class="sg-kv"><span>Billing question</span><b>Draft waiting for you</b></div>
+                </div>
+                <p class="sg-note">Autonomy is not a setting we chose for you. It is the sentence you wrote, and you can rewrite it in a minute.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- adimlar -->
+        <div class="wf-steps" id="gxSteps">
+          <div class="wf-step on" data-i="1">
+            <span class="n"><b>1</b>Listen</span>
+            <h3>Work arrives.</h3>
+            <p>An event fires in a connected app, a schedule comes due, or you press go. The agent wakes on the trigger you chose, so it starts when the work shows up, checked on a schedule you can see.</p>
+          </div>
+          <div class="wf-step" data-i="2">
+            <span class="n"><b>2</b>Understand</span>
+            <h3>The AI reads it.</h3>
+            <p>It classifies what arrived, pulls out the fields that matter, and weighs it against everything else waiting. This is the step a rules engine cannot do, and the reason a real model sits in the middle of the flow.</p>
+          </div>
+          <div class="wf-step" data-i="3">
+            <span class="n"><b>3</b>Act</span>
+            <h3>The next step happens.</h3>
+            <p>A reply drafted, a ticket filed, a row updated, a document written. The agent performs real operations in your connected apps, using your own access, so the result shows up where your team already looks.</p>
+          </div>
+          <div class="wf-step" data-i="4">
+            <span class="n"><b>4</b>Decide</span>
+            <h3>You set how far it goes.</h3>
+            <p>Ask for drafts and everything waits for your review. Tell it how far to go, and it stops there. A draft waits for your click. You can split the line down the middle by rule, and you can move it whenever you like.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ M4 · ADAPTATION ══════════════════════════════════════════════════
+       TEMA: adaptasyon. Otomasyonun "sen sureci ciz" talebine karsi duruş. -->
+  <section class="g-sec g-band">
+    <div class="g-wrap">
+      <div class="shead rv">
+        <span class="eyebrow">Adaptation</span>
+        <h2 class="stitle wide">It fits your process. Not the other way around.</h2>
+        <p class="slead">Most automation asks you to redraw your work as a diagram before it will help. An agent asks you to describe it. That difference is why it survives contact with how your team actually operates.</p>
+      </div>
+      <div class="ad">
+        <div class="ad-c rv">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18.5" cy="18" r="2.5"/></svg></span>
+          <h3>It works where the work already is</h3>
+          <p>There is no new inbox to check and no dashboard to remember. The agent reads and writes inside Gmail, Slack, Jira, Sheets and the rest of your stack, so its output lands in the place your team was going to open anyway.</p>
+          <div class="ex"><b>What this changes</b>Adoption stops being a training problem. Nobody has to learn a new tool to receive the benefit.</div>
+        </div>
+        <div class="ad-c rv" style="--d:90ms">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></span>
+          <h3>Written, not wired</h3>
+          <p>You brief an agent the way you would brief a new teammate: what to watch, what matters, what to do about it, and what to leave alone. Plain sentences, in your own words. To change a rule, you edit the sentence.</p>
+          <div class="ex"><b>What this changes</b>The person who knows the process can change the process, without waiting for whoever built the flowchart.</div>
+        </div>
+        <div class="ad-c rv" style="--d:180ms">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><path d="M14 17.5h7M17.5 14v7"/></svg></span>
+          <h3>A template is a starting point</h3>
+          <p>Every template in the library is a working agent, not a screenshot: real triggers, real operations in real apps. It is also yours to rewrite the moment you take it. Swap an app, add a condition, tighten the tone, remove a step.</p>
+          <div class="ex"><b>What this changes</b>You start from something that already runs, and end with something that matches how your team does it.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ M5 · AUTONOMY ════════════════════════════════════════════════════
+       KURAL feedback-autonomy-messaging: otonomi urun kisiti degil KULLANICI
+       CUMLESI. Uc sekme de ayni mekanizmanin (talimat) farkli yazilisi. -->
+  <section class="g-sec">
+    <div class="g-wrap">
+      <div class="shead mid rv">
+        <span class="eyebrow">The dial is yours</span>
+        <h2 class="stitle wide">Say how far it should go.</h2>
+        <p class="slead">Autonomy is not a level we picked for you. It is one line in the agent's instructions, it can be different for every agent you run, and it takes a minute to change.</p>
+      </div>
+
+      <div class="au rv">
+        <div class="au-seg" role="tablist" aria-label="Autonomy examples">
+          <button type="button" role="tab" aria-selected="true" data-au="1">Draft it</button>
+          <button type="button" role="tab" aria-selected="false" data-au="2">Send it</button>
+          <button type="button" role="tab" aria-selected="false" data-au="3">Split it by rule</button>
+        </div>
+
+        <div class="au-body">
+          <div class="au-p on" data-au="1">
+            <div class="au-say"><span class="q">&ldquo;</span><div><small>You write</small><p>Draft the reply with the order history in it and leave it in my drafts. Do not send anything.</p></div></div>
+            <div class="au-out">
+              <div><b>What the agent does</b><p>Reads the thread, finds the customer record, writes the full response and stops there.</p></div>
+              <div><b>What you get</b><p>A finished draft waiting for you. You read it, change a line if you want, and press send yourself.</p></div>
+              <div><b>Good for</b><p>Anything where tone or money is involved, and for the first weeks with a new agent while you learn to trust it.</p></div>
+            </div>
+          </div>
+          <div class="au-p" data-au="2">
+            <div class="au-say"><span class="q">&ldquo;</span><div><small>You write</small><p>Answer questions about delivery status using the tracking page, then send the reply and close the thread.</p></div></div>
+            <div class="au-out">
+              <div><b>What the agent does</b><p>Handles the pattern you described from start to finish, in your connected apps, without stopping to ask.</p></div>
+              <div><b>What you get</b><p>A queue that is already shorter when you open it, and a record of every message that went out.</p></div>
+              <div><b>Good for</b><p>The repetitive question you have answered the same way a hundred times.</p></div>
+            </div>
+          </div>
+          <div class="au-p" data-au="3">
+            <div class="au-say"><span class="q">&ldquo;</span><div><small>You write</small><p>If the question is about delivery status, reply and send. If it touches billing or a refund, write the draft and leave it for me.</p></div></div>
+            <div class="au-out">
+              <div><b>What the agent does</b><p>Applies your rule per message. The routine half closes itself, the sensitive half is prepared and parked.</p></div>
+              <div><b>What you get</b><p>One agent covering both, so you spend your attention only on the cases that actually needed a person.</p></div>
+              <div><b>Good for</b><p>Real queues, which are almost never all routine or all judgment.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="au-foot">Same agent. Three sentences. The line moves whenever you decide it should.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ M6 · EASE ════════════════════════════════════════════════════════
+       TEMA: kolaylik. SB7 process plan + agreement plan. -->
+  <section class="g-sec g-band">
+    <div class="g-wrap">
+      <div class="shead mid rv">
+        <span class="eyebrow">Getting started</span>
+        <h2 class="stitle wide">Three steps to a working agent.</h2>
+        <p class="slead">No build phase, no implementation project, no engineer on standby.</p>
+      </div>
+      <div class="steps">
+        <div class="stp rv"><div class="num">1</div><div><b>Pick a template, or describe the job</b><span>Start from a ready made agent in the library, or tell the AI Architect what you want handled in plain language and let it assemble the agent with you.</span></div></div>
+        <div class="stp rv" style="--d:80ms"><div class="num">2</div><div><b>Connect your apps once</b><span>Secure managed authentication, no code and no API keys to paste. The agent acts through your own access, so it can only reach what you can already reach.</span></div></div>
+        <div class="stp rv" style="--d:160ms"><div class="num">3</div><div><b>Write the line that sets the autonomy</b><span>Tell it what to handle alone and what to leave for you. Turn it on, watch the first runs, and adjust the sentence as your confidence grows.</span></div></div>
+      </div>
+      <div class="prom">
+        <div class="rv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Connect once, and switch any agent off whenever you want.</span></div>
+        <div class="rv" style="--d:60ms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>The agent sees only what your own account can see.</span></div>
+        <div class="rv" style="--d:120ms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>No code, and no flowchart to maintain.</span></div>
+        <div class="rv" style="--d:180ms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Start free, then pay as you go.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ M7 · APPS ════════════════════════════════════════════════════════ -->
+  <section class="g-sec">
+    <div class="g-wrap">
+      <div class="shead mid rv">
+        <span class="eyebrow">The ecosystem</span>
+        <h2 class="stitle wide">Works with the apps you already use.</h2>
+        <p class="slead">Connect once through secure managed authentication. More than 1,000 business apps are reachable through the managed integration catalog.</p>
+      </div>
+      <div class="logos rv">
+        <span><img src="https://logos.composio.dev/api/slack" alt="Slack" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/gmail" alt="Gmail" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/jira" alt="Jira" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/confluence" alt="Confluence" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/intercom" alt="Intercom" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/hubspot" alt="HubSpot" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/notion" alt="Notion" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/googlesheets" alt="Google Sheets" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/salesforce" alt="Salesforce" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/zendesk" alt="Zendesk" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/outlook" alt="Outlook" loading="lazy"></span>
+        <span><img src="https://logos.composio.dev/api/linear" alt="Linear" loading="lazy"></span>
+      </div>
+      <p class="apnote rv" style="--d:80ms">Not every app plays the same role. Some can wake an agent on their own, others are places an agent reads from and writes to. Each app hub says which, and says plainly what is not supported yet.</p>
+      <div class="hublinks rv" style="--d:140ms">
+        <a href="/apps/slack"><img src="https://logos.composio.dev/api/slack" alt="" loading="lazy">What agents can do in Slack</a>
+        <a href="/apps/jira"><img src="https://logos.composio.dev/api/jira" alt="" loading="lazy">Jira</a>
+        <a href="/apps/confluence"><img src="https://logos.composio.dev/api/confluence" alt="" loading="lazy">Confluence</a>
+        <a href="/apps/intercom"><img src="https://logos.composio.dev/api/intercom" alt="" loading="lazy">Intercom</a>
+        <a href="/guides/confluence-meeting-notes">Guide: meeting notes in Confluence</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ M8 · CLARITY ═════════════════════════════════════════════════════
+       TEMA: anlasilirlik. Kosu kaydi + durustluk callout'u. -->
+  <section class="g-sec g-band">
+    <div class="g-wrap">
+      <div class="shead rv">
+        <span class="eyebrow">Clarity</span>
+        <h2 class="stitle wide">You can see what it did, and why.</h2>
+        <p class="slead">An agent you cannot audit is a liability, however clever it is. Every run leaves a record: what woke it, what it read, what it decided, and what it changed.</p>
+      </div>
+      <div class="cl">
+        <div class="cl-log rv">
+          <div class="surf">
+            <div class="surf-bar"><span class="surf-dots"><i></i><i></i><i></i></span><span class="surf-ttl">Run record</span><span class="surf-tag">Example</span></div>
+            <div class="surf-b">
+              <div class="lg"><div class="lt">09:14</div><div class="lb"><b>Woke on a new Gmail message</b><span>Subject: Invoice #4471 looks wrong</span></div></div>
+              <div class="lg"><div class="lt">09:14</div><div class="lb"><b>Read the thread and the customer record</b><span>Existing customer, paid plan, three previous tickets</span></div></div>
+              <div class="lg"><div class="lt">09:14</div><div class="lb"><b>Decided: billing, answer today, no send</b><span>Your instruction holds anything about money for review</span></div></div>
+              <div class="lg"><div class="lt">09:15</div><div class="lb"><b>Wrote a draft reply in Gmail</b><span>Left in drafts, nothing sent</span></div></div>
+              <div class="lg"><div class="lt">09:15</div><div class="lb"><b>Created a Jira issue for the billing team</b><span>Linked back to the email thread</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="cl-pts">
+          <div class="cl-pt rv" style="--d:60ms"><b>Every step is written down</b><p>The trigger, the reading, the decision and each operation are recorded in order. When you want to know why something happened, you read it rather than guess.</p></div>
+          <div class="cl-pt rv" style="--d:120ms"><b>It uses your access, and nothing beyond it</b><p>Connections are made through secure managed authentication. The agent operates as you, inside the permissions you granted, and you can turn the agent off, or remove the connection in the provider account settings.</p></div>
+          <div class="cl-pt rv" style="--d:180ms"><b>Limits are published, not hidden</b><p>Every template and every app page lists what the agent can do and what it cannot do yet, taken from the verified integration catalog rather than from marketing copy.</p></div>
+        </div>
+      </div>
+      <div class="g-callout rv" style="--d:240ms"><strong>No invented numbers on this site.</strong> Capability claims come from the verified integration catalog: what arrives automatically, what an agent can read, and which actions it can take. Where something is not supported, the page says so instead of staying quiet.</div>
+    </div>
+  </section>
+
+  <!-- ══ M9 · FEATURED TEMPLATES (canli Data API; basarisizsa gizli) ══════ -->
+  <section class="g-sec" id="gxFeatSec" style="display:none">
+    <div class="g-wrap">
+      <div class="shead mid">
+        <span class="eyebrow">The library</span>
+        <h2 class="stitle wide">Start from an agent that already runs.</h2>
+        <p class="slead">Each template is a working agent with real triggers, real app operations and its limits written on the page. Preview it, connect your apps, make it yours.</p>
+      </div>
+      <div class="rel" id="gxFeatGrid"></div>
+      <div class="seeall"><a href="/templates">Browse all templates &rsaquo;</a></div>
+    </div>
+  </section>
+
+  <!-- ══ M10 · BROWSE BY TEAM (canli sayilar; sayi gelmeyen cip cizilmez) ══ -->
+  <section class="g-sec g-band" id="gxTeamSec" style="display:none">
+    <div class="g-wrap">
+      <div class="shead mid">
+        <span class="eyebrow">By team</span>
+        <h2 class="stitle wide">Start where it hurts.</h2>
+        <p class="slead">Every team has a queue that fills faster than it clears. Pick yours.</p>
+      </div>
+      <div class="chips" id="gxTeamChips"></div>
+    </div>
+  </section>
+
+  <!-- ══ M11 · FINAL CTA + FOOTER ═════════════════════════════════════════ -->
+  <section class="g-cta">
+    <div class="g-wrap">
+      <div class="g-bt rv">Put an agent on your busiest queue.</div>
+      <p class="g-bs rv" style="--d:60ms">Start from a template that already works. Connect once, write the line that sets the autonomy, and let the sorting and the follow through happen while you do the rest.</p>
+      <div class="ctas mid rv" style="--d:120ms">
+        <a class="btn-p" href="/templates">Browse agent templates</a>
+        <a class="btn-s" href="/pricing">See pricing</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="g-ft">
+    <div class="g-wrap">
+      <div class="g-fl"><a href="/">Home</a><a href="/templates">All Assistants</a><a href="/apps/slack">App hubs</a><a href="/guides/confluence-meeting-notes">Guides</a><a href="/pricing">Pricing</a><a href="/privacy_policy">Privacy Policy</a><a href="/terms_of_service">Terms of Service</a><a href="/disclaimer">Disclaimer</a><a href="/sitemap.xml">Sitemap</a></div>
+      <div class="g-cp">&copy; Gaia. AI assistants for every workflow. Start free, pay as you go.</div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  if(window.__gxHomeInit)return; window.__gxHomeInit=1;   // Bubble tekrar calistirirsa cift kosmasin
+
+  // ── KENDINI-GIZLEME KORUMASI ──────────────────────────────────────────────
+  // Dogru yer sayfa HTML header alani. Ama bu blok bir Bubble HTML ELEMENTININ
+  // icine yapistirilirsa, element .main-page'in icinde kalir ve CSS'teki
+  // "sayfa govdesini gizle" kurali kendi icerigimizi de gizler -> bombos sayfa.
+  // Boyle bir durumda kurali devre disi birak (sayfa yavas ama CALISIR halde acilir).
+  function gxHostFix(){
+    var host=document.getElementById('gxHome');
+    if(host && host.closest && host.closest('.main-page')){
+      document.documentElement.classList.add('gx-inside-bubble');
+    }
+  }
+  gxHostFix();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',gxHostFix);
+  setTimeout(gxHostFix,0);
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // ── DERIN LINK EMNIYETI ────────────────────────────────────────────────────
+  // 466 SEO kartinin "Use this template" CTA'si tarihsel olarak KOKE gidiyor:
+  //   template-page.html -> location.href = "https://gaiasphere.io" + "?use_template=<id>"
+  // ve o parametreyi Architect elementi location.search'ten okuyor. Uygulama koktan
+  // tasininca bu linkler karsiliksiz kalir (donusum yolu SESSIZCE olur): eski yer
+  // imleri, eski template-page deploy'u, disaridaki her link. Bu yuzden kok, parametreli
+  // gelisleri app sayfasina devreder. APP_PATH = uygulamanin YENI sayfa adi.
+  var APP_PATH="/app";
+  try{
+    var qs=location.search||"";
+    if(/[?&](use_template|use_featured)=/.test(qs) && location.pathname!==APP_PATH){
+      location.replace(APP_PATH+qs+(location.hash||""));
+      return;                                            // devrettik, home'u kurma
+    }
+  }catch(e){}
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var root=document.getElementById('gxHome');
+  if(!root) return;
+  var reduce=false;
+  try{ reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+
+  // ══ 1) REVEAL ════════════════════════════════════════════════════════════
+  // Gizleme sinifi SADECE burada aciliyor: JS calismazsa icerik gorunur kalir.
+  (function(){
+    var els=root.querySelectorAll('.rv');
+    if(!els.length) return;
+    if(!window.IntersectionObserver || reduce){ return; }   // hepsi gorunur kalir
+    root.classList.add('rv-on');
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.12});
+    for(var i=0;i<els.length;i++) io.observe(els[i]);
+    // Emniyet: observer ilk turu gecikirse EKRANDA OLANLAR yine de acilsin.
+    // DIKKAT: yalnizca gorunur olanlar; hepsini acmak sayfanin tamamindaki
+    // reveal'i oldururdu (bir kez bu hataya dusuldu, 31.07).
+    setTimeout(function(){
+      var vh=window.innerHeight||0;
+      for(var i=0;i<els.length;i++){
+        if(els[i].classList.contains('in')) continue;
+        var t=els[i].getBoundingClientRect().top;
+        if(t<vh){ els[i].classList.add('in'); io.unobserve(els[i]); }
+      }
+    },1200);
+  })();
+
+  // ══ 2) M3 SAHNE SENKRONU ═════════════════════════════════════════════════
+  // Ekranin ortasindan gecen adim sahneyi degistirir. IO yoksa kare 1'de kalir.
+  (function(){
+    var stage=document.getElementById('gxStage'), wrap=document.getElementById('gxSteps');
+    if(!stage||!wrap||!window.IntersectionObserver) return;
+    var steps=wrap.querySelectorAll('.wf-step');
+    function setOn(i){
+      if(stage.getAttribute('data-on')===String(i)) return;
+      stage.setAttribute('data-on',String(i));
+      for(var k=0;k<steps.length;k++){
+        steps[k].classList.toggle('on', steps[k].getAttribute('data-i')===String(i));
+      }
+    }
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting) setOn(en.target.getAttribute('data-i'));
+      });
+    },{rootMargin:'-45% 0px -45% 0px',threshold:0});
+    for(var i=0;i<steps.length;i++) io.observe(steps[i]);
+    // Adima tiklamak da sahneyi degistirsin (dokunmatikte kullanisli).
+    wrap.addEventListener('click',function(e){
+      var s=e.target.closest ? e.target.closest('.wf-step') : null;
+      if(s) setOn(s.getAttribute('data-i'));
+    });
+  })();
+
+  // ══ 3) M5 OTONOMI SEKMELERI ══════════════════════════════════════════════
+  (function(){
+    var seg=root.querySelector('.au-seg'); if(!seg) return;
+    var btns=seg.querySelectorAll('button'), panes=root.querySelectorAll('.au-p');
+    function pick(id){
+      for(var i=0;i<btns.length;i++) btns[i].setAttribute('aria-selected', btns[i].getAttribute('data-au')===id ? 'true':'false');
+      for(var j=0;j<panes.length;j++) panes[j].classList.toggle('on', panes[j].getAttribute('data-au')===id);
+    }
+    seg.addEventListener('click',function(e){
+      var b=e.target.closest ? e.target.closest('button[data-au]') : null;
+      if(b) pick(b.getAttribute('data-au'));
+    });
+    seg.addEventListener('keydown',function(e){
+      if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return;
+      var cur=0; for(var i=0;i<btns.length;i++) if(btns[i].getAttribute('aria-selected')==='true') cur=i;
+      var nx=(cur + (e.key==='ArrowRight'?1:btns.length-1)) % btns.length;
+      pick(btns[nx].getAttribute('data-au')); btns[nx].focus(); e.preventDefault();
+    });
+  })();
+
+  // ══ 4) IC BAGLANTI YUMUSAK KAYDIRMA (global scroll-behavior kirletmeden) ══
+  root.addEventListener('click',function(e){
+    var a=e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if(!a) return;
+    var id=a.getAttribute('href').slice(1); if(!id) return;
+    var t=document.getElementById(id); if(!t) return;
+    e.preventDefault();
+    try{ t.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}); }
+    catch(err){ t.scrollIntoView(); }
+  });
+
+  // ══ 4b) HERO KURULUM DUGMESI (14.09 A-BTN + M1) ══════════════════════════
+  // IKIZ: _gx_product_card.html go()/tr(). Devir ve olaylar KARTIN yardimcisindan
+  // (window.__GX_FLAGSHIP_CARD__) cagrilir: ayni olay adlari (flagship_card_shown /
+  // flagship_card_click / flagship_card_secondary), ayni yuk, surface='home_hero'.
+  // Kart betigi yoksa (blok silindi/bozuldu) asagidaki yedek AYNI sozlesmeyi taklit eder:
+  // fid, sessionStorage + localStorage 'gx_flagship_pending', /app?use_flagship=..&intent=preview&fid=..
+  // Kart kaynagi degisirse bu yedek de guncellenir.
+  (function(){
+    var HERO_APP_URL="https://gaiasphere.io/app";
+    var btn=root.querySelector('[data-gx-setup]');
+    if(!btn) return;
+    var slug=String(btn.getAttribute('data-gx-setup')||'inbox-chief-of-staff').toLowerCase();
+    function api(){ try{ var o=window.__GX_FLAGSHIP_CARD__; return (o&&typeof o.go==='function'&&typeof o.tr==='function')?o:null; }catch(e){ return null; } }
+    function trk(n,p){
+      var o=api(); if(o){ try{ o.tr(n,p); }catch(e){} return; }
+      p=p||{};
+      try{ if(p.site_lang==null) p.site_lang=String(document.documentElement.getAttribute('lang')||'').toLowerCase().slice(0,5); }catch(e){}
+      try{ if(typeof window.gtag==='function') window.gtag('event',n,p); else if(window.dataLayer&&window.dataLayer.push) window.dataLayer.push(['event',n,p]); }catch(e){}
+      try{ if(typeof window.clarity==='function') window.clarity('event',n); }catch(e){}
+    }
+    function fid(){
+      var h='';
+      try{ if(window.crypto&&window.crypto.getRandomValues){ var b=new Uint8Array(4); window.crypto.getRandomValues(b); for(var i=0;i<b.length;i++) h+=('0'+b[i].toString(16)).slice(-2); return h; } }catch(e){}
+      for(var j=0;j<8;j++) h+=Math.floor(Math.random()*16).toString(16);
+      return h;
+    }
+    function goSetup(){
+      var o=api();
+      if(o){ o.go(slug,'home_hero'); return; }
+      var f=fid();
+      trk('flagship_card_click',{slug:slug,surface:'home_hero',fid:f});
+      var pend=JSON.stringify({slug:slug,instant:false,intent:'preview',ts:Date.now(),fid:f});
+      try{ sessionStorage.setItem('gx_flagship_pending',pend); }catch(e){}
+      try{ localStorage.setItem('gx_flagship_pending',pend); }catch(e){}
+      location.href=HERO_APP_URL+'?use_flagship='+encodeURIComponent(slug)+'&intent=preview&fid='+f;
+    }
+    // Donen kullanici: kartla ayni anahtar ve tazelik penceresi (pending 30 dk, digerleri 7 gun).
+    // Yalniz OKUR; bayat kaydi silmek kartin isi.
+    var label='Connect Gmail and preview';
+    try{
+      var r=JSON.parse(localStorage.getItem('gx_flagship_done:'+slug)||'null');
+      var st=r&&r.trigger?String(r.trigger):'', ts=r&&r.ts?Number(r.ts):0;
+      var ttl=(st==='pending')?1800000:604800000;
+      if(st&&ts&&(Date.now()-ts)<ttl){
+        if(st==='armed'||st==='manual') label='Open setup';
+        else if(st==='pending') label='Check setup';
+      }
+    }catch(e){}
+    btn.textContent=label;
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      if(btn.disabled) return;
+      btn.disabled=true; btn.setAttribute('aria-busy','true'); btn.textContent='Opening...';
+      try{ goSetup(); }catch(err){}
+      // Gezinme engellenirse (geri/popup) dugme kilitli kalmasin.
+      setTimeout(function(){ try{ btn.disabled=false; btn.removeAttribute('aria-busy'); btn.textContent=label; }catch(e){} },4000);
+    });
+    var sec=root.querySelector('[data-gx-sample]');
+    if(sec) sec.addEventListener('click',function(){ trk('flagship_card_secondary',{slug:slug,surface:'home_hero'}); });
+    // Gosterim: yukleme basina BIR kez, dugme satiri %50 gorunur olunca (IO yoksa hemen).
+    var shown=false, target=btn.parentNode||btn;
+    function fireShown(){ if(shown) return; shown=true; trk('flagship_card_shown',{slug:slug,surface:'home_hero'}); }
+    try{
+      if(window.IntersectionObserver){
+        var io=new IntersectionObserver(function(ents){
+          for(var k=0;k<ents.length;k++){ if(ents[k].isIntersecting&&ents[k].intersectionRatio>=0.5){ try{ io.disconnect(); }catch(e){} fireShown(); break; } }
+        },{threshold:[0.5]});
+        io.observe(target);
+      } else fireShown();
+    }catch(e){ fireShown(); }
+  })();
+
+  // ══ 5) CANLI VERI ════════════════════════════════════════════════════════
+  var API="https://gaiasphere.io/api/1.1/obj/templates";
+  var GAIA_LOGO="https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1775473589151x893601606193553400/GAIA%20%282%29.svg";
+  var GPT_LOGO="https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1721452081762x883347400097652500/ChatGPT_logo.svg";
+  // Cipler: kategori adlari canli katalogdan alindi; SAYILAR her yuklemede canli okunur.
+  var CATS=["Finance","Sales","Customer Service","Recruiting","Technology","Marketing","Operations","Legal"];
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function arr(v){return Array.isArray(v)?v.filter(Boolean):(v==null||v===''?[]:[v]);}
+  function q(o){return encodeURIComponent(JSON.stringify(o));}
+  function get(u){return fetch(u,{credentials:'omit'}).then(function(r){return r.ok?r.json():Promise.reject(r.status);});}
+
+  // bcard: template sayfasindaki kartin birebir gorseli (kural 14.07: kart her yuzeyde ayni gorunur)
+  function orbit(integrations){
+    var incoming=[];arr(integrations).forEach(function(s){s=String(s||'').toLowerCase().trim();if(s&&s!=='chatgpt'&&s!=='openai'&&s!=='gpt')incoming.push(s);});
+    var list=['chatgpt'].concat(incoming),visible=list.slice(0,6),n=visible.length,step=n?360/n:0,overflow=list.length-visible.length,ring='';
+    for(var i=0;i<n;i++){var s=visible[i],ang=-90+step*i;
+      var url=s==='chatgpt'?GPT_LOGO:('https://logos.composio.dev/api/'+encodeURIComponent(s));
+      var tf='translate(-50%,-50%) rotate('+ang+'deg) translateY(calc(var(--orbit-r, -38px) * -1)) rotate('+(-1*ang)+'deg)';
+      ring+='<span class="bcard-orbit-app" title="'+esc(s)+'" style="transform:'+tf+'"><img src="'+url+'" alt="" loading="lazy"></span>';}
+    if(overflow>0){var a=-90+step*n,tf2='translate(-50%,-50%) rotate('+a+'deg) translateY(calc(var(--orbit-r, -38px) * -1)) rotate('+(-1*a)+'deg)';
+      ring+='<span class="bcard-orbit-more" style="transform:'+tf2+'">+'+overflow+'</span>';}
+    return '<div class="bcard-orbit"><div class="bcard-orbit-gaia"><img src="'+GAIA_LOGO+'" alt="Gaia" loading="lazy"></div>'+ring+'</div>';
+  }
+  function bcard(t){
+    var slug=t.Slug||t.slug||'';
+    var integ='';arr(t.integrations).slice(0,2).forEach(function(s){integ+='<span class="bcard-integ">'+esc(String(s).toLowerCase())+'</span>';});
+    return '<a class="bcard" href="/templates/'+esc(slug)+'">'+(t.is_featured?'<div class="bcard-feat">Popular</div>':'')+orbit(t.integrations)
+      +'<div class="bcard-cat">'+esc(t.category||'')+'</div><div class="bcard-name">'+esc(t.name||'')+'</div>'
+      +'<div class="bcard-desc">'+esc(t.short_desc||'')+'</div>'
+      +'<div class="bcard-footer"><div class="bcard-integs">'+integ+'</div></div></a>';
+  }
+
+  // 5a) Featured kartlar — TEK kisitli istek (katalogun tamami CEKILMEZ)
+  function featured(){
+    return get(API+'?limit=6&constraints='+q([{key:"is_featured",constraint_type:"equals",value:"true"}]))
+      .then(function(o){
+        var res=((o.response&&o.response.results)||[]).filter(function(t){return t.Slug||t.slug;});
+        if(res.length<3)return;                              // az kart varsa bolum hic acilmaz
+        document.getElementById('gxFeatGrid').innerHTML=res.slice(0,6).map(bcard).join('');
+        document.getElementById('gxFeatSec').style.display='';
+      });
+  }
+
+  // 5b) Kategori sayilari — kategori basina limit=1; toplam `remaining`+dönen kayit
+  function teams(){
+    var wrap=document.getElementById('gxTeamChips'),html=[],done=0;
+    CATS.forEach(function(cat,i){
+      get(API+'?limit=1&constraints='+q([{key:"category",constraint_type:"equals",value:cat}]))
+        .then(function(o){
+          var r=(o&&o.response)||{},n=((r.results||[]).length)+(r.remaining||0);
+          if(n>0)html[i]='<a href="/templates?category='+encodeURIComponent(cat)+'">'+esc(cat)+' <i>'+n+'</i></a>';
+        })
+        .catch(function(){})
+        .then(function(){
+          if(++done<CATS.length)return;
+          var solid=html.filter(Boolean);
+          if(solid.length<4)return;                          // yarim liste gosterme
+          wrap.innerHTML=solid.join('');
+          document.getElementById('gxTeamSec').style.display='';
+        });
+    });
+  }
+
+  function go(){ featured().catch(function(){}); teams(); }
+  // Ilk boya veriye BEKLEMEZ: istekler bosa dusen ilk anda kosar.
+  if(window.requestIdleCallback) requestIdleCallback(go,{timeout:1200}); else setTimeout(go,200);
+})();
+</script>

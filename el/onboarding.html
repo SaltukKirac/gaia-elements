@@ -1,0 +1,1654 @@
+
+
+
+<style>
+    /* CSS ROOT & VARIABLES (SCOPED) */
+    .ow-scope {
+        --ow-primary: #0ea5e9;
+        --ow-primary-hover: #0284c7;
+        --ow-secondary: #f59e0b;
+        --ow-secondary-hover: #d97706;
+        --ow-bg-dark: #1e2a3a;
+        --ow-bg-light: #ffffff;
+        --ow-text-dark: #1e293b;
+        --ow-text-light: #f8fafc;
+        --ow-border: #e2e8f0;
+
+        --ow-z-overlay: 9998;
+        --ow-z-tooltip: 9999;
+        --ow-z-panel: 10000;
+    }
+
+    /* WIDGET CONTAINER & BUTTONS */
+    .ow-widget-container {
+        display: flex !important;
+        gap: 8px !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        font-family: system-ui, -apple-system, sans-serif !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .ow-btn-main {
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+        min-height: 30px !important;
+        max-width: 30px !important;
+        max-height: 30px !important;
+        border-radius: 50% !important;
+        border: 1px solid #cbd5e1 !important;
+        background: #ffffff !important;
+        color: #64748b !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        line-height: 1 !important;
+        box-shadow: none !important;
+        transition: all 0.2s ease !important;
+        position: relative !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        outline: none !important;
+    }
+
+    .ow-btn-main:hover {
+        background: #f8fafc !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .ow-btn-primary {
+        color: #0ea5e9 !important;
+    }
+
+    .ow-btn-primary:hover {
+        color: #0284c7 !important;
+        border-color: #0ea5e9 !important;
+        background: #f0f9ff !important;
+    }
+
+    .ow-btn-secondary {
+        color: #f59e0b !important;
+    }
+
+    .ow-btn-secondary:hover {
+        color: #d97706 !important;
+        border-color: #f59e0b !important;
+        background: #fffbeb !important;
+    }
+
+    /* TOOLTIP FOR MAIN BUTTONS */
+    .ow-btn-main::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #334155;
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        z-index: 10;
+    }
+
+    .ow-btn-main:hover::after {
+        opacity: 1;
+    }
+
+    /* ONBOARDING ENGINE OVERLAY & SPOTLIGHT */
+    .ow-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.0);
+        z-index: var(--ow-z-overlay);
+        display: none;
+        pointer-events: none;
+    }
+
+    .ow-spotlight {
+        position: fixed;
+        border-radius: 6px;
+        z-index: calc(var(--ow-z-overlay) + 1);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65), inset 0 0 15px rgba(0, 0, 0, 0.2);
+        border: 2px solid var(--ow-primary);
+        pointer-events: none;
+        transition: all 300ms ease;
+        display: none;
+    }
+
+    /* ONBOARDING CARD */
+    .ow-card {
+        position: fixed;
+        background: var(--ow-bg-light);
+        border-radius: 8px;
+        padding: 20px;
+        width: 320px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        z-index: var(--ow-z-tooltip);
+        font-family: system-ui, -apple-system, sans-serif;
+        color: var(--ow-text-dark);
+        display: none;
+        opacity: 0;
+        transition: opacity 150ms ease, transform 150ms ease;
+        transform: translateY(10px);
+        box-sizing: border-box;
+    }
+
+    .ow-card * {
+        box-sizing: inherit;
+    }
+
+    .ow-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .ow-card-step {
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .ow-card-close {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 12px;
+        cursor: pointer;
+        padding: 4px;
+    }
+
+    .ow-card-close:hover {
+        color: #ef4444;
+    }
+
+    .ow-card h3 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .ow-card p {
+        margin: 0 0 20px 0;
+        font-size: 14px;
+        color: #475569;
+        line-height: 1.5;
+    }
+
+    .ow-card-actions {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .ow-gen-btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .ow-btn-outline {
+        background: #fff;
+        border-color: #cbd5e1;
+        color: #334155;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ow-btn-outline:hover:not(:disabled) {
+        background: #f1f5f9;
+    }
+
+    .ow-btn-outline:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .ow-btn-fill {
+        background: var(--ow-primary);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ow-btn-fill:hover {
+        background: var(--ow-primary-hover);
+    }
+
+    .ow-btn-danger {
+        background: #ef4444;
+        color: #fff;
+    }
+
+    .ow-btn-danger:hover {
+        background: #dc2626;
+    }
+
+    /* CONFIGURATION APPS & MODALS */
+    .ow-config-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: var(--ow-z-panel);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .ow-config-modal {
+        background: var(--ow-bg-light);
+        border-radius: 8px;
+        padding: 24px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .ow-config-modal h3 {
+        margin: 0 0 20px 0;
+        text-align: center;
+        color: var(--ow-text-dark);
+    }
+
+    .ow-config-modal p {
+        margin: 0 0 20px 0;
+        text-align: center;
+        font-size: 14px;
+        color: #475569;
+    }
+
+    .ow-config-modal-btn {
+        display: block;
+        width: 100%;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        background: #f8fafc;
+        border: 1px solid var(--ow-border);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+    }
+
+    .ow-config-modal-btn:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+
+    /* SIDEBAR & RECORD MODE */
+    .ow-sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 400px;
+        /* Slightly wider for inline editing */
+        background: var(--ow-bg-light);
+        box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+        z-index: var(--ow-z-panel);
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 300ms ease;
+        font-family: system-ui, -apple-system, sans-serif;
+        color: var(--ow-text-dark);
+        box-sizing: border-box;
+        border-left: 1px solid var(--ow-border);
+    }
+
+    .ow-sidebar * {
+        box-sizing: inherit;
+    }
+
+    .ow-sidebar.ow-open {
+        transform: translateX(0);
+    }
+
+    .ow-sidebar.ow-dock-left {
+        left: 0;
+        right: auto;
+        border-left: none;
+        border-right: 1px solid var(--ow-border);
+        transform: translateX(-100%);
+    }
+
+    .ow-sidebar.ow-dock-left.ow-open {
+        transform: translateX(0);
+    }
+
+    .ow-sidebar.ow-minimized {
+        height: auto;
+        bottom: 24px;
+        top: auto;
+        right: 24px;
+        width: 280px;
+        border-radius: 12px;
+        border: 1px solid var(--ow-border);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .ow-sidebar.ow-dock-left.ow-minimized {
+        right: auto;
+        left: 24px;
+    }
+
+    .ow-sidebar.ow-minimized .ow-step-list-view,
+    .ow-sidebar.ow-minimized .ow-sidebar-footer,
+    .ow-sidebar.ow-minimized p {
+        display: none !important;
+    }
+
+    .ow-sidebar.ow-minimized .ow-sidebar-header {
+        border-bottom: none;
+        padding: 12px 16px;
+    }
+
+    .ow-sidebar.ow-minimized .ow-sidebar-header-top {
+        margin-bottom: 8px;
+    }
+
+    .ow-sidebar-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--ow-border);
+        background: #f8fafc;
+    }
+
+    .ow-sidebar-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .ow-sidebar-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #0f172a;
+    }
+
+    .ow-sidebar-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #64748b;
+        font-weight: bold;
+        padding: 0 8px;
+    }
+
+    .ow-sidebar-close:hover {
+        color: #000;
+    }
+
+    /* RECORD TOGGLE */
+    .ow-record-toggle-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fff;
+        border: 1px solid var(--ow-border);
+        padding: 10px 12px;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .ow-record-label {
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #475569;
+    }
+
+    .ow-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #cbd5e1;
+        transition: 0.3s;
+    }
+
+    .ow-dot.active {
+        background: #ef4444;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        animation: ow-pulse 1.5s infinite;
+    }
+
+    @keyframes ow-pulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.2);
+            opacity: 0.7;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .ow-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    .ow-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .ow-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: .3s;
+        border-radius: 24px;
+    }
+
+    .ow-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+    }
+
+    .ow-switch input:checked+.ow-slider {
+        background-color: #10b981;
+    }
+
+    .ow-switch input:checked+.ow-slider:before {
+        transform: translateX(20px);
+    }
+
+
+    /* INLINE STEP UI/UX */
+    .ow-step-list-view {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ow-step-item {
+        background: #fff;
+        border: 1px solid var(--ow-border);
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        cursor: grab;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .ow-step-item:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .ow-step-item:active {
+        cursor: grabbing;
+        box-shadow: none;
+    }
+
+    .ow-step-item.is-dragging {
+        opacity: 0.5;
+        background: #f8fafc;
+    }
+
+    .ow-step-handle {
+        color: #cbd5e1;
+        font-size: 20px;
+        cursor: grab;
+        user-select: none;
+        margin-top: 4px;
+    }
+
+    .ow-step-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    /* Inline Inputs */
+    .ow-inline-input,
+    .ow-inline-desc {
+        width: 100%;
+        border: 1px solid transparent;
+        background: transparent;
+        font-family: inherit;
+        border-radius: 4px;
+        padding: 4px 6px;
+        transition: 0.2s;
+    }
+
+    .ow-inline-input {
+        font-weight: 600;
+        font-size: 14px;
+        color: #1e293b;
+    }
+
+    .ow-inline-desc {
+        font-size: 13px;
+        color: #475569;
+        resize: vertical;
+        min-height: 40px;
+    }
+
+    .ow-inline-input:hover,
+    .ow-inline-desc:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .ow-inline-input:focus,
+    .ow-inline-desc:focus {
+        background: #fff;
+        border-color: var(--ow-primary);
+        outline: none;
+    }
+
+    .ow-step-sel {
+        font-size: 11px;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 6px;
+    }
+
+    .ow-icon-btn {
+        background: #fff;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 4px;
+        transition: 0.2s;
+        color: #94a3b8;
+        margin-top: 4px;
+    }
+
+    .ow-icon-btn:hover {
+        color: #ef4444;
+        background: #fee2e2;
+    }
+
+    .ow-sidebar-footer {
+        padding: 20px;
+        border-top: 1px solid var(--ow-border);
+        background: #f8fafc;
+    }
+
+    .ow-save-config-btn {
+        width: 100%;
+        padding: 14px;
+        background: #10b981;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .ow-save-config-btn:hover {
+        background: #059669;
+    }
+
+
+    /* RECORD ANIMATION LAYER */
+    .ow-record-click-fx {
+        position: fixed;
+        border: 2px solid #10b981;
+        background: rgba(16, 185, 129, 0.2);
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+        pointer-events: none;
+        z-index: 10005;
+        border-radius: 4px;
+        transition: all 0.3s ease-out;
+    }
+
+    /* TOAST */
+    .ow-toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #334155;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 10001;
+        /* highest */
+        opacity: 0;
+        pointer-events: none;
+        transition: all 300ms ease;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .ow-toast.ow-show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+        .ow-sidebar {
+            width: 100%;
+            right: 0;
+        }
+
+        .ow-card {
+            width: calc(100% - 32px) !important;
+            left: 16px !important;
+            bottom: 16px !important;
+            top: auto !important;
+            transform: translateY(0) !important;
+        }
+    }
+</style>
+
+<div class="ow-widget-container ow-scope" id="ow-widget-root">
+    <button id="ow-btn-start" class="ow-btn-main ow-btn-primary" data-tooltip="Start Tour"
+        aria-label="Start Onboarding Tour" style="display: none;">?</button>
+    <button id="ow-btn-config" class="ow-btn-main ow-btn-secondary" data-tooltip="Tour Builder"
+        aria-label="Configure Onboarding Tour" style="display: none;">🎯</button>
+</div>
+
+<!-- TEMPLATES THAT WILL BE INJECTED INTO BODY DYNAMICALLY -->
+<template id="ow-tpl-onboarding">
+    <div id="ow-spotlight" class="ow-spotlight ow-scope"></div>
+    <div id="ow-card" class="ow-card ow-scope">
+        <div class="ow-card-header">
+            <span class="ow-card-step" id="ow-card-step-text">Step 1 / X</span>
+            <button class="ow-card-close" id="ow-card-btn-close">✕ Close Tour</button>
+        </div>
+        <h3 id="ow-card-title"></h3>
+        <p id="ow-card-desc"></p>
+        <div class="ow-card-actions">
+            <button class="ow-gen-btn ow-btn-outline" id="ow-card-btn-prev">Back</button>
+            <button class="ow-gen-btn ow-btn-fill" id="ow-card-btn-next">Next</button>
+        </div>
+    </div>
+</template>
+
+<template id="ow-tpl-config">
+    <!-- Config Options Modal -->
+    <div id="ow-config-overlay" class="ow-config-overlay ow-scope">
+        <div class="ow-config-modal" id="ow-config-initial-modal">
+            <div style="text-align: center; margin-bottom: 16px;">
+                <span style="font-size: 32px;">🎯</span>
+                <h3 style="margin: 8px 0 4px 0; color: #0f172a;">Interactive Tour Builder</h3>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 16px;">Create step-by-step
+                    guides by clicking elements on the screen to teach users how to use your app.</p>
+            </div>
+
+            <button class="ow-config-modal-btn" id="ow-opt-new">
+                <strong style="display:block; color:#0f172a; font-size:14px; margin-bottom:3px;">✨ Create New
+                    Tour</strong>
+                <span style="display:block; font-size: 12px; font-weight: 400; color:#64748b; line-height:1.4;">Delete
+                    current steps and start a fresh recording</span>
+            </button>
+            <button class="ow-config-modal-btn" id="ow-opt-edit">
+                <strong style="display:block; color:#0f172a; font-size:14px; margin-bottom:3px;">✏️ Edit Current
+                    Tour</strong>
+                <span style="display:block; font-size: 12px; font-weight: 400; color:#64748b; line-height:1.4;">Modify
+                    text, reorder, or delete existing steps</span>
+            </button>
+            <button class="ow-config-modal-btn" id="ow-opt-add">
+                <strong style="display:block; color:#0f172a; font-size:14px; margin-bottom:3px;">➕ Append Steps</strong>
+                <span style="display:block; font-size: 12px; font-weight: 400; color:#64748b; line-height:1.4;">Resume
+                    recording and add new steps to the end</span>
+            </button>
+            <div style="text-align:center; margin-top: 20px;">
+                <button class="ow-card-close" id="ow-opt-cancel">Cancel & Close</button>
+            </div>
+        </div>
+
+        <!-- Confirm Close Modal -->
+        <div class="ow-config-modal" id="ow-config-confirm-modal" style="display: none;">
+            <h3>Unsaved Changes</h3>
+            <p>You have made changes to the configuration. Would you like to save them before closing?</p>
+            <button class="ow-gen-btn ow-btn-fill" id="ow-confirm-save" style="width: 100%; margin-bottom: 10px;">Save &
+                Close</button>
+            <button class="ow-gen-btn ow-btn-danger" id="ow-confirm-discard"
+                style="width: 100%; margin-bottom: 10px;">Discard Changes & Close</button>
+            <div style="text-align:center; margin-top: 15px;">
+                <button class="ow-card-close" id="ow-confirm-cancel">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Editor -->
+    <div id="ow-sidebar" class="ow-sidebar ow-scope">
+        <div class="ow-sidebar-header">
+            <div class="ow-sidebar-header-top">
+                <h2>Step Management</h2>
+                <div style="display:flex;">
+                    <button id="ow-btn-min" class="ow-sidebar-close" title="Minimize/Expand">_</button>
+                    <button id="ow-btn-dock" class="ow-sidebar-close" title="Move Left/Right">⮂</button>
+                    <button id="ow-sidebar-close" class="ow-sidebar-close">✕</button>
+                </div>
+            </div>
+            <div class="ow-record-toggle-container">
+                <div class="ow-record-label">
+                    <div class="ow-dot active" id="ow-record-dot"></div>
+                    <span id="ow-record-text">Recording Active</span>
+                </div>
+                <label class="ow-switch">
+                    <input type="checkbox" id="ow-record-toggle" checked>
+                    <span class="ow-slider"></span>
+                </label>
+            </div>
+            <p style="font-size:12px; color:#64748b; margin: 8px 0 0 0; line-height: 1.4;">
+                While active, clicking anywhere in your app will use the app normally AND record it as a step. Edit
+                titles inline below.
+            </p>
+        </div>
+
+        <!-- List View -->
+        <div id="ow-step-list-view" class="ow-step-list-view">
+            <div id="ow-step-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+        </div>
+
+        <div class="ow-sidebar-footer" id="ow-sidebar-footer">
+            <button id="ow-btn-save-config" class="ow-save-config-btn">💾 Save Configuration Tracker</button>
+        </div>
+    </div>
+</template>
+
+<script>
+    (function () {
+        // ============================================================
+        // BUBBLE BRIDGE FUNCTIONS
+        // ============================================================
+        function triggerOnboardingDone(screenId) {
+            if (typeof bubble_fn_onboarding_done === 'function') {
+                const sId = screenId ? String(screenId) : "";
+                console.log("[Onboarding] Tour Dismissed/Finished. Firing event with Screen ID:", sId);
+                window.bubble_fn_onboarding_done(sId);
+            }
+        }
+
+        function triggerKonfigKaydet(screenId, configData) {
+            if (typeof bubble_fn_save_config === 'function') {
+                const sId = screenId ? String(screenId) : "";
+                const jData = JSON.stringify(configData) || "[]";
+
+                // Single Raw String (Bypasses all Multiple Output Object Parsing bugs natively)
+                const composite = sId + "_|||_" + jData;
+
+                console.log("[Onboarding] Executing Single Failsafe String:", composite);
+                window.bubble_fn_save_config(composite);
+            }
+        }
+
+        // ============================================================
+        // GLOBAL STATE & CONSTANTS
+        // ============================================================
+        const CONFIG = { animDuration: 150, spotlightAnimDuration: 300 };
+
+        let STATE;
+        if (window.__OW_GLOBAL_STATE__) {
+            STATE = window.__OW_GLOBAL_STATE__;
+        } else {
+            STATE = {
+                steps: [], // working copy for config mode
+                tourSteps: [], // copy currently running in tour
+                currentTourIndex: 0,
+                isTourActive: false,
+
+                // config state
+                isConfigMode: false,
+                hasUnsavedChanges: false,
+                isRecordingActive: true,
+                currentScreenId: null
+            };
+            window.__OW_GLOBAL_STATE__ = STATE;
+        }
+
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initWidget);
+        } else {
+            initWidget();
+        }
+
+        function getAppConfig() {
+            let c_conf = true;
+            let c_saved = null;
+            let c_dism = false;
+            let c_screen = null;
+
+            try {
+                if (typeof ONBOARD_CONFIGURABLE !== 'undefined') c_conf = ONBOARD_CONFIGURABLE;
+            } catch (e) { }
+            try {
+                if (typeof SAVED_CONFIG !== 'undefined') c_saved = SAVED_CONFIG;
+            } catch (e) { }
+            try {
+                if (typeof USER_DISMISSED !== 'undefined') c_dism = USER_DISMISSED;
+            } catch (e) { }
+            try {
+                if (typeof CURRENT_SCREEN !== 'undefined') c_screen = CURRENT_SCREEN;
+            } catch (e) { }
+
+            if (c_saved && c_screen) {
+                return { isConf: c_conf, saved: c_saved, dismissed: c_dism, screen: c_screen };
+            }
+
+            try {
+                const scripts = document.querySelectorAll('script');
+                for (let i = scripts.length - 1; i >= 0; i--) {
+                    const text = scripts[i].textContent;
+                    if (!text) continue;
+
+                    // Regex to robustly find variable assignment avoiding self-references like 'typeof CURRENT_SCREEN'
+                    const screenMatch = text.match(/CURRENT_SCREEN\s*=\s*(.*?)(?:;|\n|<[!]-{2}|\/\/)/);
+                    if (screenMatch && screenMatch[1]) {
+                        let val = screenMatch[1].trim();
+                        if (val.startsWith('"') || val.startsWith("'") || val.startsWith("`")) {
+                            val = val.substring(1, val.length - 1);
+                        } else if (val === 'null' || val === '') {
+                            val = null;
+                        } else if (val === 'undefined') {
+                            val = undefined;
+                        }
+                        // Only set if we actually found something meaningful (prevents overwriting with garbage from own source)
+                        if (val !== '= CURRENT_SCREEN') {
+                             c_screen = val;
+                        }
+                    }
+
+                    // Avoid matching our own internal code string checks
+                    const confMatch = text.match(/ONBOARD_CONFIGURABLE\s*=\s*(true|false)/);
+                    if (confMatch && text.indexOf('if (text.includes') === -1) {
+                         c_conf = confMatch[1] === 'true';
+                    }
+
+                    const dismMatch = text.match(/USER_DISMISSED\s*=\s*(true|false)/);
+                    if (dismMatch && text.indexOf('if (text.includes') === -1) {
+                         c_dism = dismMatch[1] === 'true';
+                    }
+
+                    const savedMatch = text.match(/SAVED_CONFIG\s*=\s*(\[.*?\])/s);
+                    if (savedMatch && text.indexOf('if (text.includes') === -1) {
+                        try {
+                            c_saved = JSON.parse(savedMatch[1]);
+                        } catch (e) {
+                            try { c_saved = new Function("return " + savedMatch[1])(); } catch (err) {}
+                        }
+                    }
+                }
+            } catch (err) { }
+
+            // Güvenlik kontorlü: Eğer halen kendi iç kod parçamızı almışsa iptal et
+            if (typeof c_screen === 'string' && (c_screen.includes('undefined)') || c_screen.includes('CURRENT_SCREEN'))) {
+                c_screen = null;
+            }
+
+            return { isConf: c_conf, saved: c_saved, dismissed: c_dism, screen: c_screen };
+        }
+
+        let syncTimer = null;
+
+        function syncWidgetVisibility() {
+            const btnStarts = document.querySelectorAll('#ow-btn-start');
+            const btnConfigs = document.querySelectorAll('#ow-btn-config');
+            const widgetRoots = document.querySelectorAll('#ow-widget-root');
+            if (btnStarts.length === 0 || btnConfigs.length === 0 || widgetRoots.length === 0) return;
+
+            const conf = getAppConfig();
+
+            const rawScreen = String(conf.screen).trim();
+            const hasScreen = conf.screen && rawScreen !== '' && rawScreen !== 'null' && rawScreen !== 'undefined';
+            const showStart = conf.saved && Array.isArray(conf.saved) && conf.saved.length > 0;
+            const showConfig = conf.isConf;
+
+            widgetRoots.forEach(root => {
+                if (!hasScreen || (!showStart && !showConfig)) {
+                    root.style.setProperty('display', 'none', 'important');
+                } else {
+                    root.style.setProperty('display', 'flex', 'important');
+                }
+            });
+
+            btnStarts.forEach(btn => {
+                if (!hasScreen || (!showStart && !showConfig)) {
+                    btn.style.setProperty('display', 'none', 'important');
+                } else {
+                    btn.style.setProperty('display', showStart ? 'flex' : 'none', 'important');
+                }
+            });
+
+            btnConfigs.forEach(btn => {
+                if (!hasScreen || (!showStart && !showConfig)) {
+                    btn.style.setProperty('display', 'none', 'important');
+                } else {
+                    btn.style.setProperty('display', showConfig ? 'flex' : 'none', 'important');
+                }
+            });
+        }
+
+        function initWidget() {
+            const btnStarts = document.querySelectorAll('#ow-btn-start');
+            const btnConfigs = document.querySelectorAll('#ow-btn-config');
+            if (btnStarts.length === 0 || btnConfigs.length === 0) return;
+
+            btnStarts.forEach(btn => btn.onclick = handleStartClick);
+            btnConfigs.forEach(btn => btn.onclick = handleConfigClick);
+
+            syncWidgetVisibility();
+            if (syncTimer) clearInterval(syncTimer);
+            syncTimer = setInterval(syncWidgetVisibility, 1000);
+
+            const conf = getAppConfig();
+            if (conf.saved && Array.isArray(conf.saved) && conf.saved.length > 0 && !conf.dismissed && !STATE.isTourActive && !STATE.isConfigMode) {
+                setTimeout(() => {
+                    startTour(conf.saved, conf.screen);
+                }, 800);
+            }
+        }
+
+        function handleStartClick() {
+            const conf = getAppConfig();
+
+            if (conf.saved && Array.isArray(conf.saved) && conf.saved.length > 0) {
+                startTour(conf.saved, conf.screen);
+            } else {
+                if (conf.isConf) {
+                    if (confirm("No steps have been added yet. Would you like to configure the tour now?")) {
+                        handleConfigClick();
+                    }
+                } else {
+                    showToast("No onboarding steps have been defined yet.", true);
+                }
+            }
+        }
+
+        function markChanged() {
+            STATE.hasUnsavedChanges = true;
+        }
+
+        function resetChangesStatus() {
+            STATE.hasUnsavedChanges = false;
+        }
+
+        // ============================================================
+        // TOAST SYSTEM
+        // ============================================================
+        function showToast(msg, isError = false) {
+            let t = document.getElementById('ow-toast');
+            if (!t) {
+                t = document.createElement('div');
+                t.id = 'ow-toast';
+                t.className = 'ow-toast';
+                document.body.appendChild(t);
+            }
+            t.textContent = msg;
+            t.style.background = isError ? '#ef4444' : '#10b981';
+            t.style.transform = 'translateX(-50%) translateY(20px)';
+            t.classList.add('ow-show');
+
+            setTimeout(() => {
+                t.classList.remove('ow-show');
+            }, 3000);
+        }
+
+        // ============================================================
+        // ONBOARDING ENGINE
+        // ============================================================
+        function ensureTourDOM() {
+            // Replaced by Driver.js
+        }
+
+        function loadDriver() {
+            return new Promise((resolve) => {
+                if (window.driver) return resolve();
+
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css';
+                document.head.appendChild(link);
+
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js';
+                script.onload = () => resolve();
+                document.body.appendChild(script);
+            });
+        }
+
+        function waitForElement(selector, maxWaitMs = 10000) {
+            return new Promise((resolve) => {
+                if (document.querySelector(selector)) return resolve(true);
+
+                let elapsed = 0;
+                const intervalMs = 250; // Check 4 times a second (0 lag)
+
+                const timer = setInterval(() => {
+                    elapsed += intervalMs;
+                    if (document.querySelector(selector)) {
+                        clearInterval(timer);
+                        resolve(true);
+                    } else if (elapsed >= maxWaitMs) {
+                        clearInterval(timer);
+                        resolve(false); // timeout
+                    }
+                }, intervalMs);
+            });
+        }
+
+        async function startTour(steps, screenId) {
+            if (STATE.isConfigMode) return;
+            if (!steps || steps.length === 0) return;
+            // Freeze the configuration data locally so changes during the run are ignored
+            STATE.tourSteps = JSON.parse(JSON.stringify(steps));
+            STATE.activeRunScreenId = screenId || "";
+
+            STATE.currentTourIndex = 0;
+            STATE.isTourActive = true;
+            STATE.isAdvancing = false;
+
+            await loadDriver();
+
+            const builtSteps = steps.map((s, idx) => ({
+                element: s.targetSelector,
+                popover: {
+                    title: `Step ${idx + 1} / ${steps.length}: ${s.title}`,
+                    description: s.description,
+                    side: s.placement === 'auto' ? 'bottom' : s.placement,
+                    align: 'start',
+                    onNextClick: async () => {
+                        if (STATE.isAdvancing) return;
+                        STATE.isAdvancing = true;
+
+                        const el = document.querySelector(s.targetSelector);
+                        if (el) {
+                            const tName = el.tagName.toLowerCase();
+                            // Only force a native click for buttons/links when advancing, avoid clicking inputs unnecessarily
+                            if (tName !== 'input' && tName !== 'textarea' && tName !== 'select') {
+                                try { el.click(); } catch (e) { }
+                            }
+                        }
+                        const nextStep = steps[idx + 1];
+                        if (nextStep) {
+                            // Smart Wait: Pause tour until Bubble's next popup/form renders
+                            await waitForElement(nextStep.targetSelector, 8000);
+                        }
+                        // Add a tiny buffer for Bubble SPA to finish micro-animations
+                        setTimeout(() => {
+                            window.owDriver.moveNext();
+                            STATE.isAdvancing = false;
+                        }, 300);
+                    }
+                },
+                // If they manually interact with the highlighted element, advance automatically
+                onHighlightStarted: (el) => {
+                    if (!el) return;
+
+                    let triggered = false;
+                    const advanceContent = async (e) => {
+                        // If it's a keyup event, only advance if Enter was pressed
+                        if (e && e.type === 'keyup' && e.key !== 'Enter') return;
+
+                        if (STATE.isAdvancing) return;
+                        if (triggered) return;
+                        triggered = true;
+                        STATE.isAdvancing = true;
+
+                        el.removeEventListener('click', advanceContent);
+                        el.removeEventListener('pointerdown', advanceContent);
+                        el.removeEventListener('change', advanceContent);
+                        el.removeEventListener('keyup', advanceContent);
+
+                        const nextStep = steps[idx + 1];
+                        if (nextStep) {
+                            await waitForElement(nextStep.targetSelector, 8000);
+                        }
+                        // Delay gives SPA time to render the next container natively
+                        setTimeout(() => {
+                            window.owDriver.moveNext();
+                            STATE.isAdvancing = false;
+                        }, 300);
+                    };
+
+                    const tag = (el.tagName || '').toLowerCase();
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable) {
+                        // For inputs, don't advance on 'click' so they can type! 
+                        // Instead, automatically advance when value changes or 'Enter' is pressed.
+                        el.addEventListener('change', advanceContent);
+                        el.addEventListener('keyup', advanceContent);
+                    } else {
+                        // For buttons/divs, pointerdown is required because many SPA elements self-destruct before 'click' completes.
+                        el.addEventListener('click', advanceContent);
+                        el.addEventListener('pointerdown', advanceContent);
+                    }
+                }
+            }));
+
+            window.owDriver = window.driver.js.driver({
+                showProgress: true,
+                animate: true,
+                steps: builtSteps,
+                onDestroyStarted: () => {
+                    if (window.owDriver.hasNextStep() || window.owDriver.isFirstStep()) {
+                        window.owDriver.destroy();
+                        triggerOnboardingDone(STATE.activeRunScreenId);
+                    } else {
+                        window.owDriver.destroy();
+                        triggerOnboardingDone(STATE.activeRunScreenId);
+                    }
+                    STATE.isTourActive = false;
+                }
+            });
+
+            // PRE-FLIGHT WAIT: Wait for the very first highlighted element to load in DOM
+            await waitForElement(steps[0].targetSelector, 10000);
+            window.owDriver.drive();
+        }
+
+        function endTour() {
+            if (window.owDriver) {
+                window.owDriver.destroy();
+            }
+            STATE.isTourActive = false;
+        }
+
+        // ============================================================
+        // CONFIGURATION ENGINE (⚙)
+        // ============================================================
+        function ensureConfigDOM() {
+            if (!document.getElementById('ow-sidebar')) {
+                const tpl = document.getElementById('ow-tpl-config');
+                const clone = tpl.content.cloneNode(true);
+                document.body.appendChild(clone);
+
+                // Options Modal bindings
+                document.getElementById('ow-opt-new').addEventListener('click', () => initConfigSession('new'));
+                document.getElementById('ow-opt-edit').addEventListener('click', () => initConfigSession('edit'));
+                document.getElementById('ow-opt-add').addEventListener('click', () => initConfigSession('add'));
+                document.getElementById('ow-opt-cancel').addEventListener('click', () => {
+                    document.getElementById('ow-config-overlay').style.display = 'none';
+                });
+
+                // Sidebar Toggles
+                document.getElementById('ow-sidebar-close').addEventListener('click', requestPanelClose);
+                document.getElementById('ow-btn-dock').addEventListener('click', () => {
+                    const sb = document.getElementById('ow-sidebar');
+                    sb.classList.toggle('ow-dock-left');
+                });
+                document.getElementById('ow-btn-min').addEventListener('click', () => {
+                    const sb = document.getElementById('ow-sidebar');
+                    sb.classList.toggle('ow-minimized');
+                });
+
+                // Confirm Modal actions
+                document.getElementById('ow-confirm-save').addEventListener('click', () => {
+                    saveFinalConfig();
+                    document.getElementById('ow-config-overlay').style.display = 'none';
+                });
+                document.getElementById('ow-confirm-discard').addEventListener('click', () => {
+                    document.getElementById('ow-config-overlay').style.display = 'none';
+                    forceCloseConfigPanel();
+                });
+                document.getElementById('ow-confirm-cancel').addEventListener('click', () => {
+                    document.getElementById('ow-config-overlay').style.display = 'none';
+                });
+
+                // Sidebar toggle record 
+                document.getElementById('ow-record-toggle').addEventListener('change', (e) => {
+                    STATE.isRecordingActive = e.target.checked;
+                    const dot = document.getElementById('ow-record-dot');
+                    const text = document.getElementById('ow-record-text');
+                    if (STATE.isRecordingActive) {
+                        dot.classList.add('active');
+                        text.textContent = 'Recording Active';
+                    } else {
+                        dot.classList.remove('active');
+                        text.textContent = 'Recording Paused';
+                    }
+                });
+
+                document.getElementById('ow-btn-save-config').addEventListener('click', saveFinalConfig);
+
+                // List Delegated Events (Inline fields edit / Delete)
+                const listEl = document.getElementById('ow-step-list');
+                listEl.addEventListener('click', (e) => {
+                    const btnDel = e.target.closest('.ow-del-btn');
+                    const item = e.target.closest('.ow-step-item');
+                    if (btnDel && item) {
+                        const idx = parseInt(item.dataset.index);
+                        STATE.steps.splice(idx, 1);
+                        markChanged();
+                        renderStepList();
+                    }
+                });
+
+                // Inline Input handling
+                listEl.addEventListener('input', (e) => {
+                    const input = e.target;
+                    const item = input.closest('.ow-step-item');
+                    if (!item) return;
+
+                    const idx = parseInt(item.dataset.index);
+                    if (input.classList.contains('ow-inline-title')) {
+                        STATE.steps[idx].title = input.value;
+                        markChanged();
+                    } else if (input.classList.contains('ow-inline-desc')) {
+                        STATE.steps[idx].description = input.value;
+                        markChanged();
+                    }
+                });
+
+                initDragAndDrop();
+
+                // Mount global capture click for RECORD MODE
+                document.addEventListener('click', handleRecordClick, true);
+            }
+        }
+
+        function handleConfigClick() {
+            if (STATE.isTourActive) endTour();
+            ensureConfigDOM();
+
+            const conf = getAppConfig();
+
+            if (conf.saved && Array.isArray(conf.saved) && conf.saved.length > 0) {
+                document.getElementById('ow-config-initial-modal').style.display = 'block';
+                document.getElementById('ow-config-confirm-modal').style.display = 'none';
+                document.getElementById('ow-config-overlay').style.display = 'flex';
+            } else {
+                initConfigSession('new');
+            }
+        }
+
+        function initConfigSession(mode) {
+            document.getElementById('ow-config-overlay').style.display = 'none';
+            STATE.isConfigMode = true;
+            resetChangesStatus();
+
+            const conf = getAppConfig();
+            STATE.currentScreenId = conf.screen;
+
+            if (mode === 'new') {
+                STATE.steps = [];
+                openConfigPanel();
+            } else if (mode === 'edit') {
+                STATE.steps = JSON.parse(JSON.stringify(conf.saved || []));
+                openConfigPanel();
+            } else if (mode === 'add') {
+                STATE.steps = JSON.parse(JSON.stringify(conf.saved || []));
+                openConfigPanel();
+            }
+        }
+
+        function openConfigPanel() {
+            renderStepList();
+            const sidebar = document.getElementById('ow-sidebar');
+            setTimeout(() => sidebar.classList.add('ow-open'), 10);
+            document.addEventListener('keydown', configKeyHandler);
+        }
+
+        function requestPanelClose() {
+            if (STATE.hasUnsavedChanges) {
+                document.getElementById('ow-config-initial-modal').style.display = 'none';
+                document.getElementById('ow-config-confirm-modal').style.display = 'block';
+                document.getElementById('ow-config-overlay').style.display = 'flex';
+            } else {
+                forceCloseConfigPanel();
+            }
+        }
+
+        function forceCloseConfigPanel() {
+            document.getElementById('ow-sidebar').classList.remove('ow-open');
+            STATE.isConfigMode = false;
+            document.removeEventListener('keydown', configKeyHandler);
+            resetChangesStatus();
+        }
+
+        function configKeyHandler(e) {
+            if (e.key === 'Escape') {
+                requestPanelClose();
+            }
+        }
+
+        // --- Step List Render ---
+        function renderStepList() {
+            const listEl = document.getElementById('ow-step-list');
+            listEl.innerHTML = '';
+
+            if (STATE.steps.length === 0) {
+                listEl.innerHTML = '<div style="color:#64748b; font-size:14px; text-align:center; padding:20px 10px;">Steps will appear here when you click elements in your app.</div>';
+                return;
+            }
+
+            STATE.steps.forEach((step, idx) => {
+                const item = document.createElement('div');
+                item.className = 'ow-step-item';
+                item.setAttribute('draggable', 'true');
+                item.dataset.index = idx;
+
+                item.innerHTML = `
+            <div class="ow-step-handle">☰</div>
+            <div class="ow-step-info">
+                <input type="text" class="ow-inline-title" value="${escapeHtml(step.title)}" placeholder="Step Title">
+                <textarea class="ow-inline-desc" rows="${step.description.length > 40 ? 3 : 2}" placeholder="Step Description">${escapeHtml(step.description)}</textarea>
+                <div class="ow-step-sel" title="${escapeHtml(step.targetSelector)}">${escapeHtml(step.targetSelector)}</div>
+            </div>
+            <button class="ow-icon-btn ow-del-btn" title="Delete Step">✕</button>
+        `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function saveFinalConfig() {
+            const finalData = STATE.steps.map((s, idx) => ({ ...s, step: idx + 1 }));
+            triggerKonfigKaydet(STATE.currentScreenId, finalData);
+            showToast("Configuration saved and sent to Bubble ✓");
+            resetChangesStatus();
+            forceCloseConfigPanel();
+        }
+
+        // --- Record Mode Click Handler ---
+        function handleRecordClick(e) {
+            if (!STATE.isConfigMode || !STATE.isRecordingActive) return;
+
+            // Ignore clicks on our UI components safely
+            if (e.target.closest('.ow-sidebar') ||
+                e.target.closest('.ow-widget-container') ||
+                e.target.closest('.ow-toast') ||
+                e.target.closest('.ow-config-overlay') ||
+                e.target.closest('.ow-record-click-fx')) {
+                return; // Don't record widgets
+            }
+
+            // WE DO NOT PREVENT DEFAULT OR STOP PROPAGATION HERE!
+            // The underlying App processes the click normally.
+
+            const target = e.target;
+            const selector = generateSelector(target);
+            const autoData = generateAutoStepData(target);
+
+            // Save step
+            STATE.steps.push({
+                targetSelector: selector,
+                title: autoData.title,
+                description: autoData.description,
+                placement: 'auto'
+            });
+
+            markChanged();
+            renderStepList();
+
+            // Sidebar scrolling to bottom automatically
+            const listView = document.getElementById('ow-step-list-view');
+            setTimeout(() => {
+                listView.scrollTo({ top: listView.scrollHeight, behavior: 'smooth' });
+            }, 50);
+
+            // Visual feedback 
+            showToast(`Recorded: ${autoData.title}`);
+            fireVisualEffect(target);
+        }
+
+        function fireVisualEffect(target) {
+            const rect = target.getBoundingClientRect();
+            const fx = document.createElement('div');
+            fx.className = 'ow-record-click-fx';
+
+            const p = 4;
+            fx.style.top = `${rect.top - p}px`;
+            fx.style.left = `${rect.left - p}px`;
+            fx.style.width = `${rect.width + p * 2}px`;
+            fx.style.height = `${rect.height + p * 2}px`;
+
+            document.body.appendChild(fx);
+
+            // Animate out
+            requestAnimationFrame(() => {
+                fx.style.transform = 'scale(1.1)';
+                fx.style.opacity = '0';
+            });
+
+            setTimeout(() => {
+                if (fx.parentNode) document.body.removeChild(fx);
+            }, 400);
+        }
+
+
+        // --- Drag and Drop ---
+        function initDragAndDrop() {
+            const listEl = document.getElementById('ow-step-list');
+            let draggedItem = null;
+
+            listEl.addEventListener('dragstart', (e) => {
+                const item = e.target.closest('.ow-step-item');
+                if (!item) return;
+
+                // Prevent dragging if focusing inputs
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    e.preventDefault();
+                    return;
+                }
+
+                draggedItem = item;
+                setTimeout(() => item.classList.add('is-dragging'), 0);
+            });
+
+            listEl.addEventListener('dragend', (e) => {
+                if (!draggedItem) return;
+                draggedItem.classList.remove('is-dragging');
+                draggedItem = null;
+                recalculateStepsArray();
+                markChanged();
+            });
+
+            listEl.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!draggedItem) return;
+                const afterElement = getDragAfterElement(listEl, e.clientY);
+                if (afterElement == null) {
+                    listEl.appendChild(draggedItem);
+                } else {
+                    listEl.insertBefore(draggedItem, afterElement);
+                }
+            });
+
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.ow-step-item:not(.is-dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            function recalculateStepsArray() {
+                const items = document.querySelectorAll('.ow-step-item');
+                const oldState = [...STATE.steps];
+                const newState = [];
+                items.forEach(item => {
+                    const oldIdx = parseInt(item.dataset.index);
+                    // Before grabbing old state, ensure we carry latest input values
+                    const _inTitle = item.querySelector('.ow-inline-title').value;
+                    const _inDesc = item.querySelector('.ow-inline-desc').value;
+                    let finalData = oldState[oldIdx];
+                    finalData.title = _inTitle;
+                    finalData.description = _inDesc;
+
+                    newState.push(finalData);
+                });
+                STATE.steps = newState;
+                renderStepList();
+            }
+        }
+
+        function generateAutoStepData(el) {
+            const tag = el.tagName.toLowerCase();
+
+            let textCtx = "";
+            if (el.innerText && el.innerText.trim() !== '') {
+                const t = el.innerText.trim();
+                textCtx = t.split('\n')[0].substring(0, 20);
+            } else if (el.placeholder) {
+                textCtx = el.placeholder.substring(0, 20);
+            } else if (el.value) {
+                textCtx = el.value.substring(0, 20);
+            }
+
+            let title = "App Element";
+            let desc = "Please interact with this element.";
+
+            if (tag === 'button' || el.getAttribute('role') === 'button' || el.type === 'submit') {
+                title = textCtx ? `Click: ${textCtx}` : "Action Button";
+                desc = "Click this button to save or proceed.";
+            }
+            else if (tag === 'input' || tag === 'textarea') {
+                title = textCtx ? `Input: ${textCtx}` : "Input Field";
+                desc = "Enter your information into this field.";
+            }
+            else if (tag === 'select') {
+                title = "Dropdown Menu";
+                desc = "Select an option from the list.";
+            }
+            else if (tag === 'a' || tag === 'a:link') {
+                title = textCtx ? `Link: ${textCtx}` : "Navigation Link";
+                desc = "Click this link to navigate.";
+            }
+            else if (tag === 'img' || tag === 'svg') {
+                title = "Visual/Icon";
+                desc = "This image indicates an important action.";
+            } else {
+                title = textCtx ? `Area: ${textCtx}` : "General Area";
+            }
+
+            return { title, description: desc };
+        }
+
+
+        function generateSelector(el) {
+            if (el.hasAttribute('data-onboard')) return `[data-onboard="${CSS.escape(el.getAttribute('data-onboard'))}"]`;
+
+            // Filters out transient hover states AND dynamically generated Bubble UUIDs (e.g. a177...x555)
+            const badRegex = /^(ow-|current|active|focus|focused|hover|pressed|selected|ht|bubble-r-line|clickable|tt-cursor|tt-is-under-cursor|tt-hint|a\d{10,}x\d+)/i;
+            function getCleanClasses(node) {
+                if (!node || !node.classList) return '';
+                return Array.from(node.classList).filter(c => !badRegex.test(c)).join('.');
+            }
+
+            // CRITICAL FIX: Custom Code blocks often have spaces or chars in IDs `#field-Name`. We MUST escape them.
+            if (el.id && !/\d{5,}/.test(el.id)) return `#${CSS.escape(el.id)}`;
+
+            let path = [];
+            let current = el;
+
+            // Go up dynamically until we map a UNIQUE CSS Selector
+            while (current && current.nodeType === Node.ELEMENT_NODE) {
+                if (current.tagName.toLowerCase() === 'body') break;
+
+                // If the current node has a reliable ID, use it as an anchor and stop climbing!
+                if (current.id && !/\d{5,}/.test(current.id) && current !== el) {
+                    path.unshift(`#${CSS.escape(current.id)}`);
+                    break;
+                }
+
+                let cTag = current.tagName.toLowerCase();
+                let cClass = getCleanClasses(current);
+
+                let sibling = current;
+                let nth = 1;
+                while (sibling = sibling.previousElementSibling) {
+                    if (sibling.nodeName.toLowerCase() === cTag) nth++;
+                }
+
+                let part = cTag + (cClass ? `.${cClass}` : '');
+                // ONLY append nth-of-type if it's strictly necessary (not the only sibling of its type),
+                // OR if it's the very origin element clicked by the user (to strictly target that exact child natively).
+                if (nth > 1 || current === el) part += `:nth-of-type(${nth})`;
+
+                path.unshift(part);
+                current = current.parentElement;
+
+                let currentSel = path.join(' > ');
+                try {
+                    // Check if this path is completely unique yet across the entire DOM
+                    let m = document.querySelectorAll(currentSel);
+                    if (m.length === 1 && m[0] === el) return currentSel;
+                } catch (e) { }
+            }
+
+            return path.join(' > ');
+        }
+    })();
+</script>
