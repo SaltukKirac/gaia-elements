@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "main",
-    "rev":  1,
-    "updated":  "2026-09-24T20:35:50Z",
+    "rev":  2,
+    "updated":  "2026-09-24T20:38:48Z",
     "elements":  {
                      "chat":  {
                                   "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
@@ -29,12 +29,12 @@
                                             "updated":  "2026-09-24T20:35:50Z"
                                         },
                      "table":  {
-                                   "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
+                                   "commit":  "a97e82cce6a9bb865583d39acc4143ce2090e482",
                                    "path":  "el/table.html",
-                                   "blob":  "b91012c38963c61947753d10f999b8b326b92d14",
-                                   "bytes":  322553,
+                                   "blob":  "33ffb20b73464e9f16ec1f9ab1a74699138f5bf8",
+                                   "bytes":  323101,
                                    "title":  "Dynamic table (tablev2)",
-                                   "updated":  "2026-09-24T20:35:50Z"
+                                   "updated":  "2026-09-24T20:38:48Z"
                                }
                  }
 }
