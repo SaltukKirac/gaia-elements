@@ -4,7 +4,8 @@
  * Flow per page view:
  *   manifest.json  (@channel, revalidated every page load)  ->  { elements: { NAME: { commit, path } } }
  *   el/NAME.html   (@commit, immutable, browser-cached)      ->  replaces the placeholder in place
- *   <script> tags of the element then run in document order; external ones are awaited (10 s cap) like a parser would,
+ *   (the stub prefetches the main manifest in parallel with this file: window.__gxElMan)
+ *   <script> tags of the element then run in document order; external ones are awaited (3 s cap) like a parser would,
  *   inline ones see document.currentScript = themselves. type="application/json" data blocks stay inert.
  * Channel: page URL ?gxel=dev (kept for the tab session), ?gxel=main resets. Harness: set window.__gxElLocal = 'http://host/'.
  * Debug: window.__gxEl (mounted, errors, manifest), console lines prefixed [gx-el], window event 'gx:el-mounted'.
@@ -17,7 +18,7 @@
   var REPO = 'SaltukKirac/gaia-elements';
   var CDN = 'https://cdn.jsdelivr.net/gh/' + REPO + '@';
   var RAW = 'https://raw.githubusercontent.com/' + REPO + '/';
-  var EXT_TIMEOUT_MS = 10000;
+  var EXT_TIMEOUT_MS = 3000;
   var JS_TYPE = /^(|text\/javascript|application\/javascript|text\/ecmascript|application\/ecmascript|module)$/i;
   var SAFE_REF = /^[A-Za-z0-9._\/-]{1,100}$/;
   var SAFE_SHA = /^[0-9a-f]{7,40}$/;
@@ -85,7 +86,13 @@
   function getManifest() {
     if (!manifestP) {
       var urls = LOCAL ? [LOCAL + 'manifest.json'] : [CDN + channel + '/manifest.json', RAW + channel + '/manifest.json'];
-      manifestP = fetchFirst(urls, 'no-cache').then(function (text) {
+      var pre = W.__gxElMan;
+      if (pre) W.__gxElMan = null;
+      var textP = !LOCAL && channel === 'main' && pre && typeof pre.then === 'function'
+        ? pre.then(function (t) { if (typeof t !== 'string' || !t) throw new Error('empty prefetch'); return t; })
+          .catch(function () { return fetchFirst(urls, 'no-cache'); })
+        : fetchFirst(urls, 'no-cache');
+      manifestP = textP.then(function (text) {
         var m = JSON.parse(text);
         if (!m || typeof m.elements !== 'object') throw new Error('manifest has no elements');
         api.manifest = m;

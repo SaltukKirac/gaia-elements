@@ -4522,6 +4522,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let scr = aynaScreenOf(config);
     const seq = ++AYNA.seq;
     AYNA.loading = true; AYNA.last = null; AYNA.cfg = config; AYNA.screenKey = ''; AYNA.win = null; AYNA.critKey = ''; AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.pageCache.clear(); AYNA.fields = aynaFieldsOf(columns);
+    // the Bubble config may tune the two thresholds: "mirror_full_max" (a screen up to this many rows is loaded whole) and
+    // "mirror_page" (rows per page in window mode)
+    AYNA.fullLoadMax = Math.max(0, Number(config.mirror_full_max)) || 600; AYNA.windowSize = Math.max(50, Math.min(2000, Number(config.mirror_page) || 200));
     aynaPager();
     const t0 = Date.now();
     let rows = [], offset = 0, total = null, pages = 0, fresh = null, table = null, preview = false, painted = false, fromCache = false, lastPaint = 0, paintedRows = -1;
@@ -4669,7 +4672,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     mode: function () { const s = document.getElementById('bubble-table-config'); try { return aynaMode(parseBubbleConfig((s && s.textContent) || '{}')); } catch (e) { return false; } },
     page: function (n) { aynaGoPage(n); }, pageSize: function (s) { aynaSetPageSize(s); },
     search: function (term) { try { if (els && els.search) els.search.value = String(term || ''); } catch (e) {} return aynaCriteriaChanged('search', term); },   // the box is the source of truth (a re-mount re-reads it)
-    dsl: function () { return { where: gxDslWhere(), order_by: aynaSortOrderBy() }; }
+    dsl: function () { return { where: gxDslWhere(), order_by: aynaSortOrderBy() }; },
+    dslFor: function (cfgs) { const keep = state.filterConfigs; state.filterConfigs = cfgs || {}; try { return gxDslWhere(); } finally { state.filterConfigs = keep; } }   // harness: translate a given panel state
   };
   /* AYNA-TABLE-END */
 
