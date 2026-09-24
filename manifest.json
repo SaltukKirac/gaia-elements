@@ -1,17 +1,17 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "main",
-    "rev":  4,
-    "updated":  "2026-09-24T21:33:22Z",
+    "rev":  5,
+    "updated":  "2026-09-24T21:46:46Z",
     "elements":  {
-                     "chat":  {
-                                  "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
-                                  "path":  "el/chat.html",
-                                  "blob":  "c6ab4bbd7c2288cf7231b57e00ed4381846c1213",
-                                  "bytes":  2781952,
-                                  "title":  "Architect / GAD chat (+ Octo shell)",
-                                  "updated":  "2026-09-24T20:35:50Z"
-                              },
+                     "architect":  {
+                                       "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                       "path":  "el/architect.html",
+                                       "blob":  "c6ab4bbd7c2288cf7231b57e00ed4381846c1213",
+                                       "bytes":  2781952,
+                                       "title":  "AI Architect / GAD (+ Octo shell) - app page",
+                                       "updated":  "2026-09-24T21:46:46Z"
+                                   },
                      "form":  {
                                   "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
                                   "path":  "el/form.html",
@@ -20,6 +20,22 @@
                                   "title":  "Dynamic form",
                                   "updated":  "2026-09-24T20:35:50Z"
                               },
+                     "onboarding":  {
+                                        "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                        "path":  "el/onboarding.html",
+                                        "blob":  "15c01287c1babbf932d0b23b283da29e2fa1dc85",
+                                        "bytes":  58152,
+                                        "title":  "Onboarding widget",
+                                        "updated":  "2026-09-24T21:46:46Z"
+                                    },
+                     "pricing":  {
+                                     "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                     "path":  "el/pricing.html",
+                                     "blob":  "2f84ca306744bf37ed5760f9610d90b8413025ed",
+                                     "bytes":  23322,
+                                     "title":  "Pricing page (public, /pricing)",
+                                     "updated":  "2026-09-24T21:46:46Z"
+                                 },
                      "prompt-builder":  {
                                             "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
                                             "path":  "el/prompt-builder.html",
@@ -35,6 +51,22 @@
                                    "bytes":  330055,
                                    "title":  "Dynamic table (tablev2)",
                                    "updated":  "2026-09-24T21:33:22Z"
-                               }
+                               },
+                     "template-page":  {
+                                           "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                           "path":  "el/template-page.html",
+                                           "blob":  "e5f69ab6b733489312186aed63e0809d5bc73aa4",
+                                           "bytes":  267130,
+                                           "title":  "Template detail page (public, /template/\u003cslug\u003e)",
+                                           "updated":  "2026-09-24T21:46:46Z"
+                                       },
+                     "templates-button":  {
+                                              "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                              "path":  "el/templates-button.html",
+                                              "blob":  "6cf68a5b55f2523f9a360a021b3e65b24c1c05dd",
+                                              "bytes":  28003,
+                                              "title":  "Flagship home mount (templates button)",
+                                              "updated":  "2026-09-24T21:46:46Z"
+                                          }
                  }
 }
