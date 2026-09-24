@@ -4188,7 +4188,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     // already the answer to the current term is only re-mounted, never filtered again locally
     if (typeof aynaWindowed === 'function' && aynaWindowed()) {
       if (aynaCriteriaChanged('search', term)) return;
-      loadDisplayRows(buildDisplayRows(getSortedRows(state.rawRows)));
+      // the page keeps the server's order (the due-date sort went into order_by); a page-local reorder would lie
+      loadDisplayRows(buildDisplayRows(state.rawRows));
       return;
     }
     const base = getSortedRows(state.rawRows);
@@ -4315,7 +4316,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // ═══════════════════════════════════════════════════════════════════════════
   const AYNA = { windowSize: 200, fullLoadMax: 600, pageSize: 1500, maxRows: 20000, timeoutMs: 45000, screenWaitMs: 30000, renderEveryMs: 1200, cacheTtlMs: 10 * 60000, pageCacheTtlMs: 2 * 60000,
                  loading: false, seq: 0, last: null, stats: null, screenKey: '', cfg: null, cache: new Map(),
-                 win: null, criteria: { where: null, text: '', order_by: '' }, critKey: '', pageCache: new Map(), hooked: [], fields: [] };
+                 win: null, criteria: { where: null, text: '', order_by: '' }, critKey: '', pageCache: new Map(), cacheGen: 0, distinct: new Map(), hooked: [], fields: [] };
   function aynaScreenOf(config) {
     let ag = config && config.agent;
     if (typeof ag === 'string') { try { ag = JSON.parse(ag); } catch (e) { ag = null; } }
@@ -4340,7 +4341,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // this table instance is the live one (Bubble re-renders the element; a stale instance must go quiet)
   function aynaAlive() { try { const c = document.getElementById('hot-container'); return !els || !els.container || c === els.container; } catch (e) { return true; } }
   // a non-mirror write (rows from Bubble, or columns removed) cancels any waiting / in-flight mirror load
-  function aynaCancel() { AYNA.seq++; AYNA.loading = false; AYNA.stats = null; AYNA.last = null; AYNA.screenKey = ''; AYNA.cfg = null; AYNA.win = null; AYNA.critKey = ''; AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.pageCache.clear(); aynaSetStatus(''); aynaProgress(0); aynaPager(); }
+  function aynaCancel() { AYNA.seq++; AYNA.cacheGen++; AYNA.loading = false; AYNA.stats = null; AYNA.last = null; AYNA.screenKey = ''; AYNA.cfg = null; AYNA.win = null; AYNA.critKey = ''; AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.pageCache.clear(); AYNA.distinct.clear(); aynaSetStatus(''); aynaProgress(0); aynaPager(); }
   // the screen id can land after the config and changes when the founder switches screens (observer → here)
   function aynaRescreen() {
     try {
@@ -4399,6 +4400,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     requestAnimationFrame(() => { refreshTable(rows); aynaHookHot(); requestAnimationFrame(() => { try { c.style.opacity = '1'; } catch (e) {} }); });
   }
   // ── window mode: the filter panel / column sort / search box → mirror query ──
+  // a local calendar day ("YYYY-MM-DD…") → its two UTC instants; the mirror compares instants, and stored values are either
+  // date-only text or "…T21:00:00Z" (local midnight in Istanbul), so the bounds must be the LOCAL day's edges
+  function aynaDayBounds(dayText) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dayText || ''));
+    if (!m) return null;
+    const y = Number(m[1]), mo = Number(m[2]) - 1, d = Number(m[3]);
+    return [new Date(y, mo, d, 0, 0, 0, 0).toISOString(), new Date(y, mo, d, 23, 59, 59, 999).toISOString()];
+  }
   // panel condition → mirror condition (the twin of gxHotCondition; null = no condition)
   function gxDslCondition(col, conditionId, term) {
     const k = col ? dtKind(col) : 'text', f = col.id;
@@ -4409,15 +4418,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return op ? { field: f, op: op, value: String(n) } : null;
     }
     if (k === 'date') {
-      const today = gxPartsFromDate(new Date()), HI = 'T23:59:59';
-      if (conditionId === 'date_today') return { field: f, op: 'between', value: [gxIsoDate(today), gxIsoDate(today) + HI] };
-      if (conditionId === 'date_before_today') return { field: f, op: 'lt', value: gxIsoDate(today) };
-      if (conditionId === 'date_next_7') return { field: f, op: 'between', value: [gxIsoDate(today), dtAddDays(today, 7) + HI] };
-      if (conditionId === 'date_last_7') return { field: f, op: 'between', value: [dtAddDays(today, -7), gxIsoDate(today) + HI] };
+      const today = gxPartsFromDate(new Date()), T = aynaDayBounds(gxIsoDate(today));
+      if (conditionId === 'date_today') return { field: f, op: 'between', value: T };
+      if (conditionId === 'date_before_today') return { field: f, op: 'lt', value: T[0] };
+      if (conditionId === 'date_next_7') return { field: f, op: 'between', value: [T[0], aynaDayBounds(dtAddDays(today, 7))[1]] };
+      if (conditionId === 'date_last_7') return { field: f, op: 'between', value: [aynaDayBounds(dtAddDays(today, -7))[0], T[1]] };
       const p = gxParseDate(term, { dateOnly: true }); if (!p) return null;
-      if (conditionId === 'date_on') return { field: f, op: 'between', value: [gxIsoDate(p), gxIsoDate(p) + HI] };
-      if (conditionId === 'date_before') return { field: f, op: 'lt', value: gxIsoDate(p) };
-      if (conditionId === 'date_after') return { field: f, op: 'gt', value: gxIsoDate(p) + HI };
+      const D = aynaDayBounds(gxIsoDate(p));
+      if (conditionId === 'date_on') return { field: f, op: 'between', value: D };
+      if (conditionId === 'date_before') return { field: f, op: 'lt', value: D[0] };
+      if (conditionId === 'date_after') return { field: f, op: 'gt', value: D[1] };
       return null;
     }
     if (k === 'boolean') return conditionId === 'is_checked' ? { field: f, op: 'eq', value: 'true' } : { field: f, op: 'ne', value: 'true' };
@@ -4439,24 +4449,85 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       else if (conds.length === 1) c = conds[0];
       if (c) all.push(c);
       const values = Array.isArray(config.values) ? config.values.map(v => String(v)).filter(v => v !== '') : [];
-      if (values.length) {
-        const multi = (colDef.type === 'dropdown' && colDef.multiple === true) || (typeof dtFilterKind === 'function' && dtFilterKind(colDef) === 'tags');
-        all.push(multi ? { or: values.map(v => ({ field: colDef.id, op: 'has', value: v })) } : { field: colDef.id, op: 'in', value: values });
-      }
+      if (values.length) { const vc = gxDslValueCond(colDef, values); if (vc) all.push(vc); }
     });
     return all.length ? all : null;
   }
-  // the grid's column sort → order_by ("Field asc")
+  // the panel's checked values are dtValueKeys keys ('s:text' · 't:token' · 'n:number' · 'd:iso' · 'b:bool' · blank token):
+  // decoded per kind into what the mirror compares (review finding: sent verbatim they matched nothing)
+  function gxDslValueCond(colDef, keys) {
+    const f = colDef.id, texts = [], nums = [], days = [], bools = []; let blank = false;
+    keys.forEach(key => {
+      key = String(key);
+      if (key === BLANK_VALUE_TOKEN) { blank = true; return; }
+      const p = key.slice(0, 2), v = key.slice(2);
+      if (p === 'n:') nums.push(v); else if (p === 'd:') days.push(v); else if (p === 'b:') bools.push(v === 'true'); else if (p === 't:' || p === 's:') texts.push(v); else texts.push(key);
+    });
+    const parts = [];
+    const multi = (colDef.type === 'dropdown' && (colDef.multiple === true || (typeof dtFilterKind === 'function' && dtFilterKind(colDef) === 'tags')));
+    if (texts.length) parts.push(multi ? { or: texts.map(v => ({ field: f, op: 'has', value: v })) } : { field: f, op: 'in', value: texts });
+    if (nums.length) parts.push({ field: f, op: 'in', value: nums });
+    if (days.length) parts.push({ or: days.map(d => ({ field: f, op: 'between', value: aynaDayBounds(d) })).filter(c => c.value) });
+    if (bools.length) parts.push(bools.length > 1 ? { field: f, op: 'not_empty' } : { field: f, op: bools[0] ? 'eq' : 'ne', value: 'true' });
+    if (blank) parts.push({ field: f, op: 'empty' });
+    if (!parts.length) return null;
+    return parts.length === 1 ? parts[0] : { or: parts };
+  }
+  // window mode: the panel's value list is fed from the mirror (group_by on the column over the whole table), not from the
+  // page on screen; keys/labels are built exactly like getColumnDistinctValues so the OK handler needs no change
+  async function aynaFillDistinct(columnIndex) {
+    try {
+      const col = getColumnAt(columnIndex), tableId = AYNA.stats && AYNA.stats.table && AYNA.stats.table.id;
+      if (!aynaWindowed() || !col || !col.id || col.__uiOnly || !tableId || !state.filterDraft || state.filterDraft.columnIndex !== columnIndex) return;
+      const ck = tableId + '|' + col.id; let hit = AYNA.distinct.get(ck);
+      if (!hit || Date.now() - hit.at > AYNA.cacheTtlMs) {
+        const r = await aynaBridge('mirror_query', { query: { table: tableId, group_by: col.id, limit: 500 } });
+        if (!r.ok) return;
+        const rows = Array.isArray(r.data && r.data.rows) ? r.data.rows : [];
+        hit = { at: Date.now(), values: rows.map(g => g[col.id]).filter(v => v !== undefined) };
+        AYNA.distinct.set(ck, hit); if (AYNA.distinct.size > 60) { const oldest = AYNA.distinct.keys().next().value; AYNA.distinct.delete(oldest); }
+      }
+      const draft = state.filterDraft;
+      if (!draft || draft.columnIndex !== columnIndex || !aynaAlive()) return;
+      const have = new Set(draft.allValues.map(i => i.raw)), wasAll = draft.selectedValues.size >= draft.allValues.length;
+      let added = 0;
+      hit.values.forEach(v => {
+        const typed = dtTypedValue(col, v), keys = dtValueKeys(col, typed), toks = col.type === 'dropdown' ? dtDropdownTokens(col, typed) : null;
+        keys.forEach((key, i) => {
+          if (have.has(key)) return; have.add(key); added++;
+          let label, sortKey = null, group = 2;
+          if (key === BLANK_VALUE_TOKEN) { label = '(Blank cells)'; group = 0; }
+          else if (key.indexOf('n:') === 0) { label = dtNumberText(col, typed); sortKey = typed; group = 1; }
+          else if (key.indexOf('d:') === 0) { label = dtIsoText(typed); sortKey = typed; group = 1; }
+          else if (key.indexOf('b:') === 0) { label = typed ? 'Checked' : 'Not checked'; sortKey = typed ? 0 : 1; group = 1; }
+          else if (key.indexOf('t:') === 0 && toks) label = toks[i];
+          else label = dtRawText(typed);
+          draft.allValues.push({ raw: key, label: String(label), sortKey: sortKey, group: group });
+          if (wasAll) draft.selectedValues.add(key);
+        });
+      });
+      if (!added) return;
+      const coll = dtCollator();
+      draft.allValues.sort((a, b) => a.group !== b.group ? a.group - b.group : (a.group === 1 ? (a.sortKey < b.sortKey ? -1 : (a.sortKey > b.sortKey ? 1 : 0)) : coll.compare(a.label, b.label)));
+      renderFilterValueList();
+    } catch (e) {}
+  }
+  // the grid's column sort → order_by ("Field asc"); with no column sort, the due-date sort (when on) orders by its first
+  // date field on the server — a page-local reorder would silently show the wrong "first" rows (review finding)
   function aynaSortOrderBy() {
     try {
-      if (!state.hot || typeof state.hot.getPlugin !== 'function') return '';
-      const cs = state.hot.getPlugin('columnSorting'); if (!cs || typeof cs.getSortConfig !== 'function') return '';
-      const cfg = cs.getSortConfig(); const s = Array.isArray(cfg) ? cfg[0] : cfg;
-      if (!s || !Number.isInteger(s.column)) return '';
-      const phys = typeof state.hot.toPhysicalColumn === 'function' ? state.hot.toPhysicalColumn(s.column) : s.column;
-      const col = (state._mountedCols || [])[phys] || getColumnAt(phys);
-      if (!col || col.__uiOnly || !col.id) return '';
-      return col.id + ' ' + (s.sortOrder === 'desc' ? 'desc' : 'asc');
+      if (state.hot && typeof state.hot.getPlugin === 'function') {
+        const cs = state.hot.getPlugin('columnSorting');
+        const cfg = cs && typeof cs.getSortConfig === 'function' ? cs.getSortConfig() : null; const s = Array.isArray(cfg) ? cfg[0] : cfg;
+        if (s && Number.isInteger(s.column)) {
+          const phys = typeof state.hot.toPhysicalColumn === 'function' ? state.hot.toPhysicalColumn(s.column) : s.column;
+          const col = (state._mountedCols || [])[phys] || getColumnAt(phys);
+          if (col && !col.__uiOnly && col.id) return col.id + ' ' + (s.sortOrder === 'desc' ? 'desc' : 'asc');
+        }
+      }
+      const dd = state.dueDateSort;
+      if (dd && dd.active && Array.isArray(dd.fields) && dd.fields.length && dd.fields[0]) return String(dd.fields[0]) + ' asc';
+      return '';
     } catch (e) { return ''; }
   }
   // recompute the criteria from the panel / grid / box; a change → page 1 of the new answer. Returns true when a
@@ -4472,14 +4543,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   function aynaPages() { return AYNA.win ? Math.max(1, Math.ceil((AYNA.win.total || 0) / AYNA.win.size)) : 1; }
   function aynaGoPage(n) { if (!aynaWindowed()) return; const p = Math.max(1, Math.min(aynaPages(), Number(n) || 1)); if (p === AYNA.win.page) return; AYNA.win.page = p; aynaRequery(); }
-  function aynaSetPageSize(size) { if (!aynaWindowed()) return; const s = Math.max(50, Math.min(2000, Number(size) || 200)); if (s === AYNA.win.size) return; AYNA.win.size = s; AYNA.win.page = 1; AYNA.pageCache.clear(); aynaRequery(); }
+  function aynaSetPageSize(size) { if (!aynaWindowed()) return; const s = Math.max(50, Math.min(2000, Number(size) || 200)); if (s === AYNA.win.size) return; AYNA.win.size = s; AYNA.win.page = 1; AYNA.cacheGen++; AYNA.pageCache.clear(); aynaRequery(); }
   function aynaQueryFor(page) { const size = AYNA.win.size, offset = (page - 1) * size; const q = { limit: size, offset: offset, order_by: AYNA.criteria.order_by || '_created asc' }; if (AYNA.criteria.where) q.where = AYNA.criteria.where; if (AYNA.criteria.text) q.text = AYNA.criteria.text; return q; }
   async function aynaFetchPage(scr, page) {
-    const ck = AYNA.critKey + '|' + AYNA.win.size + '|' + page;
+    // the key carries the screen and a generation (bumped by every load / cancel / page-size change): a page answer that
+    // lands after the screen changed or the cache was cleared can never be served as a page of the next screen (review finding)
+    const gen = AYNA.cacheGen, ck = AYNA.screenKey + '|' + gen + '|' + AYNA.critKey + '|' + AYNA.win.size + '|' + page;
     const hit = AYNA.pageCache.get(ck);
     if (hit && Date.now() - hit.at < AYNA.pageCacheTtlMs) return { ok: true, data: hit.data, cached: true };
     const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined, query: aynaQueryFor(page) });
-    if (r.ok) { AYNA.pageCache.set(ck, { data: r.data, at: Date.now() }); if (AYNA.pageCache.size > 40) { const oldest = AYNA.pageCache.keys().next().value; AYNA.pageCache.delete(oldest); } }
+    if (r.ok && gen === AYNA.cacheGen) { AYNA.pageCache.set(ck, { data: r.data, at: Date.now() }); if (AYNA.pageCache.size > 40) { const oldest = AYNA.pageCache.keys().next().value; AYNA.pageCache.delete(oldest); } }
     return r;
   }
   // one page of the current answer into the grid (window mode)
@@ -4521,7 +4594,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function aynaLoad(config, columns) {
     let scr = aynaScreenOf(config);
     const seq = ++AYNA.seq;
-    AYNA.loading = true; AYNA.last = null; AYNA.cfg = config; AYNA.screenKey = ''; AYNA.win = null; AYNA.critKey = ''; AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.pageCache.clear(); AYNA.fields = aynaFieldsOf(columns);
+    AYNA.loading = true; AYNA.last = null; AYNA.cfg = config; AYNA.screenKey = ''; AYNA.win = null; AYNA.critKey = ''; AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.cacheGen++; AYNA.pageCache.clear(); AYNA.distinct.clear(); AYNA.fields = aynaFieldsOf(columns);
     // the Bubble config may tune the two thresholds: "mirror_full_max" (a screen up to this many rows is loaded whole) and
     // "mirror_page" (rows per page in window mode)
     AYNA.fullLoadMax = Math.max(0, Number(config.mirror_full_max)) || 600; AYNA.windowSize = Math.max(50, Math.min(2000, Number(config.mirror_page) || 200));
@@ -4578,7 +4651,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (pages === 1 && total > AYNA.fullLoadMax) {
           AYNA.win = { page: 1, size: AYNA.windowSize, total: total };
           AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.critKey = JSON.stringify(AYNA.criteria);
-          AYNA.pageCache.set(AYNA.critKey + '|' + AYNA.win.size + '|1', { data: d, at: Date.now() });
+          AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + AYNA.win.size + '|1', { data: d, at: Date.now() });
           aynaPaint(page, columns, true);
           AYNA.stats = { rows: page.length, total: total, page: 1, pages: aynaPages(), size: AYNA.win.size, ms: Date.now() - t0, fresh: fresh, preview: preview, cached: false, windowed: true, table: table, screen: scr };
           aynaSetStatus('window', AYNA.stats); aynaPager(); aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
@@ -4619,7 +4692,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       else if (kind === 'refreshing') el.textContent = n(info && info.rows || 0) + ' rows · refreshing' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
       else if (kind === 'paging') el.textContent = 'Loading page ' + n(info.page) + '…';
       else if (kind === 'waiting') el.textContent = 'Waiting for the screen id…';
-      else if (kind === 'window') { const from = (info.page - 1) * info.size + 1, to = Math.min(info.total, info.page * info.size); el.textContent = (info.total ? 'Rows ' + n(from) + '–' + n(to) + ' of ' + n(info.total) : 'No rows') + ' · mirror' + (AYNA.criteria.where || AYNA.criteria.text ? ' · filtered' : '') + (info.fresh === false ? ' (syncing)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms'; }
+      else if (kind === 'window') { const from = (info.page - 1) * info.size + 1, to = Math.min(info.total, info.page * info.size); el.textContent = (info.total ? 'Rows ' + n(from) + '–' + n(to) + ' of ' + n(info.total) : 'No rows') + ' · mirror' + (AYNA.criteria.where || AYNA.criteria.text ? ' · filtered' : '') + (AYNA.criteria.order_by ? ' · sorted by ' + AYNA.criteria.order_by : '') + (info.fresh === false ? ' (syncing)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms'; }
       else if (kind === 'ready') el.textContent = n(info.total || 0) + ' rows · mirror' + (info.fresh === false ? ' (syncing, may be a minute old)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms';
       else if (kind === 'error') el.textContent = 'Mirror unavailable: ' + (info && info.message ? info.message : '') + (info && info.fallback ? ' (showing the ' + n(info.fallback) + ' rows already loaded)' : ' (no rows loaded)');
       else el.textContent = '';
@@ -4673,7 +4746,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     page: function (n) { aynaGoPage(n); }, pageSize: function (s) { aynaSetPageSize(s); },
     search: function (term) { try { if (els && els.search) els.search.value = String(term || ''); } catch (e) {} return aynaCriteriaChanged('search', term); },   // the box is the source of truth (a re-mount re-reads it)
     dsl: function () { return { where: gxDslWhere(), order_by: aynaSortOrderBy() }; },
-    dslFor: function (cfgs) { const keep = state.filterConfigs; state.filterConfigs = cfgs || {}; try { return gxDslWhere(); } finally { state.filterConfigs = keep; } }   // harness: translate a given panel state
+    dslFor: function (cfgs) { const keep = state.filterConfigs; state.filterConfigs = cfgs || {}; try { return gxDslWhere(); } finally { state.filterConfigs = keep; } },   // harness: translate a given panel state
+    openFilter: function (i) { try { openFilterPanel(Number(i)); return true; } catch (e) { return String(e && e.message || e); } }   // harness: open the panel for a column
   };
   /* AYNA-TABLE-END */
 
@@ -6398,6 +6472,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       allValues,
       selectedValues
     };
+    // AYNA window mode: the page on screen holds only part of the values → the list is completed from the mirror (async)
+    if (typeof aynaWindowed === 'function' && aynaWindowed()) aynaFillDistinct(columnIndex);
 
     if (els.filterConditionSelect) {
       els.filterConditionSelect.value = state.filterDraft.condition;
