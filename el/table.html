@@ -4308,6 +4308,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // empty list ("data": []) is Bubble's own expression answering (also its two-step render) → the old path, untouched.
   // Two modes (mr13):
   //   · a small screen (≤ fullLoadMax rows) is loaded whole — filters, sorting and search stay in the grid as before;
+  //   · (mr17) a screen seen in the last 10 minutes paints at once from memory (page 1 in window mode) and refreshes underneath;
+  //     the first request leaves before the grid is built
   //   · a big screen is WINDOWED: the grid only ever holds one page (windowSize rows); the filter panel, the column sort
   //     and the search box are translated into the mirror query language and answered by the server; a pager under the
   //     status line moves between pages, the next page is prefetched. Nothing bigger than a page reaches the browser.
@@ -4393,6 +4395,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   function aynaFieldsOf(columns) { return (Array.isArray(columns) ? columns : []).map(c => String((c && (c.id || c.field || c.name)) || '').trim()).filter(Boolean); }
   function aynaScrolled() { try { const w = els && els.container ? els.container.querySelector('.wtHolder') : null; return !!(w && w.scrollTop > 0); } catch (e) { return false; } }
+  function aynaSameRows(a, b) { try { if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false; for (let i = 0; i < a.length; i++) { if (a[i] !== b[i] && JSON.stringify(a[i]) !== JSON.stringify(b[i])) return false; } return true; } catch (e) { return false; } }
   function aynaPaint(rows, columns, first) {
     const c = els && els.container;
     if (first || !c) { if (first) setTableData(rows, columns); else refreshTable(rows); aynaHookHot(); return; }
@@ -4624,10 +4627,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         }
       }
       AYNA.screenKey = scr.key;
+      // mr17: the first request leaves BEFORE the grid is built (the empty grid, or the cached page, is painted while it travels)
+      const firstReq = aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: 0, limit: AYNA.windowSize, fresh: true, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined });
       const cached = AYNA.cache.get(scr.key);
       if (cached && Date.now() - cached.at < AYNA.cacheTtlMs && Array.isArray(cached.rows) && cached.rows.length) {
+        // a screen seen in the last 10 minutes paints at once from memory and refreshes underneath; in window mode the cached
+        // page is page 1 of the cached total (pager up at once) until the fresh answer replaces it
+        if (cached.windowed) { AYNA.win = { page: 1, size: AYNA.windowSize, total: cached.total || cached.rows.length }; AYNA.critKey = JSON.stringify(AYNA.criteria); }
         aynaPaint(cached.rows, columns, true); painted = true; fromCache = true;
-        aynaSetStatus('refreshing', { rows: cached.rows.length });
+        aynaSetStatus('refreshing', { rows: cached.rows.length, total: cached.windowed ? (cached.total || 0) : 0, windowed: !!cached.windowed }); aynaPager();
       } else {
         setTableData([], columns);
         aynaSetStatus('loading', { rows: 0 });
@@ -4635,7 +4643,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       aynaProgress(3);
       while (offset < AYNA.maxRows) {
         const limit = offset === 0 ? AYNA.windowSize : AYNA.pageSize;
-        const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: limit, fresh: offset === 0, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined });
+        const r = offset === 0 ? await firstReq : await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: limit, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined });
         if (seq !== AYNA.seq || !aynaAlive()) return;
         if (!r.ok) {
           AYNA.last = r;
@@ -4656,13 +4664,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           AYNA.win = { page: 1, size: AYNA.windowSize, total: total };
           AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.critKey = JSON.stringify(AYNA.criteria);
           AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + AYNA.win.size + '|1', { data: d, at: Date.now() });
-          aynaPaint(page, columns, true);
+          AYNA.cache.set(scr.key, { rows: page, at: Date.now(), windowed: true, total: total }); if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }   // mr17: the next visit paints this page at once
+          if (fromCache && cached.windowed) { if (!aynaSameRows(cached.rows, page)) aynaPaint(page, columns, false); else aynaHookHot(); }   // painted from the cache already: only a changed page is repainted (fade)
+          else aynaPaint(page, columns, true);
           AYNA.stats = { rows: page.length, total: total, page: 1, pages: aynaPages(), size: AYNA.win.size, ms: Date.now() - t0, fresh: fresh, preview: preview, cached: false, windowed: true, table: table, screen: scr };
           aynaSetStatus('window', AYNA.stats); aynaPager(); aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
           log('[AYNA] windowed', AYNA.stats);
           setTimeout(() => { if (seq === AYNA.seq && aynaWindowed()) aynaFetchPage(scr, 2).catch(() => {}); }, 300);
           return;
         }
+        if (pages === 1 && AYNA.win) { AYNA.win = null; aynaPager(); }   // mr17: the cached visit was windowed, the screen is small now → loaded whole
         const done = !page.length || offset >= total;
         aynaProgress(total ? Math.max(3, Math.min(100, Math.round(100 * rows.length / total))) : 50);
         if (!painted) { aynaPaint(rows, columns, true); painted = true; paintedRows = rows.length; lastPaint = Date.now(); }
@@ -4693,7 +4704,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
       const n = (x) => (typeof x === 'number' ? x.toLocaleString('en-US') : x);
       if (kind === 'loading') el.textContent = 'Loading rows' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
-      else if (kind === 'refreshing') el.textContent = n(info && info.rows || 0) + ' rows · refreshing' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
+      else if (kind === 'refreshing') el.textContent = (info && info.windowed && info.total) ? ('Rows 1–' + n(info.rows) + ' of ' + n(info.total) + ' · refreshing…') : (n(info && info.rows || 0) + ' rows · refreshing' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…');
       else if (kind === 'paging') el.textContent = 'Loading page ' + n(info.page) + '…';
       else if (kind === 'searching') el.textContent = 'Searching…';
       else if (kind === 'filtering') el.textContent = 'Filtering…';
@@ -4748,6 +4759,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   window.gaiaTableMirror = {
     reload: function () { const s = document.getElementById('bubble-table-config'); try { const c = parseBubbleConfig((s && s.textContent) || '{}'); if (aynaMode(c)) { AYNA.cache.delete(aynaScreenOf(c).key); return aynaLoad(c, c.columns); } } catch (e) {} return null; },
+    revisit: function () { const s = document.getElementById('bubble-table-config'); try { const c = parseBubbleConfig((s && s.textContent) || '{}'); if (aynaMode(c)) return aynaLoad(c, c.columns); } catch (e) {} return null; },   // harness: a second visit of the same screen (cache kept)
     status: function () { return { loading: AYNA.loading, last: AYNA.last, stats: AYNA.stats, cached: AYNA.cache.size, windowed: aynaWindowed(), criteria: AYNA.criteria, page: AYNA.win ? AYNA.win.page : null }; },
     mode: function () { const s = document.getElementById('bubble-table-config'); try { return aynaMode(parseBubbleConfig((s && s.textContent) || '{}')); } catch (e) { return false; } },
     page: function (n) { aynaGoPage(n); }, pageSize: function (s) { aynaSetPageSize(s); },
