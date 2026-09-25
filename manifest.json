@@ -1,9 +1,17 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
-    "channel":  "main",
-    "rev":  2,
-    "updated":  "2026-09-24T20:38:48Z",
+    "channel":  "dev",
+    "rev":  3,
+    "updated":  "2026-09-25T15:55:51Z",
     "elements":  {
+                     "architect":  {
+                                       "commit":  "a016258a93978cc63df90a336d6c3ed7bb7391e0",
+                                       "path":  "el/architect.html",
+                                       "blob":  "ca00e1d3778937b58bd6b1fec80aaf6f66fbba4d",
+                                       "bytes":  2952319,
+                                       "title":  "AI Architect / GAD (+ Octo shell) - app page",
+                                       "updated":  "2026-09-25T15:55:51Z"
+                                   },
                      "chat":  {
                                   "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
                                   "path":  "el/chat.html",
