@@ -42921,6 +42921,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 #octo-rail .octo-rail-ds-name { font: 600 13px/18px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #octo-rail .octo-rail-facts { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--octo-ink-2); font: 500 12px/16px var(--octo-font); font-variant-numeric: tabular-nums; }
 #octo-rail .octo-rail-fact.is-live { color: var(--octo-accent); }
+/* G: writer local = plan only; E: a field name bound to another table */
+#octo-rail .octo-rail-fact.is-tag { padding: 0 8px; border-radius: var(--octo-r9); background: rgba(180, 83, 9, .1); color: var(--octo-warn); font-weight: 600; }
 #octo-rail .octo-rail-tb {
   display: flex;
   align-items: center;
@@ -43079,6 +43081,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 #octo-rail .octo-rail-chip.is-sugg { box-shadow: inset 0 0 0 1.5px rgba(99, 102, 241, .45); }
 #octo-rail .octo-rail-chip.is-on { background: var(--octo-accent); color: #fff; box-shadow: none; }
 #octo-rail .octo-rail-chip.is-token { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--octo-accent); }
+#octo-rail .octo-rail-chip.is-warn { box-shadow: inset 0 0 0 1.5px rgba(180, 83, 9, .45); color: var(--octo-warn); }
+#octo-rail .octo-rail-chip.is-warn.is-on { background: var(--octo-warn); color: #fff; box-shadow: none; }
+#octo-rail .octo-rail-chip:disabled { cursor: default; opacity: .7; }
+#octo-rail .octo-rail-remap { display: flex; gap: 6px; align-items: center; }
+#octo-rail .octo-rail-remap .octo-rail-input { flex: 1 1 auto; min-width: 0; }
 #octo-rail .octo-rail-stepper { display: inline-flex; align-items: center; gap: 4px; }
 #octo-rail .octo-rail-stepper-val {
   min-width: 36px;
@@ -43114,7 +43121,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 }
 #octo-rail .octo-rail-col-name { color: var(--octo-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #octo-rail .octo-rail-col-n { color: var(--octo-ink-3t); font-variant-numeric: tabular-nums; }
-#octo-rail .octo-rail-nums { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#octo-rail .octo-rail-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
 #octo-rail .octo-rail-num { padding: 10px 12px; border-radius: var(--octo-r2); background: var(--octo-bg); }
 #octo-rail .octo-rail-num-v { font: 700 24px/30px var(--octo-font); font-variant-numeric: tabular-nums; }
 #octo-rail .octo-rail-num-l { color: var(--octo-ink-2); font: 600 12px/16px var(--octo-font); }
@@ -47898,7 +47905,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     c: {}, ds: { byId: {}, loaded: false, err: '', unavailable: false },
     collapsed: false, phone: false, sheet: '', embed: null,
     wake: 'idle', note: '', sentTimer: null, noteGone: false,
-    tb: {}, run: {}, runErr: {}, dec: {},
+    tb: {}, run: {}, runErr: {}, dec: {}, plan: {},
     setup: null, afterAgent: null,
     agent: null, portal: null, conn: null, dsPoll: null,
     pending: false, trace: []
@@ -48156,7 +48163,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     M.gen++;
     M.key = ''; M.ctx = null; M.handle = null; M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0; M.writing = 0;
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
-    M.embed = null; M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {};
+    M.embed = null; M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
     M.wake = 'idle'; M.note = ''; M.noteGone = false; M.yielded = false; M.sheet = '';
     return true;
   }
@@ -48260,7 +48267,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0;
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
     M.setup = null; M.noteGone = false; M.note = ''; setWake('idle');
-    M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {};
+    M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
     stopConn(); stopDsPoll();
     closeEmbed();
     try { octo.warm('rail'); } catch (e) { /* yut */ }
@@ -49187,10 +49194,19 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (rc === 0 && e.status === 'ready') { facts.appendChild(el('span', 'octo-rail-fact', 'No rows')); }
       else { facts.appendChild(el('span', 'octo-rail-fact', plural(rc, 'row', 'rows').replace(/^\d+/, fmtCount(rc)))); }
     }
+    var local = planOnly(l);
+    if (local) { facts.insertBefore(el('span', 'octo-rail-fact is-tag', 'Plan only'), facts.firstChild); }
+    // D (convergence): 30 gun sorgulanmayan kume satirlarini birakir; ilk sorgu yeniden yukler.
+    if (e.status === 'evicted') { facts.appendChild(el('span', 'octo-rail-fact', 'Not loaded')); }
     var ago = rel(e.synced_at);
     if (ago) { facts.appendChild(el('span', 'octo-rail-fact', ago)); }
     var to = num(e.tasks_open);
-    if (to !== null) { facts.appendChild(el('span', 'octo-rail-fact', fmtCount(to) + ' tasks open')); }
+    if (to !== null && !local) { facts.appendChild(el('span', 'octo-rail-fact', fmtCount(to) + ' tasks open')); }
+    // G: plan cevabi (os_ds_run plan) varsa planlanan ve SIRADA (queued, dalga disi, yazilmaz) sayilari.
+    var ps = M.plan[id] || {};
+    var pd = isObj(ps.d) ? ps.d : null;
+    if (pd && local && num(pd.planned) !== null) { facts.appendChild(el('span', 'octo-rail-fact', fmtCount(pd.planned) + ' planned')); }
+    if (pd && num(pd.queued) !== null && pd.queued > 0) { facts.appendChild(el('span', 'octo-rail-fact', fmtCount(pd.queued) + ' queued')); }
     if (job && job.status === 'running' && isObj(job.progress)) {
       var pr = job.progress;
       var n = null, unit = '';
@@ -49205,12 +49221,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // job son is olarak kalir: 'error' (budget, archive_denied, ...) da Try again ister (SERVER_CONTRACT 23).
     var bad = (job && (job.status === 'stale' || job.status === 'error')) || e.status === 'error' || M.run[id] === 'error';
     if (hasRule) {
-      var rb = btn('is-ghost', 'Run again', null, 'run');
+      // writer 'local' (Ofis betigi yazar): Run again yalniz plan kosar; apply hic gonderilmez.
+      var rb = btn('is-ghost', 'Run again', null, local ? 'plan' : 'run');
       rb.setAttribute('data-ds', id);
-      if (running) { rb.disabled = true; rb.appendChild(spin()); }
+      if (running || (local && ps.busy)) { rb.disabled = true; rb.appendChild(spin()); }
       else { rb.appendChild(octo.icon('refresh', 16)); }
       rb.appendChild(el('span', '', 'Run again'));
-      rb.addEventListener('click', function () { runDs(id, false); });
+      rb.addEventListener('click', function () { if (local) { loadPlan(id); } else { runDs(id, false); } });
       acts.appendChild(rb);
     } else {
       var kb = btn('is-ghost', 'Know your data', 'Know your data', 'know');
@@ -49243,8 +49260,167 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     if (bad && !running && stop) { box.appendChild(stopRow(stop)); }
     // Kural yoksa os_ds_run rule_missing doner: Try again veriyi yeniden ice alir.
     else if (bad && !running) { box.appendChild(errRow(function () { if (hasRule) { runDs(id, false); } else { ingestDs(id); } })); }
+    if (local && !ps.busy && ps.err) { box.appendChild(planErr(id, ps.err)); }
     if (hasRule) { box.appendChild(tbRow(l)); }
     return box;
+  }
+  // ---- G / E (convergence): plan-only yazar, SIRADA sayisi ve alan adi cakismasi
+  // CONV-AUDIT G-1: sunucu, kuraldaki writer:'local' bayragini girdiye tasir (links.data[i].writer, geri alinmaz); ikisi de plan-only
+  function planOnly(l) { return isObj(l) && (l.writer === 'local' || (isObj(l.rule) && l.rule.writer === 'local')); }
+  // os_ds_run mode 'plan': senkron, yazmaz (SERVER_CONTRACT 25). Cevap M.plan[id].d; kart ve adim 9 okur.
+  function loadPlan(dsId) {
+    if (!RE.ds.test(dsId)) { return; }
+    var st = M.plan[dsId] = M.plan[dsId] || {};
+    if (st.busy) { return; }
+    st.busy = true;
+    st.err = '';
+    paintSoon('data');
+    if (M.setup) { paintSoon('setup'); }
+    var g = M.gen;
+    M.seq++;
+    octo.request('os_ds_run', { sheet_id: sheetId(), dataset_id: dsId, mode: 'plan' }, { cacheKey: 'os_ds_run|plan|' + dsId + '|' + M.seq }).then(function (d) {
+      if (g !== M.gen) { return; }
+      st.busy = false;
+      st.d = isObj(d) ? d : null;
+      paintSoon('data');
+      if (M.setup) { paintSoon('setup'); }
+    }, function (err) {
+      if (g !== M.gen) { return; }
+      st.busy = false;
+      st.err = str(err && err.code) || 'provider_error';
+      // not_found: kume bosaltilmis (evicted) ya da hazir degil; sunucu yeniden yuklemeyi baslatti, kart tazelenir.
+      if (st.err === 'not_found') { cardRefresh('data'); }
+      paintSoon('data');
+      if (M.setup) { paintSoon('setup'); }
+    });
+  }
+  function planErr(dsId, code) {
+    if (code === 'bad_request') { return stopRow('bad_request'); }
+    if (code === 'not_found') { return muted('Loading data again'); }
+    return errRow(function () { loadPlan(dsId); });
+  }
+  // E: sunucunun bildirdigi cakisan alan adlari (plan cevabi ya da durum satiri; SERVER_CONTRACT 25.3).
+  function conflictsOf(dsId) {
+    var out = [];
+    var srcs = [(M.plan[dsId] || {}).d, dsEntry(dsId)];
+    for (var i = 0; i < srcs.length; i++) {
+      var a = isObj(srcs[i]) && isArr(srcs[i].fields_conflict) ? srcs[i].fields_conflict : [];
+      for (var j = 0; j < a.length && out.length < 12; j++) {
+        var n = str(a[j]).slice(0, 100);
+        if (n && out.indexOf(n) < 0) { out.push(n); }
+      }
+    }
+    return out;
+  }
+  var CANON = ['Task', 'Action', 'Who', 'Contact', 'Channel', 'Message', 'Link', 'Items', 'Item keys', 'Source', 'Status', 'Done at'];
+  function fold(v) { return str(v).replace(/\s+/g, ' ').trim().toLowerCase(); }
+  // Ad -> kanonik alan (field_map ya da on ek + ad; Task -> '<onek>Title'). Durum politikasi alanlari v1'de
+  // arayuzde duzenlenmez: kanonik degilse null (cip yalniz gosterilir).
+  function canonOf(rule, name) {
+    var f = fold(name);
+    var fm = isObj(rule.field_map) ? rule.field_map : {};
+    for (var k in fm) { if (Object.prototype.hasOwnProperty.call(fm, k) && CANON.indexOf(k) >= 0 && fold(fm[k]) === f) { return k; } }
+    var p = typeof rule.field_prefix === 'string' ? rule.field_prefix : 'Task ';
+    if (/[A-Za-z]$/.test(p)) { p += ' '; }
+    for (var i = 0; i < CANON.length; i++) {
+      var c = CANON[i];
+      var n = p ? (c === 'Task' ? p + 'Title' : p + c) : c;
+      if (fold(n) === f) { return c; }
+    }
+    return null;
+  }
+  function conflictBox(s) {
+    var names = conflictsOf(s.dsId);
+    if (!names.length || !s.rule) { return null; }
+    var r = ruleOut(s);
+    var wrap = el('div', 'octo-rail-field-row');
+    wrap.setAttribute('data-k', 'conflicts');
+    wrap.appendChild(el('div', 'octo-rail-label', 'Name taken'));
+    var cc = el('div', 'octo-rail-chips');
+    var shown = 0;
+    for (var i = 0; i < names.length; i++) {
+      (function (nm) {
+        var key = canonOf(r, nm);
+        // kullanici bu kanonik alani baska bir ada esledi: cakisma cozuldu, cip cizilmez
+        if (key && s.rule.field_map[key] && fold(s.rule.field_map[key]) !== fold(nm)) { return; }
+        shown++;
+        var on = !!(s.remap && s.remap.name === nm);
+        var b = chip(nm, on, function () {
+          if (!key) { return; }
+          s.remap = on ? null : { name: nm, key: key, val: nm + ' 2' };
+          paintSoon('setup');
+        }, 'is-warn');
+        b.setAttribute('data-conflict', nm);
+        if (!key) { b.disabled = true; b.title = 'Set in the rule'; }
+        cc.appendChild(b);
+      })(names[i]);
+    }
+    if (!shown) { return null; }
+    wrap.appendChild(cc);
+    if (s.remap) {
+      var row = el('div', 'octo-rail-remap');
+      var inp = D.createElement('input');
+      inp.type = 'text';
+      inp.className = 'octo-rail-input';
+      inp.maxLength = 100;
+      inp.value = s.remap.val;
+      inp.setAttribute('aria-label', 'New field name');
+      inp.setAttribute('data-k', 'remap');
+      inp.addEventListener('input', function () { if (s.remap) { s.remap.val = inp.value; } });
+      row.appendChild(inp);
+      var use = btn('is-ghost', 'Use', 'Use', 'remap-use');
+      use.addEventListener('click', function () { useRemap(s); });
+      row.appendChild(use);
+      wrap.appendChild(row);
+    }
+    return wrap;
+  }
+  function useRemap(s) {
+    var m = s.remap;
+    if (!m || !s.rule) { return; }
+    var v = str(m.val).replace(/\s+/g, ' ').trim().slice(0, 100);
+    if (!v || fold(v) === fold(m.name)) { return; }
+    s.rule.field_map[m.key] = v;
+    s.remap = null;
+    ruleChanged(s);
+  }
+  function planBox(s) {
+    var id = s.dsId;
+    var st = M.plan[id] || {};
+    var d = isObj(st.d) ? st.d : null;
+    var box = el('div', 'octo-rail-replace');
+    box.setAttribute('data-k', 'plan-only');
+    var head = el('div', 'octo-rail-facts');
+    head.appendChild(el('span', 'octo-rail-fact is-tag', 'Plan only'));
+    head.appendChild(el('span', 'octo-rail-fact', 'Office script writes tasks'));
+    box.appendChild(head);
+    if (st.busy && !d) { box.appendChild(spin()); }
+    if (d) { box.appendChild(planNums(d, null)); }
+    var acts = el('div', 'octo-rail-actions is-left');
+    var rb = btn('is-primary', 'Run again', null, 'plan');
+    if (st.busy) { rb.disabled = true; rb.appendChild(spin()); }
+    else { rb.appendChild(octo.icon('refresh', 16)); }
+    rb.appendChild(el('span', '', 'Run again'));
+    rb.addEventListener('click', function () { loadPlan(id); });
+    acts.appendChild(rb);
+    box.appendChild(acts);
+    if (!st.busy && st.err) { box.appendChild(planErr(id, st.err)); }
+    return box;
+  }
+  function numCell(v, label) {
+    var a = el('div', 'octo-rail-num');
+    a.setAttribute('data-num', label.toLowerCase());
+    a.appendChild(el('div', 'octo-rail-num-v', fmtCount(v)));
+    a.appendChild(el('div', 'octo-rail-num-l', label));
+    return a;
+  }
+  // Existing (onizleme) + Planned + Queued. Queued yalniz plan cevabi geldiyse.
+  function planNums(d, existing) {
+    var nums = el('div', 'octo-rail-nums');
+    if (existing !== null && existing !== undefined) { nums.appendChild(numCell(existing, 'Existing')); }
+    if (num(d.planned) !== null) { nums.appendChild(numCell(d.planned, 'Planned')); }
+    if (num(d.queued) !== null) { nums.appendChild(numCell(d.queued, 'Queued')); }
+    return nums;
   }
   function tbRow(l) {
     var id = str(l.id);
@@ -50272,7 +50448,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var src = (l && isObj(l.rule)) ? l.rule : (isObj(e.proposal) ? e.proposal : null);
     if (!src && !profileOf(s.dsId)) { return; }
     src = src || {};
+    // Kayitli kural temel alinir: arayuzun duzenlemedigi alanlar (writer, status_policy, sticky, wave, split, classify,
+    // ref_prefix, field_prefix, human_fields, ozel sablonlar) Accept'te aynen geri yazilir (v1: durum politikasi arayuzde yok).
+    s.base = (l && isObj(l.rule)) ? JSON.parse(JSON.stringify(l.rule)) : null;
+    // Arayuz filtreyi tek 'ne' cipiyle gosterir; bir where agaci (nesne) ya da 5'ten uzun liste dokunulmadikca korunur.
+    s.keepFilter = !!(s.base && s.base.filter !== undefined && (!isArr(s.base.filter) || s.base.filter.length > 5));
+    s.remap = null;
     s.rule = {
+      field_map: (s.base && isObj(s.base.field_map)) ? JSON.parse(JSON.stringify(s.base.field_map)) : {},
       filter: isArr(src.filter) ? src.filter.slice(0, 5) : [],
       group_by: isArr(src.group_by) ? src.group_by.slice(0, 3).map(str) : [],
       action: str(src.action) || 'other',
@@ -50288,26 +50471,41 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     s.filterCol = (isObj(f) && str(f.field)) ? str(f.field) : '';
     if (s.filterCol) { loadDistinct(s, s.filterCol); }
     schedulePreview(s);
-    if (s.accepted) { loadReplace(s); }
+    if (s.accepted) { afterAccept(s); }
+  }
+  // Kabul edilmis kural: writer 'local' ise yalniz plan (arsiv onizlemesi yok); degilse onizleme + plan (Queued).
+  function afterAccept(s) {
+    if (!planOnly(dsLink(s.dsId))) { loadReplace(s); }
+    loadPlan(s.dsId);
   }
   function ruleOut(s) {
     var r = s.rule;
+    var base = isObj(s.base) ? s.base : null;
     var gb = r.group_by.filter(function (x) { return !!x; }).slice(0, 3);
     var who = r.who_field || gb[0] || '';
-    return {
+    // Gruplama ve kisi degismediyse kaydin kendi sablonlari kalir (anahtar degisirse gorevler yeniden anahtarlanirdi).
+    var same = !!base && JSON.stringify(isArr(base.group_by) ? base.group_by : []) === JSON.stringify(gb) &&
+      str(base.who_field || (isArr(base.group_by) ? base.group_by[0] : '')) === who;
+    var fm = {};
+    for (var k in r.field_map) { if (Object.prototype.hasOwnProperty.call(r.field_map, k) && str(r.field_map[k])) { fm[k] = str(r.field_map[k]).slice(0, 100); } }
+    var out = {
       v: 1,
-      filter: r.filter,
+      filter: s.keepFilter ? base.filter : r.filter,
       group_by: gb,
       action: r.action,
       channel: r.channel,
       who_field: who,
       contact_field: r.contact_field,
-      title_template: who ? ('{' + who + '}: {count}') : '{count}',
+      title_template: (same && str(base.title_template)) ? base.title_template : (who ? ('{' + who + '}: {count}') : '{count}'),
       message_template: str(r.message_template).slice(0, 2000),
-      key_template: gb.map(function (x) { return '{' + x + '}'; }).join('|'),
+      key_template: (same && str(base.key_template)) ? base.key_template : gb.map(function (x) { return '{' + x + '}'; }).join('|'),
       max_tasks: Math.max(1, Math.min(500, r.max_tasks || 300)),
-      field_map: {}
+      field_map: fm
     };
+    // Kayitli kuralda tavan yoksa (dalga wave.cap tasir) arayuz tavan eklemez.
+    if (base && num(base.max_tasks) === null) { delete out.max_tasks; }
+    if (base) { for (var b in base) { if (Object.prototype.hasOwnProperty.call(base, b) && !(b in out)) { out[b] = base[b]; } } }
+    return out;
   }
   function schedulePreview(s) {
     if (s.prevT) { try { clearTimeout(s.prevT); } catch (e) {} }
@@ -50434,10 +50632,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     body.appendChild(chipRow('Who', colChips('who_field', false)));
     body.appendChild(chipRow('Contact', colChips('contact_field', true)));
     // Filter: durum sutunu != deger (degerler os_ds_query gruplamasindan)
-    var fc = [chip('None', !s.filterCol, function () { s.filterCol = ''; r.filter = []; ruleChanged(s); })];
+    var fc = [chip('None', !s.filterCol && !s.keepFilter, function () { s.filterCol = ''; s.keepFilter = false; r.filter = []; ruleChanged(s); })];
+    if (s.keepFilter) { fc.push(chip('Saved filter', true, function () { })); }
     for (var y = 0; y < names.length; y++) {
       (function (nm) {
-        fc.push(chip(nm, s.filterCol === nm, function () { s.filterCol = nm; r.filter = []; loadDistinct(s, nm); ruleChanged(s); }));
+        fc.push(chip(nm, s.filterCol === nm, function () { s.filterCol = nm; s.keepFilter = false; r.filter = []; loadDistinct(s, nm); ruleChanged(s); }));
       })(names[y]);
     }
     body.appendChild(chipRow('Filter', fc));
@@ -50449,7 +50648,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var cur = (r.filter[0] && str(r.filter[0].value)) || '';
         for (var v = 0; v < dv.values.length; v++) {
           (function (val) {
-            vc.push(chip(val, cur === val, function () { r.filter = [{ field: s.filterCol, op: 'ne', value: val }]; ruleChanged(s); }, 'is-ne'));
+            vc.push(chip(val, cur === val, function () { s.keepFilter = false; r.filter = [{ field: s.filterCol, op: 'ne', value: val }]; ruleChanged(s); }, 'is-ne'));
           })(dv.values[v]);
         }
         body.appendChild(chipRow('Not', vc));
@@ -50488,6 +50687,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     mr.appendChild(pc);
     body.appendChild(mr);
     body.appendChild(previewBox(s));
+    var cf = conflictBox(s);
+    if (cf) { body.appendChild(cf); }
     var acts = el('div', 'octo-rail-actions is-left');
     if (!s.accepted) {
       var acc = btn('is-primary', 'Accept', null, 'accept');
@@ -50500,7 +50701,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (s.acceptErr) { body.appendChild(errRow(function () { acceptRule(s); })); }
       return;
     }
-    body.appendChild(replaceBox(s));
+    body.appendChild(planOnly(dsLink(s.dsId)) ? planBox(s) : replaceBox(s));
   }
   function previewBox(s) {
     var box = el('div', 'octo-rail-preview-box');
@@ -50512,7 +50713,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var gs = isArr(p.groups) ? p.groups : [];
     var total = num(p.total) !== null ? p.total : gs.length;
     var r = ruleOut(s);
-    var cap = Math.min(total, r.max_tasks);
+    var cap = Math.min(total, num(r.max_tasks) !== null ? r.max_tasks : total, (isObj(r.wave) && num(r.wave.cap) !== null) ? r.wave.cap : total);
     var big = el('div', 'octo-rail-big');
     big.appendChild(el('span', '', fmtCount(cap)));
     big.appendChild(D.createTextNode(' '));
@@ -50543,7 +50744,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       s.accepted = true;
       paintSoon('setup');
       paintSoon('data');
-      loadReplace(s);
+      afterAccept(s);
     }, function (err) {
       s.acceptBusy = false;
       s.acceptErr = str(err && err.code) || 'provider_error';
@@ -50575,17 +50776,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     if (s.replaceBusy && !rp) { box.appendChild(spin()); return box; }
     var ex = rp && num(rp.existing) !== null ? rp.existing : null;
     var pl = rp && num(rp.planned) !== null ? rp.planned : null;
+    // Existing + Planned onizlemeden; Queued (G: dalga disi, yazilmaz) plan cevabindan.
+    var pd = isObj((M.plan[s.dsId] || {}).d) ? M.plan[s.dsId].d : null;
     if (ex !== null && pl !== null) {
-      var nums = el('div', 'octo-rail-nums');
-      var a = el('div', 'octo-rail-num');
-      a.appendChild(el('div', 'octo-rail-num-v', fmtCount(ex)));
-      a.appendChild(el('div', 'octo-rail-num-l', 'Existing'));
-      var b = el('div', 'octo-rail-num');
-      b.appendChild(el('div', 'octo-rail-num-v', fmtCount(pl)));
-      b.appendChild(el('div', 'octo-rail-num-l', 'Planned'));
-      nums.appendChild(a);
-      nums.appendChild(b);
-      box.appendChild(nums);
+      box.appendChild(planNums({ planned: pl, queued: pd ? pd.queued : null }, ex));
     }
     var running = M.run[s.dsId] === 'busy' || M.run[s.dsId] === 'running';
     var acts = el('div', 'octo-rail-actions is-left');
