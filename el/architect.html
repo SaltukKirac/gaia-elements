@@ -43386,7 +43386,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-24.os2';
+  var VERSION = 'octo 2026-09-25.os2_1';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -43529,18 +43529,25 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     return out;
   }
 
-  function enabled() { return lsGet(K_FLAG) === '1'; }
-  function enable() { lsSet(K_FLAG, '1'); return enabled(); }
+  // 25.09 URL TEST KIPI (kurucu: "ikonu simdilik kaldiralim, kopuk bir UI; linkle URL'den
+  // test edebilecegimiz noktaya geri cekelim"). Bayrak artik KALICI DEGIL: kabuk yalniz bu
+  // sayfa gorunumunde ?octo=1 | ?octo=<app> ile acilir; parametresiz yuklemede hicbir sey
+  // cizilmez. Eski kalici anahtarlar (octo.flag / octo.visible) yuklemede SILINIR ki daha
+  // once ?octo=1 acmis tarayici kendiliginden acilmasin.
+  var sessionOn = false;
+  function enabled() { return sessionOn; }
+  function enable() { sessionOn = true; return true; }
   function disable() {
-    lsDel(K_FLAG);
+    sessionOn = false;
     try { api.hide(); } catch (e) { /* yut */ }
-    return enabled();
+    return false;
   }
 
   function applyIntent(intent) {
+    lsDel(K_FLAG); lsDel(K_VISIBLE);
     if (!intent) { return; }
-    if (intent.show === false) { lsDel(K_FLAG); lsSet(K_VISIBLE, '0'); return; }
-    if (intent.show === true) { lsSet(K_FLAG, '1'); lsSet(K_VISIBLE, '1'); }
+    if (intent.show === false) { sessionOn = false; return; }
+    if (intent.show === true) { sessionOn = true; }
   }
 
   var intent = { show: null, app: null, raw: '' };
@@ -44482,29 +44489,22 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     return root;
   }
 
-  function buildLauncher() {
-    var b = mkBtn('', 'Open desktop');
-    b.id = 'octo-launcher';
-    b.appendChild(octo.icon('apps', 22));      // 11.1 U4: glif 'apps'
-    b.addEventListener('click', function () { toggle(); });
-    S.launcher = b;
-    return b;
-  }
+  // 25.09 URL TEST KIPI: yuzen baslatici ikonu (#octo-launcher) KALDIRILDI. Kabuk
+  // yalniz adresteki ?octo=... ile acilir (cekirdek applyIntent); S.launcher hep null,
+  // syncLauncher/teardown null'a karsi korumali.
 
   function mount() {
-    // Bubble sayfayi yeniden cizerse #octo-root ve baslatici DOM'dan silinmis
-    // olabilir; bayrak ayakta kalir ve kabuk kopuk bir agaca cizerdi (kaydirma
-    // kilidi de acik kalirdi). Kopuksa once sokulur, sonra yeniden kurulur.
+    // Bubble sayfayi yeniden cizerse #octo-root DOM'dan silinmis olabilir; kabuk
+    // kopuk bir agaca cizerdi (kaydirma kilidi de acik kalirdi). Kopuksa once
+    // sokulur, sonra yeniden kurulur.
     if (S.mounted) {
-      var live = !!(S.root && S.root.isConnected !== false && S.launcher && S.launcher.isConnected !== false);
+      var live = !!(S.root && S.root.isConnected !== false);
       if (live) { return S.root; }
       teardown();
     }
     if (!D.body) { return null; }
     S.mounted = true;
-    // Kok ONCE, baslatici SONRA: ikisi de 2147483000, sonra gelen ustte kalir.
     D.body.appendChild(buildRoot());
-    D.body.appendChild(buildLauncher());
     syncMode();
     renderTiles();
     renderDock();
@@ -44555,7 +44555,6 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       renderDock();
       startClock();
       relayout();
-      lsSet('octo.visible', '1');
       try { octo.warm('octo-show'); } catch (e) { /* yut */ }
       try { S.root.focus({ preventScroll: true }); } catch (e2) { try { S.root.focus(); } catch (e3) {} }
       octo.bus.emit('octo:show', {});
@@ -44573,8 +44572,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     try { S.root.classList.remove('octo-on'); } catch (e) { /* yut */ }
     stopClock();
     unlockScroll();
-    syncLauncher();                    // kabuk gizli: baslatici geri gelir
-    lsSet('octo.visible', '0');
+    syncLauncher();
     octo.bus.emit('octo:hide', {});
     return true;
   }
@@ -45439,11 +45437,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (k === 'Enter') { ev.preventDefault(); runPalette(); return; }
       if (k === 'Escape') { ev.preventDefault(); closePalette(); try { S.root.focus(); } catch (e) {} return; }
     }
-    if (k === 'Escape') {
-      ev.preventDefault();
-      hide();
-      return;
-    }
+    // URL test kipinde baslatici yok: Escape kabugu GIZLEMEZ (geri donus yolu
+    // olmazdi). Escape yalniz paleti kapatir (yukarida).
+    if (k === 'Escape') { return; }
     if (k === 'Tab') {
       var list = focusables();
       if (!list.length) { return; }
@@ -45465,7 +45461,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     if (it.show === false) { teardown(); return false; }
     if (!octo.enabled()) { return false; }
     if (!mount()) { return false; }
-    var vis = (it.show === true) || (lsGet('octo.visible') === '1');
+    var vis = (it.show === true);        // URL test kipi: gorunurluk kalici DEGIL
     if (vis) { show(); }
     if (it.app) {
       if (!vis) { show(); }
