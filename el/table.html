@@ -21,6 +21,8 @@
   --gx-shadow-sm: 0 1px 2px rgba(15,23,42,.05);
   --gx-shadow-md: 0 8px 24px -12px rgba(15,23,42,.18);
   --gx-ring: 0 0 0 3px rgba(99,102,241,.12);
+  --gx-warn: #d97706; --gx-warn-bg: #fffbeb;   /* mr18: "Used elsewhere" glyph */
+  --dt-motion: 140ms; --dt-motion-fast: 120ms; /* mr18: popover / chip */
 }
 
 #dynamic-table-wrapper {
@@ -488,6 +490,15 @@
 
 #dynamic-table-wrapper .dt-wake-toast.is-error { border-left-color: var(--gx-err, #dc2626); }
 #dynamic-table-wrapper .dt-wake-toast.is-success { border-left-color: var(--gx-ok, #16a34a); }
+/* mr18: toast with one action (Undo / Retry) */
+#dynamic-table-wrapper .dt-action-toast { display: flex; align-items: center; gap: 12px; }
+#dynamic-table-wrapper .dt-toast-action {
+  border: 0; background: transparent; color: var(--gx-primary-deep, #4f46e5); cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: var(--gx-r-sm, 6px);
+}
+#dynamic-table-wrapper .dt-toast-action:hover { background: var(--gx-bg, #f8fafc); }
+#dynamic-table-wrapper .dt-toast-action:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 2px; }
+#dynamic-table-wrapper .dt-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 #dynamic-table-wrapper #dt-btn-import,
 #dynamic-table-wrapper #dt-btn-download,
@@ -661,6 +672,120 @@
   border-top: 1px solid var(--gx-line-soft, #eef2f7);
   margin: 5px 0;
 }
+
+/* mr18: a pending column's menu (create in flight) — Filter / Sort greyed */
+#dynamic-table-wrapper .dt-column-menu-item:disabled,
+#dynamic-table-wrapper .dt-column-menu-item:disabled:hover { color: var(--gx-ink-3, #94a3b8); background: transparent; cursor: default; }
+
+/* mr18: New field popover — desktop: fixed 320 px under its anchor; ≤768: bottom sheet (.dt-sheet) */
+#dynamic-table-wrapper .dt-field-pop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 300;
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--gx-surface, #fff);
+  border: 1px solid var(--gx-line-soft, #eef2f7);
+  border-radius: var(--gx-r-lg, 16px);
+  box-shadow: var(--gx-shadow-md, 0 8px 24px -12px rgba(15,23,42,.18));
+  color: var(--dt-text);
+  font-family: inherit;
+  animation: dtFieldPopIn var(--dt-motion, 140ms) ease-out;
+}
+@keyframes dtFieldPopIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+#dynamic-table-wrapper .dt-field-pop-title { font-size: 13px; font-weight: 600; color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper .dt-field-pop-namerow { position: relative; display: flex; align-items: center; }
+#dynamic-table-wrapper .dt-field-pop-name {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 34px 8px 10px;
+  border-radius: var(--gx-r-md, 10px);
+  border: 1.5px solid var(--gx-line, #e2e8f0);
+  background: var(--gx-field, #f6f7f9);
+  color: var(--dt-text);
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+#dynamic-table-wrapper .dt-field-pop-name:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--gx-primary, #6366f1);
+  box-shadow: var(--gx-ring, 0 0 0 3px rgba(99,102,241,.12));
+}
+#dynamic-table-wrapper .dt-field-pop-glyph {
+  position: absolute; right: 10px; width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; line-height: 1;
+}
+#dynamic-table-wrapper .dt-field-pop-glyph[data-glyph="ok"] { color: var(--gx-ok, #16a34a); }
+#dynamic-table-wrapper .dt-field-pop-glyph[data-glyph="back"] { color: var(--gx-ink-2, #475569); }
+#dynamic-table-wrapper .dt-field-pop-glyph[data-glyph="warn"] { color: var(--gx-warn, #d97706); }
+#dynamic-table-wrapper .dt-field-pop-glyph[data-glyph="bad"] { color: var(--gx-err, #dc2626); }
+#dynamic-table-wrapper .dt-field-pop-line { min-height: 16px; margin-top: -4px; font-size: 12px; line-height: 16px; color: var(--gx-ink-2, #475569); }
+#dynamic-table-wrapper .dt-field-pop-line[data-tone="warn"] { color: var(--gx-warn, #d97706); }
+#dynamic-table-wrapper .dt-field-pop-line[data-tone="bad"] { color: var(--gx-err, #dc2626); }
+#dynamic-table-wrapper .dt-field-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+#dynamic-table-wrapper .dt-field-chip {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px;
+  border: 1px solid var(--gx-line, #e2e8f0); border-radius: var(--gx-r-pill, 999px); background: #fff;
+  color: var(--gx-ink-2, #475569); font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+#dynamic-table-wrapper .dt-field-chip:hover { background: var(--gx-bg, #f8fafc); }
+#dynamic-table-wrapper .dt-field-chip[aria-checked="true"] { border-color: var(--gx-primary, #6366f1); background: #eef2ff; color: var(--gx-primary-deep, #4f46e5); }
+#dynamic-table-wrapper .dt-field-chip.is-guess { animation: dtChipPop var(--dt-motion-fast, 120ms) ease-out; }
+@keyframes dtChipPop { from { transform: scale(.96); } to { transform: scale(1); } }
+#dynamic-table-wrapper .dt-field-chip-glyph { display: inline-flex; align-items: center; font-size: 11px; }
+#dynamic-table-wrapper .dt-field-chip-glyph .dt-type-svg { width: 12px; height: 12px; }
+#dynamic-table-wrapper .dt-field-switch {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 0;
+  border: 0; background: transparent; color: var(--gx-ink-2, #475569); font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+}
+#dynamic-table-wrapper .dt-field-switch-knob { position: relative; width: 28px; height: 16px; border-radius: var(--gx-r-pill, 999px); background: var(--gx-line, #e2e8f0); transition: background 140ms ease; }
+#dynamic-table-wrapper .dt-field-switch-knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: transform 140ms ease; }
+#dynamic-table-wrapper .dt-field-switch[aria-checked="true"] .dt-field-switch-knob { background: var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-field-switch[aria-checked="true"] .dt-field-switch-knob::after { transform: translateX(12px); }
+#dynamic-table-wrapper .dt-field-opts {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px;
+  border: 1.5px solid var(--gx-line, #e2e8f0); border-radius: var(--gx-r-md, 10px); background: var(--gx-field, #f6f7f9);
+}
+#dynamic-table-wrapper .dt-field-opt-chip { display: inline-flex; align-items: center; gap: 4px; margin: 0; cursor: default; }
+#dynamic-table-wrapper .dt-field-opt-chip:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 1px; }
+#dynamic-table-wrapper .dt-field-opt-x { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 2px; font-size: 13px; line-height: 1; font-family: inherit; }
+#dynamic-table-wrapper .dt-field-opt-input { flex: 1 1 90px; min-width: 90px; min-height: 26px; border: 0; outline: none; background: transparent; color: var(--dt-text); font-family: inherit; font-size: 13px; }
+#dynamic-table-wrapper .dt-field-pop .is-shake { animation: dtShake 240ms ease; }
+@keyframes dtShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+#dynamic-table-wrapper .dt-field-opt-chip.is-pulse { animation: dtPulse 360ms ease; }
+@keyframes dtPulse { 50% { transform: scale(1.08); } }
+#dynamic-table-wrapper .dt-field-roles { align-self: flex-start; display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--gx-line, #e2e8f0); border-radius: var(--gx-r-md, 10px); }
+#dynamic-table-wrapper .dt-field-role {
+  min-height: 28px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--gx-ink-2, #475569); font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+}
+#dynamic-table-wrapper .dt-field-role[aria-checked="true"] { background: #eef2ff; color: var(--gx-primary-deep, #4f46e5); }
+#dynamic-table-wrapper .dt-field-pop-actions { display: flex; justify-content: flex-end; gap: 8px; }
+#dynamic-table-wrapper .dt-field-btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 14px;
+  border: 1px solid var(--gx-line, #e2e8f0); border-radius: var(--gx-r-md, 10px); background: #fff; color: var(--dt-text);
+  font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+#dynamic-table-wrapper .dt-field-btn.dt-primary { background: var(--gx-grad, linear-gradient(135deg, #6366f1, #8b5cf6)); border-color: transparent; color: #fff; }
+#dynamic-table-wrapper .dt-field-btn:disabled { opacity: .45; cursor: default; }
+#dynamic-table-wrapper .dt-field-btn.is-busy::before {
+  content: ''; width: 12px; height: 12px; border: 2px solid rgba(255, 255, 255, .45); border-top-color: #fff; border-radius: 50%;
+  animation: dtSpin .8s linear infinite;
+}
+#dynamic-table-wrapper .dt-field-chip:focus-visible,
+#dynamic-table-wrapper .dt-field-role:focus-visible,
+#dynamic-table-wrapper .dt-field-switch:focus-visible,
+#dynamic-table-wrapper .dt-field-btn:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 2px; }
 
 
 #dynamic-table-wrapper .dt-filter-panel {
@@ -1251,6 +1376,32 @@
     transform: translateX(-50%);
     max-width: calc(100vw - 32px);
   }
+
+  /* mr18: New field popover → bottom sheet (handle, backdrop, 70 px swipe), 44 px targets */
+  #dynamic-table-wrapper .dt-field-pop.dt-sheet {
+    left: 0 !important;
+    right: 0;
+    top: auto !important;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    max-height: min(84vh, 640px);
+    border-radius: 20px 20px 0 0;
+    border-bottom: 0;
+    padding: 4px 14px max(14px, env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 32px -12px rgba(15, 23, 42, .18);
+    animation: dtSheetIn 220ms ease-out;
+  }
+  @keyframes dtSheetIn { from { transform: translateY(105%); } to { transform: none; } }
+  #dynamic-table-wrapper .dt-field-pop.dt-sheet .dt-field-pop-name,
+  #dynamic-table-wrapper .dt-field-pop.dt-sheet .dt-field-chip,
+  #dynamic-table-wrapper .dt-field-pop.dt-sheet .dt-field-switch,
+  #dynamic-table-wrapper .dt-field-pop.dt-sheet .dt-field-opt-input,
+  #dynamic-table-wrapper .dt-field-pop.dt-sheet .dt-field-role,
+  #dynamic-table-wrapper .dt-field-pop.dt-sheet .dt-field-btn,
+  #dynamic-table-wrapper .dt-toast-action {
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1667,6 +1818,30 @@
   white-space: nowrap;
 }
 
+/* mr18: live column — pending (request in flight: spinner in the caret slot, label 70%), confirmed (check in the type
+   slot for 600 ms, then the type glyph), removing (after an error); busy spinner on the "+" / More / empty-state button */
+#dynamic-table-wrapper .dt-colheader-content.dt-col-pending .dt-header-text { opacity: .7; }
+#dynamic-table-wrapper .dt-col-spin {
+  flex: 0 0 auto; width: 12px; height: 12px; margin-left: 4px;
+  border: 2px solid var(--gx-line, #e2e8f0); border-top-color: var(--gx-primary, #6366f1); border-radius: 50%;
+  animation: dtSpin .8s linear infinite;
+}
+#dynamic-table-wrapper .dt-colheader-content.dt-col-confirmed .dt-type-icon { color: var(--gx-ok, #16a34a); }
+#dynamic-table-wrapper .dt-colheader-content.dt-col-removing { opacity: 0; transition: opacity 180ms ease; }
+#dynamic-table-wrapper .dt-header-action-btn.is-busy,
+#dynamic-table-wrapper .dt-toolbar-more-item.is-busy,
+#dynamic-table-wrapper .dt-icon-btn.is-busy,
+#dynamic-table-wrapper .dt-action-btn.is-busy { position: relative; color: transparent !important; }
+#dynamic-table-wrapper .dt-header-action-btn.is-busy::after,
+#dynamic-table-wrapper .dt-toolbar-more-item.is-busy::after,
+#dynamic-table-wrapper .dt-icon-btn.is-busy::after,
+#dynamic-table-wrapper .dt-action-btn.is-busy::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  border: 2px solid var(--gx-line, #e2e8f0); border-top-color: var(--gx-primary, #6366f1); border-radius: 50%;
+  animation: dtSpin .8s linear infinite;
+}
+#dynamic-table-wrapper .dt-icon-btn.is-busy svg { visibility: hidden; }
+
 #dynamic-table-wrapper .dt-footer { display: none; }
 
 /* ── Empty State ───────────────────────────────────────────────────────────── */
@@ -1863,6 +2038,21 @@
 #dynamic-table-wrapper #dt-first-run-ask {
   flex-shrink: 0;
 }
+
+/* mr18: reduced motion — the popover, its chips, the live-column header states and the toasts do not move */
+@media (prefers-reduced-motion: reduce) {
+  #dynamic-table-wrapper .dt-field-pop,
+  #dynamic-table-wrapper .dt-field-pop *,
+  #dynamic-table-wrapper .dt-field-pop *::before,
+  #dynamic-table-wrapper .dt-field-pop *::after,
+  #dynamic-table-wrapper .dt-colheader-content,
+  #dynamic-table-wrapper .dt-colheader-content *,
+  #dynamic-table-wrapper .dt-action-toast,
+  #dynamic-table-wrapper .is-busy::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
 </style>
 
 <div id="dynamic-table-wrapper">
@@ -1927,8 +2117,8 @@
     <div id="dt-column-menu" class="dt-column-menu" role="menu" aria-hidden="true" tabindex="-1">
       <div class="dt-sheet-handle" data-sheet-handle="menu"></div>
       <div class="dt-column-menu-title" id="dt-column-menu-title">Field menu</div>
-      <button id="dt-column-menu-add" class="dt-column-menu-item" type="button" role="menuitem">Add field</button>
-      <button id="dt-column-menu-manage" class="dt-column-menu-item" type="button" role="menuitem">Manage field</button>
+      <button id="dt-column-menu-insert-left" class="dt-column-menu-item" type="button" role="menuitem">Insert left</button>
+      <button id="dt-column-menu-insert-right" class="dt-column-menu-item" type="button" role="menuitem">Insert right</button>
       <hr class="dt-column-menu-divider" />
       <button id="dt-column-menu-filter" class="dt-column-menu-item" type="button" role="menuitem"><span>Filter</span><span>›</span></button>
       <button id="dt-column-menu-sort" class="dt-column-menu-item" type="button" role="menuitem"><span>Sort</span><span>›</span></button>
@@ -2035,6 +2225,13 @@
     _keepFocusEl: null,           // T1: programatik HOT seçimi sırasında odağın kalacağı dış element
     _pendingFiltersById: null, _pendingSortById: null, _pendingScroll: null, // T1: yeniden basılan elementten devir
     _createRowRenderHandler: null,  // afterRender hook reference for cleanup
+    // mr18 (fields where you look) — memory only, die with the page (never localStorage, never tableConfig)
+    fieldOps: { screenId: '', at: 0, meta: null, ready: false, inflight: null },   // mirror_screen_fields per screen (30 s)
+    pendingFields: new Map(),     // name → {op_id, ctx, startedAt, col, index, …} while a field write is in flight
+    serverPatch: { added: new Map(), removed: new Map(), screen: '' },   // server-confirmed adds / hides (of one screen) until Bubble's config catches up
+    fieldPop: null,               // the open New field popover
+    _confirmedCols: new Map(),    // name → until (dt-col-confirmed, 600 ms)
+    _fieldPrefetchFor: '', _fieldOpening: false, _menuAnchorEl: null, _menuAnchorRect: null, _fieldCfgText: null, _fieldCfgScreen: '',
     // Wake Agent buton durumu — bubble-table-config'ten beslenir
     wake: {
       show: true,        // config.wake_button === false → gizle
@@ -2711,8 +2908,8 @@
     editAgentButton: document.getElementById('dt-btn-edit-agent'),
     columnMenu: document.getElementById('dt-column-menu'),
     columnMenuTitle: document.getElementById('dt-column-menu-title'),
-    columnMenuAddButton: document.getElementById('dt-column-menu-add'),
-    columnMenuManageButton: document.getElementById('dt-column-menu-manage'),
+    columnMenuInsertLeftButton: document.getElementById('dt-column-menu-insert-left'),   // mr18 (was Add field)
+    columnMenuInsertRightButton: document.getElementById('dt-column-menu-insert-right'), // mr18 (was Manage field → More › Manage fields)
     columnMenuFilterButton: document.getElementById('dt-column-menu-filter'),
     columnMenuSortButton: document.getElementById('dt-column-menu-sort'),
     sortPanel: document.getElementById('dt-sort-panel'),
@@ -3381,7 +3578,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   function renderColumnHeader(column, hasFilter, sortOrder) {
     const meta = getColumnTypeMeta(column?.type);
-    const icon = iconKeyGlyphMap[meta.iconKey] || iconKeyGlyphMap.text;
+    // mr18: live column states — 'pending' only while its write is in flight, 'confirmed' 600 ms after a SUCCESS
+    const fst = column && column.id ? fieldHeaderState(column.id) : '';
+    const icon = fst === 'confirmed' ? iconKeyGlyphMap.check : (iconKeyGlyphMap[meta.iconKey] || iconKeyGlyphMap.text);
     const title = escapeHtml(column?.header || 'Field');
     const typeLabel = escapeHtml(meta?.label || 'Text');
     const filterBadge = hasFilter
@@ -3389,7 +3588,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       : '';
     const caretSvg = sortOrder === 'asc' ? HEADER_SORT_ASC_SVG : sortOrder === 'desc' ? HEADER_SORT_DESC_SVG : HEADER_CARET_SVG;
     const caretClass = sortOrder ? 'dt-header-caret is-sorted' : 'dt-header-caret';
-    return `<span class="dt-colheader-content"><span class="dt-header-label"><span class="dt-type-icon" aria-hidden="true" title="${typeLabel}">${icon}</span><span class="dt-header-text" title="${title}">${title}</span>${filterBadge}<span class="${caretClass}" aria-hidden="true">${caretSvg}</span></span></span>`;
+    const caretHtml = fst === 'pending' ? '<span class="dt-col-spin" aria-hidden="true"></span>' : `<span class="${caretClass}" aria-hidden="true">${caretSvg}</span>`;
+    return `<span class="dt-colheader-content${fst ? ' dt-col-' + fst : ''}" data-col-id="${escapeHtml(column?.id || '')}"><span class="dt-header-label"><span class="dt-type-icon" aria-hidden="true" title="${typeLabel}">${icon}</span><span class="dt-header-text" title="${title}">${title}</span>${filterBadge}${caretHtml}</span></span>`;
   }
 
   function getAdaptiveTableHeight() {
@@ -3557,7 +3757,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const target = event?.target;
         if (!isHeaderMenuTriggerTarget(target)) return;
         const headerLabel = visibleColumns[physCol]?.header || '';
-        openColumnMenu(physCol, TD?.getBoundingClientRect?.() || target.getBoundingClientRect(), headerLabel);
+        openColumnMenu(physCol, TD?.getBoundingClientRect?.() || target.getBoundingClientRect(), headerLabel, TD || null);
       },
       afterFilter: () => {
         updateFooter();
@@ -3701,6 +3901,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     attachHeaderColumnDrag();
     syncButtonTitles();
     saveViewCarry();
+    scheduleFieldPrefetch();   // mr18: mirror_screen_fields once per screen id, 1500 ms after the first paint
   }
 
   function syncCreateRowDOM() {
@@ -4357,10 +4558,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const vt = (location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '';
     return location.origin + vt + '/api/1.1/wf/bridge';
   }
-  // one bridge call → { ok, data } | { error }; an outer controller lets a newer search / page abort the one in flight
-  async function aynaBridge(op, payload, outerCtrl) {
+  // one bridge call → { ok, data } | { error }; an outer controller lets a newer search / page abort the one in flight;
+  // mr18: opts.timeoutMs per call (field read 8 s, field write 20 s; row loads keep AYNA.timeoutMs)
+  async function aynaBridge(op, payload, outerCtrl, opts) {
     const ctrl = outerCtrl || ((typeof AbortController === 'function') ? new AbortController() : null);
-    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, AYNA.timeoutMs) : null;
+    const tms = (opts && Number(opts.timeoutMs) > 0) ? Number(opts.timeoutMs) : AYNA.timeoutMs;
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, tms) : null;
     try {
       const r = await fetch(aynaBridgeUrl(), {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
@@ -4394,6 +4597,67 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return [];
   }
   function aynaFieldsOf(columns) { return (Array.isArray(columns) ? columns : []).map(c => String((c && (c.id || c.field || c.name)) || '').trim()).filter(Boolean); }
+  // mr18: the memory cache is keyed by the screen AND the field projection → a page cached before a field was added is
+  // never painted as the new layout's first paint
+  function aynaCacheKey(scr) { return scr.key + '|' + AYNA.fields.join('\u0001'); }
+  function aynaCacheDrop(screenKey) { Array.from(AYNA.cache.keys()).forEach(k => { if (k === screenKey || k.indexOf(screenKey + '|') === 0) AYNA.cache.delete(k); }); }
+  // mr18: a runtime reload of a WINDOWED screen starts from the current filters / search / column sort (only for columns
+  // that still exist), so the first page is never an unfiltered one while the header badges say "filtered"
+  function aynaSeedCriteria(columns) {
+    const empty = { where: null, text: '', order_by: '' };
+    try {
+      if (state._resetHotView) return empty;   // a new view: filters / sort are being reset
+      const ids = new Set(aynaFieldsOf(columns)), keep = state.filterConfigs || {}, sub = {};
+      Object.keys(keep).forEach(k => { const c = (state._mountedCols || [])[Number(k)]; if (c && !c.__uiOnly && ids.has(c.id)) sub[k] = keep[k]; });
+      let where = null;
+      state.filterConfigs = sub;
+      try { where = gxDslWhere(); } finally { state.filterConfigs = keep; }
+      const t = (els && els.search && els.search.value) ? els.search.value.trim() : '';
+      const ob = aynaSortOrderBy(), obField = ob ? ob.replace(/\s+(asc|desc)$/, '') : '';
+      return { where: where, text: t.length >= 2 ? t : '', order_by: (ob && ids.has(obField)) ? ob : '' };
+    } catch (e) { return empty; }
+  }
+  // mr18: the column set changed at runtime (own field add / hide): new projection, fresh page caches; requery = the new
+  // column may hold values (a re-bound existing field) → the current page again (window mode) or a reload (full load)
+  function aynaProjectionChanged(requery) {
+    if (!AYNA.cfg) return false;
+    // the config's columns = the grid's columns in mirror mode (every paint rebuilds from them), in the order aynaLoad reads
+    AYNA.fields = aynaFieldsOf(AYNA.cfg.columns);
+    AYNA.cacheGen++; AYNA.pageCache.clear();
+    // full load: the rows on screen are cached under the new projection (T3: also for a brand-new field, requery=false) →
+    // a later load of this screen paints them at once (no empty grid); filters / sort / search carry (same view)
+    if (!aynaWindowed() && !AYNA.loading) {
+      try { const scr = aynaScreenOf(AYNA.cfg); if (scr.any && state.rawRows.length) AYNA.cache.set(aynaCacheKey(scr), { rows: state.rawRows.map(r => { const o = Object.assign({}, r); delete o.__sourceIndex; return o; }), at: Date.now() }); } catch (e) {}
+    }
+    if (requery) {
+      if (aynaWindowed()) aynaRequery();
+      else aynaReloadPatched(true);   // the refresh underneath brings the column's values
+    }
+    return true;
+  }
+  // mr18 T3: the config names the screen the mirror holds now, with the same field set and thresholds, and the last load
+  // succeeded → the running view (page, criteria, caches, rows) stays; nothing is fetched
+  function aynaSameProjection(config, verdict) {
+    try {
+      if (!aynaMode(config) || !AYNA.cfg || AYNA.loading || AYNA.last || !AYNA.stats || !AYNA.screenKey) return false;
+      if (verdict && (verdict.dataNew || verdict.layoutNew)) return false;
+      if (aynaScreenOf(config).key !== AYNA.screenKey) return false;
+      const same = (a, b) => String(a == null ? '' : a) === String(b == null ? '' : b);
+      if (!same(config.mirror_full_max, AYNA.cfg.mirror_full_max) || !same(config.mirror_page, AYNA.cfg.mirror_page)) return false;
+      const next = aynaFieldsOf(config.columns), have = new Set(AYNA.fields);
+      return next.length === have.size && new Set(next).size === next.length && next.every(f => have.has(f));
+    } catch (e) { return false; }
+  }
+  // the page's config again (+ this page's own confirmed field changes, applyServerPatch) → aynaLoad
+  function aynaReloadPatched(keepCache) {
+    const s = document.getElementById('bubble-table-config');
+    try {
+      const c = parseBubbleConfig((s && s.textContent) || '{}');
+      applyServerPatch(c);
+      if (aynaMode(c)) { if (!keepCache) aynaCacheDrop(aynaScreenOf(c).key); return aynaLoad(c, c.columns); }
+    } catch (e) {}
+    return null;
+  }
   function aynaScrolled() { try { const w = els && els.container ? els.container.querySelector('.wtHolder') : null; return !!(w && w.scrollTop > 0); } catch (e) { return false; } }
   function aynaSameRows(a, b) { try { if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false; for (let i = 0; i < a.length; i++) { if (a[i] !== b[i] && JSON.stringify(a[i]) !== JSON.stringify(b[i])) return false; } return true; } catch (e) { return false; } }
   function aynaPaint(rows, columns, first) {
@@ -4600,6 +4864,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // a big one stays windowed on the server
   async function aynaLoad(config, columns) {
     let scr = aynaScreenOf(config);
+    // mr18: a runtime reload of the screen that is windowed now keeps its criteria (seeded before the reset below)
+    const seed = (AYNA.win && AYNA.screenKey && AYNA.screenKey === scr.key) ? aynaSeedCriteria(columns) : null;
+    const seeded = !!(seed && (seed.where || seed.text || seed.order_by));
     const seq = ++AYNA.seq;
     AYNA.loading = true; AYNA.last = null; AYNA.cfg = config; AYNA.screenKey = ''; AYNA.win = null; AYNA.critKey = ''; AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.cacheGen++; AYNA.pageCache.clear(); AYNA.distinct.clear(); AYNA.fields = aynaFieldsOf(columns);
     // the Bubble config may tune the two thresholds: "mirror_full_max" (a screen up to this many rows is loaded whole) and
@@ -4628,8 +4895,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
       AYNA.screenKey = scr.key;
       // mr17: the first request leaves BEFORE the grid is built (the empty grid, or the cached page, is painted while it travels)
-      const firstReq = aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: 0, limit: AYNA.windowSize, fresh: true, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined });
-      const cached = AYNA.cache.get(scr.key);
+      // mr18: seeded → the first request carries the current where / text / order_by exactly as aynaRequery sends them
+      const seedQuery = seeded ? Object.assign({ limit: AYNA.windowSize, offset: 0, order_by: seed.order_by || '_created asc' }, seed.where ? { where: seed.where } : {}, seed.text ? { text: seed.text } : {}) : undefined;
+      const firstReq = aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: 0, limit: AYNA.windowSize, fresh: true, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined, query: seedQuery });
+      const cached = seeded ? null : AYNA.cache.get(aynaCacheKey(scr));   // the cache holds the unfiltered page 1
       if (cached && Date.now() - cached.at < AYNA.cacheTtlMs && Array.isArray(cached.rows) && cached.rows.length) {
         // a screen seen in the last 10 minutes paints at once from memory and refreshes underneath; in window mode the cached
         // page is page 1 of the cached total (pager up at once) until the fresh answer replaces it
@@ -4660,11 +4929,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (d.table) table = d.table;
         offset += page.length;
         // a big screen → window mode: this page IS the grid; the rest stays on the server
-        if (pages === 1 && total > AYNA.fullLoadMax) {
+        if (pages === 1 && (total > AYNA.fullLoadMax || seeded)) {   // mr18: a seeded (filtered) answer stays windowed
           AYNA.win = { page: 1, size: AYNA.windowSize, total: total };
-          AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.critKey = JSON.stringify(AYNA.criteria);
+          AYNA.criteria = seeded ? { where: seed.where, text: seed.text, order_by: seed.order_by } : { where: null, text: '', order_by: '' }; AYNA.critKey = JSON.stringify(AYNA.criteria);
           AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + AYNA.win.size + '|1', { data: d, at: Date.now() });
-          AYNA.cache.set(scr.key, { rows: page, at: Date.now(), windowed: true, total: total }); if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }   // mr17: the next visit paints this page at once
+          if (!seeded) { AYNA.cache.set(aynaCacheKey(scr), { rows: page, at: Date.now(), windowed: true, total: total }); if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); } }   // mr17: the next visit paints this page at once
           if (fromCache && cached.windowed) { if (!aynaSameRows(cached.rows, page)) aynaPaint(page, columns, false); else aynaHookHot(); }   // painted from the cache already: only a changed page is repainted (fade)
           else aynaPaint(page, columns, true);
           AYNA.stats = { rows: page.length, total: total, page: 1, pages: aynaPages(), size: AYNA.win.size, ms: Date.now() - t0, fresh: fresh, preview: preview, cached: false, windowed: true, table: table, screen: scr };
@@ -4682,7 +4951,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         aynaSetStatus(fromCache ? 'refreshing' : 'loading', { rows: rows.length, total: total });
         if (done) break;
       }
-      AYNA.cache.set(scr.key, { rows: rows, at: Date.now() });
+      AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now() });   // mr18: screen + field projection
       if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }
       AYNA.stats = { rows: rows.length, total: total, pages: pages, ms: Date.now() - t0, fresh: fresh, preview: preview, cached: fromCache, windowed: false, table: table, screen: scr };
       aynaSetStatus('ready', AYNA.stats); aynaPager();
@@ -4758,8 +5027,17 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) {}
   }
   window.gaiaTableMirror = {
-    reload: function () { const s = document.getElementById('bubble-table-config'); try { const c = parseBubbleConfig((s && s.textContent) || '{}'); if (aynaMode(c)) { AYNA.cache.delete(aynaScreenOf(c).key); return aynaLoad(c, c.columns); } } catch (e) {} return null; },
-    revisit: function () { const s = document.getElementById('bubble-table-config'); try { const c = parseBubbleConfig((s && s.textContent) || '{}'); if (aynaMode(c)) return aynaLoad(c, c.columns); } catch (e) {} return null; },   // harness: a second visit of the same screen (cache kept)
+    // mr18: both re-read the page config WITH this page's own confirmed field changes (applyServerPatch)
+    reload: function () { return aynaReloadPatched(false); },
+    revisit: function () { return aynaReloadPatched(true); },   // harness: a second visit of the same screen (cache kept)
+    projectionChanged: function (requery) { return aynaProjectionChanged(!!requery); },   // mr18 (harness)
+    fieldState: function () {   // mr18 (harness): the live-column bookkeeping, ids and names only
+      let cap = { filtersById: {} }; try { cap = captureViewById(); } catch (e) {}
+      return { columns: getOrderedColumns().filter(c => !c.__uiOnly).map(c => c.id), columnOrder: state.columnOrder.slice(), filtersById: cap.filtersById,
+        pending: Array.from(state.pendingFields.keys()), added: Array.from(state.serverPatch.added.keys()), removed: Array.from(state.serverPatch.removed.keys()),
+        fieldOps: { screenId: state.fieldOps.screenId, ready: state.fieldOps.ready, at: state.fieldOps.at, meta: !!state.fieldOps.meta }, popover: !!state.fieldPop,
+        cacheGen: AYNA.cacheGen, fields: AYNA.fields.slice(), critKey: AYNA.critKey, possible: fieldOpsPossible() };
+    },
     status: function () { return { loading: AYNA.loading, last: AYNA.last, stats: AYNA.stats, cached: AYNA.cache.size, windowed: aynaWindowed(), criteria: AYNA.criteria, page: AYNA.win ? AYNA.win.page : null }; },
     mode: function () { const s = document.getElementById('bubble-table-config'); try { return aynaMode(parseBubbleConfig((s && s.textContent) || '{}')); } catch (e) { return false; } },
     page: function (n) { aynaGoPage(n); }, pageSize: function (s) { aynaSetPageSize(s); },
@@ -4802,12 +5080,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   // Bubble'dan çağrılır: #bubble-table-config elementini yeniden okuyup tabloyu günceller.
   // Veri değiştiğinde (kayıt ekleme/silme) Bubble workflow'undan bu fonksiyonu çağırın.
-  function reloadFromConfig() {
+  function reloadFromConfig() { reloadConfigCore(false); }
+  // echo = the observer saw the config TEXT change (Bubble re-rendered it); a direct reloadFromConfig() call from a Bubble
+  // workflow ("the data changed") always reloads
+  function reloadConfigCore(echo) {
     const script = document.getElementById('bubble-table-config');
     const text = (script && script.textContent ? script.textContent : '').trim();
     if (!text || text === '{}') return;
     try {
       const config = parseBubbleConfig(text);
+      applyServerPatch(config);   // mr18: this page's confirmed field adds / hides survive Bubble's config echo (before viewKeyOf)
       // Ekran/süreç değişti (config yenilendi) → asistan bağlamını taze oku + kısa poll
       // (BUBBLE_INPUTS bu config'ten biraz sonra güncellenebilir).
       applyWakeConfig(config);
@@ -4834,6 +5116,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const verdict = classifyView(state._viewKey, nextKey);
       state._viewKey = verdict.dataNew ? nextKey : carryRowIds(state._viewKey, nextKey);
       applySavedTableConfig(config, verdict);
+      // mr18 T3: Bubble's echo of the same screen with the same field set (its catch-up after an own add / hide, a tableConfig
+      // echo) keeps the running mirror view: page, criteria, page cache and the rows on screen; only the columns re-mount
+      if (echo && aynaSameProjection(config, verdict)) {
+        AYNA.cfg = config;
+        aynaPaint(state.rawRows.map(r => { const o = Object.assign({}, r); delete o.__sourceIndex; return o; }), config.columns, true);
+        aynaPager();
+        return;
+      }
       if (aynaMode(config)) { aynaLoad(config, config.columns); } else { aynaCancel(); setTableData(safeData, config.columns); }   // AYNA (a Bubble write cancels any pending mirror load)
     } catch (err) {
       console.warn('reloadFromConfig: JSON parse error', err);
@@ -4987,7 +5277,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const text = (script && script.textContent ? script.textContent : '').trim();
         if (text && text !== '{}' && text !== lastConfigText) {
           lastConfigText = text;
-          reloadFromConfig();
+          reloadConfigCore(true);
         } else { aynaRescreen(); }   // AYNA: the screen id (#bubble-options / plugin globals) may land after the config
       }
     });
@@ -5705,6 +5995,36 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!isError) setTimeout(() => { if (t.parentNode) t.remove(); }, 5000);
   }
 
+  // mr18: the same toast slot with one action button ("Field added · Undo", "Field not added · Retry"); role=status
+  // mr18 T1: every toast is stamped with the screen it was raised on (screenId, else the current one); its action runs only
+  // while the table still shows that screen, and a config of another screen removes it (fieldScreenSync)
+  function showActionToast(text, actionLabel, onAction, ms, screenId) {
+    if (!els.wrapper) return null;
+    const old = els.wrapper.querySelector('.dt-wake-toast');
+    if (old) old.remove();
+    const t = document.createElement('div');
+    t.className = 'dt-wake-toast dt-action-toast';
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    let stamp = ''; try { stamp = typeof screenId === 'string' ? screenId : fieldScreenId(); } catch (e) {}
+    t.setAttribute('data-screen', stamp);
+    const s = document.createElement('span');
+    s.className = 'dt-toast-text';
+    s.textContent = text;
+    t.appendChild(s);
+    if (actionLabel && typeof onAction === 'function') {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dt-toast-action';
+      b.textContent = actionLabel;
+      b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); t.remove(); let here = ''; try { here = fieldScreenId(); } catch (x) {} if (here === stamp) onAction(); });
+      t.appendChild(b);
+    }
+    els.wrapper.appendChild(t);
+    setTimeout(() => { if (t.parentNode) t.remove(); }, ms || 6000);
+    return t;
+  }
+
   function agentDisplayName() {
     return state.wake.agentName || 'the assistant';
   }
@@ -6063,17 +6383,852 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
   }
 
-  function addField() {
-    if (typeof window.bubble_fn_add_field === 'function') {
-      window.bubble_fn_add_field();
+  /* FIELDS-MR18-BEGIN */
+  // ═══════════════════════════════════════════════════════════════════════════
+  // mr18 / tb1 — fields where you look. Every "add field" entry ("+" header · Insert left / right · More › Add field ·
+  // empty state · dynamicTable.addField(ctx?)) goes through openAddField(ctx). Gate: a screen id in the config, the live
+  // app (no /version-test) and fetch → mirror_screen_fields (8 s, 30 s cache, prefetched 1500 ms after the first paint)
+  // → the New field popover when the screen is the user's own copy (can_edit), otherwise Bubble's popup exactly as
+  // before (bubble_fn_add_field() with NO argument when no column context; a JSON {anchorColumnId, side} otherwise).
+  // Add → an optimistic column where the user clicked (pending while the write is in flight) → mirror_field_create
+  // (20 s; +5 s silent re-read on a timeout) → confirmed (check, 600 ms) or removed. The screen and the table are decided
+  // on the server (screen record → Anasheet, organisation from the signed-in user); the popover sends the screen id only.
+  // Memory only: state.fieldOps / pendingFields / serverPatch die with the page.
+  // ═══════════════════════════════════════════════════════════════════════════
+  /* DT-NORMKEY: copy of gaia_mirror_core norm/normKey — keep identical */
+    const _TR_LOWER = { 'İ': 'i', 'I': 'ı' };
+    const _TR_FOLD = { 'ı': 'i', 'ş': 's', 'ğ': 'g', 'ü': 'u', 'ö': 'o', 'ç': 'c', 'â': 'a', 'î': 'i', 'û': 'u', 'ê': 'e', 'ô': 'o' };
+    function lower(s) {
+        return String(s === null || s === undefined ? '' : s).replace(/[İI]/g, function (c) { return _TR_LOWER[c]; }).toLowerCase();
     }
+    // norm: lower-case (Turkish rules), diacritics folded, whitespace collapsed, trimmed → the comparison form
+    function norm(s) {
+        let t = lower(s);
+        if (t.normalize) t = t.normalize('NFC');
+        t = t.replace(/[ışğüöçâîûêô]/g, function (c) { return _TR_FOLD[c] || c; });
+        return t.replace(/\s+/g, ' ').trim();
+    }
+    // key: norm with everything but letters and digits removed → "Servis telefonu" == "servis_telefonu" == "ServisTelefonu"
+    function normKey(s) { return norm(s).replace(/[^a-z0-9]+/g, ''); }
+  /* /DT-NORMKEY */
+  const dtNormKey = normKey;
+
+  // chips = the 9 server-allowed types (data-type = the Bubble display string the op takes)
+  const DT_FIELD_TYPES = [
+    { type: 'Text', label: 'Text', canon: 'text' }, { type: 'Number', label: 'Number', canon: 'number' },
+    { type: 'Date', label: 'Date', canon: 'date' }, { type: 'Checkbox', label: 'Checkbox', canon: 'boolean' },
+    { type: 'Multiline text', label: 'Long text', canon: 'textarea' }, { type: 'Phone', label: 'Phone', canon: 'phone' },
+    { type: 'E-mail', label: 'Email', canon: 'email' }, { type: 'Dropdown', label: 'Dropdown', canon: 'dropdown' },
+    { type: 'Image&Pdf', label: 'File', canon: 'file' }
+  ];
+  const DT_FIELD_MULTI = { 'Dropdown': 1, 'Image&Pdf': 1 };
+  // the server's _GM_RESERVED_NK: normKey of these names ('RefereDeğer' → 'referedeger', '_id' → 'id')
+  const DT_FIELD_RESERVED = {};
+  ['RefereDeğer', 'NotVisible', 'NotAvailable', 'Uniqueid', 'stage', 'lists', '_id', 'uniqueid'].forEach(n => { DT_FIELD_RESERVED[dtNormKey(n)] = 1; });
+  const DT_FIELD_ROLES = [['mandatory', 'Enter'], ['control', 'Review'], ['optional', 'Optional']];
+  const DT_FIELD_LIMITS = { name_max: 60, options_max: 100, option_max_len: 80, meta_ttl_ms: 30000, read_timeout_ms: 8000, write_timeout_ms: 20000, reread_ms: 5000, prefetch_ms: 1500, confirm_ms: 600, toast_ms: 6000, check_ms: 250 };
+  const DT_BUBBLE_ID = /^\d{13}x\d{15,20}$/;
+  const DT_GLYPH = { ok: '\u2713', back: '\u21A9', warn: '\u26A0', bad: '\u00D7' };
+
+  function dtReducedMotion() { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } }
+  function newFieldOpId() { return 'f' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
+  // mr18 R8: the value signature the server fingerprints (screen is implicit: a popover writes to the screen it was opened on)
+  function fieldValuesSig(name, type, multiple, options, role, process) { try { return JSON.stringify({ nk: dtNormKey(name), type: String(type || ''), multiple: !!multiple, options: (Array.isArray(options) ? options.slice() : []), role: process ? String(role || 'mandatory') : 'control' }); } catch (e) { return ''; } }
+  // a screen RECORD id is the only anchor a field write takes (stage / list alone never write); read from the config the
+  // table runs on (mirror mode: the one aynaLoad holds; Bubble data: the script tag, parsed once per text — it may carry rows)
+  function fieldScreenId() {
+    try {
+      if (AYNA.cfg) { const s = aynaScreenOf(AYNA.cfg).screen; return DT_BUBBLE_ID.test(s) ? s : ''; }
+      const el = document.getElementById('bubble-table-config'), text = (el && el.textContent) || '';
+      if (state._fieldCfgText !== text) {
+        state._fieldCfgText = text;
+        let c = {}; try { c = parseBubbleConfig(text.trim() || '{}') || {}; } catch (e) { c = {}; }
+        const s = aynaScreenOf(c).screen;
+        state._fieldCfgScreen = DT_BUBBLE_ID.test(s) ? s : '';
+      }
+      return state._fieldCfgScreen || '';
+    } catch (e) { return ''; }
   }
+  function fieldOpsPossible() { return !!fieldScreenId() && String(location.pathname || '').indexOf('/version-test') === -1 && typeof fetch === 'function'; }
+  // mr18b: the page's assistant (state.wake.assistantId: config / BUBBLE_INPUTS / DOM / setAssistant, via applyWakeConfig) rides
+  // along on a create → the server appends the new view to that assistant's role list (it checks org + table itself); a Bubble id only
+  function fieldAssistantId() {
+    try { const a = String((state.wake && state.wake.assistantId) || '').trim(); return DT_BUBBLE_ID.test(a) ? a : ''; } catch (e) { return ''; }
+  }
+  // mirror_screen_fields → {ok, meta} | {error}; a success (can_edit or not) is cached 30 s per screen id, errors are not
+  function loadScreenFields(force) {
+    const sid = fieldScreenId();
+    if (!sid) return Promise.resolve({ error: 'no-screen' });
+    let fo = state.fieldOps;
+    if (fo.screenId !== sid) { fo = state.fieldOps = { screenId: sid, at: 0, meta: null, ready: false, inflight: null }; }
+    if (!force && fo.meta && Date.now() - fo.at < DT_FIELD_LIMITS.meta_ttl_ms) return Promise.resolve({ ok: true, meta: fo.meta });
+    if (!force && fo.inflight) return fo.inflight;
+    const p = aynaBridge('mirror_screen_fields', { screen_id: sid }, null, { timeoutMs: DT_FIELD_LIMITS.read_timeout_ms }).then(r => {
+      if (fo.inflight === p) fo.inflight = null;
+      if (r && r.ok && r.data && r.data.screen && typeof r.data.screen === 'object') {
+        if (state.fieldOps === fo) { fo.meta = r.data; fo.at = Date.now(); fo.ready = r.data.screen.can_edit === true; }
+        return { ok: true, meta: r.data };
+      }
+      if (state.fieldOps === fo) fo.ready = false;
+      return (r && r.error) ? r : { error: 'shape' };
+    }, () => { if (fo.inflight === p) fo.inflight = null; return { error: 'network' }; });
+    fo.inflight = p;
+    return p;
+  }
+  function scheduleFieldPrefetch() {
+    try {
+      if (!fieldOpsPossible()) return;
+      const sid = fieldScreenId();
+      if (state._fieldPrefetchFor === sid) return;
+      state._fieldPrefetchFor = sid;
+      setTimeout(() => { try { if (fieldScreenId() === sid && aynaAlive()) loadScreenFields(false); } catch (e) {} }, DT_FIELD_LIMITS.prefetch_ms);
+    } catch (e) {}
+  }
+
+  // ── header states (pending / confirmed) ──
+  function fieldHeaderState(id) {
+    if (state.pendingFields.has(id)) return 'pending';
+    const u = state._confirmedCols.get(id);
+    return (u && u > Date.now()) ? 'confirmed' : '';
+  }
+  function fieldHeaderEls(id) {
+    const out = [];
+    try { els.container.querySelectorAll('.dt-colheader-content[data-col-id]').forEach(el => { if (el.getAttribute('data-col-id') === id) out.push(el); }); } catch (e) {}
+    return out;
+  }
+  function refreshHeaderStates() {
+    try {
+      els.container.querySelectorAll('.dt-colheader-content[data-col-id]').forEach(el => {
+        const st = fieldHeaderState(el.getAttribute('data-col-id'));
+        el.classList.toggle('dt-col-pending', st === 'pending');
+        el.classList.toggle('dt-col-confirmed', st === 'confirmed');
+      });
+    } catch (e) {}
+    try { if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render()); } catch (e) {}
+  }
+  function pulseConfirmed(id) {
+    const until = Date.now() + DT_FIELD_LIMITS.confirm_ms;
+    state._confirmedCols.set(id, until);
+    refreshHeaderStates();
+    setTimeout(() => { if (state._confirmedCols.get(id) === until) { state._confirmedCols.delete(id); refreshHeaderStates(); } }, DT_FIELD_LIMITS.confirm_ms + 20);
+  }
+  function fieldAnnounce(text) {
+    try {
+      let el = document.getElementById('dt-field-live');
+      if (!el && els.wrapper) { el = document.createElement('div'); el.id = 'dt-field-live'; el.className = 'dt-sr-only'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); els.wrapper.appendChild(el); }
+      if (el) el.textContent = text;
+    } catch (e) {}
+  }
+  function scrollToColumn(id) {
+    try {
+      const hot = state.hot;
+      if (!hot || hot.isDestroyed) return;
+      const phys = (state._mountedCols || []).findIndex(c => c && !c.__uiOnly && c.id === id);
+      if (phys < 0) return;
+      const vis = typeof hot.toVisualColumn === 'function' ? hot.toVisualColumn(phys) : phys;
+      keepOutsideFocus(() => { try { hot.scrollViewportTo({ col: vis }); } catch (e) { try { hot.scrollViewportTo(0, vis); } catch (e2) {} } });
+    } catch (e) {}
+  }
+
+  // ── context, gate, Bubble fallback ──
+  function fieldCtx(ctx) {
+    const c = Object.assign({ source: 'api' }, (ctx && typeof ctx === 'object') ? ctx : {});
+    const colId = c.column && typeof c.column === 'object' ? c.column.id : (c.column || c.anchorColumnId || '');
+    c.column = colId ? (state.columns.find(x => x && !x.__uiOnly && x.id === String(colId)) || null) : null;
+    c.side = c.column ? (c.side === 'left' ? 'left' : 'right') : null;
+    return c;
+  }
+  function fallbackAdd(ctx) {
+    if (typeof window.bubble_fn_add_field !== 'function') return;
+    if (ctx && ctx.column && ctx.column.id) window.bubble_fn_add_field(JSON.stringify({ anchorColumnId: ctx.column.id, side: ctx.side || 'right' }));
+    else window.bubble_fn_add_field();
+  }
+  function setFieldBusy(el, on) {
+    if (!el || !el.classList) return;
+    el.classList.toggle('is-busy', !!on);
+    if (on) el.setAttribute('aria-busy', 'true'); else el.removeAttribute('aria-busy');
+  }
+  function liveFieldAnchor(ctx) {
+    const a = ctx && ctx.anchorEl;
+    if (a && a.isConnected) return a;
+    if (ctx && ctx.source === 'header' && els.container) return els.container.querySelector('.ht_clone_top [data-header-action="add"]') || els.container.querySelector('[data-header-action="add"]');
+    if (ctx && ctx.source === 'more') return els.moreButton || null;
+    return null;
+  }
+  function openAddField(ctx) {
+    const c = fieldCtx(ctx);
+    if (!fieldOpsPossible()) { fallbackAdd(c); return; }
+    if (state._fieldOpening) return;
+    state._fieldOpening = true;
+    const busy = (c.anchorEl && c.anchorEl.tagName === 'BUTTON') ? c.anchorEl : null;
+    setFieldBusy(busy, true);
+    const done = () => {
+      state._fieldOpening = false;
+      setFieldBusy(busy, false);
+      try { els.wrapper.querySelectorAll('.is-busy[data-header-action="add"]').forEach(b => setFieldBusy(b, false)); } catch (e) {}
+    };
+    loadScreenFields(false).then(r => {
+      done();
+      if (!r || !r.ok || !r.meta || !r.meta.screen || r.meta.screen.can_edit !== true) { state.fieldOps.ready = false; fallbackAdd(c); return; }
+      openFieldPopover(r.meta, c, null, '');
+    }, () => { done(); fallbackAdd(c); });
+  }
+  function addField(ctx) { openAddField(Object.assign({ source: 'api' }, (ctx && typeof ctx === 'object') ? ctx : {})); }
 
   function manageField() {
     if (typeof window.bubble_fn_manage_field === 'function') {
       window.bubble_fn_manage_field();
     }
   }
+
+  // ── name rules (client twin of the server's; the server stays authoritative) ──
+  // whole-word tokens on the folded name; the Turkish stems take suffixes (Tarihi, Telefonu, Durumu, Açıklaması); no
+  // 'no' / 'sayı' / 'tutar' token (Dosya No, Rapor No, Plaka No are text)
+  function guessFieldType(name) {
+    const s = norm(name);
+    if (!s) return 'Text';
+    const w = (alt, stem) => new RegExp('(^|[^a-z0-9])(' + alt + ')' + (stem ? '[a-z]*' : '') + '([^a-z0-9]|$)').test(s);
+    if (w('tarih', true) || w('dates?')) return 'Date';
+    if (w('telefon', true) || w('tel|gsm|phone')) return 'Phone';
+    if (w('e-?posta', true) || w('e-?mail|mail')) return 'E-mail';
+    if (w('durum', true) || w('status')) return 'Dropdown';
+    if (w('aciklama', true) || w('not|notu|notlar|notes?|description')) return 'Multiline text';
+    return 'Text';
+  }
+  function fieldEntryFor(meta, nk) {
+    const pick = list => (Array.isArray(list) ? list : []).find(e => e && e.name && (e.nk || dtNormKey(e.name)) === nk);
+    let e = meta ? (pick(meta.fields) || pick(meta.hidden)) : null;
+    const col = state.columns.find(c => c && !c.__uiOnly && dtNormKey(c.id) === nk);
+    if (col) e = Object.assign({}, e || {}, { name: col.id, nk: nk, visible: true });
+    return e || null;
+  }
+  function validateFieldName(raw, meta) {
+    const name = String(raw == null ? '' : raw).trim();
+    if (!name) return { state: 'idle', name: '', line: '', glyph: '' };
+    if (name.length > DT_FIELD_LIMITS.name_max) return { state: 'blocked', name, line: 'Too long', glyph: 'bad' };
+    const nk = dtNormKey(name);
+    if (/[\u0000-\u001f"\\:]/.test(name) || name.charAt(0) === '_' || DT_BUBBLE_ID.test(name) || !nk || DT_FIELD_RESERVED[nk] || (name in Object.prototype) || (nk in Object.prototype)) return { state: 'blocked', name, line: 'Name not allowed', glyph: 'bad' };   // mr18 SEC-7: 'constructor', 'toString'… are row-object keys
+    // T5: a write of this name is in flight (create, show or hide) → wait for its reply
+    if (Array.from(state.pendingFields.keys()).some(k => dtNormKey(k) === nk)) return { state: 'blocked', name, nk, line: 'Saving', glyph: 'warn' };
+    const existing = fieldEntryFor(meta, nk);
+    if (existing) return { state: 'existing', name, nk, line: 'Already on this table', glyph: 'back', existing };
+    const other = meta && meta.taken && Array.isArray(meta.taken.other) ? meta.taken.other : [];
+    if (other.indexOf(nk) >= 0) return { state: 'blocked', name, nk, line: 'Used elsewhere', glyph: 'warn' };
+    return { state: 'ok', name, nk, line: '', glyph: 'ok' };
+  }
+  function fieldOptionProblem(v, list) {
+    const s = String(v == null ? '' : v).trim();
+    if (!s || s.length > DT_FIELD_LIMITS.option_max_len || /[,"\\\u0000-\u001f]/.test(s)) return { bad: true };
+    const nk = dtNormKey(s);
+    const dup = list.findIndex(o => dtNormKey(o) === nk);
+    if (dup >= 0) return { dup };
+    if (list.length >= DT_FIELD_LIMITS.options_max) return { bad: true };
+    return { ok: s };
+  }
+  function flashClass(el, cls, ms) {
+    if (!el || !el.classList) return;
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    setTimeout(() => { try { el.classList.remove(cls); } catch (e) {} }, ms);
+  }
+  // chip editor for dropdown options (shared with the P1 options accordion): Enter adds · Backspace on an empty input
+  // removes the last · × removes · ←/→ between chips · Delete removes the focused chip; refused text shakes the input
+  function buildOptionsEditor(host, list, onChange, onEnterEmpty) {
+    host.innerHTML = '';
+    const input = document.createElement('input');
+    input.id = 'dt-field-pop-opt-input'; input.className = 'dt-field-opt-input'; input.type = 'text';
+    input.placeholder = 'Add option'; input.setAttribute('aria-label', 'Add option'); input.autocomplete = 'off'; input.maxLength = DT_FIELD_LIMITS.option_max_len + 20;
+    host.appendChild(input);
+    const chips = () => Array.from(host.querySelectorAll('.dt-field-opt-chip'));
+    const render = () => {
+      chips().forEach(n => n.remove());
+      list.forEach((o, i) => {
+        const chip = document.createElement('span');
+        chip.className = 'dt-pill dt-field-opt-chip';
+        chip.setAttribute('data-tone', String(gxToneIndex(o)));
+        chip.setAttribute('tabindex', '-1');
+        chip.setAttribute('data-index', String(i));
+        const t = document.createElement('span'); t.textContent = o; chip.appendChild(t);
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'dt-field-opt-x'; x.setAttribute('aria-label', 'Remove'); x.tabIndex = -1; x.textContent = '\u00D7';
+        x.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); remove(i); input.focus(); });
+        chip.appendChild(x);
+        host.insertBefore(chip, input);
+      });
+    };
+    const remove = i => { if (i < 0 || i >= list.length) return; list.splice(i, 1); render(); onChange(); };
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const v = input.value;
+        if (!v.trim()) { if (onEnterEmpty) onEnterEmpty(); return; }
+        const p = fieldOptionProblem(v, list);
+        if (p.bad) { flashClass(input, 'is-shake', 260); return; }
+        if (p.dup !== undefined) { flashClass(chips()[p.dup], 'is-pulse', 380); input.value = ''; return; }
+        list.push(p.ok); input.value = ''; render(); onChange();
+      } else if (e.key === 'Backspace' && !input.value && list.length) {
+        e.preventDefault(); remove(list.length - 1);
+      } else if (e.key === 'ArrowLeft' && !input.selectionStart && list.length) {
+        e.preventDefault(); const c = chips(); c[c.length - 1].focus();
+      }
+    });
+    host.addEventListener('keydown', e => {
+      const chip = e.target && e.target.closest ? e.target.closest('.dt-field-opt-chip') : null;
+      if (!chip) return;
+      const c = chips(), i = c.indexOf(chip);
+      if (e.key === 'ArrowLeft') { e.preventDefault(); if (i > 0) c[i - 1].focus(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); if (i < c.length - 1) c[i + 1].focus(); else input.focus(); }
+      else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); remove(i); const n = chips(); if (n.length) n[Math.min(i, n.length - 1)].focus(); else input.focus(); }
+    });
+    render();
+    return { input, render };
+  }
+
+  // ── the popover ──
+  function fieldChipHtml(t) {
+    const meta = typeMetaMap[t.canon] || typeMetaMap.text;
+    const glyph = iconKeyGlyphMap[meta.iconKey] || iconKeyGlyphMap.text;
+    return '<button type="button" class="dt-field-chip" role="radio" aria-checked="false" tabindex="-1" data-type="' + escapeHtml(t.type) + '"><span class="dt-field-chip-glyph" aria-hidden="true">' + glyph + '</span><span>' + escapeHtml(t.label) + '</span></button>';
+  }
+  function openFieldPopover(meta, ctx, values, keepOpId) {
+    closeFieldPopover(true);
+    if (!els.wrapper) return;
+    const mobile = isMobileViewport();
+    const process = !!(meta && meta.screen && meta.screen.kind === 'process');
+    const v = values || {};
+    const pop = document.createElement('div');
+    pop.id = 'dt-field-pop';
+    pop.className = 'dt-field-pop' + (mobile ? ' dt-sheet' : '');
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-modal', 'true');
+    pop.setAttribute('aria-labelledby', 'dt-field-pop-title');
+    pop.innerHTML =
+      '<div class="dt-sheet-handle" data-sheet-handle="field"></div>' +
+      '<div class="dt-field-pop-title" id="dt-field-pop-title">New field</div>' +
+      '<div class="dt-field-pop-namerow"><input id="dt-field-pop-name" class="dt-field-pop-name" type="text" placeholder="Field name" maxlength="' + DT_FIELD_LIMITS.name_max + '" autocomplete="off" spellcheck="false" aria-labelledby="dt-field-pop-title" /><span id="dt-field-pop-glyph" class="dt-field-pop-glyph" role="img" aria-hidden="true"></span></div>' +
+      '<div id="dt-field-pop-line" class="dt-field-pop-line" aria-live="polite"></div>' +
+      '<div class="dt-field-chips" role="radiogroup" aria-label="Type">' + DT_FIELD_TYPES.map(fieldChipHtml).join('') + '</div>' +
+      '<div class="dt-field-pop-extra"></div>' +
+      (process ? '<div class="dt-field-roles" role="radiogroup" aria-label="Role">' + DT_FIELD_ROLES.map(r => '<button type="button" class="dt-field-role" role="radio" aria-checked="false" tabindex="-1" data-role="' + r[0] + '">' + r[1] + '</button>').join('') + '</div>' : '') +
+      '<div class="dt-field-pop-actions"><button id="dt-field-pop-cancel" type="button" class="dt-field-btn">Cancel</button><button id="dt-field-pop-add" type="button" class="dt-field-btn dt-primary" disabled>Add</button></div>';
+    els.wrapper.appendChild(pop);
+    const fp = state.fieldPop = {
+      el: pop, ctx: ctx || { source: 'api' }, meta: meta || {}, opId: keepOpId || '', process, screenId: fieldScreenId(),   // T8: the screen it writes to
+      retrySig: keepOpId ? fieldValuesSig(v.name, v.type, !!v.multiple, v.options, v.role, process) : '',   // mr18 R8: a Retry keeps its op_id only while the values stay the same
+      type: v.type || 'Text', typeTouched: !!v.typeTouched, multiple: !!v.multiple, options: Array.isArray(v.options) ? v.options.slice() : [],
+      role: v.role || (process ? 'mandatory' : 'control'), saving: false, openedAt: Date.now(), timer: null, check: null, forced: v.forcedLine || null, lastName: '', optEditor: null, extraFor: ''
+    };
+    const q = sel => pop.querySelector(sel);
+    const input = q('#dt-field-pop-name');
+    input.value = v.name || '';
+    fp.lastName = input.value;
+    // events stay inside the popover (the grid, the column menu and the page never see them)
+    pop.addEventListener('mousedown', e => e.stopPropagation());
+    pop.addEventListener('click', e => e.stopPropagation());
+    pop.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFieldPopover(false); return; }
+      if (e.key === 'Tab') {
+        const f = Array.from(pop.querySelectorAll('input, button, [tabindex="0"]')).filter(n => !n.disabled && n.offsetParent !== null && n.getAttribute('tabindex') !== '-1');
+        if (f.length) {
+          const i = f.indexOf(document.activeElement);
+          const n = e.shiftKey ? (i <= 0 ? f.length - 1 : i - 1) : (i < 0 || i === f.length - 1 ? 0 : i + 1);
+          e.preventDefault(); try { f[n].focus(); } catch (x) {}
+        }
+      }
+      e.stopPropagation();
+    });
+    input.addEventListener('input', () => {
+      if (input.value !== fp.lastName) { fp.forced = null; fp.lastName = input.value; }
+      if (fp.timer) clearTimeout(fp.timer);
+      fp.timer = setTimeout(() => { fp.timer = null; runFieldCheck(false); }, DT_FIELD_LIMITS.check_ms);
+    });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitFieldPop(); } });
+    // radio groups: click selects, ←/→ move and select (roving tabindex)
+    const radios = (sel, apply) => {
+      const group = pop.querySelectorAll(sel);
+      group.forEach(b => b.addEventListener('click', () => apply(b, false)));
+      group.forEach(b => b.addEventListener('keydown', e => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        e.preventDefault();
+        const list = Array.from(group), i = list.indexOf(b), n = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? (i + 1) % list.length : (i - 1 + list.length) % list.length;
+        apply(list[n], true); try { list[n].focus(); } catch (x) {}
+      }));
+    };
+    radios('.dt-field-chip', (b) => { fp.type = b.getAttribute('data-type'); fp.typeTouched = true; syncFieldPop(false); });
+    radios('.dt-field-role', (b) => { fp.role = b.getAttribute('data-role'); syncFieldPop(false); });
+    q('#dt-field-pop-cancel').addEventListener('click', () => closeFieldPopover(false));
+    q('#dt-field-pop-add').addEventListener('click', () => submitFieldPop());
+    syncFieldPop(false);
+    if (input.value) runFieldCheck(false);
+    positionFieldPop(pop, fp.ctx);
+    if (mobile) { setBackdropOpen(true); setupSheetDismiss(pop, () => closeFieldPopover(false)); }
+    try { if (state.hot && !state.hot.isDestroyed && state.hot.isListening()) state.hot.unlisten(); } catch (e) {}
+    try { input.focus({ preventScroll: true }); } catch (e) {}
+    fieldAnnounce('');
+  }
+  function positionFieldPop(pop, ctx) {
+    if (!pop || pop.classList.contains('dt-sheet')) return;
+    const a = liveFieldAnchor(ctx);
+    const r = (a && a.getBoundingClientRect) ? a.getBoundingClientRect() : (ctx && ctx.rect) || null;
+    const vw = window.innerWidth || document.documentElement.clientWidth || 1280, vh = window.innerHeight || document.documentElement.clientHeight || 720;
+    const W = pop.offsetWidth || 320, H = pop.offsetHeight || 320, EDGE = 8;
+    let left = r ? r.left : (vw - W) / 2, top = r ? r.bottom + 6 : 80;
+    left = Math.max(EDGE, Math.min(left, vw - EDGE - W));
+    if (top + H > vh - EDGE) top = (r && r.top - 6 - H >= EDGE) ? r.top - 6 - H : Math.max(EDGE, vh - EDGE - H);
+    pop.style.left = Math.round(left) + 'px';
+    pop.style.top = Math.round(top) + 'px';
+  }
+  function closeFieldPopover(silent) {
+    const fp = state.fieldPop;
+    if (!fp) return;
+    state.fieldPop = null;
+    if (fp.timer) clearTimeout(fp.timer);
+    try { fp.el.remove(); } catch (e) {}
+    if (!(els.columnMenu && els.columnMenu.classList.contains('is-open'))) setBackdropOpen(false);
+    if (silent) return;
+    const back = liveFieldAnchor(fp.ctx), ae = document.activeElement;
+    if (back && typeof back.focus === 'function' && (!ae || ae === document.body || !ae.isConnected)) { try { back.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  // chips, Multi, options, role, Add label/state, glyph + line
+  function syncFieldPop(guessed) {
+    const fp = state.fieldPop;
+    if (!fp) return;
+    const pop = fp.el;
+    pop.querySelectorAll('.dt-field-chip').forEach(b => {
+      const on = b.getAttribute('data-type') === fp.type;
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.setAttribute('tabindex', on ? '0' : '-1');
+      if (on && guessed) flashClass(b, 'is-guess', 200);
+    });
+    pop.querySelectorAll('.dt-field-role').forEach(b => {
+      const on = b.getAttribute('data-role') === fp.role;
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.setAttribute('tabindex', on ? '0' : '-1');
+    });
+    // Multi (Dropdown / File) and the option editor (Dropdown) are drawn only for those types, outside the radiogroup
+    const extra = pop.querySelector('.dt-field-pop-extra'), want = (DT_FIELD_MULTI[fp.type] ? 'm' : '') + (fp.type === 'Dropdown' ? 'o' : '');
+    if (fp.extraFor !== want) {
+      fp.extraFor = want;
+      extra.innerHTML = ''; fp.optEditor = null;
+      if (DT_FIELD_MULTI[fp.type]) {
+        const sw = document.createElement('button');
+        sw.id = 'dt-field-pop-multi'; sw.type = 'button'; sw.className = 'dt-field-switch'; sw.setAttribute('role', 'switch');
+        sw.innerHTML = '<span class="dt-field-switch-knob" aria-hidden="true"></span><span>Multi</span>';
+        sw.addEventListener('click', () => { fp.multiple = !fp.multiple; syncFieldPop(false); });
+        extra.appendChild(sw);
+      }
+      if (fp.type === 'Dropdown') {
+        const host = document.createElement('div');
+        host.id = 'dt-field-pop-options'; host.className = 'dt-field-opts';
+        extra.appendChild(host);
+        fp.optEditor = buildOptionsEditor(host, fp.options, () => {}, () => submitFieldPop());
+      }
+      extra.style.display = want ? '' : 'none';
+    }
+    const sw = pop.querySelector('#dt-field-pop-multi');
+    if (sw) sw.setAttribute('aria-checked', fp.multiple ? 'true' : 'false');
+    applyFieldCheck(fp.check || validateFieldName(pop.querySelector('#dt-field-pop-name').value, fp.meta));
+  }
+  function applyFieldCheck(chk) {
+    const fp = state.fieldPop;
+    if (!fp) return;
+    fp.check = chk;
+    const pop = fp.el, glyph = pop.querySelector('#dt-field-pop-glyph'), line = pop.querySelector('#dt-field-pop-line'), add = pop.querySelector('#dt-field-pop-add');
+    const f = fp.forced;   // a server answer shown after a reopen (Used elsewhere / Name not allowed) until the name changes
+    const shown = f ? { state: 'blocked', line: f.line, glyph: f.glyph } : chk;
+    glyph.setAttribute('data-glyph', shown.glyph || '');
+    glyph.textContent = shown.glyph ? DT_GLYPH[shown.glyph] : '';
+    if (shown.line) { glyph.removeAttribute('aria-hidden'); glyph.setAttribute('aria-label', shown.line); } else { glyph.setAttribute('aria-hidden', 'true'); glyph.removeAttribute('aria-label'); }
+    if (line.textContent !== (shown.line || '')) line.textContent = shown.line || '';
+    line.setAttribute('data-tone', shown.glyph === 'warn' ? 'warn' : (shown.glyph === 'bad' ? 'bad' : ''));
+    add.textContent = shown.state === 'existing' ? 'Show field' : 'Add';
+    add.disabled = fp.saving || !(shown.state === 'ok' || shown.state === 'existing');
+  }
+  // the 250 ms name check (no network): type guess while no chip was tapped, then the rules
+  function runFieldCheck(now) {
+    const fp = state.fieldPop;
+    if (!fp) return null;
+    const name = fp.el.querySelector('#dt-field-pop-name').value;
+    let guessed = false;
+    if (!fp.typeTouched) { const g = guessFieldType(name); if (g !== fp.type) { fp.type = g; guessed = true; } }
+    fp.check = validateFieldName(name, fp.meta);
+    syncFieldPop(guessed && !now);
+    return fp.check;
+  }
+  function submitFieldPop() {
+    const fp = state.fieldPop;
+    if (!fp || fp.saving) return;
+    if (fp.timer) { clearTimeout(fp.timer); fp.timer = null; }
+    if (!fp.screenId || fp.screenId !== fieldScreenId()) { closeFieldPopover(true); return; }   // T8: the page moved to another screen
+    const chk = runFieldCheck(true);
+    if (!chk) return;
+    const input = fp.el.querySelector('#dt-field-pop-name');
+    if (fp.forced || !(chk.state === 'ok' || chk.state === 'existing')) { flashClass(input, 'is-shake', 260); return; }
+    const ctx = fp.ctx;
+    if (chk.state === 'existing') { const role = fp.process ? fp.role : 'control'; closeFieldPopover(false); showField(chk.existing, ctx, role); return; }
+    const payload = { screen_id: fp.screenId, name: chk.name, type: fp.type, multiple: DT_FIELD_MULTI[fp.type] ? !!fp.multiple : false, role: fp.process ? fp.role : 'control' };
+    if (fp.type === 'Dropdown' && fp.options.length) payload.options = fp.options.slice();
+    const place = fieldPlace(ctx);
+    if (place) payload.place = place;
+    const aid = fieldAssistantId(); if (aid) payload.assistant_id = aid;   // mr18b
+    // mr18 R8: the server binds an op_id to its values (a reused op_id with other values is refused) -> edited values get a fresh op_id
+    payload.op_id = (fp.opId && (!fp.retrySig || fp.retrySig === fieldValuesSig(chk.name, fp.type, payload.multiple, payload.options, payload.role, fp.process))) ? fp.opId : newFieldOpId();
+    const values = { name: chk.name, type: fp.type, typeTouched: true, multiple: payload.multiple, options: fp.options.slice(), role: fp.role };
+    fp.saving = true;
+    const add = fp.el.querySelector('#dt-field-pop-add');
+    add.classList.add('is-busy'); add.disabled = true;
+    fp.el.querySelectorAll('input, button').forEach(n => { if (n !== add) n.disabled = true; });
+    submitFieldWrite(payload, ctx, values, { kind: 'create', op: 'mirror_field_create' });
+  }
+  // place for the server = the clicked column's VIEW id (grid index ≠ list index when the screen holds Embed views);
+  // unknown (e.g. the anchor is itself pending) → end
+  function fieldViewIdOf(name) {
+    const m = state.fieldOps.meta;
+    const e = m && Array.isArray(m.fields) ? m.fields.find(f => f && f.name === name) : null;
+    if (e && e.view_id) return e.view_id;
+    if (state.pendingFields.has(name)) return '';
+    const col = state.columns.find(c => c && c.id === name);
+    return (col && col.viewId) ? col.viewId : '';
+  }
+  function fieldPlace(ctx) {
+    if (!ctx || !ctx.column || !ctx.side) return null;
+    const vid = fieldViewIdOf(ctx.column.id);
+    if (!vid) return null;
+    return ctx.side === 'left' ? { before_view_id: vid } : { after_view_id: vid };
+  }
+
+  // ── the live column ──
+  function cfgColId(c) { return String((c && (c.id || c.data || c.field || c.key || c.header || c.title)) || ''); }
+  function remountColumns() {
+    if (typeof aynaWindowed === 'function' && aynaWindowed()) { loadDisplayRows(buildDisplayRows(state.rawRows)); return; }   // the page is the server's answer: re-mount only
+    applySearch(els.search && els.search.value ? els.search.value.trim() : '');
+  }
+  // the column goes where the user clicked: right → after the anchor, left → before it, else last (before the actions
+  // column); columnOrder is seeded from the current order when empty and published (bubble_fn_tableConfig); filters,
+  // sort, search, selection and scroll carry through the id-keyed re-mount
+  function insertFieldColumn(raw, ctx, pending) {
+    const ordered = getOrderedColumns().filter(c => c && !c.__uiOnly);
+    const ids = ordered.map(c => c.id).filter(id => id !== raw.id);
+    let index = ids.length;
+    if (ctx && ctx.column && ctx.side) { const i = ids.indexOf(ctx.column.id); if (i >= 0) index = ctx.side === 'left' ? i : i + 1; }
+    else if (ctx && Number.isInteger(ctx.index)) index = ctx.index;
+    index = Math.max(0, Math.min(index, ids.length));
+    const col = sanitizeColumns([raw])[0];
+    if (!col) return -1;
+    col.source = Array.isArray(raw.source) ? raw.source.slice() : [];
+    if (raw.fieldId) col.fieldId = raw.fieldId;
+    if (raw.viewId) col.viewId = raw.viewId;
+    if (pending) col.__pending = true;
+    ids.splice(index, 0, col.id);
+    const stale = state.columnOrder.filter(id => ids.indexOf(id) < 0 && id !== col.id);
+    state.columnOrder = ids.concat(stale);
+    state.columns = state.columns.filter(c => c.id !== col.id);
+    state.columns.splice(Math.min(index, state.columns.length), 0, col);
+    if (AYNA.cfg && Array.isArray(AYNA.cfg.columns)) {   // mirror paints rebuild the grid from the config's columns (in place:
+      const arr = AYNA.cfg.columns;                        // a load in flight holds this very array)
+      for (let i = arr.length - 1; i >= 0; i--) if (cfgColId(arr[i]) === col.id) arr.splice(i, 1);
+      arr.splice(Math.min(index, arr.length), 0, raw);
+    }
+    // the view key follows the table's own columns → the next config echo (patched with them) is "same layout"
+    if (state._viewKey && Array.isArray(state._viewKey.cols) && state._viewKey.cols.indexOf(col.id) < 0) state._viewKey.cols.push(col.id);
+    publishTableConfig();
+    saveViewCarry();
+    remountColumns();
+    setTimeout(() => scrollToColumn(col.id), 30);
+    return index;
+  }
+  function dropFieldColumn(name, animate, after) {
+    const done = () => {
+      state.columns = state.columns.filter(c => c.id !== name);
+      state.columnOrder = state.columnOrder.filter(id => id !== name);
+      if (AYNA.cfg && Array.isArray(AYNA.cfg.columns)) { const arr = AYNA.cfg.columns; for (let i = arr.length - 1; i >= 0; i--) if (cfgColId(arr[i]) === name) arr.splice(i, 1); }
+      if (state._viewKey && Array.isArray(state._viewKey.cols)) { const vi = state._viewKey.cols.indexOf(name); if (vi >= 0) state._viewKey.cols.splice(vi, 1); }
+      publishTableConfig();
+      saveViewCarry();
+      if (!state.columns.some(c => c && !c.__uiOnly)) showEmptyState('no-columns-no-data', 0); else remountColumns();
+      if (after) after();
+    };
+    if (!animate || dtReducedMotion()) { done(); return; }
+    fieldHeaderEls(name).forEach(el => el.classList.add('dt-col-removing'));
+    const sid0 = fieldScreenId();
+    setTimeout(() => { if (fieldScreenId() === sid0) done(); }, 180);   // T2: a screen switch during the fade leaves the new screen alone
+  }
+  // one write for the live column: create (Add / Show of a field with no view) or update (Show of a hidden view)
+  async function submitFieldWrite(payload, ctx, values, how) {
+    const raw = how.column || { id: payload.name, header: payload.name, type: payload.type, multiple: !!payload.multiple, source: payload.options || [], readOnly: true };
+    const name = raw.id;
+    if (state.pendingFields.has(name)) return;
+    const rec = { op_id: payload.op_id, ctx, startedAt: Date.now(), col: raw, index: -1, values, payload, kind: how.kind, op: how.op, entry: how.entry || null };
+    state.pendingFields.set(name, rec);
+    rec.index = insertFieldColumn(raw, ctx, true);
+    fieldAnnounce('Adding field');
+    if (state.fieldPop) { const fp = state.fieldPop; setTimeout(() => { if (state.fieldPop === fp) closeFieldPopover(false); }, 120); }
+    const r = await aynaBridge(how.op, payload, null, { timeoutMs: DT_FIELD_LIMITS.write_timeout_ms });
+    if (state.pendingFields.get(name) !== rec) return;
+    onFieldReply(name, rec, r);
+  }
+  function onFieldReply(name, rec, r) {
+    if (fieldScreenId() !== rec.payload.screen_id) { fieldDropStale(name, rec); return; }   // the page moved to another screen meanwhile
+    if (r && r.ok && r.data && typeof r.data === 'object') {
+      const d = r.data;
+      if (rec.op === 'mirror_field_update') {
+        const cp = d.column_patch || {};
+        if (cp.hidden !== true) { confirmField(name, rec, { viewId: rec.payload.view_id, fieldId: rec.entry && rec.entry.field_id, created: false, shown: true }); return; }
+      } else if (d.column && (d.column.fieldId || (d.field && d.field._id)) && d.complete !== false) {
+        confirmField(name, rec, { column: d.column, viewId: d.column.viewId || (d.view && d.view._id) || '', fieldId: d.column.fieldId || d.field._id, created: d.created, shown: rec.kind === 'show' });
+        return;
+      }
+      failField(name, rec, { error: 'shape', kod: 'upstream' });   // a partial create (complete:false) → Retry resumes it with the same op_id
+      return;
+    }
+    if (r && r.error === 'timeout') { timeoutField(name, rec); return; }
+    failField(name, rec, r || { error: 'network' });
+  }
+  // no answer in 20 s: the column stays pending; 5 s later one silent re-read decides (the write may have landed)
+  function timeoutField(name, rec) {
+    setTimeout(() => {
+      if (state.pendingFields.get(name) !== rec) return;
+      if (fieldScreenId() !== rec.payload.screen_id) { fieldDropStale(name, rec); return; }   // T2: never re-read / decide on another screen
+      loadScreenFields(true).then(res => {
+        if (state.pendingFields.get(name) !== rec) return;
+        if (fieldScreenId() !== rec.payload.screen_id || (res && res.ok && res.meta && res.meta.screen && res.meta.screen.id && res.meta.screen.id !== rec.payload.screen_id)) { fieldDropStale(name, rec); return; }
+        const nk = dtNormKey(name);
+        const e = (res && res.ok && res.meta && Array.isArray(res.meta.fields)) ? res.meta.fields.find(f => f && (f.name === name || f.nk === nk)) : null;
+        if (e) confirmField(name, rec, { column: { id: e.name, type: e.type, multiple: !!e.multi, source: e.options }, viewId: e.view_id || '', fieldId: e.field_id || '', created: undefined, shown: rec.kind === 'show', fresh: true });
+        else failField(name, rec, { error: 'timeout', kod: 'upstream' });
+      });
+    }, DT_FIELD_LIMITS.reread_ms);
+  }
+  function confirmField(name, rec, info) {
+    state.pendingFields.delete(name);
+    const src = info.column || {};
+    const raw = rec.col;   // the config-shaped column (also the one spliced into AYNA.cfg.columns): id / header stay the name
+    // T9: the server bound an existing sheet field of another spelling (same normKey) → the column takes the field's real name
+    const sidName = (typeof src.id === 'string') ? src.id.trim() : '';
+    let renamed = false;
+    if (sidName && sidName !== name) {
+      if (dtNormKey(sidName) !== dtNormKey(name)) { failField(name, rec, { error: 'shape', kod: 'upstream' }); return; }
+      renameFieldColumn(name, sidName, raw);
+      name = sidName; renamed = true;
+    }
+    if (src.type) raw.type = src.type;
+    if (src.multiple !== undefined) raw.multiple = !!src.multiple;
+    if (Array.isArray(src.source)) raw.source = src.source.slice();
+    raw.fieldId = info.fieldId || raw.fieldId || '';
+    raw.viewId = info.viewId || raw.viewId || '';
+    const col = state.columns.find(c => c && c.id === name);
+    let retype = false;
+    if (col) {
+      const fresh = sanitizeColumns([raw])[0];   // the width stays the table's own (never the server's view width)
+      retype = !!fresh && (fresh.type !== col.type || fresh.multiple !== col.multiple);
+      if (fresh) { col.type = fresh.type; col.rawType = fresh.rawType; col.typeKnown = fresh.typeKnown; col.multiple = fresh.multiple; }
+      col.source = raw.source || []; col.fieldId = raw.fieldId; col.viewId = raw.viewId; delete col.__pending;
+    }
+    const ordered = getOrderedColumns().filter(c => c && !c.__uiOnly);
+    state.serverPatch.screen = rec.payload.screen_id;
+    state.serverPatch.added.set(name, { column: raw, index: Math.max(0, ordered.findIndex(c => c.id === name)), at: Date.now() });
+    if (info.shown) state.serverPatch.removed.delete(name);
+    if (renamed) { publishTableConfig(); saveViewCarry(); remountColumns(); setTimeout(() => scrollToColumn(name), 30); }
+    else if (retype) remountColumns();
+    pulseConfirmed(name);
+    if (!info.fresh) loadScreenFields(true);   // view ids for the next insert (a timeout re-read already refreshed them)
+    if (rec.op === 'mirror_field_create') {
+      try { window.dispatchEvent(new CustomEvent('gaia:field-created', { detail: { screen_id: rec.payload.screen_id, column: Object.assign({}, raw), field_id: raw.fieldId, view_id: raw.viewId, created: info.created } })); } catch (e) {}
+    }
+    fieldAnnounce(info.shown ? 'Field shown' : 'Field added');
+    const undoSrc = { viewId: raw.viewId, screenId: rec.payload.screen_id };   // T1: the Undo acts on the confirm record, never the current meta
+    showActionToast(info.shown ? 'Field shown' : 'Field added', raw.viewId ? 'Undo' : '', raw.viewId ? () => hideFieldColumn(name, undoSrc) : null, DT_FIELD_LIMITS.toast_ms, rec.payload.screen_id);
+    // a brand-new field has no values (0 requests); a re-bound existing field or a shown one may (1 request)
+    if (AYNA.cfg) aynaProjectionChanged(!(info.created === true && !info.shown));
+  }
+  function failField(name, rec, r) {
+    state.pendingFields.delete(name);
+    const kod = String((r && r.kod) || ''), err = String((r && r.error) || '');
+    const retryable = kod === 'upstream' || kod === 'busy' || (!kod && (err === 'network' || err === 'shape' || err === 'http' || err === 'timeout'));
+    const sid0 = rec.payload.screen_id;   // T1: every toast below belongs to the screen of the write
+    dropFieldColumn(name, true, () => {
+      if (fieldScreenId() !== sid0) return;
+      if (kod === 'name_taken' || kod === 'invalid') {
+        if (kod === 'name_taken') { try { const m = state.fieldOps.screenId === sid0 ? state.fieldOps.meta : null; if (m) { m.taken = m.taken || {}; m.taken.other = (m.taken.other || []).concat([dtNormKey(name)]); } } catch (e) {} }
+        if (rec.kind === 'create') {
+          const forced = kod === 'name_taken' ? { line: 'Used elsewhere', glyph: 'warn' } : { line: 'Name not allowed', glyph: 'bad' };
+          const again = () => openFieldPopover(state.fieldOps.meta || {}, rec.ctx, Object.assign({}, rec.values, { forcedLine: forced }), '');
+          // T7: the user is typing in another popover → it stays; the toast brings this one back on demand
+          if (fieldPopHasDraft(rec.values && rec.values.name)) { fieldAnnounce('Field not added'); showActionToast(forced.line, 'Edit', again, 8000, sid0); }
+          else again();
+        } else { fieldAnnounce('Field not added'); showActionToast('Field not added', '', null, undefined, sid0); }
+        return;
+      }
+      if (kod === 'rate') { fieldAnnounce('Field not added'); showActionToast('Too many changes', '', null, undefined, sid0); return; }
+      if (retryable) { fieldAnnounce('Field not added'); showActionToast('Field not added', 'Retry', () => retryFieldWrite(rec), 8000, sid0); return; }
+      // session / info / not_allowed / no kod / 'session' / 'no-bridge': silently back to Bubble's own popup
+      state.fieldOps.at = 0;
+      fallbackAdd(rec.ctx);
+    });
+  }
+  function retryFieldWrite(rec) {
+    if (fieldScreenId() !== rec.payload.screen_id) return;   // T1: a Retry never writes to (or replays on) another screen
+    if (rec.kind === 'create') {
+      // T7: a popover with the user's typing stays open; the Retry stays offered
+      if (fieldPopHasDraft(rec.values && rec.values.name)) { showActionToast('Field not added', 'Retry', () => retryFieldWrite(rec), 8000, rec.payload.screen_id); return; }
+      openFieldPopover(state.fieldOps.meta || {}, rec.ctx, rec.values, rec.payload.op_id); return;   // same values, SAME op_id
+    }
+    submitFieldWrite(rec.payload, rec.ctx, rec.values, { kind: rec.kind, op: rec.op, column: Object.assign({}, rec.col), entry: rec.entry });
+  }
+  // T7: an open popover (not saving) holding typed input other than this name
+  function fieldPopHasDraft(ownName) {
+    const cur = state.fieldPop;
+    if (!cur || cur.saving || !cur.el) return false;
+    const inp = cur.el.querySelector('#dt-field-pop-name'), v = inp ? String(inp.value || '') : '';
+    return (v.trim() !== '' || (Array.isArray(cur.options) && cur.options.length > 0)) && v !== String(ownName || '');
+  }
+  // T2/T8: a write whose screen is no longer on the page → its bookkeeping goes; only the optimistic (__pending) column it
+  // inserted is removed, never a genuine column of the new screen with the same name
+  function fieldDropStale(name, rec) {
+    if (state.pendingFields.get(name) === rec) state.pendingFields.delete(name);
+    const c = state.columns.find(x => x && x.id === name);
+    if (c && c.__pending) dropFieldColumn(name, false);
+  }
+  // T1/T2/T8: a config naming another screen → the toasts, the open popover, the field meta and the in-flight writes of the
+  // previous screen go (silently); a config without a screen id (two-step render) changes nothing
+  function fieldScreenSync(sidRaw) {
+    const sid = DT_BUBBLE_ID.test(String(sidRaw || '')) ? String(sidRaw) : '';
+    if (!sid) return;
+    try { if (els.wrapper) els.wrapper.querySelectorAll('.dt-action-toast').forEach(t => { if (t.getAttribute('data-screen') !== sid) t.remove(); }); } catch (e) {}
+    if (state.fieldPop && state.fieldPop.screenId !== sid) closeFieldPopover(true);
+    if (state.fieldOps.screenId && state.fieldOps.screenId !== sid) state.fieldOps = { screenId: '', at: 0, meta: null, ready: false, inflight: null };
+    state.pendingFields.forEach((p, name) => {
+      if (!p || !p.payload || p.payload.screen_id === sid) return;
+      state.pendingFields.delete(name);
+      if (p.kind === 'hide') return;   // a hide inserted nothing
+      state.columns = state.columns.filter(c => !(c && c.id === name && c.__pending));
+      state.columnOrder = state.columnOrder.filter(id => id !== name);
+      if (state._viewKey && Array.isArray(state._viewKey.cols)) { const vi = state._viewKey.cols.indexOf(name); if (vi >= 0) state._viewKey.cols.splice(vi, 1); }
+      if (AYNA.cfg && Array.isArray(AYNA.cfg.columns)) { const arr = AYNA.cfg.columns; for (let i = arr.length - 1; i >= 0; i--) if (arr[i] === p.col) arr.splice(i, 1); }
+    });
+  }
+  // T9: the pending column takes the server's name (same normKey): config column, grid column, order, view key, widths
+  function renameFieldColumn(from, to, raw) {
+    raw.id = to; raw.header = to;
+    const i = state.columns.findIndex(c => c && c.id === from);
+    if (i >= 0) {
+      const old = state.columns[i], fresh = sanitizeColumns([raw])[0];
+      if (fresh) { fresh.width = old.width; fresh.source = old.source; if (old.fieldId) fresh.fieldId = old.fieldId; if (old.viewId) fresh.viewId = old.viewId; if (old.__pending) fresh.__pending = true; }
+      state.columns[i] = fresh || Object.assign(old, { id: to, header: to, sourceKeys: [to] });
+      for (let k = state.columns.length - 1; k >= 0; k--) if (k !== i && state.columns[k] && state.columns[k].id === to) state.columns.splice(k, 1);
+    }
+    const swap = arr => { const out = []; arr.forEach(id => { const v = id === from ? to : id; if (out.indexOf(v) < 0) out.push(v); }); return out; };
+    state.columnOrder = swap(state.columnOrder);
+    if (state._viewKey && Array.isArray(state._viewKey.cols)) state._viewKey.cols = swap(state._viewKey.cols);
+    if (state.columnWidths && state.columnWidths[from] !== undefined) { if (state.columnWidths[to] === undefined) state.columnWidths[to] = state.columnWidths[from]; delete state.columnWidths[from]; }
+    if (AYNA.cfg && Array.isArray(AYNA.cfg.columns)) { const arr = AYNA.cfg.columns; for (let k = arr.length - 1; k >= 0; k--) if (arr[k] !== raw && cfgColId(arr[k]) === to) arr.splice(k, 1); }
+    const cu = state._confirmedCols.get(from); if (cu) { state._confirmedCols.delete(from); state._confirmedCols.set(to, cu); }
+    state.serverPatch.added.delete(from); state.serverPatch.removed.delete(to);
+  }
+  // Show field: a visible column → scroll + pulse (no call); a hidden view → mirror_field_update {hidden:false, place:{index}};
+  // a sheet field with no view on this screen → mirror_field_create (the server reuses the field, created:false)
+  function showField(entry, ctx, role) {
+    const name = entry && entry.name;
+    if (!name) return;
+    if (state.columns.some(c => c && !c.__uiOnly && c.id === name)) { scrollToColumn(name); pulseConfirmed(name); return; }
+    if (state.pendingFields.has(name)) return;
+    const removed = state.serverPatch.removed.get(name) || null;
+    const c = fieldCtx(ctx);
+    if (removed && !c.column && Number.isInteger(removed.gridIndex)) c.index = removed.gridIndex;
+    const raw = { id: name, header: name, type: entry.type || (removed && removed.column && removed.column.type) || 'Text', multiple: !!(entry.multi || (removed && removed.column && removed.column.multiple)), source: Array.isArray(entry.options) ? entry.options.slice() : [], readOnly: true };
+    const viewId = entry.view_id || (removed && removed.viewId) || '';
+    const sid = fieldScreenId();   // T1/T8: the screen on the page, never a meta of an earlier one
+    if (!sid) return;
+    const meta = state.fieldOps.screenId === sid ? state.fieldOps.meta : null;
+    const process = !!(meta && meta.screen && meta.screen.kind === 'process');
+    if (viewId) {
+      // back where it was hidden from (the server's list index), else next to the clicked column, else the end of the list
+      const listIndex = (removed && Number.isInteger(removed.index)) ? removed.index : ((meta && Array.isArray(meta.fields)) ? meta.fields.length : 0);
+      const near = (removed && Number.isInteger(removed.index)) ? null : fieldPlace(c);
+      submitFieldWrite({ screen_id: sid, view_id: viewId, changes: { hidden: false, place: near || { index: listIndex } }, op_id: newFieldOpId() }, c, null, { kind: 'show', op: 'mirror_field_update', column: raw, entry: Object.assign({ view_id: viewId }, entry) });
+      return;
+    }
+    const payload = { screen_id: sid, name, type: raw.type, multiple: !!raw.multiple && !!DT_FIELD_MULTI[raw.type], role: process ? (role || 'mandatory') : 'control', op_id: newFieldOpId() };
+    if (entry.field_id && DT_BUBBLE_ID.test(String(entry.field_id))) payload.field_id = String(entry.field_id);   // mr18 R5: the exact sheet field to show (same-name twins)
+    const place = fieldPlace(c);
+    if (place) payload.place = place;
+    const aid = fieldAssistantId(); if (aid) payload.assistant_id = aid;   // mr18b: a new view on this screen → the assistant learns it too
+    submitFieldWrite(payload, c, null, { kind: 'show', op: 'mirror_field_create', column: raw, entry });
+  }
+  // Undo of an add (and the hide half of F5): the view leaves THIS screen's list; the view record is never deleted
+  // src (the Undo of a confirm): {viewId, screenId} of that confirm record — the write names that view on that screen only
+  function hideFieldColumn(name, src) {
+    const col = state.columns.find(c => c && !c.__uiOnly && c.id === name);
+    if (!col || state.pendingFields.has(name)) return;
+    const sid0 = (src && src.screenId) || fieldScreenId();
+    if (!sid0 || sid0 !== fieldScreenId()) return;   // T1: never hide a view of another screen
+    const viewId = (src && src.viewId) || col.viewId || (state.fieldOps.screenId === sid0 ? fieldViewIdOf(name) : '');
+    if (!viewId) return;
+    const ordered = getOrderedColumns().filter(c => c && !c.__uiOnly);
+    const gridIndex = ordered.findIndex(c => c.id === name);
+    const added = state.serverPatch.added.get(name);
+    const raw = (added && added.column) || (AYNA.cfg && Array.isArray(AYNA.cfg.columns) ? AYNA.cfg.columns.find(c => cfgColId(c) === name) : null) || { id: name, header: name, type: col.rawType || col.type, multiple: col.multiple, readOnly: true, viewId, fieldId: col.fieldId };
+    const payload = { screen_id: sid0, view_id: viewId, changes: { hidden: true }, op_id: newFieldOpId() };
+    const run = () => {
+      if (fieldScreenId() !== sid0 || state.pendingFields.has(name)) return;
+      // T5: the hide is in flight → Show / Add of this name waits for its reply (validateFieldName says Saving)
+      const hrec = { kind: 'hide', op: 'mirror_field_update', op_id: payload.op_id, payload, col: raw, index: gridIndex, startedAt: Date.now(), ctx: null, values: null, entry: null };
+      state.pendingFields.set(name, hrec);
+      dropFieldColumn(name, false);
+      aynaBridge('mirror_field_update', payload, null, { timeoutMs: DT_FIELD_LIMITS.write_timeout_ms }).then(r => {
+        const mine = state.pendingFields.get(name) === hrec;
+        if (mine) state.pendingFields.delete(name);
+        if (fieldScreenId() !== sid0) return;   // T2: the page moved to another screen: no insert, no patch, no toast
+        if (state.fieldPop) { try { runFieldCheck(false); } catch (e) {} }   // an open popover re-checks the name (Saving → the answer)
+        if (r && r.ok) {
+          const cp = (r.data && r.data.column_patch) || {};
+          state.serverPatch.added.delete(name);
+          state.serverPatch.screen = payload.screen_id;
+          state.serverPatch.removed.set(name, { viewId, index: Number.isInteger(cp.index) ? cp.index : gridIndex, gridIndex, column: raw, at: Date.now() });
+          loadScreenFields(true);
+          if (AYNA.cfg) aynaProjectionChanged(false);
+          fieldAnnounce('Field hidden');
+          showActionToast('Field hidden', 'Undo', () => showField({ name, view_id: viewId, type: raw.type, multi: raw.multiple }, null), DT_FIELD_LIMITS.toast_ms, sid0);
+          return;
+        }
+        insertFieldColumn(Object.assign({}, raw, { viewId }), { index: gridIndex }, false);   // not hidden: the column comes back where it was
+        const kod = String((r && r.kod) || ''), err = String((r && r.error) || '');
+        if (kod === 'upstream' || kod === 'busy' || (!kod && (err === 'network' || err === 'timeout' || err === 'http' || err === 'shape'))) showActionToast('Not saved', 'Retry', () => run(), 8000, sid0);   // same op_id
+        else if (kod === 'rate') showActionToast('Too many changes', '', null, undefined, sid0);
+      });
+    };
+    run();
+  }
+  // Bubble's config echo (reloadFromConfig) and the mirror reload: this page's server-confirmed adds (and in-flight ones)
+  // are spliced in until Bubble's config carries them, confirmed hides are taken out until it drops them → the patched
+  // config has the table's own column ids → classifyView says "same layout" → order, widths, filters, sort, search,
+  // selection carry. Memory only.
+  function applyServerPatch(config) {
+    try {
+      if (!config || typeof config !== 'object' || !Array.isArray(config.columns)) return config;
+      const sid = aynaScreenOf(config).screen;
+      fieldScreenSync(sid);   // T1/T2/T8: toasts / popover / meta / in-flight writes of another screen go
+      const cols = config.columns;
+      // T4: a transient empty column list (Bubble's two-step render) stays empty → the empty state keeps the view and this
+      // patch; only a table whose columns are all its own adds (the first field of an empty screen) keeps receiving them
+      const own = state.columns.filter(c => c && !c.__uiOnly);
+      if (!cols.length && own.length && !own.every(c => state.serverPatch.added.has(c.id) || state.pendingFields.has(c.id))) return config;
+      // T9: an entry keyed by another spelling of the same field is never spliced as a second column
+      const has = id => { const nk = dtNormKey(id); return cols.some(c => { const k = cfgColId(c); return k === id || (!!nk && dtNormKey(k) === nk); }); };
+      // the patch belongs to one screen: a config of another screen drops it (never splices a column into a foreign screen);
+      // T4: a config without a screen id keeps it
+      if (sid && state.serverPatch.screen && sid !== state.serverPatch.screen) { state.serverPatch.added.clear(); state.serverPatch.removed.clear(); state.serverPatch.screen = ''; }
+      state.serverPatch.added.forEach((e, name) => {
+        if (has(name)) { state.serverPatch.added.delete(name); return; }
+        cols.splice(Math.min(Math.max(0, e.index || 0), cols.length), 0, e.column);   // the same object: a later confirm updates every copy
+      });
+      state.pendingFields.forEach((p, name) => { if (p.kind !== 'hide' && p.payload && p.payload.screen_id === sid && !has(name)) cols.splice(Math.min(Math.max(0, p.index || 0), cols.length), 0, p.col); });   // T5: a hide inserts nothing
+      state.serverPatch.removed.forEach((e, name) => {
+        const i = cols.findIndex(c => cfgColId(c) === name);
+        if (i < 0) state.serverPatch.removed.delete(name); else cols.splice(i, 1);
+      });
+    } catch (e) {}
+    return config;
+  }
+  /* FIELDS-MR18-END */
 
   function syncButtonTitles() {
     if (!els.wrapper) return;
@@ -6115,13 +7270,22 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     els.menuBackdrop.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
   }
 
-  function openColumnMenu(columnIndex, anchorRect, headerLabel) {
+  function openColumnMenu(columnIndex, anchorRect, headerLabel, anchorEl) {
     if (!els.columnMenu || !els.wrapper || !Number.isInteger(columnIndex) || columnIndex < 0) return;
 
     closeToolbarMoreMenu();
     state.menuReturnFocus = document.activeElement;
     state.activeHeaderColumn = columnIndex;
     state.columnMenuOpenedAt = Date.now();
+    state._menuAnchorEl = anchorEl || null;     // mr18: Insert left / right anchor the popover to this header cell
+    state._menuAnchorRect = anchorRect || null;
+    // mr18: a pending column (its create is in flight) offers only Filter / Sort, disabled, until confirmed
+    try {
+      const mc = (state._mountedCols || [])[columnIndex];
+      const pend = !!(mc && mc.id && state.pendingFields.has(mc.id));
+      [els.columnMenuFilterButton, els.columnMenuSortButton].forEach(b => { if (b) b.disabled = pend; });
+      [els.columnMenuInsertLeftButton, els.columnMenuInsertRightButton].forEach(b => { if (b) b.classList.toggle('dt-hidden', pend); });
+    } catch (e) {}
 
     if (els.columnMenuTitle) {
       const safeTitle = headerLabel && String(headerLabel).trim() ? String(headerLabel) : `Field ${columnIndex + 1}`;
@@ -6305,6 +7469,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
 
   function closeTopMostMenu() {
+    if (state.fieldPop) { closeFieldPopover(false); return; }   // mr18: the New field popover is the top layer
     if (els.filterPanel?.classList.contains('is-open')) {
       hideFilterPanel();
       return;
@@ -6643,7 +7808,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const btn = e.target.closest('[data-empty-action]');
         if (!btn) return;
         const action = btn.dataset.emptyAction;
-        if (action === 'add') addField();
+        if (action === 'add') openAddField({ source: 'empty', anchorEl: btn });   // mr18
         else if (action === 'manage') manageField();
       });
     }
@@ -6685,8 +7850,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
     if (els.toolbarMoreAddButton) {
       els.toolbarMoreAddButton.addEventListener('click', () => {
-        addField();
         closeToolbarMoreMenu();
+        openAddField({ source: 'more', anchorEl: els.moreButton });   // mr18
       });
     }
 
@@ -6723,26 +7888,34 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         event.stopPropagation();
         const action = actionBtn.getAttribute('data-header-action');
         if (action === 'add') {
-          addField();
+          openAddField({ source: 'header', anchorEl: actionBtn });   // mr18: end of the table
         } else if (action === 'manage') {
           manageField();
         }
       }, true);
     }
 
-    if (els.columnMenuAddButton) {
-      els.columnMenuAddButton.addEventListener('click', () => {
-        addField();
-        closeColumnMenu();
-      });
-    }
+    // mr18: Insert left / right (replace the column menu's Add field / Manage field) → the popover next to this column
+    const insertFromMenu = side => {
+      const i = state.activeHeaderColumn;
+      const col = Number.isInteger(i) ? (state._mountedCols || [])[i] : null;
+      const anchor = state._menuAnchorEl, rect = state._menuAnchorRect;
+      closeColumnMenu();
+      openAddField({ source: 'menu', anchorEl: anchor, rect: rect, column: (col && !col.__uiOnly) ? col : null, side: side });
+    };
+    if (els.columnMenuInsertLeftButton) els.columnMenuInsertLeftButton.addEventListener('click', () => insertFromMenu('left'));
+    if (els.columnMenuInsertRightButton) els.columnMenuInsertRightButton.addEventListener('click', () => insertFromMenu('right'));
 
-    if (els.columnMenuManageButton) {
-      els.columnMenuManageButton.addEventListener('click', () => {
-        manageField();
-        closeColumnMenu();
-      });
-    }
+    // mr18: a click outside the New field popover cancels it (the opening click and its anchor are ignored)
+    document.addEventListener('click', event => {
+      const fp = state.fieldPop;
+      if (!fp || fp.saving) return;
+      if (fp.el.contains(event.target)) return;
+      if (Date.now() - (fp.openedAt || 0) < 220) return;
+      const a = liveFieldAnchor(fp.ctx);
+      if (a && a.contains && a.contains(event.target)) return;
+      closeFieldPopover(true);
+    });
 
     if (els.columnMenuFilterButton) {
       const openFilterFromMenu = () => {
@@ -6929,7 +8102,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     document.addEventListener('keydown', event => {
       if (event.key !== 'Escape') return;
       let closed = false;
-      if (els.filterPanel?.classList.contains('is-open')) {
+      if (state.fieldPop) {   // mr18: the New field popover is the topmost layer (its own keydown handles Esc when focused inside)
+        closeFieldPopover(false);
+        closed = true;
+      } else if (els.filterPanel?.classList.contains('is-open')) {
         hideFilterPanel();
         closed = true;
       } else if (els.sortPanel?.classList.contains('is-open')) {
@@ -6995,7 +8171,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           x: touch.clientX,
           y: touch.clientY,
           col: mapped.coords.col,
-          rect: mapped.headerCell.getBoundingClientRect(),
+          rect: mapped.headerCell.getBoundingClientRect(), cell: mapped.headerCell,
           label: getColumnAt(mapped.coords.col)?.header || ''
         };
         if (typeof event.preventDefault === 'function') event.preventDefault();
@@ -7014,7 +8190,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           touchStart = null;
           return;
         }
-        openColumnMenu(touchStart.col, touchStart.rect, touchStart.label);
+        openColumnMenu(touchStart.col, touchStart.rect, touchStart.label, touchStart.cell);
         touchStart = null;
         if (typeof event.preventDefault === 'function') event.preventDefault();
         if (typeof event.stopPropagation === 'function') event.stopPropagation();
