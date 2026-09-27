@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "main",
-    "rev":  9,
-    "updated":  "2026-09-25T17:23:49Z",
+    "rev":  10,
+    "updated":  "2026-09-27T18:06:22Z",
     "elements":  {
                      "architect":  {
                                        "commit":  "7e248e30424433003eff7589272bf8dbe08f0ae1",
@@ -53,12 +53,12 @@
                                    "updated":  "2026-09-25T17:23:49Z"
                                },
                      "template-page":  {
-                                           "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                           "commit":  "2006766afd2e805bc3dd23643d9505f6ee07e066",
                                            "path":  "el/template-page.html",
-                                           "blob":  "e5f69ab6b733489312186aed63e0809d5bc73aa4",
-                                           "bytes":  267130,
+                                           "blob":  "be77b9959a2bd4e908d1daab5c026acf9b99aeb0",
+                                           "bytes":  268400,
                                            "title":  "Template detail page (public, /template/\u003cslug\u003e)",
-                                           "updated":  "2026-09-24T21:46:46Z"
+                                           "updated":  "2026-09-27T18:06:22Z"
                                        },
                      "templates-button":  {
                                               "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
