@@ -43208,6 +43208,44 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   #octo-rail .octo-rail-spin svg { animation-duration: 2.4s; }
 }
 
+/* ?rail=debug teshis hapi (operator araci): sol alt, Bubble iceriginin ustunde; dokununca noktaya iner
+   (telefonda tabloyu kapatmaz). Rayin disinda yasar, tablonun atasi DEGIL. */
+#octo-rail-debug {
+  position: fixed;
+  left: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 2147483000;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: min(300px, calc(100vw - 16px));
+  margin: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, .9);
+  color: #e2e8f0;
+  font: 500 10px/14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .24);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#octo-rail-debug .octo-rail-dbg-txt { white-space: pre-wrap; word-break: break-all; }
+#octo-rail-debug .octo-rail-dbg-dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-top: 3px;
+  border-radius: 999px;
+  background: #ef4444;
+}
+#octo-rail-debug[data-tone="ok"] .octo-rail-dbg-dot { background: #22c55e; }
+#octo-rail-debug[data-tone="wait"] .octo-rail-dbg-dot { background: #f59e0b; }
+#octo-rail-debug[data-min="1"] { padding: 7px; border-radius: 999px; }
+#octo-rail-debug[data-min="1"] .octo-rail-dbg-txt { display: none; }
+#octo-rail-debug[data-min="1"] .octo-rail-dbg-dot { margin: 0; }
+#octo-rail-debug:focus-visible { outline: 2px solid #818cf8; outline-offset: 2px; }
 /* ==========================================================================
    app-tables.css  -  OCTO TABLES (os1). Sahip: B4.
    Hepsi #octo-root altinda ve .octo-tb- onekiyle (spec 2.8). Belirtecler
@@ -47729,6 +47767,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   var TABLE_ID = 'dynamic-table-wrapper';
   var MARK_KEY = 'octo_rail_setup_pending';
   var TB_KEY = 'octo_rail_tb_pending';
+  var DBG_KEY = 'octo_rail_debug';
+  var DBG_ID = 'octo-rail-debug';
   var NOTE_MAX = 2000;
   var TB_NOTE = 'Rebuild tasks from the data.';
 
@@ -47737,7 +47777,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   var T = {
     throttle: 300, remount: 300, variantCheck: 500, fixedTick: 1000, sent: 2000, stale: 60000,
     connectPoll: 5000, connectMax: 120000, dsPoll: 5000, dsPollSlow: 15000, dsSlowAfter: 60000, dsMax: 900000,
-    markerTtl: 180000, agentPoll: 600, agentTries: 50, deployWaitMax: 600, portalMax: 120000, search: 300, preview: 300
+    markerTtl: 180000, agentPoll: 600, agentTries: 50, deployWaitMax: 600, portalMax: 120000, search: 300, preview: 300,
+    ctxPoll: 1000, ctxWait: 30000
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -47908,10 +47949,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     tb: {}, run: {}, runErr: {}, dec: {}, plan: {},
     setup: null, afterAgent: null,
     agent: null, portal: null, conn: null, dsPoll: null,
-    pending: false, trace: []
+    pending: false, trace: [],
+    ctxTries: 0, ctxTimer: null, seen: null, ws: { code: '', ms: -1 }, lastErr: ''
   };
+  // ?rail=debug teshis hapi durumu (asagida "teshis" bolumu).
+  var DBG = { on: false, node: null, txt: null, timer: null, last: '', min: false };
   // Icerik tasimayan olay izi (teshis + harness): yalniz olay adi, en cok 40.
-  function trace(ev) { M.trace.push(ev + '@' + Math.round(W.performance ? W.performance.now() : 0)); if (M.trace.length > 40) { M.trace.shift(); } }
+  function trace(ev) { M.trace.push(ev + '@' + Math.round(W.performance ? W.performance.now() : 0)); if (M.trace.length > 40) { M.trace.shift(); } dbgSoon(); }
+  function perfNow() { try { return W.performance.now(); } catch (e) { return Date.now(); } }
 
   // ----------------------------------------------------------------- dinleyici
   function listen(target, type, fn, opts) {
@@ -47967,7 +48012,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (any) { paintStrip(); paintQuick(); layout(); }
     } catch (e4) { logErr(e4); }
   }
-  function logErr(e) { try { console.warn('[OCTO-RAIL] ' + ((e && e.message) || String(e)).slice(0, 120)); } catch (x) { /* yut */ } }
+  function logErr(e) { M.lastErr = 'error'; dbgSoon(); try { console.warn('[OCTO-RAIL] ' + ((e && e.message) || String(e)).slice(0, 120)); } catch (x) { /* yut */ } }
 
   // ------------------------------------------------------------- anahtar
   function railQuery() {
@@ -47983,6 +48028,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     if (v === '0' || v === 'off') { try { octo.state.set('rail.off', true); } catch (e1) { /* yut */ } }
     else if (v === '1' || v === 'on' || v === 'b') { try { octo.state.del('rail.off'); } catch (e2) { /* yut */ } }
     M.forceB = (v === 'b');
+    // ?rail=debug teshis hapi sekme oturumu boyunca kalir (?gxel gibi); ?rail=debug=0 ve ?rail=1 kaldirir.
+    if (v === 'debug') { ssSet(DBG_KEY, '1'); }
+    else if (v === 'debug=0' || v === '1' || v === 'on') { ssDel(DBG_KEY); }
+    DBG.on = ssGet(DBG_KEY) === '1';
     if (W.__OCTO_RAIL_OFF === true) { return true; }
     try { if (octo.state.get('rail.off', false) === true) { return true; } } catch (e3) { /* yut */ }
     return false;
@@ -47990,21 +48039,64 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 
   // ------------------------------------------------------------ baglam (os2)
   function idOk(v) { return RE.bubble.test(str(v)); }
+  function trimId(v) { return (typeof v === 'string' || typeof v === 'number') ? String(v).trim() : ''; }
+  // 27.09 (canli hata, telefon): /app/<kullanici-slug> adresinde ve Arama ekraninda #bubble-options
+  // stage_id / list_id bos gelir; ray anahtarsiz kalip HIC istek atmiyordu. Cozum tablonun
+  // aynaScreenOf'u (tablev2 4898-4911) ile BIREBIR: ekran kaydi (screen_id) otoritedir; yoksa
+  // config list/stage, sonra #bubble-options, sonra eklenti globalleri. Config metni ancak
+  // degisince ayristirilir (buyuk olabilir); Bubble'in '"data": ,' bos ifade kalibi tablodaki
+  // parseBubbleConfig gibi onarilir.
+  var CFG = { text: null, o: null };
+  function readCfg() {
+    var t = '';
+    try { var n = D.getElementById('bubble-table-config'); t = n ? String(n.textContent || '') : ''; } catch (e) { t = ''; }
+    if (t === CFG.text) { return CFG.o; }
+    CFG.text = t;
+    CFG.o = null;
+    if (t) {
+      try { CFG.o = JSON.parse(t.replace(/("(?:data|columns)"\s*:\s*)(?=[,}])/g, '$1[]')); } catch (e2) { CFG.o = null; }
+      if (!isObj(CFG.o)) { CFG.o = null; }
+    }
+    if (M.armed) { M.ctxTries = ctxTriesMax(); }    // metin degisti: gec gelen ekran icin bekleme yeniden baslar
+    return CFG.o;
+  }
+  function ctxTriesMax() { return Math.max(0, Math.ceil(T.ctxWait / Math.max(1, T.ctxPoll))); }
   function readCtx() {
-    var ids = { stage_id: '', list_id: '' };
+    var cfg = readCfg() || {};
+    var ag = cfg.agent;
+    if (typeof ag === 'string') { try { ag = JSON.parse(ag); } catch (e) { ag = null; } }
+    if (!isObj(ag)) { ag = {}; }
+    function pick(a, b) { var x = trimId(a); return x || trimId(b); }
+    var screen = pick(cfg.screen_id, ag.screen_id);
+    var list = pick(cfg.list_id, ag.list_id), stage = pick(cfg.stage_id, ag.stage_id);
+    var src = (list || stage) ? 'cfg' : '';
+    if (!list && !stage) {
+      var ids = null;
+      try { ids = octo.page.ids(); } catch (e1) { ids = null; }
+      if (ids) { list = trimId(ids.list_id); stage = trimId(ids.stage_id); }
+      if (list || stage) { src = 'opts'; }
+    }
+    if (!list && !stage) {
+      try { list = trimId(W.__GAD_LIST_ID__); stage = trimId(W.__GAD_STAGE_ID__); } catch (e2) { list = ''; stage = ''; }
+      if (list || stage) { src = 'gad'; }
+    }
+    // Adres parcasi YALNIZ saf Bubble id ise (sheet ya da surec); '<ad>-<kullanici id>' slug'i
+    // bir calisma alani degildir (pageUrlId tum parcayi desene sokar).
     var url = '';
-    try { ids = octo.page.ids() || ids; } catch (e) { /* yut */ }
-    try { url = octo.page.urlId() || ''; } catch (e2) { url = ''; }
+    try { url = octo.page.urlId() || ''; } catch (e3) { url = ''; }
     var c = {
+      screen_id: idOk(screen) ? screen : '',
       url_id: idOk(url) ? url : '',
-      list_id: idOk(ids.list_id) ? str(ids.list_id) : '',
-      stage_id: idOk(ids.stage_id) ? str(ids.stage_id) : ''
+      list_id: idOk(list) ? list : '',
+      stage_id: idOk(stage) ? stage : ''
     };
-    c.key = (c.url_id || c.list_id || c.stage_id) ? (c.url_id + '|' + c.list_id + '|' + c.stage_id) : '';
+    c.src = c.screen_id ? 'cfg' : ((c.list_id || c.stage_id) ? src : '');
+    c.key = (c.screen_id || c.url_id || c.list_id || c.stage_id) ? (c.screen_id + '|' + c.url_id + '|' + c.list_id + '|' + c.stage_id) : '';
     return c;
   }
   function wsPayload(c) {
     var p = {};
+    if (c.screen_id) { p.screen_id = c.screen_id; }
     if (c.url_id) { p.url_id = c.url_id; }
     if (c.list_id) { p.list_id = c.list_id; }
     if (c.stage_id) { p.stage_id = c.stage_id; }
@@ -48025,6 +48117,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   function ownNode(n) {
     if (!n) { return false; }
     try {
+      if (DBG.node && DBG.node.contains(n)) { return true; }
       if (M.row && M.row.contains(n)) { return true; }
       if (M.aside && M.aside.contains(n)) { return true; }
       var r = rootEl();
@@ -48126,9 +48219,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   // ================================================================= acilis
   function boot() {
     if (M.armed) { return true; }
-    if (readSwitch()) { M.off = true; return false; }
+    if (readSwitch()) { M.off = true; dbgSoon(); return false; }
     M.off = false;
     M.armed = true;
+    M.ctxTries = ctxTriesMax();
+    M.ws = { code: '', ms: -1 };
+    M.lastErr = '';
+    CFG.text = null; CFG.o = null;
     try { M.collapsed = octo.state.get('rail.collapsed', false) === true; } catch (e) { M.collapsed = false; }
     M.yielded = overlayVisible();
     listen(W, 'gx:el-mounted', onGx);
@@ -48157,7 +48254,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     unmount();
     unlistenAll();
     if (M.mo) { try { M.mo.disconnect(); } catch (e) {} M.mo = null; }
-    var tms = ['moTimer', 'kickTimer', 'remountTimer', 'retakeTimer', 'sentTimer'];
+    var tms = ['moTimer', 'kickTimer', 'remountTimer', 'retakeTimer', 'sentTimer', 'ctxTimer'];
     for (var i = 0; i < tms.length; i++) { if (M[tms[i]]) { try { clearTimeout(M[tms[i]]); } catch (e2) {} M[tms[i]] = null; } }
     M.armed = false;
     M.gen++;
@@ -48165,6 +48262,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
     M.embed = null; M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
     M.wake = 'idle'; M.note = ''; M.noteGone = false; M.yielded = false; M.sheet = '';
+    M.ctxTries = 0; M.seen = null; M.ws = { code: '', ms: -1 }; M.lastErr = '';
+    dbgSoon();
     return true;
   }
 
@@ -48185,17 +48284,29 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     }
     M.moTimer = setTimeout(function () { M.moTimer = null; tick(); }, T.throttle);
   }
-  function onPop() { kick(0); }
+  // Adres degisimi ve element montaji baglami yeniden okutur; gec gelen ekran id'si icin 30 sn bekleme tazelenir.
+  function onPop() { M.ctxTries = ctxTriesMax(); kick(0); }
   function onGx(e) {
     var d = e && e.detail;
-    if (!d || d.name !== 'table') { return; }
+    M.ctxTries = ctxTriesMax();
+    dbgSoon();
+    if (!d || d.name !== 'table') { if (!M.key) { kick(T.remount); } return; }
     if (M.mounted) { remount('gx'); } else { kick(T.remount); }
+  }
+  // Baglam yokken: #bubble-table-config degisimi gozlemciye duser, ama eklenti globalleri
+  // (__GAD_LIST_ID__ / __GAD_STAGE_ID__) DOM degistirmez: T.ctxWait boyunca T.ctxPoll ile yeniden okunur.
+  // Id yokken istek YOK.
+  function ctxWait() {
+    if (M.ctxTimer || !M.armed || M.ctxTries <= 0) { return; }
+    M.ctxTries--;
+    M.ctxTimer = setTimeout(function () { M.ctxTimer = null; tick(); }, T.ctxPoll);
   }
   var resizeT = null;
   function onResize() {
     if (resizeT) { return; }
     resizeT = setTimeout(function () {
       resizeT = null;
+      dbgSoon();
       if (M.mounted) { batch(layout); }
     }, 60);
   }
@@ -48221,10 +48332,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     if (W.__OCTO_RAIL_OFF === true) { shutdown(); return; }
     if (M.yielded) { trace('tick:yielded'); if (!overlayVisible()) { retake(); } return; }
     var c = readCtx();
+    M.seen = c;
     trace('tick:' + (c.key ? 'k' : '-'));
     if (!c.key) {
       if (M.mounted) { unmount(); }
       if (M.key) { M.gen++; M.key = ''; M.ctx = null; M.handle = null; M.data = null; }
+      ctxWait();
       return;
     }
     if (c.key !== M.key) { load(c); return; }
@@ -48273,7 +48386,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     try { octo.warm('rail'); } catch (e) { /* yut */ }
     var key = c.key;
     M.handle = octo.live('rail:' + key, function () {
-      return octo.request('os_workspace', wsPayload(c), { cacheKey: 'os_workspace|' + key });
+      return wsTimed(octo.request('os_workspace', wsPayload(c), { cacheKey: 'os_workspace|' + key }), g);
     }, function (d, meta) {
       if (g !== M.gen) { return; }
       onWs(d, meta);
@@ -48284,6 +48397,19 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     paintSoon();
   }
 
+  // Teshis: son os_workspace sonucunun kodu ve suresi (yalniz kod + ms; icerik yok).
+  function wsTimed(p, g) {
+    var t0 = perfNow();
+    M.ws = { code: 'pending', ms: -1 };
+    dbgSoon();
+    return p.then(function (d) {
+      if (g === M.gen) { M.ws = { code: 'ok', ms: Math.round(perfNow() - t0) }; dbgSoon(); }
+      return d;
+    }, function (err) {
+      if (g === M.gen) { M.ws = { code: str(err && err.code).slice(0, 32) || 'provider_error', ms: Math.round(perfNow() - t0) }; dbgSoon(); }
+      throw err;
+    });
+  }
   function onWs(d, meta) {
     if (!isObj(d) || !isObj(d.sheet)) { onWsErr({ code: 'provider_error' }); return; }
     M.data = d;
@@ -48318,7 +48444,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var g = M.gen;
     var key = M.key;
     M.seq++;
-    return octo.request('os_workspace', wsPayload(c), { cacheKey: 'os_workspace|' + key + '|' + (tag || 'fresh') + '|' + M.seq }).then(function (d) {
+    return wsTimed(octo.request('os_workspace', wsPayload(c), { cacheKey: 'os_workspace|' + key + '|' + (tag || 'fresh') + '|' + M.seq }), g).then(function (d) {
       if (g !== M.gen) { return null; }
       try { octo.cache.set('rail:' + key, d); } catch (e) { /* yut */ }
       onWs(d, { stale: false });
@@ -48492,6 +48618,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     M.vTimer = setTimeout(checkVariant, T.variantCheck);
   }
   function finishMount() {
+    M.lastErr = '';
+    dbgSoon();
     paintAll();
     refreshStale();
   }
@@ -51224,6 +51352,120 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     });
   }
 
+  // ======================================================= teshis (?rail=debug)
+  // Operator araci: yalniz ?rail=debug ile (sekme oturumu boyunca), sol altta kucuk hap; dokununca
+  // noktaya iner (telefonda tabloyu kapatmaz). YALNIZ kisa belirtecler ve id'ler: kullanici icerigi,
+  // ad, not, e-posta YOK. Ayni nesne konsolda octo._rail.diag().
+  var TOK_RE = /^[A-Za-z0-9._-]{1,40}$/;
+  var SHA_RE = /^[0-9a-f]{7,40}$/i;
+  function tok(v) { var s = str(v); return TOK_RE.test(s) ? s : ''; }
+  function sha7(v) { var s = str(v); return SHA_RE.test(s) ? s.slice(0, 7) : ''; }
+  function gxInfo() {
+    var o = { ch: '', arch: '', table: '' };
+    var g = null;
+    try { g = W.__gxEl; } catch (e) { g = null; }
+    if (!g || typeof g !== 'object') { return o; }
+    try {
+      o.ch = tok(g.channel);
+      if (o.ch && g.local) { o.ch += '+local'; }
+      var m = isObj(g.mounted) ? g.mounted : {};
+      o.arch = sha7(m.architect && m.architect.commit);
+      o.table = sha7(m.table && m.table.commit);
+    } catch (e2) { /* yut */ }
+    return o;
+  }
+  function dbgState() {
+    if (M.off || !M.armed) { return 'off'; }
+    if (M.yielded) { return 'yielded'; }
+    if (M.mounted) { return M.variant || 'mounting'; }
+    if (!M.key) { return 'no_ctx'; }
+    if (M.nf) { return 'not_found'; }
+    if (M.lastErr) { return 'error'; }
+    if (!M.data && !M.wsErr) { return 'loading'; }
+    if (!findWrapper()) { return 'no_wrapper'; }
+    return 'waiting';
+  }
+  function diag() {
+    var c = M.seen || {};
+    var gx = gxInfo();
+    var v = '';
+    try { v = tok(String(octo.version).replace(/^octo\s+/i, '').replace(/\s+/g, '_')); } catch (e) { v = ''; }
+    return {
+      v: v,
+      ch: gx.ch,
+      arch: gx.arch,
+      table: gx.table,
+      state: dbgState(),
+      ctx: { screen: str(c.screen_id), url: str(c.url_id), list: str(c.list_id), stage: str(c.stage_id) },
+      src: str(c.src),
+      ws: { code: str(M.ws && M.ws.code), ms: (M.ws && typeof M.ws.ms === 'number') ? M.ws.ms : -1 },
+      vw: Math.round(W.innerWidth || 0),
+      wait: M.ctxTries || 0
+    };
+  }
+  function dbgLines(d) {
+    var dash = '-';
+    return [
+      'octo ' + (d.v || dash),
+      'ch ' + (d.ch || dash) + '  arch ' + (d.arch || dash) + '  tbl ' + (d.table || dash),
+      'rail ' + d.state + (d.state === 'no_ctx' && d.wait ? ' (' + d.wait + ')' : ''),
+      'scr ' + (d.ctx.screen || dash),
+      'url ' + (d.ctx.url || dash),
+      'lst ' + (d.ctx.list || dash),
+      'stg ' + (d.ctx.stage || dash) + (d.src ? '  src ' + d.src : ''),
+      'ws ' + (d.ws.code || dash) + (d.ws.ms >= 0 ? ' ' + d.ws.ms + 'ms' : '') + '  vw ' + d.vw
+    ].join('\n');
+  }
+  function dbgTone(s) {
+    if (s === 'a' || s === 'b') { return 'ok'; }
+    if (s === 'loading' || s === 'mounting' || s === 'waiting' || s === 'no_wrapper' || s === 'yielded') { return 'wait'; }
+    return 'bad';
+  }
+  function dbgSoon() {
+    if (DBG.timer || (!DBG.on && !DBG.node)) { return; }
+    DBG.timer = setTimeout(function () { DBG.timer = null; dbgPaint(); }, 0);
+  }
+  function dbgBuild() {
+    var n = D.createElement('button');
+    n.type = 'button';
+    n.id = DBG_ID;
+    n.setAttribute('aria-label', 'Rail debug');
+    n.title = 'Rail debug';
+    var dot = el('span', 'octo-rail-dbg-dot');
+    dot.setAttribute('aria-hidden', 'true');
+    var t = el('span', 'octo-rail-dbg-txt');
+    n.appendChild(dot);
+    n.appendChild(t);
+    DBG.min = ssGet(DBG_KEY + '_min') === '1';
+    n.addEventListener('click', function () {
+      DBG.min = !DBG.min;
+      if (DBG.min) { ssSet(DBG_KEY + '_min', '1'); } else { ssDel(DBG_KEY + '_min'); }
+      n.setAttribute('data-min', DBG.min ? '1' : '');
+      n.setAttribute('aria-expanded', DBG.min ? 'false' : 'true');
+    });
+    n.setAttribute('data-min', DBG.min ? '1' : '');
+    n.setAttribute('aria-expanded', DBG.min ? 'false' : 'true');
+    DBG.node = n; DBG.txt = t; DBG.last = '';
+    return n;
+  }
+  function dbgPaint() {
+    if (!DBG.on) {
+      if (DBG.node && DBG.node.parentNode) { try { DBG.node.parentNode.removeChild(DBG.node); } catch (e) { /* yut */ } }
+      DBG.node = null; DBG.txt = null; DBG.last = '';
+      return;
+    }
+    if (!D.body) { return; }
+    var d = diag();
+    var n = DBG.node || dbgBuild();
+    if (!isConn(n)) { D.body.appendChild(n); }
+    var s = dbgLines(d);
+    if (s !== DBG.last) {
+      DBG.last = s;
+      DBG.txt.textContent = s;
+      n.setAttribute('data-tone', dbgTone(d.state));
+    }
+  }
+
   // ================================================================= API
   var api = {
     boot: boot,
@@ -51231,6 +51473,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     tick: tick,
     remount: function () { if (M.mounted) { remount('api'); } else { kick(0); } },
     readCtx: readCtx,
+    diag: diag,
     embedUrl: embedUrl,
     openUrl: openUrl,
     pollDelay: pollDelay,
