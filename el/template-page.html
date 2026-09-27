@@ -2010,6 +2010,20 @@ html #gxRail.gxr3 .gx3-burger{display:none}
   // FAST PATH (best LCP / offline): if a template is injected — window.__TEMPLATE__ OR a #tmpl-data JSON tag —
   // render it regardless of the URL. Deferred to a microtask so the IIFE finishes assigning the vars render() needs
   // (FAQS, SVG consts, DEMO_SAMPLE) before it fires. Otherwise resolve the template by URL via the Data API.
+  // 27.09 SEO: bilinmeyen slug soft-404 OLMASIN -> noindex + canonical /templates + gorunur not, sonra dizin modu.
+  //   (Onceden startBrowse() dizini bu URL altinda basiyordu: her uydurma slug 200 + /templates kopyasi = soft-404.)
+  function gxNotFound(slug){
+    try{setMeta('name','robots','noindex,follow');}catch(e){}
+    try{document.title='Template not found | Gaia';}catch(e){}
+    try{var cl=document.querySelector('link[rel="canonical"]');if(!cl){cl=document.createElement('link');cl.rel='canonical';document.head.appendChild(cl);}cl.href=location.origin+'/templates';}catch(e){}
+    startBrowse();
+    try{
+      if(!document.getElementById('gxNfStyle')){var st=document.createElement('style');st.id='gxNfStyle';st.textContent='.browse-notfound{margin:0 0 14px;padding:10px 14px;border-radius:10px;background:#FEF3C7;color:#78350F;font-size:14px;line-height:1.5}';document.head.appendChild(st);}
+      var n=document.createElement('div');n.className='browse-notfound';n.setAttribute('role','status');
+      n.textContent='No template at /templates/'+String(slug||'').slice(0,80)+'. Browse the full list below or use search.';
+      var h=browseEl&&browseEl.querySelector('.browse-hero .container');if(h)h.insertBefore(n,h.firstChild);
+    }catch(e){}
+  }
   var injected=window.__TEMPLATE__||(function(){try{var n=document.getElementById('tmpl-data');return n?JSON.parse(n.textContent||'null'):null;}catch(e){return null;}})();
   if(injected&&injected.name){
     var _go=function(){render(injected);seo(injected);gxSeoHandoff();armRelated(injected);};
@@ -2026,7 +2040,7 @@ html #gxRail.gxr3 .gx3-burger{display:none}
     var isId=/^\d+x\d+$/.test(raw);
     var url=isId?API+"/"+encodeURIComponent(raw):qid?API+"?limit=1&constraints="+enc([{key:"id",constraint_type:"equals",value:raw}]):API+"?limit=1&constraints="+enc([{key:"Slug",constraint_type:"equals",value:raw}]);
     fetch(url,{headers:{'Accept':'application/json'}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-      .then(function(j){var rsp=j&&j.response||{};var t=isId?rsp:(rsp.results&&rsp.results[0]);if(!t||!t.name){startBrowse();return;}render(t);seo(t);gxSeoHandoff();armRelated(t);})
+      .then(function(j){var rsp=j&&j.response||{};var t=isId?rsp:(rsp.results&&rsp.results[0]);if(!t||!t.name){gxNotFound(raw);return;}render(t);seo(t);gxSeoHandoff();armRelated(t);})
       .catch(function(){startBrowse();});
   }
 
