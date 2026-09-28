@@ -7745,6 +7745,9 @@
           return;
         }
 
+        // 28.09 HESAP YOK KAPISI: hesabı olmayan ziyaretçi (AS SNP data-logged=no) tetikleyici EKLEYEMEZ (kaldırma yukarıda serbest)
+        if (typeof window._gadNoAccountGate === 'function' && window._gadNoAccountGate('picker_trigger')) return;
+
         const configSchema = (tObj && tObj.config) ? tObj.config : {};
         const hasConfig = Object.keys(configSchema.properties || {}).length > 0;
         console.log('[PICKER TRIGGER] hasConfig:', hasConfig, 'schema keys:', Object.keys(configSchema.properties || {}));
@@ -10951,7 +10954,20 @@
               console.log(`[AI ARCHITECT] 🔑 connected_account_id otomatik dolduruldu: ${trigConn} (App: ${trigApp})`);
             }
 
-            if (!trigConn) {
+            if (typeof window._gadNoAccountGate === 'function' && window._gadNoAccountGate('create_trigger')) {
+              // ── 28.09 HESAP YOK KAPISI: hesabı olmayan ziyaretçi (AS SNP data-logged=no) için tetikleyici YARATILMAZ
+              // (geçici Bubble kullanıcısına bağlı yetim tetikleyici doğmaz). AI tekrar denemez, kullanıcıya girişi söyler.
+              window._triggerAgentCallback = null;
+              window._trigAgentCbOwner = '';
+              _sendDiscoveryResult(JSON.stringify({
+                trigger_id: '',
+                status: 'account_required',
+                app_slug: trigApp,
+                message: 'The user is not signed in to an account, so no trigger can be created and an agent that starts on its own cannot be set up. '
+                  + 'Do not call create_trigger again. Tell the user in one short sentence to sign in or create an account first; a sign in screen is already shown. '
+                  + 'If they want to continue now, finish the design as a manual button-triggered automation with no trigger.'
+              }));
+            } else if (!trigConn) {
               // ── S5/Madde5 AUTH GUARD: app bağlı değil (connected account yok) → trigger oluşturma,
               // backend "Connected account required" hatası yerine kullanıcıdan auth iste. ──
               console.warn('[AI ARCHITECT] create_trigger: "' + trigApp + '" için connected account yok → auth flow başlatılıyor');
@@ -17276,6 +17292,85 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       } catch(_) {}
     }
     window._gadToast = _gadToast; // dışarıdan da çağırılabilsin (örn. Bubble JS workflow'tan)
+
+    // ── 28.09 HESAP YOK KAPISI (kurucu: "triggerlı agentlar doesn't have an account ise kurulamasın") ──────
+    // Tek gerçek login sinyali Bubble'daki "AS SNP" elementi (AppSumo snippet'i): #gaia-appsumo-host[data-logged] =
+    // "Current User is logged in :formatted as text" (yes/no). Bubble login'siz ziyaretçiye de GEÇİCİ Current User
+    // verir (user_id dolu görünür) → ayrım yalnız bu bayrakla. Element yok / boş / doldurulmamış yer tutucu =
+    // bilinmiyor → kapı KAPANMAZ (fail-open: hesabı olan kullanıcı asla kilitlenmez).
+    function _gadLoginState() {
+      try {
+        var ns = document.querySelectorAll('[id="gaia-appsumo-host"]');
+        var h = ns.length ? ns[ns.length - 1] : null;
+        var v = h ? String(h.getAttribute('data-logged') || '').trim().toLowerCase() : '';
+        return (v === 'yes' || v === 'no') ? v : '';
+      } catch (_e) { return ''; }
+    }
+    window._gadLoginState = _gadLoginState;
+
+    // Taslak tetikleyici taşıyor mu? Canlı _gadTrigIds, bu oturumda yaratılanlar, args.trigger_id, DFR triggers,
+    // flagship blueprint tetikleyicisi. Hiçbiri yoksa ajan elle çalışır → kapı ona dokunmaz.
+    function _gadDraftHasTrigger() {
+      try {
+        if (Array.isArray(_gadTrigIds) && _gadTrigIds.filter(Boolean).length) return true;
+        if (Array.isArray(_gadNewTrigIds) && _gadNewTrigIds.filter(Boolean).length) return true;
+        var a = window._gaiaDraftOriginalArgs || {};
+        if (String(a.trigger_id || '').trim()) return true;
+        var d = a.data_flow_rules;
+        if (typeof d === 'string') { try { d = JSON.parse(d); } catch (_p) { d = null; } }
+        if (d && Array.isArray(d.triggers) && d.triggers.length) return true;
+        var fs = _gadFlagshipSession, bt = fs && fs.ctx && fs.ctx.blueprint && fs.ctx.blueprint.trigger;
+        if (bt && bt.trigger_slug) return true;
+      } catch (_e) {}
+      return false;
+    }
+
+    function _gadShowNoAccountCard() {
+      try {
+        var old = document.getElementById('gad-noacct'); if (old) old.remove();
+        var ov = document.createElement('div');
+        ov.id = 'gad-noacct';
+        ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'gad-noacct-t');
+        ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,0.45);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Inter,system-ui,sans-serif;';
+        var btn = 'min-height:40px;padding:0 16px;border-radius:10px;font:600 14px/1 Inter,system-ui,sans-serif;cursor:pointer;';
+        ov.innerHTML =
+          '<div style="width:100%;max-width:400px;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(2,6,23,0.3);padding:24px;">' +
+            '<div id="gad-noacct-t" style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:8px;">Sign in to set this up</div>' +
+            '<div style="font-size:14px;line-height:1.55;color:#475569;margin-bottom:20px;">This assistant starts on its own when something happens, like a new email. It needs your own account to keep running. Sign in or create an account, then set it up again.</div>' +
+            '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">' +
+              '<button type="button" data-act="later" style="' + btn + 'background:#fff;color:#334155;border:1px solid #cbd5e1;">Not now</button>' +
+              '<button type="button" data-act="login" style="' + btn + 'background:#4f46e5;color:#fff;border:1px solid #4f46e5;">Sign in</button>' +
+            '</div>' +
+          '</div>';
+        var onKey = function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); ev.preventDefault(); close(); } };
+        var close = function () { window.removeEventListener('keydown', onKey, true); try { ov.remove(); } catch (_r) {} };
+        ov.addEventListener('click', function (ev) {
+          var b = ev.target && ev.target.closest ? ev.target.closest('[data-act]') : null;
+          if (b && b.getAttribute('data-act') === 'login') {
+            // version-test altında aynı sürümün giriş sayfası
+            var base = /^\/version-test(\/|$)/.test(location.pathname) ? '/version-test' : '';
+            location.href = base + '/login';
+            return;
+          }
+          if (b || ev.target === ov) close();
+        });
+        window.addEventListener('keydown', onKey, true);
+        document.body.appendChild(ov);
+        try { ov.querySelector('[data-act="login"]').focus(); } catch (_f) {}
+      } catch (_e) {
+        _gadToast('Sign in or create an account to set up an assistant that runs on its own.', 'error');
+      }
+    }
+
+    // true = ENGELLENDİ (çağıran kurulumu durdurur). Yalnız bayrak açıkça 'no' iken.
+    function _gadNoAccountGate(where) {
+      if (_gadLoginState() !== 'no') return false;
+      gW('[NO-ACCOUNT] tetikleyicili ajan kurulumu engellendi (AS SNP data-logged=no) | ' + String(where || ''));
+      try { if (typeof gxaTrack === 'function') gxaTrack('setup_blocked_no_account', { where: String(where || '') }); } catch (_e) {}
+      _gadShowNoAccountCard();
+      return true;
+    }
+    window._gadNoAccountGate = _gadNoAccountGate;
 
     // ── ESC tuşu: açık GAD modal overlay'ini kapat ────────────────────────────
     // Click-outside zaten her modalde var; ESC desteği accessibility + keyboard-friendly UX.
@@ -24651,6 +24746,21 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
             if (_apBtn3.dataset._origLabel) { _apBtn3.innerHTML = _apBtn3.dataset._origLabel; delete _apBtn3.dataset._origLabel; }
           }
         } catch (_e3) {}
+        return;
+      }
+
+      // ── 28.09 HESAP YOK KAPISI: tetikleyicili ajan, hesabı olmayan ziyaretçiye (AS SNP data-logged=no) KURULMAZ.
+      // Yalnız create dalları (featured / aiToolCall; flagship inceleme onayı da buradan geçer). Uygulama bağlama
+      // kapısından ÖNCE: hesapsız kişiye Gmail vb. bağlatılmaz. Bayrak bilinmiyorsa kapı kapanmaz.
+      if ((_gadOpenedVia === 'featuredTemplate' || _gadOpenedVia === 'aiToolCall') && _gadDraftHasTrigger()
+          && _gadNoAccountGate('approve:' + _gadOpenedVia)) {
+        try {
+          var _apBtn4 = document.getElementById('gad-approve-btn');
+          if (_apBtn4) {
+            _apBtn4.disabled = false; _apBtn4.style.opacity = '1'; _apBtn4.style.cursor = 'pointer';
+            if (_apBtn4.dataset._origLabel) { _apBtn4.innerHTML = _apBtn4.dataset._origLabel; delete _apBtn4.dataset._origLabel; }
+          }
+        } catch (_e4) {}
         return;
       }
 
@@ -37424,6 +37534,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (changeText) _gadFlagshipSubmitChange(changeText, 0);
         try { if (typeof gxaTrack === 'function') gxaTrack(changeText ? 'flagship_change_requested' : 'flagship_review_opened', { slug: ctx.slug || '', chars: changeText.length }); } catch(e){}
         return true;
+      }
+
+      // 28.09 HESAP YOK KAPISI: tetikleyicili ürün hesabı olmayan ziyaretçiye (AS SNP data-logged=no) kurulmaz.
+      // İnceleme dalı yukarıda GAD'ı açar (kurulum değil; Approve yine kapıdan geçer). Belge dizinleme ve tetikleyici
+      // create'inden ÖNCE: hiçbir yan etki doğmaz.
+      if (bp && bp.trigger && bp.trigger.trigger_slug && _gadNoAccountGate('flagship:' + (fromReview ? 'review' : 'one_click'))) {
+        _gadFlagshipSetBusy(false);
+        return false;
       }
 
       // BIZDISC-BEGIN (H2, spec 3.3 hire sequence S-18): the chosen documents are indexed BEFORE the args are
