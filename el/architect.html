@@ -43646,6 +43646,104 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 .octo-tabs-setup .octo-rail-connect .octo-rail-btn { min-height: 40px; padding: 0 18px; }
 .octo-tabs-setup > .octo-rail-spin { align-self: center; }
 
+/* os3t3 ilk kurulum (yalniz ?octo_onb=1): seritte Start sekmesi + panelde uc adim. */
+.octo-tabs-onb .octo-tabs-ico { color: var(--octo-accent); }
+.octo-tabs-onb[aria-selected="true"] { color: var(--octo-accent); }
+.octo-onb {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 28px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.octo-onb-steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.octo-onb-step {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--octo-r2);
+  background: var(--octo-bg);
+  color: var(--octo-ink-3);
+  font: 600 13px/18px var(--octo-font);
+}
+.octo-onb-step[data-state="now"] { background: rgba(99, 102, 241, .10); color: var(--octo-accent); }
+.octo-onb-step[data-state="done"] { color: var(--octo-ok); }
+.octo-onb-dot {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--octo-r9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--octo-surface);
+  box-shadow: 0 0 0 1px var(--octo-line);
+}
+.octo-onb-step-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.octo-onb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: var(--octo-r3);
+  background: var(--octo-surface);
+  box-shadow: 0 0 0 1px var(--octo-line), var(--octo-sh-s);
+}
+.octo-onb-card > .octo-rail-spin { align-self: center; }
+.octo-onb-head { display: flex; align-items: center; gap: 12px; }
+.octo-onb-ico {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--octo-accent);
+  background: rgba(99, 102, 241, .10);
+}
+.octo-onb-title { font: 700 18px/24px var(--octo-font); color: var(--octo-ink); }
+.octo-onb-list { display: flex; flex-direction: column; }
+.octo-onb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 0;
+  border-top: 1px solid var(--octo-hair);
+  color: var(--octo-ink-2);
+}
+.octo-onb-row:first-child { border-top: 0; }
+.octo-onb-row[data-state="ok"] { color: var(--octo-ink); }
+.octo-onb-row .octo-rail-btn { min-height: 36px; }
+.octo-onb-name { font: 600 14px/20px var(--octo-font); color: var(--octo-ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.octo-onb-chip {
+  padding: 2px 8px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-line-2);
+  color: var(--octo-ink-2);
+  font: 600 12px/16px var(--octo-font);
+}
+.octo-onb-agent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--octo-r2);
+  background: var(--octo-bg);
+}
+.octo-onb-agent-name { font: 700 15px/20px var(--octo-font); color: var(--octo-ink); }
+@media (max-width: 479px) {
+  .octo-onb { padding: 16px; }
+  .octo-onb-step-t { display: none; }
+  .octo-onb-step { justify-content: center; }
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   :is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-body { animation: none; }
@@ -44539,7 +44637,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-28.os3t';
+  var VERSION = 'octo 2026-09-28.os3t3';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -48694,6 +48792,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   function boot() {
     if (M.armed) { return true; }
     if (readSwitch()) { M.off = true; dbgSoon(); return false; }
+    onbRead();
     M.off = false;
     M.armed = true;
     M.ctxTries = ctxTriesMax();
@@ -49477,6 +49576,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     paintHead();
     for (var i = 0; i < CARDS.length; i++) { paintCard(CARDS[i]); }
     syncEmpty();
+    onbSync();
     paintStrip();
     paintTabs();
     paintPanel();
@@ -50569,6 +50669,8 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     sb.appendChild(octo.icon('sidebar', 18));
     sb.addEventListener('click', function () { sideToggle(); });
     s.appendChild(sb);
+    // os3t3: ilk kurulum sekmesi yalniz test linki bayragiyla (?octo_onb=1) olusur.
+    if (M.onbOn) { var ob = onbBtn(); s.appendChild(ob); M.parts.onbBtn = ob; }
     for (var i = 0; i < TABS.length; i++) {
       var k = TABS[i];
       var b = D.createElement('button');
@@ -50617,6 +50719,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // ------------------------------------------------------------ durum
   // ready | unset (kurulu degil) | unlinked (bagli degil) | loading (yalniz ucustaki istek) | error | soon | off
   function tabState(k) {
+    if (k === 'onb') { return M.onbOn ? 'ready' : 'off'; }
     if (k === 'table') { return 'ready'; }
     if (k === 'mail' || !RES[k]) { return 'soon'; }
     if (!data()) { return (M.handle && M.handle.busy) ? 'loading' : 'off'; }
@@ -50655,7 +50758,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   }
   function selectTab(k, o) {
     o = o || {};
-    if (TABS.indexOf(k) < 0 || !M.mounted || !M.parts.tabs) { return false; }
+    if ((TABS.indexOf(k) < 0 && !(k === 'onb' && M.onbOn && M.parts.onbBtn)) || !M.mounted || !M.parts.tabs) { return false; }
     var st = tabState(k);
     if (st === 'soon' || st === 'off') { return false; }
     if (st === 'loading' && k !== M.tab && !o.force) { return false; }
@@ -50831,6 +50934,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
         if (cn.textContent !== tx) { cn.textContent = tx; }
       }
     }
+    paintOnbBtn();
   }
 
   // ------------------------------------------------------------ panel cizimi
@@ -50843,6 +50947,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (M.variant === 'b') { placePanelB(); }
     p.setAttribute('aria-labelledby', 'octo-tab-' + k);
     if (p.getAttribute('data-tab') !== k) { p.setAttribute('data-tab', k); }
+    if (k === 'onb') { try { panelOnb(); } catch (e0) { logErr(e0); } return; }
     var st = tabState(k);
     try {
       if (st === 'unset' || st === 'unlinked' || st === 'off' || st === 'soon') { panelSetup(k, st); }
@@ -52791,6 +52896,353 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       paintSoon('data');
       paintSoon('agent');
     });
+  }
+
+  // ============================================ os3t3 ilk kurulum (YALNIZ test linki: ?octo_onb=1)
+  // Kurucu (28.09): "beni baglanti akisina sok, workspace kurulumundan sonra ilk ajanimi olustur; yalniz bu
+  // test linkiyle calissin". ?octo_onb=1 sekme oturumu boyunca bayrak yazar (OAuth ve Bubble yenilemesi
+  // akisi kesmesin), ?octo_onb=0 siler. Bayrak yoksa hicbir dugum, dinleyici ya da istek eklenmez.
+  // Uc adim, tablonun yerindeki panelde (seritte "Start" sekmesi): 1 Google uygulamalarini bagla
+  // (her biri Connect ya da Skip; gercek SUNUCUDA: os_workspace.connected), 2 workspace'i Gaia kurar
+  // (os_ws_setup varsayilanlari: Drive klasoru, yeni takvim, yeni Sheet, not, gorev listesi; Gmail yok),
+  // 3 ilk surecin ajani: kart gosterilir, Create agent rayin gorev ajani kalibiyla (_gadAssemble +
+  // _gadFireToolCallSafe) kurulur; GAD kancasi (octo:agent-created) ajani raya getirir.
+  var ONB_KEY = 'octo_onb';
+  var ONB_APPS = [['drive', 'googledrive', 'Drive'], ['calendar', 'googlecalendar', 'Calendar'], ['sheet', 'googlesheets', 'Sheets'], ['notes', 'googledocs', 'Docs'], ['tasks', 'googletasks', 'Tasks']];
+  var ONB_ANS = { drive: 'create', calendar: 'new', sheet: 'new', notes: 'create', tasks: 'create' };
+  var ONB_STEPS = [['connect', 'Connect', 'plug'], ['workspace', 'Workspace', 'grid'], ['agent', 'First agent', 'chat']];
+  var ONB_AGENT_MS = 150000;
+  function onbRead() {
+    var q = railQuery();
+    if (/[?&]octo_onb=1(&|#|$)/.test(q)) { ssSet(ONB_KEY, '1'); }
+    else if (/[?&]octo_onb=0(&|#|$)/.test(q)) { ssDel(ONB_KEY); }
+    M.onbOn = ssGet(ONB_KEY) === '1';
+    if (M.onbOn && !M.onb) { M.onb = { skip: {}, s: null, agent: '', code: '', openedKey: '', timer: null }; }
+    if (!M.onbOn) { M.onb = null; }
+    return M.onbOn;
+  }
+  function onbAppState(a) {
+    var O = M.onb;
+    if (has(a[0])) { return 'ok'; }
+    if (O && O.skip[a[0]]) { return 'skip'; }
+    if (M.conn && M.conn.tk === a[1]) { return 'run'; }
+    return conn(a[1]) === true ? 'ok' : 'todo';
+  }
+  function onbStep() {
+    var d = data();
+    if (!d || !railOk()) { return 'wait'; }
+    for (var i = 0; i < ONB_APPS.length; i++) { var st = onbAppState(ONB_APPS[i]); if (st === 'todo' || st === 'run') { return 'connect'; } }
+    if (!setupDone()) { return 'workspace'; }
+    if (!d.agent) { return 'agent'; }
+    return 'done';
+  }
+  // Veri gelince (ilk kez bu workspace icin) panel kendiliginden acilir; Table'a gecen kullanici Start ile doner.
+  function onbSync() {
+    var O = M.onb;
+    if (!M.onbOn || !O || !M.mounted || !railOk() || O.openedKey === M.key) { return; }
+    O.openedKey = M.key;
+    batch(function () { if (M.onbOn && M.mounted) { selectTab('onb'); } });
+  }
+  function onbBtn() {
+    var b = D.createElement('button');
+    b.type = 'button';
+    b.className = 'octo-tabs-tab octo-tabs-onb';
+    b.id = 'octo-tab-onb';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('data-tab', 'onb');
+    b.setAttribute('aria-controls', PANEL_ID);
+    b.setAttribute('aria-selected', 'false');
+    b.setAttribute('tabindex', '-1');
+    var ic = el('span', 'octo-tabs-ico');
+    ic.appendChild(octo.icon('play', 18));
+    b.appendChild(ic);
+    b.appendChild(el('span', 'octo-tabs-word', 'Start'));
+    b.addEventListener('click', function () { selectTab('onb'); });
+    return b;
+  }
+  function paintOnbBtn() {
+    var b = M.parts.onbBtn;
+    if (!b) { return; }
+    var on = M.onbOn && M.tab === 'onb';
+    if (b.hidden === !!M.onbOn) { b.hidden = !M.onbOn; }
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    b.setAttribute('tabindex', on ? '0' : '-1');
+    b.setAttribute('data-step', M.onbOn ? onbStep() : '');
+  }
+
+  // ------------------------------------------------------------ panel
+  function panelOnb() {
+    var step = onbStep();
+    var O = M.onb || {};
+    var sig = 'onb|' + step + '|' + onbSig(step, O);
+    if (M.panelSig === sig) { return; }
+    keepFocus(M.parts.panel, function () {
+      var keep = panelReset('onb', sig);
+      barTitle('Get started');
+      var box = el('div', 'octo-onb');
+      box.setAttribute('data-step', step);
+      box.appendChild(onbSteps(step));
+      var card = el('div', 'octo-onb-card');
+      if (step === 'wait') { card.appendChild(spin()); }
+      else if (step === 'connect') { onbConnect(card); }
+      else if (step === 'workspace') { onbWorkspace(card); }
+      else if (step === 'agent') { onbAgentCard(card); }
+      else { onbDone(card); }
+      box.appendChild(card);
+      M.parts.pbody.appendChild(box);
+      M.parts.pbody.scrollTop = keep;
+    });
+  }
+  function onbSig(step, O) {
+    var parts = [M.conn ? M.conn.tk : '', O.agent, O.code, M.ver];
+    for (var i = 0; i < ONB_APPS.length; i++) { parts.push(onbAppState(ONB_APPS[i])); }
+    var s = O.s;
+    if (s) { for (var r in s.res) { if (Object.prototype.hasOwnProperty.call(s.res, r)) { parts.push(r + s.res[r]); } } parts.push(s.busy ? 'b' : '', s.finalErr); }
+    var d = data();
+    parts.push(d && d.agent ? str(d.agent.id) : '');
+    return parts.join('|');
+  }
+  function onbSteps(step) {
+    var row = el('ol', 'octo-onb-steps');
+    var idx = { wait: 0, connect: 0, workspace: 1, agent: 2, done: 3 }[step];
+    for (var i = 0; i < ONB_STEPS.length; i++) {
+      var li = el('li', 'octo-onb-step');
+      li.setAttribute('data-state', i < idx ? 'done' : (i === idx ? 'now' : 'todo'));
+      if (i === idx) { li.setAttribute('aria-current', 'step'); }
+      var dot = el('span', 'octo-onb-dot');
+      dot.appendChild(octo.icon(i < idx ? 'check' : ONB_STEPS[i][2], 14));
+      li.appendChild(dot);
+      li.appendChild(el('span', 'octo-onb-step-t', ONB_STEPS[i][1]));
+      row.appendChild(li);
+    }
+    return row;
+  }
+  function onbHead(card, icon, title) {
+    var h = el('div', 'octo-onb-head');
+    var ic = el('span', 'octo-onb-ico');
+    ic.appendChild(octo.icon(icon, 22));
+    h.appendChild(ic);
+    h.appendChild(el('div', 'octo-onb-title', title));
+    card.appendChild(h);
+  }
+  function onbRow(icon, name) {
+    var r = el('div', 'octo-onb-row');
+    r.appendChild(octo.icon(icon, 18));
+    r.appendChild(el('span', 'octo-onb-name', name));
+    r.appendChild(el('span', 'octo-rail-grow'));
+    return r;
+  }
+  function okMark() { return octo.icon('check', 16, { className: 'octo-rail-ok' }); }
+
+  // 1 Connect: her uygulama bir satir; ilk bekleyen satirda Connect (birincil) + Skip.
+  function onbConnect(card) {
+    onbHead(card, 'plug', 'Connect Google');
+    var list = el('div', 'octo-onb-list');
+    var first = true;
+    for (var i = 0; i < ONB_APPS.length; i++) {
+      var a = ONB_APPS[i], st = onbAppState(a);
+      var r = onbRow(RES[a[0]].icon, a[2]);
+      r.setAttribute('data-app', a[1]);
+      r.setAttribute('data-state', st);
+      if (st === 'ok') { r.appendChild(okMark()); }
+      else if (st === 'skip') { r.appendChild(el('span', 'octo-onb-chip', 'Skipped')); }
+      else if (st === 'run') { r.appendChild(spin()); }
+      else if (first && !M.conn) {
+        first = false;
+        var sk = btn('is-ghost', 'Skip', 'Skip', 'onb-skip');
+        sk.addEventListener('click', (function (x) { return function () { M.onb.skip[x[0]] = true; paintSoon('tabs'); }; })(a));
+        r.appendChild(sk);
+        var cb = withIcon(btn('is-primary', 'Connect ' + a[2], 'Connect', 'onb-connect'), 'plug');
+        cb.setAttribute('data-tk', a[1]);
+        cb.addEventListener('click', (function (x) { return function () { startConnect(x[1]); }; })(a));
+        r.appendChild(cb);
+      } else { r.appendChild(octo.icon('plug', 16, { label: 'Not connected' })); }
+      list.appendChild(r);
+    }
+    card.appendChild(list);
+  }
+
+  // 2 Workspace: bagli (ya da zaten kurulu) kaynaklar varsayilanla kurulur; atlananlar None.
+  function onbPlan() {
+    var plan = [];
+    for (var i = 0; i < RES_ORDER.length; i++) {
+      var r = RES_ORDER[i];
+      var a = null;
+      for (var j = 0; j < ONB_APPS.length; j++) { if (ONB_APPS[j][0] === r) { a = ONB_APPS[j]; } }
+      plan.push({ r: r, on: !!a && onbAppState(a) === 'ok' });
+    }
+    return plan;
+  }
+  function onbWorkspace(card) {
+    onbHead(card, 'grid', 'Set up workspace');
+    var O = M.onb, s = O.s;
+    var list = el('div', 'octo-onb-list');
+    var plan = onbPlan();
+    for (var i = 0; i < plan.length; i++) {
+      var p = plan[i];
+      if (!p.on) { continue; }
+      var row = onbRow(RES[p.r].icon, stepDef(RES[p.r].step).title);
+      var st = has(p.r) ? 'ok' : (s ? (s.res[p.r] || 'wait') : 'wait');
+      row.setAttribute('data-res', p.r);
+      row.setAttribute('data-state', st);
+      if (st === 'ok') { row.appendChild(okMark()); }
+      else if (st === 'run') { row.appendChild(spin()); }
+      else if (st === 'fail') { row.appendChild(octo.icon('alert', 16, { className: 'octo-rail-bad' })); }
+      list.appendChild(row);
+    }
+    card.appendChild(list);
+    if (s && s.finalErr) { card.appendChild(errRow(function () { onbSetup(); })); }
+    var nav = el('div', 'octo-rail-nav');
+    nav.appendChild(el('span', 'octo-rail-grow'));
+    var busy = !!(s && s.busy);
+    var failed = false;
+    if (s) { for (var k in s.res) { if (Object.prototype.hasOwnProperty.call(s.res, k) && s.res[k] === 'fail') { failed = true; } } }
+    var go = btn('is-primary', failed ? 'Try again' : 'Set up', null, 'onb-setup');
+    if (busy) { go.appendChild(spin()); }
+    go.appendChild(el('span', '', failed ? 'Try again' : 'Set up'));
+    go.disabled = busy || !buildReady();
+    go.addEventListener('click', function () { onbSetup(); });
+    nav.appendChild(go);
+    card.appendChild(nav);
+  }
+  function onbSetup() {
+    var O = M.onb;
+    if (!O || (O.s && O.s.busy) || !buildReady()) { return; }
+    var s = newSetup(1, 'full');
+    s.open = false;
+    var plan = onbPlan();
+    for (var i = 0; i < plan.length; i++) {
+      var r = plan[i].r;
+      if (has(r)) { continue; }                  // zaten kurulu: newSetup mevcut baglantiyi korur
+      s.ans[r] = { mode: plan[i].on ? ONB_ANS[r] : 'none' };
+    }
+    for (var j = 0; j < RES_ORDER.length; j++) { if (has(RES_ORDER[j])) { s.res[RES_ORDER[j]] = 'ok'; } }
+    O.s = s;
+    M.setup = s;                                   // setupOne / finalize ayni nesneyle calisir; rayda cizilmez
+    M.setupRail = false;
+    s.busy = true;
+    s.phase = 'finish';
+    s.finalErr = '';
+    paintSoon('tabs');
+    var chain = Promise.resolve();
+    RES_ORDER.forEach(function (r2) {
+      chain = chain.then(function () { return (s.res[r2] === 'ok') ? null : setupOne(s, r2, false); });
+    });
+    chain.then(function () { return finalize(s); }).then(function () {
+      if (O.s === s && M.setup !== s) { O.s = null; }
+      if (O.s === s) { s.busy = false; }
+      paintSoon('tabs');
+    }, function () { s.busy = false; paintSoon('tabs'); });
+  }
+
+  // 3 First agent: ilk surecin ajani; not ile uyandirilir, nottan tek kayit acar (create_new).
+  function onbArgs() {
+    var d = data() || {}, f = d.first || {};
+    var ws = str(d.sheet && d.sheet.name).slice(0, 80) || 'Workspace';
+    var proc = str(f.name).slice(0, 60) || 'First step';
+    var lines = [
+      'You are the assistant of the ' + proc + ' step in the ' + ws + ' workspace.',
+      'When someone wakes you with a note, read it and create exactly one new record from it.',
+      'Fill every field you can from the note and from the files linked to this workspace. Leave a field empty when you cannot find it. Never ask the user a question.',
+      'Write values in the language of the note.',
+      'In notes_to_user write one line: what you created and which fields stayed empty.'
+    ];
+    var model = '';
+    try { var t = (typeof W._gadModelDefaultTier === 'function') ? W._gadModelDefaultTier() : null; model = (t && t.id) ? str(t.id) : ''; } catch (e) { model = ''; }
+    return {
+      workspace_label: ws, process_name: (proc + ' assistant').slice(0, 80), action_mode: 'attach_to_existing',
+      system_prompt_template: lines.join('\n'), custom_fields: [],
+      data_flow_rules: { manual_wake: { enabled: true, mode: 'create_new' }, schedule: { enabled: false } },
+      model: model, trigger_id: '', tools: [],
+      stage_id: str(f.stage_id), list_id: str(f.list_id)
+    };
+  }
+  function onbAgentCard(card) {
+    var O = M.onb, d = data() || {}, f = d.first || {};
+    onbHead(card, 'chat', 'First agent');
+    if (!idOk(f.stage_id) || !idOk(f.list_id)) { card.appendChild(muted('No process yet')); return; }
+    var a = onbArgs();
+    var box = el('div', 'octo-onb-agent');
+    box.appendChild(el('div', 'octo-onb-agent-name', a.process_name));
+    box.appendChild(el('div', 'octo-rail-mode', WAKE_MODE_COPY.create_new));
+    var meta = el('div', 'octo-rail-pills');
+    meta.appendChild(el('span', 'octo-rail-pill', str(f.name) || 'First step'));
+    if (a.model) { meta.appendChild(el('span', 'octo-rail-pill', a.model)); }
+    meta.appendChild(el('span', 'octo-rail-pill', 'Note wake'));
+    box.appendChild(meta);
+    card.appendChild(box);
+    if (O.agent === 'error') { card.appendChild(errRow(function () { onbCreate(); })); }
+    var nav = el('div', 'octo-rail-nav');
+    if (O.agent === 'sent') {
+      var rf = btn('is-link', 'Refresh', 'Refresh', 'onb-refresh');
+      rf.addEventListener('click', function () { refreshWs('onb').then(function () { paintSoon('tabs'); }, function () {}); });
+      nav.appendChild(rf);
+    }
+    nav.appendChild(el('span', 'octo-rail-grow'));
+    var busy = O.agent === 'busy' || O.agent === 'sent';
+    var go = btn('is-primary', 'Create agent', null, 'onb-agent');
+    if (busy) { go.appendChild(spin()); }
+    go.appendChild(el('span', '', busy ? 'Creating' : 'Create agent'));
+    go.disabled = busy;
+    go.addEventListener('click', function () { onbCreate(); });
+    nav.appendChild(go);
+    card.appendChild(nav);
+  }
+  function onbCreate() {
+    var O = M.onb;
+    if (!O || O.agent === 'busy' || O.agent === 'sent') { return; }
+    var args = onbArgs();
+    if (!idOk(args.stage_id) || !idOk(args.list_id)) { return; }
+    O.agent = 'busy'; O.code = '';
+    paintSoon('tabs');
+    try {
+      if (typeof W._gadAssembleToolCallPayload !== 'function' || typeof W._gadFireToolCallSafe !== 'function') { throw { code: 'bridge_missing' }; }
+      // createTaskBuilder ile ayni: canli arac cagrisi baglami kopyalanir, bos {} gecilmez.
+      var ctx = {};
+      var base = W._gadLastToolCallCtx;
+      if (isObj(base)) { for (var k in base) { if (Object.prototype.hasOwnProperty.call(base, k)) { ctx[k] = base[k]; } } }
+      ctx.retainLive = false;
+      ctx.liveTrigIds = [];
+      var asm = W._gadAssembleToolCallPayload(args, ctx);
+      if (!asm || !asm.payload || !isArr(asm.payload.outputlist3)) { throw { code: 'bad_request' }; }
+      try { if (typeof W._gadSnapshotPendingCreateTrigIds === 'function') { W._gadSnapshotPendingCreateTrigIds(); } } catch (e1) { /* yut */ }
+      try { if (typeof W._gaiaShowDeployProgress === 'function') { W._gaiaShowDeployProgress(args.workspace_label, args.process_name, { fields: 0 }); } } catch (e2) { /* yut */ }
+      try { if (typeof W._gaiaArmDeployWatchdog === 'function') { W._gaiaArmDeployWatchdog(60000); } } catch (e3) { /* yut */ }
+      W._gadFireToolCallSafe(asm.payload, 'rail first agent');
+      O.agent = 'sent';
+      trace('onb:agent');
+      if (O.timer) { try { clearTimeout(O.timer); } catch (e4) {} }
+      // Kanca gelmezse (Bubble yaniti gecikti) sunucu bir kez tazelenir; ajan yoksa Refresh gorunur kalir.
+      O.timer = setTimeout(function () { O.timer = null; if (M.onb === O) { refreshWs('onb').then(function () { paintSoon('tabs'); }, function () {}); } }, ONB_AGENT_MS);
+    } catch (err) {
+      O.agent = 'error';
+      O.code = str(err && err.code) || 'provider_error';
+    }
+    paintSoon('tabs');
+  }
+  function onbDone(card) {
+    var d = data() || {};
+    onbHead(card, 'check', 'All set');
+    var box = el('div', 'octo-onb-agent');
+    box.appendChild(el('div', 'octo-onb-agent-name', str(d.agent && d.agent.name) || 'Agent'));
+    box.appendChild(el('div', 'octo-rail-mode', 'Wake it with a note.'));
+    card.appendChild(box);
+    var nav = el('div', 'octo-rail-nav');
+    nav.appendChild(el('span', 'octo-rail-grow'));
+    var go = btn('is-primary', 'Open table', 'Open table', 'onb-finish');
+    go.addEventListener('click', function () { onbFinish(); });
+    nav.appendChild(go);
+    card.appendChild(nav);
+  }
+  function onbFinish() {
+    var O = M.onb;
+    if (O && O.timer) { try { clearTimeout(O.timer); } catch (e) {} }
+    ssDel(ONB_KEY);
+    M.onbOn = false;
+    M.onb = null;
+    selectTab('table');
+    paintOnbBtn();
+    focusCard('agent');
   }
 
   // ======================================================= teshis (?rail=debug)
