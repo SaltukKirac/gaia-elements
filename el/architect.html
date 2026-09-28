@@ -43656,6 +43656,29 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 .octo-tabs-setup .octo-rail-connect .octo-rail-btn { min-height: 40px; padding: 0 18px; }
 .octo-tabs-setup > .octo-rail-spin { align-self: center; }
 
+/* os4 test linki: secili tablo yokken altta tek ipucu cipi (rayin disinda, govdede). */
+.octo-onb-hint {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  margin-left: -130px;
+  width: 260px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #ffffff;
+  font: 600 14px/20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .24);
+  z-index: 2147482000;
+  pointer-events: none;
+}
+.octo-onb-hint svg { flex: 0 0 auto; }
+
 /* os3t3 ilk kurulum (yalniz ?octo_onb=1): seritte Start sekmesi + panelde uc adim. */
 .octo-tabs-onb .octo-tabs-ico { color: var(--octo-accent); }
 .octo-tabs-onb[aria-selected="true"] { color: var(--octo-accent); }
@@ -44681,7 +44704,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-28.os4';
+  var VERSION = 'octo 2026-09-29.os4b';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -48377,7 +48400,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     throttle: 300, remount: 300, variantCheck: 500, fixedTick: 1000, sent: 2000, stale: 60000,
     connectPoll: 5000, connectMax: 120000, dsPoll: 5000, dsPollSlow: 15000, dsSlowAfter: 60000, dsMax: 900000,
     markerTtl: 180000, agentPoll: 600, agentTries: 50, deployWaitMax: 600, portalMax: 120000, search: 300, preview: 300,
-    ctxPoll: 1000, ctxWait: 30000,
+    ctxPoll: 1000, ctxWait: 30000, onbHint: 2500,
     // os4 varis karti: 12 sn x en cok 25 yoklama (5 dk, soguk baslangic dahil); ilk kayit gorulunce 8 sn sonra kapanir.
     arrPoll: 12000, arrTries: 25, arrDone: 8000, arrStale: 3
   };
@@ -48734,6 +48757,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (!n) { return false; }
     try {
       if (DBG.node && DBG.node.contains(n)) { return true; }
+      if (M.hintNode && M.hintNode.contains(n)) { return true; }
       if (M.row && M.row.contains(n)) { return true; }
       if (M.aside && M.aside.contains(n)) { return true; }
       // Varyant B: serit ve panel satirin disinda (tablonun kardesi) yasar.
@@ -48868,6 +48892,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 
   function shutdown() {
     stopConn();
+    onbHint(false);
     stopDsPoll();
     stopAgentWait();
     arrStop();
@@ -48961,10 +48986,12 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     trace('tick:' + (c.key ? 'k' : '-'));
     if (!c.key) {
       if (M.mounted) { unmount(); }
+      onbHint(true);
       if (M.key) { M.gen++; M.key = ''; M.ctx = null; M.handle = null; M.data = null; }
       ctxWait();
       return;
     }
+    onbHint(false);
     if (c.key !== M.key) { load(c); return; }
     if (M.mounted) {
       if (needsRemount()) { remount('health'); return; }
@@ -53654,6 +53681,30 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (M.onbOn && !M.onb) { M.onb = { skip: {}, s: null, agent: '', code: '', openedKey: '', timer: null, kn: null }; }
     if (!M.onbOn) { if (M.onb && M.onb.kn) { knowFree(M.onb.kn); } M.onb = null; }
     return M.onbOn;
+  }
+  // os4 test linki: bayrak acik ama sayfada secili tablo yok (kullanici sayfasi /app/<ad>-<id>): ray kurulamaz, akis
+  // sessiz kalirdi. T.onbHint sonra altta tek ipucu cipi; baglam gelince (tablo secildi) ya da kapanista kalkar.
+  function onbHint(on) {
+    if (!on || !M.onbOn || !M.armed) {
+      if (M.hintTimer) { try { clearTimeout(M.hintTimer); } catch (e) { /* yut */ } M.hintTimer = null; }
+      if (M.hintNode && M.hintNode.parentNode) { try { M.hintNode.parentNode.removeChild(M.hintNode); } catch (e1) { /* yut */ } }
+      M.hintNode = null;
+      return;
+    }
+    if (M.hintNode || M.hintTimer) { return; }
+    M.hintTimer = setTimeout(function () {
+      M.hintTimer = null;
+      if (!M.onbOn || !M.armed || M.key || M.hintNode || !D.body) { return; }
+      var n = el('div', 'octo-onb-hint');
+      n.id = 'octo-onb-hint';
+      n.setAttribute('role', 'status');
+      n.setAttribute('aria-live', 'polite');
+      n.appendChild(octo.icon('table', 18));
+      n.appendChild(el('span', '', 'Open a table to start'));
+      M.hintNode = n;
+      D.body.appendChild(n);
+      trace('onb:hint');
+    }, T.onbHint);
   }
   function onbAppState(a) {
     var O = M.onb;
