@@ -42667,7 +42667,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 }
 
 /* ==========================================================================
-   app-rail.css  -  OCTO RAIL (os3). Sahip: CLIENT. OCTO_RAIL_SPEC 2.1, 2.5-2.7.
+   app-rail.css  -  OCTO RAIL (os3) + workspace sekmeleri (os3t). Sahip: CLIENT. OCTO_RAIL_SPEC 2.1, 2.7;
+   OCTO_TABS_SPEC (2.5 gomulu gorunum ve 2.6 hizli satir EMEKLI).
    Ray #octo-root DISINDA yasar: os1 3.5 belirtecleri #octo-rail altinda YENIDEN
    bildirilir. Butun kurallar #octo-rail, #octo-rail-row, .octo-rail-* altinda.
 
@@ -42687,13 +42688,17 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   box-sizing: border-box;
 }
 #octo-rail-row > .octo-rail-cell {
+  position: relative;          /* sekme paneli buna gore konumlanir (TABS 1); z-index YOK */
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
-/* Telefon: ray sutun almaz; 44 px hizli satir tablonun USTUNDE. */
+/* Serit 44 px akista, tablo kalan yuksekligi alir (tablonun kendi stili: height 100%). */
+#octo-rail-row > .octo-rail-cell > .octo-tabs { flex: 0 0 44px; }
+#octo-rail-row > .octo-rail-cell > #dynamic-table-wrapper { flex: 1 1 0; min-height: 0; }
+/* Telefon: ray sutun almaz (alt sayfa olarak acilir); serit tablonun USTUNDE. */
 #octo-rail-row[data-phone="1"] { flex-direction: column; }
 #octo-rail-row[data-phone="1"] > #octo-rail { order: -1; }
 
@@ -42743,7 +42748,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 #octo-rail.is-fixed { position: fixed; z-index: 200; }
 
 /* Icerik kaydirici: ray satira yukseklik KATMAZ (tablonun yuksekligi esastir). */
-#octo-rail .octo-rail-scroll {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-scroll {
   position: absolute;
   inset: 0;
   overflow-x: hidden;
@@ -42756,8 +42761,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 }
 
 /* ------------------------------------------------------------------ baslik */
-#octo-rail .octo-rail-head { display: flex; flex-direction: column; gap: 2px; }
-#octo-rail .octo-rail-over {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-head { display: flex; flex-direction: column; gap: 2px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-over {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -42767,15 +42772,15 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-#octo-rail .octo-rail-over .octo-rail-edit {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-over .octo-rail-edit {
   margin-left: auto;
   min-height: 20px;
   text-transform: none;
   letter-spacing: 0;
   font-size: 12px;
 }
-#octo-rail .octo-rail-headrow { display: flex; align-items: center; gap: 6px; min-width: 0; }
-#octo-rail .octo-rail-name {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-headrow { display: flex; align-items: center; gap: 6px; min-width: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-name {
   flex: 1 1 auto;
   min-width: 0;
   font: 700 16px/22px var(--octo-font);
@@ -42785,7 +42790,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 }
 
 /* ------------------------------------------------------------------ dugmeler */
-#octo-rail .octo-rail-btn {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -42802,20 +42807,20 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   white-space: nowrap;
   cursor: pointer;
 }
-#octo-rail .octo-rail-btn:hover { background: var(--octo-bg); }
-#octo-rail .octo-rail-btn:disabled { opacity: .55; cursor: default; }
-#octo-rail .octo-rail-btn.is-primary { background: var(--octo-grad); color: #fff; box-shadow: var(--octo-sh-s); }
-#octo-rail .octo-rail-btn.is-primary:disabled { background: var(--octo-line-2); color: var(--octo-ink-3); box-shadow: none; opacity: 1; }
-#octo-rail .octo-rail-btn.is-link {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn:hover { background: var(--octo-bg); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn:disabled { opacity: .55; cursor: default; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn.is-primary { background: var(--octo-grad); color: #fff; box-shadow: var(--octo-sh-s); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn.is-primary:disabled { background: var(--octo-line-2); color: var(--octo-ink-3); box-shadow: none; opacity: 1; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn.is-link {
   min-height: 28px;
   padding: 0 4px;
   background: transparent;
   box-shadow: none;
   color: var(--octo-accent);
 }
-#octo-rail .octo-rail-btn.is-link:hover { background: transparent; text-decoration: underline; }
-#octo-rail .octo-rail-btn.is-small { min-height: 28px; padding: 0 10px; font-size: 12px; }
-#octo-rail .octo-rail-btn.is-dashed {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn.is-link:hover { background: transparent; text-decoration: underline; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn.is-small { min-height: 28px; padding: 0 10px; font-size: 12px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn.is-dashed {
   width: 100%;
   min-height: 40px;
   background: transparent;
@@ -42824,13 +42829,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   border-radius: var(--octo-r2);
   color: var(--octo-ink-2);
 }
-#octo-rail .octo-rail-btn.is-new {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-btn.is-new {
   width: 100%;
   min-height: 44px;
   font-size: 14px;
   box-shadow: inset 0 0 0 1px var(--octo-line), var(--octo-sh-s);
 }
-#octo-rail .octo-rail-iconbtn {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-iconbtn {
   flex: 0 0 32px;
   width: 32px;
   height: 32px;
@@ -42844,16 +42849,16 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   justify-content: center;
   cursor: pointer;
 }
-#octo-rail .octo-rail-iconbtn:hover { background: var(--octo-line-2); color: var(--octo-ink); }
-#octo-rail .octo-rail-iconbtn:disabled { opacity: .4; cursor: default; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-iconbtn:hover { background: var(--octo-line-2); color: var(--octo-ink); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-iconbtn:disabled { opacity: .4; cursor: default; }
 
-#octo-rail .octo-rail-spin { display: inline-flex; color: var(--octo-accent); }
-#octo-rail .octo-rail-spin svg { animation: octo-rail-rot .9s linear infinite; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-spin { display: inline-flex; color: var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-spin svg { animation: octo-rail-rot .9s linear infinite; }
 @keyframes octo-rail-rot { to { transform: rotate(360deg); } }
 
 /* ------------------------------------------------------------------ kartlar */
-#octo-rail .octo-rail-cards { display: flex; flex-direction: column; gap: 12px; }
-#octo-rail .octo-rail-card {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-cards { display: flex; flex-direction: column; gap: 12px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -42863,12 +42868,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   box-shadow: inset 0 0 0 1px var(--octo-hair);
   min-width: 0;
 }
-#octo-rail .octo-rail-card.is-bare { padding: 0; background: none; box-shadow: none; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card.is-bare { padding: 0; background: none; box-shadow: none; }
 /* Alt sayfa karti odak inis noktasidir (tabindex -1): halka cizilmez, icindeki kontroller halkayi tasir. */
-#octo-rail .octo-rail-card[tabindex="-1"]:focus { outline: none; }
-#octo-rail .octo-rail-card.is-compact > .octo-rail-card-body { display: none; }
-#octo-rail .octo-rail-card-head { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 24px; }
-#octo-rail .octo-rail-card-ico {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card[tabindex="-1"]:focus { outline: none; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card.is-compact > .octo-rail-card-body { display: none; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-head { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 24px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-ico {
   flex: 0 0 24px;
   width: 24px;
   height: 24px;
@@ -42879,13 +42884,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   color: var(--octo-accent);
   background: rgba(99, 102, 241, .12);
 }
-#octo-rail .octo-rail-card-ico[data-tone="calendar"] { color: #1a73e8; background: rgba(26, 115, 232, .12); }
-#octo-rail .octo-rail-card-ico[data-tone="drive"] { color: #e08e00; background: rgba(249, 171, 0, .16); }
-#octo-rail .octo-rail-card-ico[data-tone="notes"] { color: #1a73e8; background: rgba(26, 115, 232, .10); }
-#octo-rail .octo-rail-card-ico[data-tone="tasks"] { color: var(--octo-ok); background: rgba(24, 128, 56, .10); }
-#octo-rail .octo-rail-card-ico[data-tone="sheet"] { color: var(--octo-ok); background: rgba(24, 128, 56, .12); }
-#octo-rail .octo-rail-card-ico[data-tone="wait"] { color: var(--octo-warn); background: rgba(180, 83, 9, .10); }
-#octo-rail .octo-rail-card-title {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-ico[data-tone="calendar"] { color: #1a73e8; background: rgba(26, 115, 232, .12); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-ico[data-tone="drive"] { color: #e08e00; background: rgba(249, 171, 0, .16); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-ico[data-tone="notes"] { color: #1a73e8; background: rgba(26, 115, 232, .10); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-ico[data-tone="tasks"] { color: var(--octo-ok); background: rgba(24, 128, 56, .10); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-ico[data-tone="sheet"] { color: var(--octo-ok); background: rgba(24, 128, 56, .12); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-ico[data-tone="wait"] { color: var(--octo-warn); background: rgba(180, 83, 9, .10); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-title {
   flex: 1 1 auto;
   min-width: 0;
   font: 600 13px/18px var(--octo-font);
@@ -42893,7 +42898,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#octo-rail .octo-rail-card-body {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-body {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -42903,17 +42908,17 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 @keyframes octo-rail-fade { from { opacity: 0; } to { opacity: 1; } }
 #octo-rail[data-nomo="1"] .octo-rail-card-body { animation: none; }
 
-#octo-rail .octo-rail-muted { color: var(--octo-ink-3t); font: 500 13px/18px var(--octo-font); }
-#octo-rail .octo-rail-sub { color: var(--octo-ink-2); font: 500 12px/16px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#octo-rail .octo-rail-mode { color: var(--octo-ink-2); font: 500 12px/16px var(--octo-font); }
-#octo-rail .octo-rail-err { display: flex; align-items: center; gap: 6px; color: var(--octo-warn); }
-#octo-rail .octo-rail-retry { color: var(--octo-warn); font: 600 13px/18px var(--octo-font); }
-#octo-rail .octo-rail-stack { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-#octo-rail .octo-rail-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-#octo-rail .octo-rail-actions.is-left { justify-content: flex-start; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-muted { color: var(--octo-ink-3t); font: 500 13px/18px var(--octo-font); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-sub { color: var(--octo-ink-2); font: 500 12px/16px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-mode { color: var(--octo-ink-2); font: 500 12px/16px var(--octo-font); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-err { display: flex; align-items: center; gap: 6px; color: var(--octo-warn); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-retry { color: var(--octo-warn); font: 600 13px/18px var(--octo-font); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-stack { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-actions.is-left { justify-content: flex-start; }
 
-#octo-rail .octo-rail-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-#octo-rail .octo-rail-pill {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pill {
   height: 22px;
   padding: 0 9px;
   border-radius: var(--octo-r9);
@@ -42927,7 +42932,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#octo-rail .octo-rail-manage {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-manage {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -42936,11 +42941,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   font: 500 12px/24px var(--octo-font);
   text-decoration: none;
 }
-#octo-rail .octo-rail-manage:hover { color: var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-manage:hover { color: var(--octo-accent); }
 
-#octo-rail .octo-rail-note { display: flex; flex-direction: column; gap: 8px; }
-#octo-rail .octo-rail-input,
-#octo-rail .octo-rail-field {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-note { display: flex; flex-direction: column; gap: 8px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-input,
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-field {
   display: block;
   width: 100%;
   min-height: 40px;
@@ -42955,11 +42960,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   resize: vertical;
 }
 #octo-rail textarea.octo-rail-input { min-height: 64px; }
-#octo-rail .octo-rail-input::placeholder,
-#octo-rail .octo-rail-field::placeholder { color: var(--octo-ink-3); }
-#octo-rail .octo-rail-input:focus,
-#octo-rail .octo-rail-field:focus { box-shadow: inset 0 0 0 1.5px var(--octo-accent); }
-#octo-rail .octo-rail-sent {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-input::placeholder,
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-field::placeholder { color: var(--octo-ink-3); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-input:focus,
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-field:focus { box-shadow: inset 0 0 0 1.5px var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-sent {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42972,8 +42977,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 }
 
 /* ------------------------------------------------------------------ listeler */
-#octo-rail .octo-rail-list { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-#octo-rail .octo-rail-item {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-list { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -42984,28 +42989,38 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   color: var(--octo-ink);
   text-decoration: none;
 }
-#octo-rail a.octo-rail-item:hover { background: var(--octo-line-2); }
-#octo-rail .octo-rail-item > svg { color: var(--octo-ink-2); }
-#octo-rail .octo-rail-item-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#octo-rail .octo-rail-time,
-#octo-rail .octo-rail-count {
+:is(#octo-rail, .octo-tabs-panel) a.octo-rail-item:hover { background: var(--octo-line-2); }
+/* Drive karti dosya satiri: dugme (sayfadan ayrilmaz; Drive sekmesinde onizleme). */
+#octo-rail button.octo-rail-item.is-btn {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+#octo-rail button.octo-rail-item.is-btn:hover { background: var(--octo-line-2); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-item > svg { color: var(--octo-ink-2); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-item-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-time,
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-count {
   flex: 0 0 auto;
   color: var(--octo-ink-3t);
   font: 500 12px/16px var(--octo-font);
   font-variant-numeric: tabular-nums;
 }
-#octo-rail .octo-rail-count { color: var(--octo-ink-2); font-weight: 600; }
-#octo-rail .octo-rail-day {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-count { color: var(--octo-ink-2); font-weight: 600; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-day {
   margin: 6px 6px 0;
   color: var(--octo-ink-3t);
   font: 600 11px/16px var(--octo-font);
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-#octo-rail .octo-rail-day:first-child { margin-top: 0; }
-#octo-rail .octo-rail-item .octo-rail-time:first-child { min-width: 44px; color: var(--octo-ink-2); }
-#octo-rail .octo-rail-docname { font: 600 13px/18px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#octo-rail .octo-rail-preview {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-day:first-child { margin-top: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-item .octo-rail-time:first-child { min-width: 44px; color: var(--octo-ink-2); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-docname { font: 600 13px/18px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-preview {
   color: var(--octo-ink-2);
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -43013,9 +43028,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   overflow: hidden;
   overflow-wrap: anywhere;
 }
-#octo-rail .octo-rail-actor { font-weight: 600; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-actor { font-weight: 600; }
 
-#octo-rail .octo-rail-check {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-check {
   flex: 0 0 20px;
   width: 20px;
   height: 20px;
@@ -43030,18 +43045,18 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   justify-content: center;
   cursor: pointer;
 }
-#octo-rail .octo-rail-check[aria-checked="true"] { background: var(--octo-ok); box-shadow: none; }
-#octo-rail .octo-rail-task.is-done .octo-rail-item-name { color: var(--octo-ink-3); text-decoration: line-through; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-check[aria-checked="true"] { background: var(--octo-ok); box-shadow: none; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-task.is-done .octo-rail-item-name { color: var(--octo-ink-3); text-decoration: line-through; }
 
 /* ------------------------------------------------------------ veri ve bekleyen */
-#octo-rail .octo-rail-ds { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
-#octo-rail .octo-rail-ds + .octo-rail-ds { border-top: 1px solid var(--octo-hair); padding-top: 10px; }
-#octo-rail .octo-rail-ds-name { font: 600 13px/18px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#octo-rail .octo-rail-facts { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--octo-ink-2); font: 500 12px/16px var(--octo-font); font-variant-numeric: tabular-nums; }
-#octo-rail .octo-rail-fact.is-live { color: var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-ds { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-ds + .octo-rail-ds { border-top: 1px solid var(--octo-hair); padding-top: 10px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-ds-name { font: 600 13px/18px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-facts { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--octo-ink-2); font: 500 12px/16px var(--octo-font); font-variant-numeric: tabular-nums; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-fact.is-live { color: var(--octo-accent); }
 /* G: writer local = plan only; E: a field name bound to another table */
-#octo-rail .octo-rail-fact.is-tag { padding: 0 8px; border-radius: var(--octo-r9); background: rgba(180, 83, 9, .1); color: var(--octo-warn); font-weight: 600; }
-#octo-rail .octo-rail-tb {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-fact.is-tag { padding: 0 8px; border-radius: var(--octo-r9); background: rgba(180, 83, 9, .1); color: var(--octo-warn); font-weight: 600; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-tb {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -43050,14 +43065,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   background: var(--octo-bg);
   color: var(--octo-ink-2);
 }
-#octo-rail .octo-rail-tb-name { flex: 1 1 auto; font: 600 12px/16px var(--octo-font); color: var(--octo-ink); }
-#octo-rail .octo-rail-pend { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; }
-#octo-rail .octo-rail-pend + .octo-rail-pend { border-top: 1px solid var(--octo-hair); }
-#octo-rail .octo-rail-pend-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
-#octo-rail .octo-rail-pend-top > svg { color: var(--octo-warn); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-tb-name { flex: 1 1 auto; font: 600 12px/16px var(--octo-font); color: var(--octo-ink); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pend { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pend + .octo-rail-pend { border-top: 1px solid var(--octo-hair); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pend-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pend-top > svg { color: var(--octo-warn); }
 
 /* ----------------------------------------------------------- katli serit */
-#octo-rail .octo-rail-strip {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-strip {
   display: none;
   position: absolute;
   inset: 0;
@@ -43068,52 +43083,18 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   overflow-x: hidden;
   overflow-y: auto;
 }
-#octo-rail .octo-rail-strip .octo-rail-iconbtn { flex: 0 0 40px; width: 40px; height: 40px; border-radius: var(--octo-r2); }
-#octo-rail .octo-rail-strip .octo-rail-iconbtn[data-act="expand"] { margin-bottom: 4px; color: var(--octo-ink-3t); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-strip .octo-rail-iconbtn { flex: 0 0 40px; width: 40px; height: 40px; border-radius: var(--octo-r2); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-strip .octo-rail-iconbtn[data-act="expand"] { margin-bottom: 4px; color: var(--octo-ink-3t); }
 #octo-rail[data-collapsed="1"] .octo-rail-scroll { display: none; }
 #octo-rail[data-collapsed="1"] .octo-rail-strip { display: flex; }
 
-/* ------------------------------------------------------ gomulu gorunum (2.5) */
-#octo-rail .octo-rail-embed {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  background: var(--octo-surface);
-}
-#octo-rail[data-embed] .octo-rail-scroll,
-#octo-rail[data-embed] .octo-rail-strip { visibility: hidden; }
-#octo-rail .octo-rail-embed-bar {
-  flex: 0 0 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  border-bottom: 1px solid var(--octo-hair);
-  background: var(--octo-surface);
-  min-width: 0;
-}
-#octo-rail .octo-rail-embed-title {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0 4px;
-  font: 600 13px/18px var(--octo-font);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-#octo-rail .octo-rail-au span { min-width: 10px; font-variant-numeric: tabular-nums; }
-#octo-rail .octo-rail-frame { flex: 1 1 auto; display: block; width: 100%; min-height: 0; border: 0; background: #fff; }
-
 /* ------------------------------------------------------------ kurulum karti */
-#octo-rail .octo-rail-card[data-card="setup"] { box-shadow: inset 0 0 0 1.5px rgba(99, 102, 241, .35); }
-#octo-rail .octo-rail-step-top { display: flex; align-items: baseline; gap: 8px; }
-#octo-rail .octo-rail-step-title { flex: 1 1 auto; font: 700 15px/20px var(--octo-font); }
-#octo-rail .octo-rail-step-count { color: var(--octo-ink-3t); font: 600 12px/16px var(--octo-font); font-variant-numeric: tabular-nums; }
-#octo-rail .octo-rail-radios { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
-#octo-rail .octo-rail-radio {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card[data-card="setup"] { box-shadow: inset 0 0 0 1.5px rgba(99, 102, 241, .35); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-step-top { display: flex; align-items: baseline; gap: 8px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-step-title { flex: 1 1 auto; font: 700 15px/20px var(--octo-font); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-step-count { color: var(--octo-ink-3t); font: 600 12px/16px var(--octo-font); font-variant-numeric: tabular-nums; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-radios { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-radio {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -43131,18 +43112,18 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   text-align: center;
   cursor: pointer;
 }
-#octo-rail .octo-rail-radio svg { color: var(--octo-ink-2); }
-#octo-rail .octo-rail-radio:hover { background: var(--octo-bg); }
-#octo-rail .octo-rail-radio.is-on { background: rgba(99, 102, 241, .07); box-shadow: inset 0 0 0 2px var(--octo-accent); color: var(--octo-accent); }
-#octo-rail .octo-rail-radio.is-on svg { color: var(--octo-accent); }
-#octo-rail .octo-rail-radio:disabled { opacity: .5; cursor: default; }
-#octo-rail .octo-rail-connect { display: flex; flex-wrap: wrap; gap: 8px; }
-#octo-rail .octo-rail-auto { display: flex; flex-direction: column; gap: 6px; }
-#octo-rail .octo-rail-label { color: var(--octo-ink-2); font: 600 12px/16px var(--octo-font); }
-#octo-rail .octo-rail-pick,
-#octo-rail .octo-rail-browse { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-#octo-rail .octo-rail-pick { max-height: 240px; overflow-y: auto; }
-#octo-rail .octo-rail-pickrow {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-radio svg { color: var(--octo-ink-2); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-radio:hover { background: var(--octo-bg); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-radio.is-on { background: rgba(99, 102, 241, .07); box-shadow: inset 0 0 0 2px var(--octo-accent); color: var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-radio.is-on svg { color: var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-radio:disabled { opacity: .5; cursor: default; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-connect { display: flex; flex-wrap: wrap; gap: 8px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-auto { display: flex; flex-direction: column; gap: 6px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-label { color: var(--octo-ink-2); font: 600 12px/16px var(--octo-font); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pick,
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-browse { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pick { max-height: 240px; overflow-y: auto; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pickrow {
   flex: 1 1 auto;
   display: flex;
   align-items: center;
@@ -43158,15 +43139,15 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   text-align: left;
   cursor: pointer;
 }
-#octo-rail .octo-rail-pickrow:hover { background: var(--octo-line-2); }
-#octo-rail .octo-rail-pickrow.is-on { background: rgba(99, 102, 241, .08); color: var(--octo-accent); }
-#octo-rail .octo-rail-pickrow.is-static { cursor: default; color: var(--octo-ink-2); }
-#octo-rail .octo-rail-pickrow.is-static:hover { background: transparent; }
-#octo-rail .octo-rail-browse-row { display: flex; align-items: center; gap: 2px; min-width: 0; }
-#octo-rail .octo-rail-crumb { display: flex; align-items: center; gap: 4px; min-height: 32px; }
-#octo-rail .octo-rail-crumb-name { font: 600 12px/16px var(--octo-font); color: var(--octo-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#octo-rail .octo-rail-dot { flex: 0 0 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--octo-ink-3); }
-#octo-rail .octo-rail-linked {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pickrow:hover { background: var(--octo-line-2); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pickrow.is-on { background: rgba(99, 102, 241, .08); color: var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pickrow.is-static { cursor: default; color: var(--octo-ink-2); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-pickrow.is-static:hover { background: transparent; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-browse-row { display: flex; align-items: center; gap: 2px; min-width: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-crumb { display: flex; align-items: center; gap: 4px; min-height: 32px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-crumb-name { font: 600 12px/16px var(--octo-font); color: var(--octo-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-dot { flex: 0 0 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--octo-ink-3); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-linked {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -43175,12 +43156,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   border-radius: var(--octo-r2);
   background: var(--octo-bg);
 }
-#octo-rail .octo-rail-shape,
-#octo-rail .octo-rail-replace,
-#octo-rail .octo-rail-preview-box { display: flex; flex-direction: column; gap: 10px; }
-#octo-rail .octo-rail-field-row { display: flex; flex-direction: column; gap: 6px; }
-#octo-rail .octo-rail-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-#octo-rail .octo-rail-chip {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-shape,
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-replace,
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-preview-box { display: flex; flex-direction: column; gap: 10px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-field-row { display: flex; flex-direction: column; gap: 6px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chip {
   max-width: 100%;
   height: 28px;
   padding: 0 10px;
@@ -43195,17 +43176,17 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   white-space: nowrap;
   cursor: pointer;
 }
-#octo-rail .octo-rail-chip:hover { background: var(--octo-bg); }
-#octo-rail .octo-rail-chip.is-sugg { box-shadow: inset 0 0 0 1.5px rgba(99, 102, 241, .45); }
-#octo-rail .octo-rail-chip.is-on { background: var(--octo-accent); color: #fff; box-shadow: none; }
-#octo-rail .octo-rail-chip.is-token { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--octo-accent); }
-#octo-rail .octo-rail-chip.is-warn { box-shadow: inset 0 0 0 1.5px rgba(180, 83, 9, .45); color: var(--octo-warn); }
-#octo-rail .octo-rail-chip.is-warn.is-on { background: var(--octo-warn); color: #fff; box-shadow: none; }
-#octo-rail .octo-rail-chip:disabled { cursor: default; opacity: .7; }
-#octo-rail .octo-rail-remap { display: flex; gap: 6px; align-items: center; }
-#octo-rail .octo-rail-remap .octo-rail-input { flex: 1 1 auto; min-width: 0; }
-#octo-rail .octo-rail-stepper { display: inline-flex; align-items: center; gap: 4px; }
-#octo-rail .octo-rail-stepper-val {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chip:hover { background: var(--octo-bg); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chip.is-sugg { box-shadow: inset 0 0 0 1.5px rgba(99, 102, 241, .45); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chip.is-on { background: var(--octo-accent); color: #fff; box-shadow: none; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chip.is-token { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chip.is-warn { box-shadow: inset 0 0 0 1.5px rgba(180, 83, 9, .45); color: var(--octo-warn); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chip.is-warn.is-on { background: var(--octo-warn); color: #fff; box-shadow: none; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-chip:disabled { cursor: default; opacity: .7; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-remap { display: flex; gap: 6px; align-items: center; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-remap .octo-rail-input { flex: 1 1 auto; min-width: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-stepper { display: inline-flex; align-items: center; gap: 4px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-stepper-val {
   min-width: 36px;
   height: 32px;
   border-radius: var(--octo-r2);
@@ -43214,8 +43195,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
-#octo-rail .octo-rail-stepper-val.is-sugg { box-shadow: inset 0 0 0 1.5px rgba(99, 102, 241, .45); }
-#octo-rail .octo-rail-big {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-stepper-val.is-sugg { box-shadow: inset 0 0 0 1.5px rgba(99, 102, 241, .45); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-big {
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -43223,9 +43204,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   font-variant-numeric: tabular-nums;
   letter-spacing: -.01em;
 }
-#octo-rail .octo-rail-big-unit { color: var(--octo-ink-2); font: 600 13px/18px var(--octo-font); letter-spacing: 0; }
-#octo-rail .octo-rail-cols { display: flex; flex-wrap: wrap; gap: 6px; }
-#octo-rail .octo-rail-col {
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-big-unit { color: var(--octo-ink-2); font: 600 13px/18px var(--octo-font); letter-spacing: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-cols { display: flex; flex-wrap: wrap; gap: 6px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-col {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -43237,60 +43218,35 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   color: var(--octo-ink-2);
   font: 500 12px/26px var(--octo-font);
 }
-#octo-rail .octo-rail-col-name { color: var(--octo-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#octo-rail .octo-rail-col-n { color: var(--octo-ink-3t); font-variant-numeric: tabular-nums; }
-#octo-rail .octo-rail-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
-#octo-rail .octo-rail-num { padding: 10px 12px; border-radius: var(--octo-r2); background: var(--octo-bg); }
-#octo-rail .octo-rail-num-v { font: 700 24px/30px var(--octo-font); font-variant-numeric: tabular-nums; }
-#octo-rail .octo-rail-num-l { color: var(--octo-ink-2); font: 600 12px/16px var(--octo-font); }
-#octo-rail .octo-rail-nav { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
-#octo-rail .octo-rail-grow { flex: 1 1 auto; }
-#octo-rail .octo-rail-prog { display: flex; flex-direction: column; gap: 2px; }
-#octo-rail .octo-rail-prog-row { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 6px; border-radius: 8px; }
-#octo-rail .octo-rail-prog-row[data-state="wait"] { color: var(--octo-ink-3t); }
-#octo-rail .octo-rail-ok { color: var(--octo-ok); }
-#octo-rail .octo-rail-bad { color: var(--octo-warn); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-col-name { color: var(--octo-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-col-n { color: var(--octo-ink-3t); font-variant-numeric: tabular-nums; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-num { padding: 10px 12px; border-radius: var(--octo-r2); background: var(--octo-bg); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-num-v { font: 700 24px/30px var(--octo-font); font-variant-numeric: tabular-nums; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-num-l { color: var(--octo-ink-2); font: 600 12px/16px var(--octo-font); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-nav { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-grow { flex: 1 1 auto; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-prog { display: flex; flex-direction: column; gap: 2px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-prog-row { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 6px; border-radius: 8px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-prog-row[data-state="wait"] { color: var(--octo-ink-3t); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-ok { color: var(--octo-ok); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-bad { color: var(--octo-warn); }
 
-/* ------------------------------------------------------- telefon (2.6) */
-#octo-rail .octo-rail-quick,
+/* ------------------------------------------------------- telefon (TABS 6) */
+/* Eski 44 px hizli satir EMEKLI: ray telefonda akista yer kaplamaz; seritteki Rail dugmesi ve
+   kartlarin kendi eylemleri rayi alt sayfa olarak acar. */
 #octo-rail .octo-rail-scrim { display: none; }
 #octo-rail[data-phone="1"] {
-  flex: 0 0 44px;
+  flex: 0 0 0px;
   width: auto;
-  height: 44px;
+  height: 0;
+  min-height: 0;
   border-left: 0;
-  border-bottom: 1px solid var(--octo-hair);
-  background: var(--octo-surface);
+  background: transparent;
 }
 #octo-rail[data-phone="1"] .octo-rail-scroll,
 #octo-rail[data-phone="1"] .octo-rail-strip { display: none; }
-#octo-rail[data-phone="1"] .octo-rail-quick {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 44px;
-  padding: 0 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-}
-#octo-rail[data-phone="1"] .octo-rail-quick::-webkit-scrollbar { display: none; }
-#octo-rail .octo-rail-q {
-  flex: 0 0 40px;
-  width: 40px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--octo-r2);
-  background: transparent;
-  color: var(--octo-ink-2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-#octo-rail .octo-rail-q.is-on { background: rgba(99, 102, 241, .12); color: var(--octo-accent); }
-#octo-rail .octo-rail-q[data-card="setup"] { color: var(--octo-accent); }
+#octo-rail[data-phone="1"] [data-act="collapse"] { display: none; }
 #octo-rail[data-phone="1"][data-sheet] .octo-rail-scrim {
   display: block;
   position: fixed;
@@ -43313,17 +43269,387 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   background: var(--octo-bg);
   box-shadow: var(--octo-sh-l);
 }
-#octo-rail[data-phone="1"][data-sheet] .octo-rail-head { display: none; }
-#octo-rail[data-phone="1"][data-sheet] .octo-rail-card:not(.is-sheet) { display: none; }
-#octo-rail[data-phone="1"] .octo-rail-embed {
-  position: fixed;
-  inset: 0;
-  z-index: 402;
+#octo-rail[data-phone="1"][data-sheet]:not([data-sheet="all"]) .octo-rail-head { display: none; }
+#octo-rail[data-phone="1"][data-sheet]:not([data-sheet="all"]) .octo-rail-card:not(.is-sheet) { display: none; }
+#octo-rail .octo-rail-scroll[tabindex="-1"]:focus { outline: none; }
+
+/* ====================================================== sekmeler (OCTO_TABS_SPEC)
+   Serit ve panel tablonun atasi DEGIL ama satir/hucre gibi: transform / filter /
+   backdrop-filter / will-change / contain / perspective YOK. Belirtecler burada da bildirilir
+   (Varyant B'de serit ve panel #octo-rail-row disinda yasar). */
+.octo-tabs,
+.octo-tabs-panel {
+  --octo-accent: #6366f1;
+  --octo-grad: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --octo-ink: #0f172a;
+  --octo-ink-2: #475569;
+  --octo-ink-3: #94a3b8;
+  --octo-ink-3t: #64748b;
+  --octo-line: #e2e8f0;
+  --octo-line-2: #eef2f7;
+  --octo-bg: #f8fafc;
+  --octo-surface: #ffffff;
+  --octo-field: #f6f7f9;
+  --octo-hair: rgba(15, 23, 42, .08);
+  --octo-r1: 6px;
+  --octo-r2: 10px;
+  --octo-r3: 12px;
+  --octo-r9: 999px;
+  --octo-sh-s: 0 1px 2px rgba(15, 23, 42, .06);
+  --octo-sh-l: 0 16px 40px rgba(49, 46, 129, .16);
+  --octo-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif;
+  --octo-ok: #188038;
+  --octo-warn: #b45309;
+  box-sizing: border-box;
+  color: var(--octo-ink);
+  font: 400 13px/18px var(--octo-font);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+.octo-tabs *, .octo-tabs *::before, .octo-tabs *::after,
+.octo-tabs-panel *, .octo-tabs-panel *::before, .octo-tabs-panel *::after { box-sizing: border-box; }
+.octo-tabs [hidden], .octo-tabs-panel [hidden] { display: none !important; }
+.octo-tabs :focus-visible, .octo-tabs-panel :focus-visible { outline: 2px solid var(--octo-accent); outline-offset: -2px; }
+.octo-tabs svg, .octo-tabs-panel svg { flex: 0 0 auto; }
+
+.octo-tabs {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  height: 44px;
+  min-width: 0;
+  padding: 0 4px;
+  background: var(--octo-surface);
+  border-bottom: 1px solid var(--octo-hair);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+.octo-tabs::-webkit-scrollbar { display: none; }
+.octo-tabs-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 43px;
+  margin: 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--octo-ink-2);
+  font: 600 13px/18px var(--octo-font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.octo-tabs-tab:hover { color: var(--octo-ink); background: var(--octo-bg); }
+/* Secili: 2 px alt cizgi (golge ile; kenar kutu boyunu oynatmaz). */
+.octo-tabs-tab[aria-selected="true"] { color: var(--octo-ink); box-shadow: inset 0 -2px 0 var(--octo-accent); }
+.octo-tabs-tab[aria-selected="true"] .octo-tabs-ico { color: var(--octo-accent); }
+.octo-tabs-tab[data-state="unset"],
+.octo-tabs-tab[data-state="unlinked"] { opacity: .55; }
+.octo-tabs-tab[data-state="unset"][aria-selected="true"],
+.octo-tabs-tab[data-state="unlinked"][aria-selected="true"] { opacity: .8; }
+.octo-tabs-tab[data-state="soon"],
+.octo-tabs-tab[data-state="off"] { opacity: .4; cursor: default; }
+.octo-tabs-tab[data-state="soon"]:hover,
+.octo-tabs-tab[data-state="off"]:hover { background: transparent; color: var(--octo-ink-2); }
+.octo-tabs-ico { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; }
+.octo-tabs-ico .octo-rail-spin { color: var(--octo-accent); }
+.octo-tabs-badge {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  width: 13px;
+  height: 13px;
+  border-radius: var(--octo-r9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--octo-surface);
+  color: var(--octo-ink-2);
+  box-shadow: 0 0 0 1px var(--octo-line);
+}
+.octo-tabs-tab[data-state="error"] .octo-tabs-badge { color: var(--octo-warn); box-shadow: 0 0 0 1px rgba(180, 83, 9, .35); }
+.octo-tabs-tab[data-tab="mail"] { position: relative; }
+/* Soon cipi genislik eklemez (7 sekme 1100 px'te sigsin): kelimenin ust sag kosesinde. */
+.octo-tabs-soon {
+  position: absolute;
+  top: 3px;
+  right: 1px;
+  height: 12px;
+  padding: 0 4px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-line-2);
+  color: var(--octo-ink-2);
+  font: 700 8px/12px var(--octo-font);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.octo-tabs[data-fit="tight"] .octo-tabs-tab[data-tab="mail"] { display: none; }
+/* os3t2 OS kipi: seridin basinda Bubble sol menusunu getiren / gizleyen dugme (ikon, sagda ince ayrac). */
+.octo-tabs-side {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 43px;
+  margin: 0 4px 0 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--octo-hair);
+  border-radius: 0;
+  background: transparent;
+  color: var(--octo-ink-2);
+  cursor: pointer;
+}
+.octo-tabs-side:hover { color: var(--octo-ink); background: var(--octo-bg); }
+.octo-tabs-side[aria-expanded="true"] { color: var(--octo-accent); }
+/* Tek genel kural (Bubble ogesine): menu gizliyken hic yer kaplamaz; oznitelik ray kapaninca silinir. */
+[data-octo-side="hide"] { display: none !important; }
+/* Gosterecek karti olmayan ray masaustunde hic cizilmez: tablo tam genislik. */
+#octo-rail[data-empty="1"] { display: none !important; }
+/* Telefon Rail dugmesi: masaustunde yok; telefonda seridin sag ucunda yapisik. */
+.octo-tabs-rail { display: none; }
+.octo-tabs[data-phone="1"] { padding: 0 0 0 16px; }
+.octo-tabs[data-phone="1"] .octo-tabs-rail {
+  position: sticky;
+  right: 0;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 43px;
+  margin-left: auto;
+  padding: 0 16px 0 14px;
+  border: 0;
+  border-left: 1px solid var(--octo-hair);
+  background: var(--octo-surface);
+  color: var(--octo-accent);
+  font: 600 13px/18px var(--octo-font);
+  cursor: pointer;
+}
+.octo-tabs-rail[aria-expanded="true"] { background: rgba(99, 102, 241, .08); }
+.octo-tabs-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-warn);
+  color: #fff;
+  font: 700 11px/18px var(--octo-font);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
+/* Panel: seridin altindan hucrenin dibine, tablonun akis ici parcalarinin (HOT klonlari 160..240)
+   ustunde, tablonun menulerinin (250+) altinda. Tablo altta yerlesik kalir. */
+.octo-tabs-panel {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 245;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 480px;
+  background: var(--octo-surface);
+}
+.octo-tabs-panel[hidden] { display: none !important; }
+.octo-tabs-panel[data-phone="1"] { min-height: 60vh; }
+.octo-tabs-panel.is-b { position: fixed; z-index: 199; min-height: 0; }
+.octo-tabs-bar {
+  flex: 0 0 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--octo-hair);
+  background: var(--octo-surface);
+}
+.octo-tabs-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 6px;
+  font: 600 14px/20px var(--octo-font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.octo-tabs-bar .octo-rail-btn.is-link { flex: 0 0 auto; color: var(--octo-ink-2); padding: 0 6px; }
+.octo-tabs-bar .octo-rail-btn.is-link:hover { color: var(--octo-accent); text-decoration: none; }
+.octo-tabs-bar .octo-tabs-back { color: var(--octo-accent); }
+.octo-tabs-bar .octo-tabs-google.is-hot { color: var(--octo-accent); background: rgba(99, 102, 241, .08); }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-gl { display: none; }
+.octo-tabs-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--octo-surface);
+}
+.octo-tabs-frame { flex: 1 1 auto; display: block; width: 100%; min-height: 0; border: 0; background: #fff; }
+.octo-tabs-empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 200px;
+  padding: 32px 16px;
+  color: var(--octo-ink-3t);
+  font: 600 14px/20px var(--octo-font);
+  text-align: center;
+}
+.octo-tabs-empty-ico {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--octo-bg);
+  color: var(--octo-ink-3t);
+}
+.octo-tabs-empty.is-file .octo-tabs-empty-t { max-width: 100%; color: var(--octo-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Drive */
+.octo-tabs-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 16px 4px;
+  color: var(--octo-ink-3t);
+}
+.octo-tabs-crumb {
+  max-width: 220px;
+  min-height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--octo-r1);
+  background: transparent;
+  color: var(--octo-ink-2);
+  font: 600 12px/28px var(--octo-font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo-accent); }
+.octo-tabs-crumb.is-cur { color: var(--octo-ink); cursor: default; }
+.octo-tabs-list { display: flex; flex-direction: column; gap: 1px; padding: 4px 8px 12px; min-width: 0; }
+.octo-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--octo-r2);
+  background: transparent;
+  color: var(--octo-ink);
+  font: 500 13px/18px var(--octo-font);
+  text-align: left;
+  cursor: pointer;
+}
+.octo-tabs-row:hover { background: var(--octo-line-2); }
+.octo-tabs-row:disabled { opacity: .5; cursor: default; }
+.octo-tabs-row:disabled:hover { background: transparent; }
+.octo-tabs-row > svg { color: var(--octo-ink-3); }
+.octo-tabs-row-ico {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--octo-bg);
+  color: var(--octo-ink-2);
+}
+.octo-tabs-row-ico[data-kind="folder"] { color: #e08e00; background: rgba(249, 171, 0, .14); }
+.octo-tabs-row-ico[data-kind="doc"] { color: #1a73e8; background: rgba(26, 115, 232, .10); }
+.octo-tabs-row-ico[data-kind="sheet"] { color: var(--octo-ok); background: rgba(24, 128, 56, .10); }
+.octo-tabs-row-ico[data-kind="slide"] { color: #e37400; background: rgba(227, 116, 0, .10); }
+.octo-tabs-row-ico[data-kind="pdf"] { color: #d93025; background: rgba(217, 48, 37, .08); }
+.octo-tabs-row-ico[data-kind="image"],
+.octo-tabs-row-ico[data-kind="video"] { color: #9334e6; background: rgba(147, 52, 230, .08); }
+.octo-tabs-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.octo-tabs-meta {
+  flex: 0 0 auto;
+  color: var(--octo-ink-3t);
+  font: 500 12px/16px var(--octo-font);
+  font-variant-numeric: tabular-nums;
+}
+.octo-tabs-meta.is-size { min-width: 52px; text-align: right; }
+.octo-tabs-body > .octo-rail-err { padding: 8px 16px; }
+
+/* Tasks */
+.octo-tabs-tasks { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; flex: 1 1 auto; }
+.octo-tabs-tasklist .octo-rail-item { min-height: 40px; padding: 4px 8px; }
+.octo-tabs-add {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--octo-hair);
+  background: var(--octo-surface);
+}
+.octo-tabs-add .octo-rail-input { flex: 1 1 200px; min-width: 0; }
+
+/* Pasif sekme: tek kaynagin kurulum karti */
+.octo-tabs-setup {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.octo-tabs-setup-top { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.octo-tabs-setup-ico {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--octo-accent);
+  background: rgba(99, 102, 241, .10);
+}
+.octo-tabs-setup-ico[data-tone="calendar"],
+.octo-tabs-setup-ico[data-tone="notes"] { color: #1a73e8; background: rgba(26, 115, 232, .10); }
+.octo-tabs-setup-ico[data-tone="drive"] { color: #e08e00; background: rgba(249, 171, 0, .14); }
+.octo-tabs-setup-ico[data-tone="tasks"],
+.octo-tabs-setup-ico[data-tone="sheet"] { color: var(--octo-ok); background: rgba(24, 128, 56, .10); }
+.octo-tabs-setup-name { flex: 1 1 auto; min-width: 0; font: 700 18px/24px var(--octo-font); }
+.octo-tabs-setup-st { display: inline-flex; gap: 6px; color: var(--octo-warn); }
+.octo-tabs-setup .octo-rail-connect .octo-rail-btn { min-height: 40px; padding: 0 18px; }
+.octo-tabs-setup > .octo-rail-spin { align-self: center; }
+
+
 @media (prefers-reduced-motion: reduce) {
-  #octo-rail .octo-rail-card-body { animation: none; }
-  #octo-rail .octo-rail-spin svg { animation-duration: 2.4s; }
+  :is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-card-body { animation: none; }
+  :is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-rail-spin svg { animation-duration: 2.4s; }
 }
 
 /* ?rail=debug teshis hapi (operator araci): sol alt, Bubble iceriginin ustunde; dokununca noktaya iner
@@ -44213,7 +44539,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-25.os3';
+  var VERSION = 'octo 2026-09-28.os3t';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -44922,7 +45248,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     'play': 'M8 5.5v13l10.5-6.5z',
     'check': 'M5 12.5l4.5 4.5L19 7.5',
     // os3: ray "New record" ve kurulum "Create" glifi (close dondurulmez).
-    'plus': 'M12 5v14|M5 12h14'
+    'plus': 'M12 5v14|M5 12h14',
+    // os3t (OCTO_TABS_SPEC 2): Drive bos durumu, ust klasor, Open in Google (link kart baglantilarinda kalir).
+    'grid': 'M4 4h6v6H4z|M14 4h6v6h-6z|M4 14h6v6H4z|M14 14h6v6h-6z',
+    'arrow-up': 'M12 19V5|M6 11l6-6 6 6',
+    'external': 'M14 4h6v6|M20 4l-9 9|M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
+    // os3t2: Bubble sol menusunu gizle / getir (serit basi).
+    'sidebar': 'M5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4z|M9.5 4v16'
   };
 
   // ------------------------------------------------------------ sayfa kimligi
@@ -47864,6 +48196,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
    atalaridir: transform / filter / backdrop-filter / will-change / contain /
    perspective YOK (tablonun 8 position:fixed parcasi).
 
+   Sekmeler (os3t, OCTO_TABS_SPEC): sol hucrenin ilk cocugu 44 px serit (Table, Calendar,
+   Drive, Notes, Tasks, Sheet, Mail Soon); Table disindaki sekme kaynagini tabloyu orten
+   mutlak panelde gosterir (Calendar/Notes/Sheet gomulu, Drive bizim tarayici + onizleme,
+   Tasks dogal liste; kurulmamis/bagli olmayan kaynak panelde kurulum karti). Tablo ASLA
+   yeniden ebeveynlenmez; Table'a donuste panel bosalir + tek resize. Rayin %50 gomulu
+   gorunumu ve telefon hizli satiri EMEKLI.
+
    Veri YALNIZ sunucudan (octo.request; kimlik alanlari cekirdekte atilir). Tum
    uzak metin textContent; HTML dizgisi hic yazilmaz (ikonlar octo.icon). Kod yorumlari
    Turkce, UI metni Ingilizce, em/en dash yok.
@@ -47954,9 +48293,17 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     setup: 'Setup', agent: 'Agent', 'new': 'New record', calendar: 'Calendar', drive: 'Drive', notes: 'Notes',
     tasks: 'Tasks', sheet: 'Sheet', data: 'Data', act: 'Activity', wait: 'Waiting for you'
   };
-  // Telefon hizli satiri (2.6): Agent, New, Calendar, Drive, Notes, Tasks, Data (+ kurulum gerekiyorsa Setup,
-  // + bekleyen onay varsa Waiting for you: A3 denetimi, onay telefonda da erisilebilir olmali).
-  var QUICK = ['setup', 'agent', 'new', 'calendar', 'drive', 'notes', 'tasks', 'data', 'wait'];
+  // Workspace sekmeleri (OCTO_TABS_SPEC 2): sabit sira, Table her zaman ilk ve acilista secili. Telefon hizli
+  // satiri (.octo-rail-quick) ve rayin %50 gomulu gorunumu EMEKLI; ayni serit telefonda da tablonun ustunde.
+  var TABS = ['table', 'calendar', 'drive', 'notes', 'tasks', 'sheet', 'mail'];
+  var TAB_ICON = { table: 'table', calendar: 'calendar', drive: 'folder', notes: 'doc', tasks: 'check', sheet: 'sheet', mail: 'mail' };
+  var TAB_LABEL = { table: 'Table', calendar: 'Calendar', drive: 'Drive', notes: 'Notes', tasks: 'Tasks', sheet: 'Sheet', mail: 'Mail' };
+  var TAB_BADGE = { unset: 'plus', unlinked: 'plug', error: 'alert' };
+  var PANEL_ID = 'octo-tabs-panel';
+  var DRIVE_PAGE = 50, DRIVE_DEPTH = 6, TASKS_TAB = 20, TASK_MAX = 200;
+  var MIME_GDOC = 'application/vnd.google-apps.document';
+  var MIME_GSLIDE = 'application/vnd.google-apps.presentation';
+  var MIME_GFOLDER = 'application/vnd.google-apps.folder';
   var CLASS_ICON = { drive: 'folder', calendar: 'calendar', docs: 'doc', sheets: 'sheet', gmail: 'mail', tasks: 'check', gaia: 'table', links: 'link' };
   var KIND_ICON = { folder: 'folder', doc: 'doc', sheet: 'sheet', slide: 'slide', pdf: 'pdf', image: 'image', video: 'video', audio: 'audio', archive: 'archive' };
   var TYPE_ICON = { number: 'chart', date: 'calendar', checkbox: 'check', text: 'doc' };
@@ -48062,13 +48409,19 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     yielded: false,
     key: '', ctx: null, gen: 0, seq: 0, handle: null, data: null, wsErr: '', nf: false, ver: 0, writing: 0,
     c: {}, ds: { byId: {}, loaded: false, err: '', unavailable: false },
-    collapsed: false, phone: false, sheet: '', embed: null,
+    collapsed: false, phone: false, sheet: '',
+    // Sekme durumu YALNIZ bellekte (octo.state'e yazilmaz): yeni sayfa yuklemesi Table ile acar.
+    tab: 'table', tv: {}, panelSig: '', panelView: '',
     wake: 'idle', note: '', sentTimer: null, noteGone: false,
     tb: {}, run: {}, runErr: {}, dec: {}, plan: {},
     setup: null, afterAgent: null,
     agent: null, portal: null, conn: null, dsPoll: null,
     pending: false, trace: [],
-    ctxTries: 0, ctxTimer: null, seen: null, ws: { code: '', ms: -1 }, lastErr: ''
+    ctxTries: 0, ctxTimer: null, seen: null, ws: { code: '', ms: -1 }, lastErr: '',
+    // os3t2 OS kipi: bos ray gizlenir (tablo tam genislik); Bubble'in sol menusu tablo acikken gizlenir,
+    // seritteki Menu dugmesi geri getirir. setupRail: kurulum karti yalniz raydan acildiysa rayda cizilir.
+    empty: false, setupRail: false,
+    side: null, sideOpen: false, sideUser: false, sideNo: false, sideTimer: null, sideTries: 0
   };
   // ?rail=debug teshis hapi durumu (asagida "teshis" bolumu).
   var DBG = { on: false, node: null, txt: null, timer: null, last: '', min: false };
@@ -48125,9 +48478,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       for (var k in d) {
         if (!Object.prototype.hasOwnProperty.call(d, k)) { continue; }
         any = true;
-        if (k === 'head') { paintHead(); } else if (k === 'embed') { paintEmbed(); } else { paintCard(k); }
+        if (k === 'head') { paintHead(); } else if (k !== 'tabs') { paintCard(k); }
       }
-      if (any) { paintStrip(); paintQuick(); layout(); }
+      if (any) { syncEmpty(); paintStrip(); paintTabs(); paintPanel(); layout(); }
     } catch (e4) { logErr(e4); }
   }
   function logErr(e) { M.lastErr = 'error'; dbgSoon(); try { console.warn('[OCTO-RAIL] ' + ((e && e.message) || String(e)).slice(0, 120)); } catch (x) { /* yut */ } }
@@ -48238,6 +48591,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (DBG.node && DBG.node.contains(n)) { return true; }
       if (M.row && M.row.contains(n)) { return true; }
       if (M.aside && M.aside.contains(n)) { return true; }
+      // Varyant B: serit ve panel satirin disinda (tablonun kardesi) yasar.
+      if (M.parts.tabs && M.parts.tabs.contains(n)) { return true; }
+      if (M.parts.panel && M.parts.panel.contains(n)) { return true; }
       var r = rootEl();
       if (r && r.contains(n)) { return true; }
     } catch (e) { /* yut */ }
@@ -48378,7 +48734,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     M.gen++;
     M.key = ''; M.ctx = null; M.handle = null; M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0; M.writing = 0;
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
-    M.embed = null; M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
+    M.tab = 'table'; M.tv = {}; M.panelSig = ''; M.panelView = '';
+    M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
     M.wake = 'idle'; M.note = ''; M.noteGone = false; M.yielded = false; M.sheet = '';
     M.ctxTries = 0; M.seen = null; M.ws = { code: '', ms: -1 }; M.lastErr = '';
     dbgSoon();
@@ -48471,6 +48828,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   function yieldTable() {
     if (!M.armed) { return; }
     M.yielded = true;
+    // Ortu gelince panel kapanir, Table secilir (OCTO_TABS_SPEC 3); geri donuste yine Table.
+    resetTabs();
     if (M.mounted) { unmount(); }
   }
   function retake() {
@@ -48497,10 +48856,16 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     M.ctx = c;
     M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0;
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
-    M.setup = null; M.noteGone = false; M.note = ''; setWake('idle');
+    M.setup = null; M.setupRail = false; M.noteGone = false; M.note = ''; setWake('idle');
+    // Yeni workspace (tablo secildi): sol menu yeniden gizlenir.
+    if (M.sideUser) { M.sideUser = false; if (M.mounted) { batch(function () { sideApply(); paintTabs(); }); } }
     M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
     stopConn(); stopDsPoll();
-    closeEmbed();
+    // Baglam anahtari degisti: Table secilir, panel bosalir (acik idiyse tek resize).
+    var wasOpen = M.tab !== 'table';
+    resetTabs();
+    M.tv = {};
+    if (wasOpen && M.mounted) { batch(function () { panelOff(true); paintTabs(); }); }
     try { octo.warm('rail'); } catch (e) { /* yut */ }
     var key = c.key;
     M.handle = octo.live('rail:' + key, function () {
@@ -48596,9 +48961,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var g = M.gen, cg = c.gen;
     c.h = octo.live('rail:' + key, function () {
       return octo.request(action, payload, { cacheKey: action + '|' + key });
-    }, function (d) {
+    }, function (d, meta) {
       if (g !== M.gen || cg !== c.gen) { return; }
       c.d = isObj(d) ? d : {};
+      c.stale = !!(meta && meta.stale);   // Drive karti: bayat listeden acilan dosya sunucuda dogrulanir (TABS 5)
       c.err = '';
       onCard(id, c);
       paintSoon(id);
@@ -48682,20 +49048,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     scroll.appendChild(cards);
     a.appendChild(scroll);
     var strip = el('div', 'octo-rail-strip');
-    var quick = el('div', 'octo-rail-quick');
-    quick.setAttribute('role', 'toolbar');
-    quick.setAttribute('aria-label', 'Workspace');
     var scrim = el('div', 'octo-rail-scrim');
-    scrim.addEventListener('click', function () { closeSheet(); layout(); });
-    var embed = el('div', 'octo-rail-embed');
-    embed.hidden = true;
+    scrim.addEventListener('click', function () { closeSheet(); layout(); paintTabs(); });
     a.appendChild(strip);
-    a.appendChild(quick);
     a.appendChild(scrim);
-    a.appendChild(embed);
-    M.parts = { scroll: scroll, head: head, cards: cards, strip: strip, quick: quick, scrim: scrim, embed: embed };
+    M.parts = { scroll: scroll, head: head, cards: cards, strip: strip, scrim: scrim };
     M.secs = {};
-    // Esc: gomulu gorunumu ya da telefon alt sayfasini kapatir (klavye kullanicisi).
+    buildTabs();
+    // Esc: telefon alt sayfasini kapatir (klavye kullanicisi).
     a.addEventListener('keydown', onRailKey);
     for (var i = 0; i < CARDS.length; i++) {
       var s = el('section', 'octo-rail-card');
@@ -48729,6 +49089,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       finishMount();
       return;
     }
+    // Serit hucrenin ilk cocugu (tablonun ustunde, akista); panel tablonun ustune mutlak konumlu.
+    // Tablo dugumu ASLA yeniden ebeveynlenmez: panel yalniz ortup kaldirilir (OCTO_TABS_SPEC 1, 3).
+    cell.insertBefore(M.parts.tabs, w);
+    cell.appendChild(M.parts.panel);
     if (h > 0) { row.style.minHeight = Math.round(h) + 'px'; }
     M.row = row; M.cell = cell; M.hold = hold; M.wrapper = w; M.variant = 'a';
     trace('mount:a');
@@ -48740,6 +49104,98 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     dbgSoon();
     paintAll();
     refreshStale();
+    M.sideTries = 0;
+    sideSoon(0);
+  }
+
+  // ------------------------------------------- Bubble sol menusu (os3t2 OS kipi)
+  // Tablo secilince soldaki menu (Bubble ogesi, ~270 px) gizlenir; seridin ilk dugmesi (Menu) geri getirir.
+  // Bubble'da degisiklik YOK: menu geometrisiyle bulunur (sol kenarda, 200..340 px genis, ekranin en az
+  // %60'i yuksek, tablonun solunda, tabloyu icermeyen ata kardesi). Gizleme tek oznitelik + CSS kurali;
+  // gizleyince tablo sola kaymazsa (menu sabit konumlu, bosluk kalirdi) geri alinir ve dugme cizilmez.
+  var SIDE_ATTR = 'data-octo-side';
+  function sideHost() { return M.row || M.wrapper; }
+  function sideFind() {
+    var w = sideHost();
+    if (!w || !isConn(w)) { return null; }
+    var wr = null;
+    try { wr = w.getBoundingClientRect(); } catch (e) { wr = null; }
+    if (!wr || wr.width < 1) { return null; }
+    var vh = W.innerHeight || 800;
+    var n = w;
+    for (var hop = 0; hop < 25 && n && n.parentNode && n.parentNode !== D.documentElement; hop++) {
+      var p = n.parentNode, kids = p.children || [];
+      for (var i = 0; i < kids.length; i++) {
+        var k = kids[i];
+        if (k === n || !k.getBoundingClientRect || k.tagName === 'SCRIPT' || k.tagName === 'STYLE' || ownNode(k)) { continue; }
+        try { if (k.contains(w)) { continue; } } catch (e1) { continue; }
+        var r = null;
+        try { r = k.getBoundingClientRect(); } catch (e2) { r = null; }
+        if (!r) { continue; }
+        if (r.left <= 8 && r.width >= 200 && r.width <= 340 && r.height >= vh * 0.6 && r.right <= wr.left + 2) { return k; }
+      }
+      n = p;
+    }
+    return null;
+  }
+  function sideLeft() { var h = sideHost(); try { return h ? h.getBoundingClientRect().left : 0; } catch (e) { return 0; } }
+  function sideSoon(ms) {
+    if (M.sideTimer) { return; }
+    M.sideTimer = setTimeout(function () { M.sideTimer = null; sideAuto(); }, ms);
+  }
+  function sideAuto() {
+    if (!M.mounted || M.phone || M.sideNo) { return; }
+    if (M.side && isConn(M.side)) { sideApply(); return; }
+    M.side = null;
+    var s = sideFind();
+    if (!s) {
+      // Bubble menuyu gec cizebilir: birkac deneme (0, 500, 1500, 3000 ms).
+      if (M.sideTries < 3) { M.sideTries++; sideSoon(M.sideTries === 1 ? 500 : (M.sideTries === 2 ? 1000 : 1500)); }
+      return;
+    }
+    var l0 = sideLeft();
+    s.setAttribute(SIDE_ATTR, 'hide');
+    var l1 = sideLeft();
+    if (l0 - l1 < 100) {
+      s.removeAttribute(SIDE_ATTR);
+      M.sideNo = true;
+      trace('side:fixed');
+      return;
+    }
+    M.side = s;
+    M.sideOpen = false;
+    trace('side:hide');
+    if (M.sideUser) { sideApply(); }
+    paintTabs();
+    fireResize();
+  }
+  function sideApply() {
+    var s = M.side;
+    if (!s || !isConn(s)) { return; }
+    var open = !!M.sideUser;
+    if (open === M.sideOpen && (s.getAttribute(SIDE_ATTR) === 'hide') === !open) { return; }
+    if (open) { s.removeAttribute(SIDE_ATTR); } else { s.setAttribute(SIDE_ATTR, 'hide'); }
+    M.sideOpen = open;
+    trace('side:' + (open ? 'open' : 'hide'));
+    fireResize();
+  }
+  function sideToggle() {
+    if (M.side && !isConn(M.side)) { M.side = null; M.sideTries = 0; sideAuto(); }
+    if (!M.side) { return; }
+    M.sideUser = !M.sideOpen;
+    sideApply();
+    paintTabs();
+  }
+  function sideRestore() {
+    if (M.sideTimer) { try { clearTimeout(M.sideTimer); } catch (e) { /* yut */ } M.sideTimer = null; }
+    if (M.side) { try { M.side.removeAttribute(SIDE_ATTR); } catch (e1) { /* yut */ } }
+    M.side = null; M.sideOpen = false; M.sideNo = false; M.sideTries = 0;
+  }
+  // Tablo yeniden olcsun: TEK pencere resize olayi (onResize debounce'u ayni olayi alir).
+  function fireResize() {
+    try { W.dispatchEvent(new Event('resize')); } catch (e) {
+      try { var ev = D.createEvent('Event'); ev.initEvent('resize', false, false); W.dispatchEvent(ev); } catch (e2) { /* yut */ }
+    }
   }
   // Varyant B: tablo dugumune DOKUNULMAZ; yalniz inline genislik (geri alinir).
   function mountB(w) {
@@ -48749,6 +49205,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     M.row = null; M.cell = null; M.hold = null;
     try { M.savedWidth = w.style.width || ''; } catch (e) { M.savedWidth = ''; }
     M.aside.classList.add('octo-rail-b');
+    // Varyant B: serit tablonun hemen ustune kardes; panel wrapper dikdortgenine sabit (placeB).
+    try {
+      w.parentNode.insertBefore(M.parts.tabs, w);
+      D.body.appendChild(M.parts.panel);
+      M.parts.panel.classList.add('is-b');
+    } catch (e1) { /* yut */ }
     placeB();
     listenB(W, 'scroll', function () { placeB(); }, { passive: true, capture: true });
     M.fixedTimer = setInterval(function () { if (M.mounted && M.variant === 'b') { placeB(); } }, T.fixedTick);
@@ -48771,7 +49233,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     trace('variant-b:' + (small ? 'short' : 'dup'));
     batch(function () {
       if (!M.mounted || M.variant !== 'a') { return; }
-      var keepEmbed = M.embed;
+      var keepTab = M.tab;
       unmountDom();
       var w = findWrapper();
       if (!w) { M.mounted = false; return; }
@@ -48779,7 +49241,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       M.aside = buildAside();
       M.phone = isPhone();
       mountB(w);
-      M.embed = keepEmbed;
+      M.tab = keepTab;
       finishMount();
     });
   }
@@ -48787,16 +49249,23 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var wr = M.wrapper, a = M.aside;
     if (!wr || !a) { return; }
     var w = railWidth();
+    var tb = M.parts.tabs;
+    if (tb && wr.parentNode && (tb.parentNode !== wr.parentNode || (tb.nextSibling !== wr && tb.nextSibling !== a))) {
+      try { wr.parentNode.insertBefore(tb, wr); } catch (e0) { /* yut */ }
+    }
     if (M.phone) {
       if (a.parentNode !== wr.parentNode || a.nextSibling !== wr) { try { wr.parentNode.insertBefore(a, wr); } catch (e) { /* yut */ } }
       a.classList.remove('is-fixed');
       a.style.top = ''; a.style.left = ''; a.style.height = ''; a.style.width = '';
       try { wr.style.width = M.savedWidth || ''; } catch (e2) { /* yut */ }
+      if (tb) { tb.style.width = ''; }
+      placePanelB();
       return;
     }
     if (a.parentNode !== D.body) { D.body.appendChild(a); }
     a.classList.add('is-fixed');
     try { wr.style.width = 'calc(100% - ' + w + 'px)'; } catch (e3) { /* yut */ }
+    if (tb) { tb.style.width = 'calc(100% - ' + w + 'px)'; }
     var r = null;
     try { r = wr.getBoundingClientRect(); } catch (e4) { r = null; }
     if (!r) { return; }
@@ -48804,8 +49273,22 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     a.style.left = Math.round(r.right) + 'px';
     a.style.height = Math.max(0, Math.round(r.height)) + 'px';
     a.style.width = w + 'px';
+    placePanelB();
+  }
+  // Varyant B paneli: wrapper dikdortgeninin ustunde position:fixed (tabloya dokunulmaz).
+  function placePanelB() {
+    var p = M.parts.panel, wr = M.wrapper;
+    if (!p || !wr || p.hidden) { return; }
+    var r = null;
+    try { r = wr.getBoundingClientRect(); } catch (e) { r = null; }
+    if (!r) { return; }
+    p.style.top = Math.round(r.top) + 'px';
+    p.style.left = Math.round(r.left) + 'px';
+    p.style.width = Math.max(0, Math.round(r.width)) + 'px';
+    p.style.height = Math.max(0, Math.round(r.height)) + 'px';
   }
   function unmountDom() {
+    sideRestore();
     if (M.vTimer) { try { clearTimeout(M.vTimer); } catch (e) {} M.vTimer = null; }
     if (M.fixedTimer) { try { clearInterval(M.fixedTimer); } catch (e1) {} M.fixedTimer = null; }
     unlistenB();
@@ -48823,6 +49306,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         } catch (e4) { /* yut */ }
       }
     }
+    var tp = [M.parts.tabs, M.parts.panel];
+    for (var i = 0; i < tp.length; i++) {
+      if (tp[i] && tp[i].parentNode) { try { tp[i].parentNode.removeChild(tp[i]); } catch (e6) { /* yut */ } }
+    }
     if (M.aside && M.aside.parentNode) { try { M.aside.parentNode.removeChild(M.aside); } catch (e5) { /* yut */ } }
     M.row = null; M.cell = null; M.aside = null; M.parts = {}; M.secs = {};
     M.variant = ''; M.wrapper = null; M.savedWidth = null;
@@ -48833,6 +49320,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     stopConn();
     portalRestore();
     closeSheet();
+    resetTabs();
     unmountDom();
     M.mounted = false;
   }
@@ -48864,8 +49352,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     return W.innerWidth || 1280;
   }
   function railWidth() {
-    if (M.phone) { return 0; }
-    if (M.embed) { return Math.max(480, Math.round(rowWidth() * 0.5)); }
+    if (M.phone || M.empty) { return 0; }
     if (M.collapsed) { return 56; }
     var vw = W.innerWidth || (D.documentElement && D.documentElement.clientWidth) || 1280;
     return vw >= 1280 ? 360 : 320;
@@ -48876,14 +49363,18 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     if (phone !== M.phone) {
       M.phone = phone;
       if (!phone) { closeSheet(); }
-      paintQuick();
+      // Telefonda sol menu Bubble'in isi: gizleme geri alinir; masaustune donuste yeniden aranir.
+      if (phone) { sideRestore(); } else { M.sideTries = 0; sideSoon(0); }
     }
     var a = M.aside;
     a.setAttribute('data-phone', phone ? '1' : '');
-    a.setAttribute('data-collapsed', (M.collapsed && !M.embed && !phone) ? '1' : '');
-    if (M.embed) { a.setAttribute('data-embed', M.embed.kind); } else { a.removeAttribute('data-embed'); }
+    a.setAttribute('data-collapsed', (M.collapsed && !phone) ? '1' : '');
+    a.setAttribute('data-empty', (M.empty && !phone) ? '1' : '');
     if (M.sheet && phone) { a.setAttribute('data-sheet', M.sheet); } else { a.removeAttribute('data-sheet'); }
     if (M.row) { M.row.setAttribute('data-phone', phone ? '1' : ''); }
+    var tb = M.parts.tabs, pn = M.parts.panel;
+    if (tb) { tb.setAttribute('data-phone', phone ? '1' : ''); }
+    if (pn) { pn.setAttribute('data-phone', phone ? '1' : ''); }
     var w = railWidth();
     if (M.variant === 'a') {
       if (phone) { a.style.flexBasis = ''; a.style.width = ''; }
@@ -48891,6 +49382,27 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     } else if (M.variant === 'b') {
       placeB();
     }
+    fitTabs(phone);
+  }
+  // 900..1099 px: 7 sekme sigmazsa Mail (yalniz Soon) gizlenir; telefonda serit kayar (gizleme yok).
+  function fitTabs(phone) {
+    var tb = M.parts.tabs;
+    if (!tb) { return; }
+    var cur = tb.getAttribute('data-fit') || '';
+    var want = '';
+    if (!phone) {
+      var mb = M.parts.tabBtns && M.parts.tabBtns.mail;
+      try {
+        // Gereksiz oznitelik yazimi yok (tablonun gozlemcisi bosa tetiklenmesin): gizliyken olculen genislik kullanilir.
+        if (cur !== 'tight') {
+          if (mb && mb.offsetWidth) { M.mailW = mb.offsetWidth; }
+          want = (tb.scrollWidth > tb.clientWidth + 1) ? 'tight' : '';
+        } else {
+          want = (tb.scrollWidth + (M.mailW || 90) > tb.clientWidth + 1) ? 'tight' : '';
+        }
+      } catch (e) { want = cur; }
+    }
+    if (want !== cur) { tb.setAttribute('data-fit', want); }
   }
   function setCollapsed(v) {
     M.collapsed = !!v;
@@ -48899,6 +49411,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   }
 
   // ------------------------------------------------------ telefon alt sayfasi
+  // id = kart ('agent', 'setup' ...) ya da 'all' (seritteki Rail dugmesi: tum ray alt sayfada).
   function openSheet(id) {
     try { if (W.dynamicTable && typeof W.dynamicTable.clearSelection === 'function') { W.dynamicTable.clearSelection(); } } catch (e) { /* yut */ }
     M.sheet = id;
@@ -48906,8 +49419,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (Object.prototype.hasOwnProperty.call(M.secs, k)) { M.secs[k].classList.toggle('is-sheet', k === id); }
     }
     layout();
+    paintTabs();
     // Odak alt sayfaya tasinir (ekran okuyucu ve klavye sayfanin arkasinda kalmaz).
-    batch(function () { var s = M.secs[id]; if (s && M.sheet === id) { s.setAttribute('tabindex', '-1'); focusNode(s); } });
+    batch(function () {
+      if (M.sheet !== id) { return; }
+      var s = (id === 'all') ? M.parts.scroll : M.secs[id];
+      if (s) { s.setAttribute('tabindex', '-1'); focusNode(s); }
+    });
   }
   function focusNode(n) {
     if (!n || typeof n.focus !== 'function') { return; }
@@ -48915,13 +49433,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   }
   function onRailKey(e) {
     if (!e || (e.key !== 'Escape' && e.key !== 'Esc')) { return; }
-    if (M.embed) { closeEmbed(); e.stopPropagation(); return; }
     if (M.sheet) {
-      var id = M.sheet;
       closeSheet();
       layout();
-      paintQuick();
-      focusNode(M.parts.quick && M.parts.quick.querySelector('.octo-rail-q[data-card="' + id + '"]'));
+      paintTabs();
+      // Odak alt sayfayi acan seritteki Rail dugmesine doner.
+      focusNode(M.parts.railBtn);
       e.stopPropagation();
     }
   }
@@ -48959,21 +49476,28 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     if (!M.mounted || !M.aside) { return; }
     paintHead();
     for (var i = 0; i < CARDS.length; i++) { paintCard(CARDS[i]); }
+    syncEmpty();
     paintStrip();
-    paintQuick();
-    paintEmbed();
+    paintTabs();
+    paintPanel();
     layout();
   }
   function cardVisible(id) {
     var d = data();
     if (!d) { return false; }
     var ok = railOk();
-    if (id === 'setup') { return railKnown() && (setupNeeded() || !!(M.setup && M.setup.open)); }
+    // os3t2 OS kipi: ray yalniz Gaia'nin isini gosterir. Kurulum dugmesi olan kartlar (Set up, Connect,
+    // Link a Sheet, Connect data) rayda CIZILMEZ: kurulmamis kaynak seritte soluk sekmedir, kurulumu
+    // o sekmenin panelinde. 9 adimli kurulum karti yalniz raydan (Set up / Edit setup) acildiysa gorunur.
+    if (id === 'setup') { return railKnown() && !!(M.setup && M.setup.open && M.setupRail); }
     if (id === 'agent') { return !!(d.first || d.agent); }
     if (id === 'new') { return canCreate() && !!(d.screens && d.screens.create === true); }
-    if (RES[id]) { return ok; }
-    if (id === 'data') { return dataOk() && !M.ds.unavailable; }
-    if (id === 'act') { var a = M.c.act; return ok && !!a && !!a.d && a.err !== 'unavailable'; }
+    if (RES[id]) { if (!ok) { return false; } var rs = resState(id); return rs === 'ok' || rs === 'loading' || rs === 'error'; }
+    if (id === 'data') { return dataOk() && !M.ds.unavailable && dsList().length > 0; }
+    if (id === 'act') {
+      var a = M.c.act;
+      return ok && !!a && !!a.d && a.err !== 'unavailable' && isArr(a.d.items) && a.d.items.length > 0;
+    }
     if (id === 'wait') {
       var w = M.c.act;
       return ok && !!w && !!w.d && isArr(w.d.pending) && w.d.pending.length > 0;
@@ -48991,6 +49515,26 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       clear(sec);
       try { PAINT[id](sec); } catch (e) { logErr(e); }
     });
+  }
+  function anyCard() {
+    for (var i = 0; i < CARDS.length; i++) { var s = M.secs[CARDS[i]]; if (s && !s.hidden) { return true; } }
+    return false;
+  }
+  // Gosterecek kart yoksa ray masaustunde hic cizilmez (genislik 0, tablo tam genislik). Workspace
+  // okunamadiysa (hata satiri) ray gorunur kalir. Degisimde tek resize: tablo yeni genisligi olcer.
+  function railEmpty() {
+    if (M.wsErr && !data()) { return false; }
+    return !anyCard();
+  }
+  function syncEmpty() {
+    var e = railEmpty();
+    if (e === M.empty) { return; }
+    M.empty = e;
+    trace('rail:' + (e ? 'empty' : 'cards'));
+    if (!M.mounted || !M.aside) { return; }
+    layout();
+    paintTabs();
+    if (!M.phone) { fireResize(); }
   }
   // Kart cercevesi: ikon + baslik (<= 5 kelime; DB adi ya da sabit) + dondurucu
   // (YALNIZ ucustaki istek) + istege bagli eylem. noBody: yukleniyor, govde yok.
@@ -49031,10 +49575,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     b.addEventListener('click', function () { startConnect(tk); });
     return b;
   }
+  // Kartin Open'i artik ray genislemez: tablonun ustundeki ayni kaynagin sekmesini secer (TABS 8).
   function openBtn(kind) {
     var b = btn('is-link', 'Open', 'Open', 'open');
     b.setAttribute('data-kind', kind);
-    b.addEventListener('click', function () { openEmbed(kind); });
+    b.addEventListener('click', function () { selectTab(kind); });
     return b;
   }
 
@@ -49047,8 +49592,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var top = el('div', 'octo-rail-over');
     top.appendChild(el('span', '', 'Workspace'));
     top.appendChild(octo.icon('chevron-right', 14));
-    if (railOk() && setupDone()) {
-      var ed = btn('is-link octo-rail-edit', 'Edit setup', 'Edit setup', 'edit-setup');
+    if (railOk()) {
+      var edT = setupDone() ? 'Edit setup' : 'Set up';
+      var ed = btn('is-link octo-rail-edit', edT, edT, 'edit-setup');
       ed.addEventListener('click', function () { openSetup(1); });
       top.appendChild(ed);
     }
@@ -49200,6 +49746,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   function newRecord() {
     if (!canCreate()) { return; }
     closeSheet();
+    // Yeni kayit tabloda acilir: panel ortuyorsa once Table.
+    if (M.tab !== 'table') { selectTab('table'); }
     try {
       var dt = W.dynamicTable;
       if (dt && typeof dt.create === 'function') { dt.create(); }
@@ -49225,7 +49773,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var o = linkOf(id);
     var title = (o && str(o.name)) || RES[id].title;
     var act = null;
-    if (st === 'ok' && openKind && o && embedUrl(openKind, o.id, 0)) { act = openBtn(openKind); }
+    if (st === 'ok' && openKind && o && (openKind === 'drive' || openKind === 'tasks' || embedUrl(openKind, o.id, 0))) { act = openBtn(openKind); }
     var body = frame(sec, id, title, { busy: cardBusy(id), action: act, noBody: st === 'loading' });
     if (st === 'loading') { return null; }
     if (st === 'setup') { body.appendChild(id === 'sheet' ? linkSheetBtn() : setupBtn(RES[id].step)); return null; }
@@ -49285,18 +49833,25 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var files = isArr(d.files) ? d.files : [];
     if (!files.length) { body.appendChild(muted('No files')); return; }
     var box = el('div', 'octo-rail-list');
-    for (var i = 0; i < files.length && i < 5; i++) {
+    var stale = !!M.c.drive.stale;
+    for (var i = 0, n = 0; i < files.length && n < 5; i++) {
       var f = files[i];
-      if (!isObj(f)) { continue; }
-      var href = googleLink(f.link);
-      var it = el(href ? 'a' : 'div', 'octo-rail-item');
-      if (href) { it.href = href; it.target = '_blank'; it.rel = 'noopener noreferrer'; }
+      if (!isObj(f) || !RE.g.test(str(f.id))) { continue; }
+      n++;
+      // Satir sayfadan ayrilmaz: Drive sekmesi o dosyanin onizlemesiyle (klasorse icine) acilir (TABS 8).
+      var it = D.createElement('button');
+      it.type = 'button';
+      it.className = 'octo-rail-item is-btn';
+      it.setAttribute('data-act', 'drive-file');
+      it.setAttribute('data-file', str(f.id));
       it.appendChild(octo.icon(KIND_ICON[str(f.kind)] || 'file', 16));
       it.appendChild(el('span', 'octo-rail-item-name', str(f.name)));
       var r = rel(f.modified);
       if (r) { it.appendChild(el('span', 'octo-rail-time', r)); }
+      it.addEventListener('click', (function (x) { return function () { openDriveFile(x, stale); }; })(f));
       box.appendChild(it);
     }
+    if (!n) { body.appendChild(muted('No files')); return; }
     body.appendChild(box);
   };
 
@@ -49312,7 +49867,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   };
 
   PAINT.tasks = function (sec) {
-    var body = resFrame(sec, 'tasks', '');
+    var body = resFrame(sec, 'tasks', 'tasks');
     if (!body) { return; }
     var c = M.c.tasks;
     var d = c.d || {};
@@ -49992,108 +50547,873 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       s.appendChild(b);
     }
   }
-  function paintQuick() {
-    var q = M.parts.quick;
-    if (!q) { return; }
-    clear(q);
-    for (var i = 0; i < QUICK.length; i++) {
-      var id = QUICK[i];
-      if (!M.secs[id] || M.secs[id].hidden) { continue; }
+  // ============================================ workspace sekmeleri (OCTO_TABS_SPEC)
+  // Serit ray satirinin SOL hucresinde tablonun ustunde (akista, 44 px); secili sekmenin
+  // kaynagi tablonun yerinde, tabloyu ORTEN bir panelde gosterilir. Sayfa hic degismez,
+  // tablo dugumu yerinde kalir (Handsontable'a dokunulmaz, visibility degismez). Table'a
+  // donuste panel gizlenir, govde bosalir (iframe gider, istek iptal) ve TEK resize atilir.
+  function buildTabs() {
+    var s = el('div', 'octo-tabs');
+    s.setAttribute('role', 'tablist');
+    s.setAttribute('aria-label', 'Workspace');
+    var btns = {};
+    // os3t2: Bubble sol menusunu geri getiren / gizleyen dugme (yalniz menu bulunup gizlenebildiyse gorunur).
+    var sb = D.createElement('button');
+    sb.type = 'button';
+    sb.className = 'octo-tabs-side';
+    sb.setAttribute('data-act', 'side');
+    sb.setAttribute('aria-label', 'Menu');
+    sb.setAttribute('aria-expanded', 'false');
+    sb.title = 'Menu';
+    sb.hidden = true;
+    sb.appendChild(octo.icon('sidebar', 18));
+    sb.addEventListener('click', function () { sideToggle(); });
+    s.appendChild(sb);
+    for (var i = 0; i < TABS.length; i++) {
+      var k = TABS[i];
       var b = D.createElement('button');
       b.type = 'button';
-      b.className = 'octo-rail-q' + (M.sheet === id ? ' is-on' : '');
-      b.setAttribute('aria-label', CARD_LABEL[id]);
-      b.title = CARD_LABEL[id];
-      b.setAttribute('data-card', id);
-      b.appendChild(octo.icon(CARD_ICON[id], 20));
-      b.addEventListener('click', (function (x) {
-        return function () {
-          if (x === 'new') { newRecord(); return; }
-          if (M.sheet === x) { closeSheet(); } else { openSheet(x); }
-          paintQuick();
-        };
-      })(id));
-      q.appendChild(b);
+      b.className = 'octo-tabs-tab';
+      b.id = 'octo-tab-' + k;
+      b.setAttribute('role', 'tab');
+      b.setAttribute('data-tab', k);
+      b.setAttribute('aria-controls', PANEL_ID);
+      b.setAttribute('aria-selected', k === M.tab ? 'true' : 'false');
+      b.setAttribute('tabindex', k === M.tab ? '0' : '-1');
+      b.addEventListener('click', (function (x) { return function () { onTabClick(x); }; })(k));
+      btns[k] = b;
+      s.appendChild(b);
+    }
+    // Telefon: rayin tamami alt sayfa olarak (eski hizli satirin yerine); masaustunde gizli.
+    var rb = D.createElement('button');
+    rb.type = 'button';
+    rb.className = 'octo-tabs-rail';
+    rb.setAttribute('data-act', 'rail');
+    rb.setAttribute('aria-label', 'Rail');
+    rb.setAttribute('aria-expanded', 'false');
+    rb.title = 'Rail';
+    rb.appendChild(octo.icon('apps', 18));
+    rb.appendChild(el('span', 'octo-tabs-word', 'Rail'));
+    rb.addEventListener('click', function () {
+      if (M.sheet === 'all') { closeSheet(); layout(); paintTabs(); return; }
+      openSheet('all');
+    });
+    s.appendChild(rb);
+    s.addEventListener('keydown', onTabsKey);
+    var p = el('div', 'octo-tabs-panel');
+    p.id = PANEL_ID;
+    p.setAttribute('role', 'tabpanel');
+    p.hidden = true;
+    var bar = el('div', 'octo-tabs-bar');
+    var body = el('div', 'octo-tabs-body');
+    p.appendChild(bar);
+    p.appendChild(body);
+    p.addEventListener('keydown', onPanelKey);
+    M.parts.tabs = s; M.parts.tabBtns = btns; M.parts.railBtn = rb; M.parts.sideBtn = sb;
+    M.parts.panel = p; M.parts.pbar = bar; M.parts.pbody = body;
+    M.panelSig = ''; M.panelView = '';
+  }
+
+  // ------------------------------------------------------------ durum
+  // ready | unset (kurulu degil) | unlinked (bagli degil) | loading (yalniz ucustaki istek) | error | soon | off
+  function tabState(k) {
+    if (k === 'table') { return 'ready'; }
+    if (k === 'mail' || !RES[k]) { return 'soon'; }
+    if (!data()) { return (M.handle && M.handle.busy) ? 'loading' : 'off'; }
+    if (!railOk()) { return 'off'; }
+    if (!has(k)) { return 'unset'; }
+    if (k !== 'sheet' && conn(RES[k].tk) === false) { return 'unlinked'; }
+    if (k === 'drive') {
+      var t = M.tv.drive;
+      if (!t) { return 'ready'; }
+      if (t.busy) { return 'loading'; }
+      if (t.err === 'not_connected') { return 'unlinked'; }
+      if (t.err) { return 'error'; }
+      return 'ready';
+    }
+    if (k === 'tasks') {
+      var c = M.c.tasks;
+      if (!c || !c.h) { return 'loading'; }
+      if (!c.d && c.h.busy) { return 'loading'; }
+      if (!c.d && c.err === 'not_connected') { return 'unlinked'; }
+      if (!c.d && c.err) { return 'error'; }
+    }
+    return 'ready';
+  }
+  function tvOf(k) {
+    if (M.tv[k]) { return M.tv[k]; }
+    var t = (k === 'drive')
+      ? { folder: '', crumbs: null, parent: '', files: null, truncated: false, err: '', busy: false, h: null, hkey: '', gen: 0, cgen: 0, ver: 0, preview: null, check: null, scroll: 0, restore: false }
+      : (k === 'tasks' ? { draft: '', adding: false, addErr: '' } : {});
+    M.tv[k] = t;
+    return t;
+  }
+  function onTabClick(k) {
+    var st = tabState(k);
+    if (st === 'soon' || st === 'off') { return; }
+    selectTab(k);
+  }
+  function selectTab(k, o) {
+    o = o || {};
+    if (TABS.indexOf(k) < 0 || !M.mounted || !M.parts.tabs) { return false; }
+    var st = tabState(k);
+    if (st === 'soon' || st === 'off') { return false; }
+    if (st === 'loading' && k !== M.tab && !o.force) { return false; }
+    if (M.phone && M.sheet) { closeSheet(); layout(); }
+    var prev = M.tab;
+    if (k === prev) { paintSoon('tabs'); return true; }
+    if (prev !== 'table') { leaveTab(prev); }
+    M.tab = k;
+    M.panelSig = ''; M.panelView = '';
+    trace('tab:' + k);
+    if (k === 'table') {
+      batch(function () { paintTabs(); panelOff(true); });
+    } else {
+      // Tablonun satir secimi KORUNUR (clearSelection satir secimini siler ve Bubble'a bos secim yayinlar:
+      // kayit secip Drive'a bakan kullanici geri donunce secimini kaybederdi). Yalniz odak tablodaysa
+      // birakilir; HOT dis tiklamada zaten dinlemeyi birakir (tablev2 keepOutsideFocus disaridaki odagi korur).
+      if (prev === 'table') { blurTable(); }
+      enterTab(k);
+      paintSoon('tabs');
+    }
+    dbgSoon();
+    return true;
+  }
+  function blurTable() {
+    try {
+      var ae = D.activeElement, w = M.wrapper;
+      if (ae && w && ae !== D.body && w.contains(ae) && typeof ae.blur === 'function') { ae.blur(); }
+    } catch (e) { /* yut */ }
+  }
+  function enterTab(k) {
+    var st = tabState(k);
+    if (st === 'unset') { armSetup(k); return; }
+    if (st === 'unlinked') { return; }
+    if (k === 'drive') {
+      var t = tvOf('drive');
+      if (t.check) { runCheck(t); }
+      driveLoad(false);
+    } else if (k === 'tasks') {
+      var c = M.c.tasks;
+      if (c && c.h) { c.h.refreshIfStale(T.stale); }
+    }
+  }
+  // Sekmeden cikis: ucustaki istek sonuclari yok sayilir (nesil), onizleme kapanir; klasor konumu bellekte kalir.
+  function leaveTab(k) {
+    var t = M.tv[k];
+    if (k === 'drive' && t) {
+      t.gen++; t.cgen++;
+      t.h = null; t.hkey = ''; t.busy = false; t.preview = null; t.check = null; t.restore = false;
+    }
+  }
+  function resetTabs() {
+    if (M.tab !== 'table') { leaveTab(M.tab); }
+    M.tab = 'table';
+    M.panelSig = ''; M.panelView = '';
+  }
+  function panelOff(resize) {
+    var p = M.parts.panel;
+    if (!p) { return; }
+    var was = !p.hidden;
+    p.hidden = true;
+    p.removeAttribute('data-tab');
+    clear(M.parts.pbar);
+    clear(M.parts.pbody);          // iframe DOM'dan gider
+    M.panelSig = ''; M.panelView = '';
+    if (resize && was) {
+      // Tablo yeniden olcsun: TEK olay (onResize debounce'u da ayni olayi alir; ikinci tetik yok).
+      trace('tab:resize');
+      try { W.dispatchEvent(new Event('resize')); } catch (e) {
+        try { var ev = D.createEvent('Event'); ev.initEvent('resize', false, false); W.dispatchEvent(ev); } catch (e2) { /* yut */ }
+      }
     }
   }
 
-  // ------------------------------------------------ gomulu gorunum (2.5)
-  function openEmbed(kind) {
-    var r = kind;
-    var o = linkOf(r);
-    if (!o) { return false; }
-    var url = embedUrl(kind, o.id, authuser());
-    if (!url) { return false; }
-    M.embed = { kind: kind, id: str(o.id), name: str(o.name) || (RES[r] ? RES[r].title : '') };
-    if (M.phone) { closeSheet(); }
-    batch(function () {
-      paintEmbed();
-      layout();
-      focusNode(M.parts.embed && !M.parts.embed.hidden ? M.parts.embed.querySelector('[data-act="back"]') : null);
-    });
-    return true;
+  // ------------------------------------------------------------ klavye
+  function navTabs() {
+    var out = [];
+    for (var i = 0; i < TABS.length; i++) {
+      var k = TABS[i], st = tabState(k), b = M.parts.tabBtns && M.parts.tabBtns[k];
+      if (st === 'soon' || st === 'off' || (st === 'loading' && k !== M.tab)) { continue; }
+      if (b && typeof b.getClientRects === 'function' && !b.getClientRects().length) { continue; }
+      out.push(k);
+    }
+    return out;
   }
-  function closeEmbed() {
-    if (!M.embed) { return; }
-    var kind = M.embed.kind;
-    M.embed = null;
-    if (M.mounted) {
-      batch(function () {
-        paintEmbed();
-        layout();
-        // Odak acan dugmeye doner (masaustu: kartin Open'i; telefon: hizli satir ikonu).
-        var opener = M.phone
-          ? (M.parts.quick && M.parts.quick.querySelector('.octo-rail-q[data-card="' + kind + '"]'))
-          : (M.secs[kind] && M.secs[kind].querySelector('[data-act="open"]'));
-        focusNode(opener);
-      });
+  function onTabsKey(e) {
+    var key = e && e.key;
+    if (key === 'Escape' || key === 'Esc') {
+      if (M.tab === 'table') { return; }
+      e.stopPropagation();
+      selectTab('table');
+      focusNode(M.parts.tabBtns.table);
+      return;
+    }
+    if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') { return; }
+    var cur = (e.target && e.target.getAttribute) ? e.target.getAttribute('data-tab') : null;
+    if (!cur) { return; }
+    var list = navTabs();
+    if (!list.length) { return; }
+    var i = list.indexOf(cur);
+    if (i < 0) { i = Math.max(0, list.indexOf(M.tab)); }
+    var n;
+    if (key === 'ArrowRight') { n = list[(i + 1) % list.length]; }
+    else if (key === 'ArrowLeft') { n = list[(i - 1 + list.length) % list.length]; }
+    else if (key === 'Home') { n = list[0]; }
+    else { n = list[list.length - 1]; }
+    e.preventDefault();
+    e.stopPropagation();
+    selectTab(n);
+    // Roving tabindex hemen (boyama bir kare sonra): odak seritte kalir.
+    var btns = M.parts.tabBtns;
+    for (var k in btns) { if (Object.prototype.hasOwnProperty.call(btns, k)) { btns[k].setAttribute('tabindex', k === n ? '0' : '-1'); } }
+    focusNode(btns[n]);
+  }
+  function onPanelKey(e) {
+    if (!e || (e.key !== 'Escape' && e.key !== 'Esc') || M.tab === 'table') { return; }
+    e.stopPropagation();
+    selectTab('table');
+    focusNode(M.parts.tabBtns && M.parts.tabBtns.table);
+  }
+
+  // ------------------------------------------------------------ serit cizimi
+  function pendingCount() {
+    if (!cardVisible('wait')) { return 0; }
+    var a = M.c.act;
+    return (a && a.d && isArr(a.d.pending)) ? a.d.pending.length : 0;
+  }
+  function paintTabs() {
+    var btns = M.parts.tabBtns;
+    if (!btns) { return; }
+    for (var i = 0; i < TABS.length; i++) {
+      var k = TABS[i], b = btns[k];
+      if (!b) { continue; }
+      var st = tabState(k), on = (k === M.tab);
+      var sig = st + '|' + (on ? '1' : '0');
+      if (b.getAttribute('data-sig') === sig) { continue; }
+      b.setAttribute('data-sig', sig);
+      b.setAttribute('data-state', st);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.setAttribute('tabindex', on ? '0' : '-1');
+      b.setAttribute('aria-disabled', (st === 'soon' || st === 'off') ? 'true' : 'false');
+      clear(b);
+      var ic = el('span', 'octo-tabs-ico');
+      if (st === 'loading') { ic.appendChild(spin()); } else { ic.appendChild(octo.icon(TAB_ICON[k], 18)); }
+      if (TAB_BADGE[st]) {
+        var bd = el('span', 'octo-tabs-badge');
+        bd.setAttribute('aria-hidden', 'true');
+        bd.appendChild(octo.icon(TAB_BADGE[st], 10, { width: 2.25 }));
+        ic.appendChild(bd);
+      }
+      b.appendChild(ic);
+      b.appendChild(el('span', 'octo-tabs-word', TAB_LABEL[k]));
+      if (st === 'soon') { b.appendChild(el('span', 'octo-tabs-soon', 'Soon')); }
+    }
+    var sb = M.parts.sideBtn;
+    if (sb) {
+      var sOn = !!M.side && !M.phone;
+      if (sb.hidden === sOn) { sb.hidden = !sOn; }
+      var sx = M.sideOpen ? 'true' : 'false';
+      if (sb.getAttribute('aria-expanded') !== sx) { sb.setAttribute('aria-expanded', sx); }
+    }
+    var rb = M.parts.railBtn;
+    if (rb) {
+      // Telefon: gosterecek kart yoksa Rail dugmesi de yok (bos alt sayfa acilmaz).
+      var rOn = anyCard();
+      if (rb.hidden === rOn) { rb.hidden = !rOn; }
+      rb.setAttribute('aria-expanded', M.sheet === 'all' ? 'true' : 'false');
+      var n = pendingCount();
+      var cn = rb.querySelector('.octo-tabs-count');
+      if (!n && cn) { rb.removeChild(cn); }
+      else if (n) {
+        if (!cn) { cn = el('span', 'octo-tabs-count'); rb.appendChild(cn); }
+        var tx = n > 9 ? '9+' : String(n);
+        if (cn.textContent !== tx) { cn.textContent = tx; }
+      }
     }
   }
-  function paintEmbed() {
-    var box = M.parts.embed;
-    if (!box) { return; }
-    clear(box);
-    if (!M.embed) { box.hidden = true; return; }
-    var e = M.embed;
+
+  // ------------------------------------------------------------ panel cizimi
+  function paintPanel() {
+    var p = M.parts.panel;
+    if (!p) { return; }
+    var k = M.tab;
+    if (k === 'table') { if (!p.hidden) { panelOff(false); } return; }
+    if (p.hidden) { p.hidden = false; }
+    if (M.variant === 'b') { placePanelB(); }
+    p.setAttribute('aria-labelledby', 'octo-tab-' + k);
+    if (p.getAttribute('data-tab') !== k) { p.setAttribute('data-tab', k); }
+    var st = tabState(k);
+    try {
+      if (st === 'unset' || st === 'unlinked' || st === 'off' || st === 'soon') { panelSetup(k, st); }
+      else if (k === 'drive') { panelDrive(); }
+      else if (k === 'tasks') { panelTasks(); }
+      else { panelFrame(k); }
+    } catch (e) { logErr(e); }
+  }
+  // Gorunum degisti ya da imza farkli: bar + govde yeniden kurulur; ayni gorunumde kaydirma korunur.
+  function panelReset(view, sig) {
+    var body = M.parts.pbody;
+    var keep = (M.panelView === view) ? (body.scrollTop || 0) : 0;
+    M.panelView = view;
+    M.panelSig = sig;
+    clear(M.parts.pbar);
+    clear(body);
+    return keep;
+  }
+  function barAdd(n) { M.parts.pbar.appendChild(n); return n; }
+  function barTitle(t) { barAdd(el('div', 'octo-tabs-title', t)); }
+  function barBack(fn, icon) {
+    var b = btn('is-link octo-tabs-back', 'Back', null, 'tab-back');
+    b.appendChild(octo.icon(icon || 'chevron-left', 18));
+    b.appendChild(el('span', '', 'Back'));
+    b.addEventListener('click', fn);
+    barAdd(b);
+  }
+  function barGoogle(url, hot) {
+    if (!url) { return; }
+    var a = el('a', 'octo-rail-btn is-link octo-tabs-google' + (hot ? ' is-hot' : ''));
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.setAttribute('data-act', 'open-google');
+    a.setAttribute('aria-label', 'Open in Google');
+    a.title = 'Open in Google';
+    a.appendChild(octo.icon('external', 16));
+    a.appendChild(el('span', 'octo-tabs-gl', 'Open in Google'));
+    barAdd(a);
+  }
+  function barAu() {
     var au = authuser();
-    var url = embedUrl(e.kind, e.id, au);
-    if (!url) { M.embed = null; box.hidden = true; return; }
-    box.hidden = false;
-    var bar = el('div', 'octo-rail-embed-bar');
-    var back = btn('is-link', 'Back', null, 'back');
-    back.appendChild(octo.icon('chevron-left', 18));
-    back.appendChild(el('span', '', 'Back'));
-    back.addEventListener('click', function () { closeEmbed(); });
-    bar.appendChild(back);
-    bar.appendChild(el('div', 'octo-rail-embed-title', e.name));
-    var og = el('a', 'octo-rail-btn is-link');
-    og.href = openUrl(e.kind, e.id, au);
-    og.target = '_blank';
-    og.rel = 'noopener noreferrer';
-    og.setAttribute('data-act', 'open-google');
-    og.setAttribute('aria-label', 'Open in Google');
-    og.appendChild(octo.icon('link', 16));
-    og.appendChild(el('span', '', 'Open in Google'));
-    bar.appendChild(og);
     var ab = btn('is-link octo-rail-au', 'Switch account', null, 'authuser');
     ab.appendChild(octo.icon('people', 16));
     // Kullaniciya 1'den sayilir (authuser 0 = ilk hesap).
     ab.appendChild(el('span', '', String(au + 1)));
     ab.addEventListener('click', function () {
-      var n = (authuser() + 1) % 4;
-      try { octo.state.set('rail.authuser', n); } catch (x) { /* yut */ }
-      batch(paintEmbed);
+      try { octo.state.set('rail.authuser', (authuser() + 1) % 4); } catch (x) { /* yut */ }
+      paintSoon('tabs');
     });
-    bar.appendChild(ab);
-    box.appendChild(bar);
+    barAdd(ab);
+  }
+  function barRefresh(fn, busy) {
+    if (busy) { barAdd(spin()); return; }
+    var r = icoBtn('refresh', 'Refresh', 'tab-refresh');
+    r.addEventListener('click', fn);
+    barAdd(r);
+  }
+  function frameEl(url, title, kind) {
     var fr = D.createElement('iframe');
-    fr.className = 'octo-rail-frame';
-    fr.setAttribute('title', e.name || 'Google');
+    fr.className = 'octo-tabs-frame';
+    fr.setAttribute('title', title || 'Google');
     fr.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
     fr.setAttribute('allow', 'clipboard-write');
-    fr.setAttribute('data-kind', e.kind);
+    fr.setAttribute('data-kind', kind);
     fr.src = url;
-    box.appendChild(fr);
+    return fr;
+  }
+  function emptyBox(icon, text) {
+    var b = el('div', 'octo-tabs-empty');
+    var ic = el('span', 'octo-tabs-empty-ico');
+    ic.appendChild(octo.icon(icon, 28));
+    b.appendChild(ic);
+    if (text) { b.appendChild(el('div', 'octo-tabs-empty-t', text)); }
+    return b;
+  }
+
+  // Calendar (AGENDA), Notes ve Sheet: sabit host + dogrulanmis id; ayni imzada iframe yeniden yuklenmez.
+  function panelFrame(k) {
+    var o = linkOf(k), au = authuser();
+    var url = o ? embedUrl(k, o.id, au) : '';
+    var title = (o && str(o.name)) || RES[k].title;
+    var sig = 'frame|' + k + '|' + url + '|' + title;
+    if (M.panelSig === sig) { return; }
+    panelReset('frame:' + k, sig);
+    barTitle(title);
+    barGoogle(o ? openUrl(k, o.id, au) : '');
+    barAu();
+    if (!url) { M.parts.pbody.appendChild(emptyBox('alert', '')); return; }
+    M.parts.pbody.appendChild(frameEl(url, title, k));
+  }
+
+  // ------------------------------------------------ pasif sekme: tek kaynagin kurulum karti
+  function armSetup(k) {
+    if (!RES[k]) { return; }
+    var s = ensureSetup();
+    if (s.phase === 'finish' || s.busy) { return; }
+    s.open = true;
+    M.setupRail = false;
+    if (s.step !== RES[k].step) { s.step = RES[k].step; enterStep(s); }
+    try { octo.warm('rail'); } catch (e) { /* yut */ }
+    paintSoon('setup');
+  }
+  function panelSetup(k, st) {
+    var view = 'setup:' + k + ':' + st;
+    keepFocus(M.parts.panel, function () {
+      var keep = panelReset(view, '');
+      var res = RES[k];
+      barTitle(res ? res.title : TAB_LABEL[k]);
+      var box = el('div', 'octo-tabs-setup');
+      box.setAttribute('data-res', k);
+      var top = el('div', 'octo-tabs-setup-top');
+      var ic = el('span', 'octo-tabs-setup-ico');
+      ic.setAttribute('data-tone', k);
+      ic.appendChild(octo.icon(TAB_ICON[k], 28));
+      top.appendChild(ic);
+      top.appendChild(el('div', 'octo-tabs-setup-name', res ? stepDef(res.step).title : TAB_LABEL[k]));
+      // Kilit aciklamasi ikonla (cumle yok): plug = bagli degil, lock = sunucu kurulumu kilitli.
+      var flags = el('span', 'octo-tabs-setup-st');
+      if (res && conn(res.tk) === false) { flags.appendChild(octo.icon('plug', 18, { label: 'Not connected' })); }
+      if (res && !buildReady()) { flags.appendChild(octo.icon('lock', 18, { label: 'Locked' })); }
+      if (flags.firstChild) { top.appendChild(flags); }
+      box.appendChild(top);
+      if (st === 'unlinked' && res) {
+        var cr = connectRow([res.tk]);
+        var cb = cr.querySelector('[data-act="connect"]');
+        if (cb) { cb.classList.remove('is-ghost'); cb.classList.add('is-primary'); }
+        box.appendChild(cr);
+      } else if (st === 'unset' && res) {
+        var s = ensureSetup();
+        if (s.phase === 'finish') { box.appendChild(spin()); }
+        else {
+          if (s.step !== res.step && !s.busy) { s.open = true; s.step = res.step; enterStep(s); }
+          paintResStep(box, s, stepDef(res.step));
+          // Bagli degilken Existing/New kilitli: tek ileri yol Connect, birincil dugme o olur.
+          var ucb = box.querySelector('.octo-rail-connect [data-act="connect"]');
+          if (ucb && !ucb.disabled) { ucb.classList.remove('is-ghost'); ucb.classList.add('is-primary'); }
+          box.appendChild(saveRow(k, s));
+        }
+      } else if (st === 'loading') {
+        box.appendChild(spin());
+      }
+      M.parts.pbody.appendChild(box);
+      M.parts.pbody.scrollTop = keep;
+    });
+  }
+  function saveRow(k, s) {
+    var nav = el('div', 'octo-rail-nav');
+    var r = s.res[k];
+    if (r === 'fail') {
+      if (s.codes[k] === 'not_connected') { nav.appendChild(connectBtn(RES[k].tk)); }
+      nav.appendChild(octo.icon('alert', 16, { className: 'octo-rail-bad' }));
+    }
+    nav.appendChild(el('span', 'octo-rail-grow'));
+    var sv = btn('is-primary', 'Save', null, 'tab-save');
+    if (r === 'run') { sv.appendChild(spin()); }
+    sv.appendChild(el('span', '', 'Save'));
+    sv.disabled = s.busy || r === 'run' || !canNext(s);
+    sv.addEventListener('click', function () { tabSave(k); });
+    nav.appendChild(sv);
+    return nav;
+  }
+  // Tek kaynak os_ws_setup ile yazilir (Finish beklenmez); links yenilenince ayni sekme icerige gecer.
+  function tabSave(k) {
+    var s = M.setup;
+    if (!s || s.busy || s.res[k] === 'run' || s.step !== RES[k].step || !canNext(s)) { return; }
+    var none = answerOf(s, k).mode === 'none';
+    setupOne(s, k, false).then(function (okd) {
+      if (!okd) { return; }
+      loadCards();
+      if (setupDone() && M.setup === s) { M.setup = null; }
+      if (none) { selectTab('table'); }
+      paintSoon();
+    });
+  }
+
+  // ------------------------------------------------------------ Drive (bizim tarayici)
+  function isFolder(f) { return str(f && f.kind) === 'folder' || str(f && f.mime) === MIME_GFOLDER; }
+  function fileOf(f) { return { id: str(f.id), name: str(f.name), mime: str(f.mime), kind: str(f.kind), link: googleLink(f.link) }; }
+  function auNorm(au) { return (typeof au === 'number' && au > 0 && au <= 3) ? Math.floor(au) : 0; }
+  // Onizleme adresi (TABS 5): Google editorleri kendi gomulu editorunde, diger google-apps.* onizlemesiz,
+  // gerisi drive.google.com/file/d/<id>/preview. Yalniz dogrulanmis id + sabit host.
+  function previewUrl(f, au) {
+    var id = str(f && f.id);
+    if (!RE.g.test(id)) { return ''; }
+    au = auNorm(au);
+    var m = str(f.mime);
+    var q = au ? ('&authuser=' + au) : '';
+    if (m === MIME_GDOC) { return 'https://docs.google.com/document/d/' + enc(id) + '/edit?rm=minimal' + q; }
+    if (m === MIME_GSHEET) { return 'https://docs.google.com/spreadsheets/d/' + enc(id) + '/edit?rm=minimal' + q; }
+    if (m === MIME_GSLIDE) { return 'https://docs.google.com/presentation/d/' + enc(id) + '/edit?rm=minimal' + q; }
+    if (/^application\/vnd\.google-apps\./.test(m)) { return ''; }
+    return 'https://drive.google.com/file/d/' + enc(id) + '/preview' + (au ? ('?authuser=' + au) : '');
+  }
+  function fileOpenUrl(f, au) {
+    var id = str(f && f.id);
+    if (!RE.g.test(id)) { return ''; }
+    au = auNorm(au);
+    var q = au ? ('?authuser=' + au) : '';
+    var m = str(f.mime);
+    if (m === MIME_GDOC) { return 'https://docs.google.com/document/d/' + enc(id) + '/edit' + q; }
+    if (m === MIME_GSHEET) { return 'https://docs.google.com/spreadsheets/d/' + enc(id) + '/edit' + q; }
+    if (m === MIME_GSLIDE) { return 'https://docs.google.com/presentation/d/' + enc(id) + '/edit' + q; }
+    if (/^application\/vnd\.google-apps\./.test(m)) { return googleLink(f.link); }
+    return googleLink(f.link) || ('https://drive.google.com/file/d/' + enc(id) + '/view' + q);
+  }
+  function fmtSize(v) {
+    var n = num(v);
+    if (n === null || n < 0) { return ''; }
+    if (n < 1024) { return Math.round(n) + ' B'; }
+    if (n < 1048576) { return Math.round(n / 1024) + ' KB'; }
+    if (n < 1073741824) { return (n / 1048576).toFixed(1) + ' MB'; }
+    return (n / 1073741824).toFixed(1) + ' GB';
+  }
+  function rootCrumb() {
+    var r = linkOf('drive');
+    return { id: r ? str(r.id) : '', name: r ? str(r.name) : '' };
+  }
+  function driveLoad(force) {
+    var t = tvOf('drive');
+    var sid = sheetId();
+    if (!idOk(sid) || !has('drive')) { return; }
+    var folder = t.folder;
+    var key = 'rail:drive:' + sid + ':' + (folder || 'root');
+    if (t.h && t.hkey === key) {
+      t.err = '';
+      if (force) { t.h.refresh(); } else { t.h.refreshIfStale(T.stale); }
+      t.busy = !!t.h.busy;
+      paintSoon('tabs');
+      return;
+    }
+    t.gen++;
+    var g = M.gen, tg = t.gen;
+    t.hkey = key; t.err = ''; t.files = null; t.busy = true;
+    var payload = { sheet_id: sid, page_size: DRIVE_PAGE };
+    if (folder) { payload.folder_id = folder; }
+    // Kendi octo.live anahtari (rail:drive:<sheet>:<folder>): bayat liste aninda, 60 sn bayatlik.
+    var h = octo.live(key, function () {
+      return octo.request('os_ws_drive', payload, { cacheKey: 'os_ws_drive|tab|' + sid + '|' + (folder || 'root') });
+    }, function (d, meta) {
+      if (g !== M.gen || tg !== t.gen) { return; }
+      driveData(t, d);
+      if (!(meta && meta.stale)) { t.busy = false; }
+      paintSoon('tabs');
+    }, function (err) {
+      if (g !== M.gen || tg !== t.gen) { return; }
+      t.busy = false;
+      var code = str(err && err.code) || 'provider_error';
+      // Klasor agac disi ya da silinmis: koke donulur, Back kaybolur.
+      if (code === 'not_found' && folder) { driveGo('', null); return; }
+      t.err = code;
+      paintSoon('tabs');
+    }, { autoStart: false });
+    t.h = h;
+    if (force) { h.refresh(); } else { h.refreshIfStale(T.stale); }
+    t.busy = !!h.busy;
+    paintSoon('tabs');
+  }
+  function driveData(t, d) {
+    d = isObj(d) ? d : {};
+    var list = isArr(d.files) ? d.files : [];
+    var out = [];
+    for (var i = 0; i < list.length && out.length < DRIVE_PAGE; i++) {
+      var f = list[i];
+      if (isObj(f) && RE.g.test(str(f.id))) { out.push(f); }
+    }
+    // Eski sunucu folder_id'yi yok sayarsa (kok listesi dondu): istemci koke doner, yanlis kirinti cizilmez.
+    var got = str(d.folder_id);
+    var root = rootCrumb();
+    if (t.folder && got && got !== t.folder) { t.folder = ''; t.crumbs = null; }
+    var cr = [];
+    if (isArr(d.crumbs)) {
+      for (var j = 0; j < d.crumbs.length && cr.length <= DRIVE_DEPTH + 1; j++) {
+        var c = d.crumbs[j];
+        if (isObj(c) && RE.g.test(str(c.id))) { cr.push({ id: str(c.id), name: str(c.name) }); }
+      }
+    }
+    if (!cr.length) { cr = (t.folder && t.crumbs && t.crumbs.length) ? t.crumbs : [root]; }
+    t.crumbs = cr;
+    var pid = str(d.parent_id);
+    t.parent = RE.g.test(pid) ? pid : (cr.length > 1 ? cr[cr.length - 2].id : '');
+    t.files = out;
+    t.truncated = d.truncated === true;
+    t.err = '';
+    t.ver++;
+  }
+  function driveGo(id, crumbs) {
+    var t = tvOf('drive');
+    id = str(id);
+    if (id && id === rootCrumb().id) { id = ''; }
+    if (id && !RE.g.test(id)) { return; }
+    t.folder = id;
+    t.crumbs = crumbs || (id ? t.crumbs : null);
+    t.preview = null; t.check = null; t.scroll = 0; t.restore = false;
+    t.h = null; t.hkey = '';
+    driveLoad(false);
+  }
+  function driveDepth(t) { return ((t.crumbs && t.crumbs.length) ? t.crumbs.length : 1) - 1; }
+  function driveOpen(f) {
+    var t = tvOf('drive');
+    if (!isObj(f) || !RE.g.test(str(f.id))) { return; }
+    if (isFolder(f)) {
+      if (driveDepth(t) >= DRIVE_DEPTH) { return; }
+      var cr = (t.crumbs && t.crumbs.length ? t.crumbs : [rootCrumb()]).slice();
+      cr.push({ id: str(f.id), name: str(f.name) });
+      driveGo(str(f.id), cr);
+      return;
+    }
+    try { t.scroll = M.parts.pbody.scrollTop || 0; } catch (e) { t.scroll = 0; }
+    t.preview = fileOf(f);
+    paintSoon('tabs');
+  }
+  function driveBack() {
+    var t = tvOf('drive');
+    if (t.preview || t.check) {
+      t.preview = null; t.check = null; t.cgen++; t.restore = true;
+      if (!t.h) { driveLoad(false); }
+      paintSoon('tabs');
+      return;
+    }
+    if (!t.folder) { return; }
+    var cr = (t.crumbs && t.crumbs.length > 1) ? t.crumbs.slice(0, -1) : null;
+    driveGo(t.parent, cr);
+  }
+  // Bayat karttan acilan dosya: os_ws_drive {check} ile sunucuda dogrulanir; yoksa kok listesi kalir.
+  function runCheck(t) {
+    var id = t.check, sid = sheetId();
+    if (!id || !idOk(sid)) { t.check = null; return; }
+    t.cgen++;
+    var g = M.gen, cg = t.cgen;
+    octo.request('os_ws_drive', { sheet_id: sid, check: id }, { cacheKey: 'os_ws_drive|check|' + id }).then(function (d) {
+      if (g !== M.gen || cg !== t.cgen || t.check !== id) { return; }
+      t.check = null;
+      var f = (isObj(d) && isObj(d.file)) ? d.file : null;
+      if (d && d.ok === true && f && str(f.id) === id) {
+        // Sunucu klasor dediyse onizleme degil klasore inilir (kok id'si ise kok listesi).
+        if (isFolder(f)) { driveGo(id, id === rootCrumb().id ? null : [rootCrumb(), { id: id, name: str(f.name) }]); return; }
+        t.preview = fileOf(f);
+      }
+      paintSoon('tabs');
+    }, function () {
+      if (g !== M.gen || cg !== t.cgen || t.check !== id) { return; }
+      t.check = null;
+      paintSoon('tabs');
+    });
+  }
+  // Rayin Drive karti: dosya satiri Drive sekmesini o dosyanin onizlemesiyle, klasor satiri o klasorde acar.
+  function openDriveFile(f, stale) {
+    if (!isObj(f) || !RE.g.test(str(f.id))) { return; }
+    var t = tvOf('drive');
+    if (M.tab === 'drive') { leaveTab('drive'); }
+    t.preview = null; t.check = null; t.scroll = 0; t.restore = false;
+    if (isFolder(f)) {
+      t.folder = str(f.id);
+      t.crumbs = [rootCrumb(), { id: str(f.id), name: str(f.name) }];
+    } else {
+      t.folder = ''; t.crumbs = null;
+      if (stale) { t.check = str(f.id); } else { t.preview = fileOf(f); }
+    }
+    t.h = null; t.hkey = '';
+    if (M.tab === 'drive') { enterTab('drive'); M.panelSig = ''; paintSoon('tabs'); return; }
+    selectTab('drive');
+  }
+  function crumbsEl(t) {
+    var nav = el('nav', 'octo-tabs-crumbs');
+    nav.setAttribute('aria-label', 'Folders');
+    var cr = (t.crumbs && t.crumbs.length) ? t.crumbs : [rootCrumb()];
+    for (var i = 0; i < cr.length; i++) {
+      if (i > 0) { nav.appendChild(octo.icon('chevron-right', 14)); }
+      var nm = cr[i].name || (i === 0 ? 'Drive' : '');
+      if (i === cr.length - 1) {
+        var cur = el('span', 'octo-tabs-crumb is-cur', nm);
+        cur.setAttribute('aria-current', 'page');
+        nav.appendChild(cur);
+        continue;
+      }
+      var b = D.createElement('button');
+      b.type = 'button';
+      b.className = 'octo-tabs-crumb';
+      b.setAttribute('data-act', 'crumb');
+      b.textContent = nm;
+      b.addEventListener('click', (function (ix) {
+        return function () { driveGo(ix === 0 ? '' : cr[ix].id, cr.slice(0, ix + 1)); };
+      })(i));
+      nav.appendChild(b);
+    }
+    return nav;
+  }
+  function driveRow(f, depth) {
+    var folder = isFolder(f);
+    var kind = str(f.kind);
+    var b = D.createElement('button');
+    b.type = 'button';
+    b.className = 'octo-tabs-row';
+    b.setAttribute('data-file', str(f.id));
+    b.setAttribute('data-kind', folder ? 'folder' : (kind || 'file'));
+    var ic = el('span', 'octo-tabs-row-ico');
+    ic.setAttribute('data-kind', folder ? 'folder' : (kind || 'file'));
+    ic.appendChild(octo.icon(folder ? 'folder' : (KIND_ICON[kind] || 'file'), 18));
+    b.appendChild(ic);
+    b.appendChild(el('span', 'octo-tabs-name', str(f.name)));
+    var sz = folder ? '' : fmtSize(f.size);
+    if (sz) { b.appendChild(el('span', 'octo-tabs-meta is-size', sz)); }
+    var r = rel(f.modified);
+    if (r) { b.appendChild(el('span', 'octo-tabs-meta', r)); }
+    if (folder && depth >= DRIVE_DEPTH) {
+      b.disabled = true;
+      b.setAttribute('aria-disabled', 'true');
+    } else if (folder) {
+      b.appendChild(octo.icon('chevron-right', 16));
+    }
+    b.addEventListener('click', function () { driveOpen(f); });
+    return b;
+  }
+  function panelDrive() {
+    var t = tvOf('drive');
+    var au = authuser();
+    if (!t.h && !t.busy && !t.files && !t.err && !t.check) { driveLoad(false); }
+    var body = M.parts.pbody;
+    if (t.check) {
+      var csig = 'drive-check|' + t.check;
+      if (M.panelSig === csig) { return; }
+      panelReset('drive-check', csig);
+      barBack(driveBack);
+      barTitle('Drive');
+      barAdd(spin());
+      return;
+    }
+    if (t.preview) {
+      var f = t.preview;
+      var url = previewUrl(f, au);
+      var gl = fileOpenUrl(f, au);
+      var psig = 'drive-prev|' + f.id + '|' + url + '|' + gl + '|' + f.name;
+      if (M.panelSig === psig) { return; }
+      panelReset('drive-prev:' + f.id, psig);
+      barBack(driveBack);
+      barTitle(f.name || 'Drive');
+      barGoogle(gl);
+      if (url) {
+        barAu();
+        body.appendChild(frameEl(url, f.name, 'drive'));
+      } else {
+        // google-apps kisayol, form, site, bilinmeyen: onizleme yok; ikon + ad + Open in Google.
+        var box = emptyBox(KIND_ICON[f.kind] || 'file', f.name);
+        box.classList.add('is-file');
+        if (gl) {
+          var a = el('a', 'octo-rail-btn is-primary');
+          a.href = gl; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          a.setAttribute('data-act', 'open-google-body');
+          a.appendChild(octo.icon('external', 16));
+          a.appendChild(el('span', '', 'Open in Google'));
+          box.appendChild(a);
+        }
+        body.appendChild(box);
+      }
+      return;
+    }
+    var root = rootCrumb();
+    var depth = driveDepth(t);
+    var sig = 'drive-list|' + t.folder + '|' + t.ver + '|' + (t.busy ? 1 : 0) + '|' + t.err + '|' + au + '|' + depth;
+    if (M.panelSig === sig && !t.restore) { return; }
+    var keep = panelReset('drive-list:' + t.folder, sig);
+    var cur = (t.crumbs && t.crumbs.length) ? t.crumbs[t.crumbs.length - 1] : root;
+    if (t.folder) { barBack(driveBack, 'arrow-up'); }
+    barTitle(cur.name || root.name || 'Drive');
+    barGoogle(openUrl('drive', t.folder || root.id, au), t.truncated);
+    barRefresh(function () { driveLoad(true); }, t.busy);
+    body.appendChild(crumbsEl(t));
+    if (t.err && !t.busy) { body.appendChild(errRow(function () { driveLoad(true); })); }
+    if (t.files) {
+      if (!t.files.length) {
+        if (!t.busy && !t.err) { body.appendChild(emptyBox('grid', 'No files')); }
+      } else {
+        var list = el('div', 'octo-tabs-list');
+        for (var i = 0; i < t.files.length; i++) { list.appendChild(driveRow(t.files[i], depth)); }
+        body.appendChild(list);
+      }
+    }
+    body.scrollTop = t.restore ? t.scroll : keep;
+    t.restore = false;
+  }
+
+  // ------------------------------------------------------------ Tasks (dogal liste)
+  function panelTasks() {
+    var t = tvOf('tasks');
+    var c = M.c.tasks || null;
+    var o = linkOf('tasks');
+    var busy = !!(c && c.h && c.h.busy);
+    var d = c ? c.d : null;
+    var tasks = (d && isArr(d.tasks)) ? d.tasks : [];
+    var list = [], ids = [];
+    for (var i = 0; i < tasks.length && list.length < TASKS_TAB; i++) {
+      if (isObj(tasks[i]) && str(tasks[i].id)) {
+        list.push(tasks[i]);
+        ids.push(str(tasks[i].id) + (c.done && c.done[str(tasks[i].id)] ? '*' : '') + ':' + str(tasks[i].title));
+      }
+    }
+    var sig = 'tasks|' + (busy ? 1 : 0) + '|' + (d ? 1 : 0) + '|' + str(c && c.err) + '|' + (c && c.terr ? 1 : 0) + '|' + (t.adding ? 1 : 0) + '|' + t.addErr + '|' + ids.join(',');
+    if (M.panelSig === sig) { return; }
+    keepFocus(M.parts.panel, function () {
+      var keep = panelReset('tasks', sig);
+      barTitle((o && str(o.name)) || 'Tasks');
+      barRefresh(function () { cardRefresh('tasks'); }, busy);
+      var body = M.parts.pbody;
+      var box = el('div', 'octo-tabs-tasks');
+      if (c && c.terr) { box.appendChild(errRow(function () { c.terr = false; cardRefresh('tasks'); })); }
+      if (c && !d && c.err && !busy) {
+        box.appendChild(errRow(function () { cardRefresh('tasks'); }));
+      } else if (d) {
+        if (!list.length) { box.appendChild(emptyBox('check', 'All done')); }
+        else {
+          var ul = el('div', 'octo-rail-list octo-tabs-tasklist');
+          for (var j = 0; j < list.length; j++) { ul.appendChild(taskRow(list[j], c)); }
+          box.appendChild(ul);
+        }
+      }
+      body.appendChild(box);
+      if (d) { body.appendChild(addRow(t)); }
+      body.scrollTop = keep;
+    });
+  }
+  function addRow(t) {
+    var f = el('div', 'octo-tabs-add');
+    if (t.addErr && !t.adding) { f.appendChild(errRow(addTask)); }
+    var inp = D.createElement('input');
+    inp.type = 'text';
+    inp.className = 'octo-rail-input';
+    inp.maxLength = TASK_MAX;
+    inp.placeholder = 'Add task';
+    inp.setAttribute('aria-label', 'Add task');
+    inp.setAttribute('data-k', 'tab-task');
+    inp.value = t.draft || '';
+    var b = btn('is-primary', 'Add task', null, 'task-add');
+    if (t.adding) { b.appendChild(spin()); } else { b.appendChild(octo.icon('plus', 16)); }
+    b.appendChild(el('span', '', 'Add'));
+    function sync() { b.disabled = !!t.adding || !str(inp.value).trim(); }
+    inp.addEventListener('input', function () { t.draft = inp.value; sync(); });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addTask(); } });
+    b.addEventListener('click', addTask);
+    sync();
+    f.appendChild(inp);
+    f.appendChild(b);
+    return f;
+  }
+  function addTask() {
+    var t = tvOf('tasks');
+    var c = M.c.tasks;
+    var title = str(t.draft).replace(/\s+/g, ' ').trim().slice(0, TASK_MAX);
+    if (!title || t.adding || !c) { return; }
+    t.adding = true;
+    t.addErr = '';
+    paintSoon('tabs');
+    var g = M.gen;
+    M.seq++;
+    octo.request('os_ws_tasks', { sheet_id: sheetId(), op: 'add', title: title }, { retry: false, cacheKey: 'os_ws_tasks|add|' + M.seq }).then(function (d) {
+      if (g !== M.gen) { return; }
+      t.adding = false;
+      var nt = (isObj(d) && isObj(d.task)) ? d.task : null;
+      if (nt && RE.g.test(str(nt.id))) {
+        if (!isObj(c.d)) { c.d = {}; }
+        if (!isArr(c.d.tasks)) { c.d.tasks = []; }
+        c.d.tasks.unshift({ id: str(nt.id), title: str(nt.title) || title });
+      }
+      t.draft = '';
+      paintSoon('tasks');
+    }, function (err) {
+      if (g !== M.gen) { return; }
+      t.adding = false;
+      t.addErr = str(err && err.code) || 'provider_error';
+      paintSoon('tasks');
+    });
   }
 
   // ====================================================== kurulum (3, 9b.7)
@@ -50131,6 +51451,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   function openSetup(step) {
     var s = ensureSetup();
     s.open = true;
+    M.setupRail = true;
     if (s.phase === 'finish' && !s.busy) { s.phase = 'steps'; }
     s.step = Math.max(1, Math.min(9, step || 1));
     if (setupDone() && s.mode !== 'data') { s.mode = 'full'; }
@@ -50142,6 +51463,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   function openKnow(dsId) {
     var s = ensureSetup();
     s.open = true;
+    M.setupRail = true;
     s.dsId = dsId;
     if (setupDone()) { s.mode = 'data'; }
     s.step = 9;
@@ -50151,6 +51473,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   }
   function closeSetup() {
     M.setup = null;
+    M.setupRail = false;
     stopConn();
     paintSoon();
   }
@@ -51518,7 +52841,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       src: str(c.src),
       ws: { code: str(M.ws && M.ws.code), ms: (M.ws && typeof M.ws.ms === 'number') ? M.ws.ms : -1 },
       vw: Math.round(W.innerWidth || 0),
-      wait: M.ctxTries || 0
+      wait: M.ctxTries || 0,
+      tab: (M.mounted && TABS.indexOf(M.tab) >= 0) ? M.tab : ''
     };
   }
   function dbgLines(d) {
@@ -51526,7 +52850,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     return [
       'octo ' + (d.v || dash),
       'ch ' + (d.ch || dash) + '  arch ' + (d.arch || dash) + '  tbl ' + (d.table || dash),
-      'rail ' + d.state + (d.state === 'no_ctx' && d.wait ? ' (' + d.wait + ')' : ''),
+      'rail ' + d.state + (d.state === 'no_ctx' && d.wait ? ' (' + d.wait + ')' : '') + (d.tab ? '  tab ' + d.tab : ''),
       'scr ' + (d.ctx.screen || dash),
       'url ' + (d.ctx.url || dash),
       'lst ' + (d.ctx.list || dash),
@@ -51597,8 +52921,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     pollDelay: pollDelay,
     openSetup: openSetup,
     openKnow: openKnow,
-    openEmbed: openEmbed,
-    closeEmbed: closeEmbed,
+    selectTab: selectTab,
+    tabState: tabState,
+    previewUrl: previewUrl,
+    TABS: TABS,
     setCollapsed: setCollapsed,
     flush: flushFrame,
     M: M,
@@ -51610,6 +52936,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   };
   try {
     Object.defineProperty(api, 'variant', { get: function () { return M.variant; }, enumerable: true, configurable: true });
+    Object.defineProperty(api, 'tab', { get: function () { return M.tab; }, enumerable: true, configurable: true });
     Object.defineProperty(octo, '_rail', { value: api, writable: false, enumerable: false, configurable: true });
   } catch (e) { /* yut */ }
 
