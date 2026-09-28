@@ -20425,7 +20425,17 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 
       var triggers = trigIds.map(function(tid) {
         var m = trigModes[tid] || {};
-        return { trigger_id: tid, mode: m.mode || 'external_only', search_keys: m.search_keys || [] };
+        var _t = { trigger_id: tid, mode: m.mode || 'external_only', search_keys: m.search_keys || [] };
+        // os4 (OCTO_PRODUCTS_SPEC 4.1 source_app): tetigin toolkit adi DFR'a yazilir; sunucu os_ws_arrival bunu okur
+        // (ti_ kimliginden toolkit cozulemez). Tarayici kaynagi (gaia_bridge) yazilmaz.
+        try {
+          var _tm = trigMeta[tid] || {};
+          var _ta = String(_tm.app || '').trim().toLowerCase();
+          if (!/^[a-z][a-z0-9_]{0,39}$/.test(_ta)) _ta = '';
+          if (!_ta && /^[A-Za-z][A-Za-z0-9]{0,39}_/.test(String(_tm.trigger_slug || ''))) _ta = String(_tm.trigger_slug).split('_')[0].toLowerCase();
+          if (_ta && _ta !== 'gaia_bridge' && !/^ti_ext_/.test(String(tid))) _t.app_slug = _ta;
+        } catch (_eAs) {}
+        return _t;
       });
 
       var lines = triggers.map(function(t) {
@@ -43673,7 +43683,8 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 }
 .octo-onb-step[data-state="now"] { background: rgba(99, 102, 241, .10); color: var(--octo-accent); }
 .octo-onb-step[data-state="done"] { color: var(--octo-ok); }
-.octo-onb-dot {
+/* os4 1d: atlanan Know adimi (aday yok, xlsx ya da Skip) soluk kalir. */
+.octo-onb-step[data-state="skip"] { color: var(--octo-ink-3); opacity: .7; }.octo-onb-dot {
   flex: 0 0 24px;
   width: 24px;
   height: 24px;
@@ -43788,6 +43799,39 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 #octo-rail-debug[data-min="1"] .octo-rail-dbg-txt { display: none; }
 #octo-rail-debug[data-min="1"] .octo-rail-dbg-dot { margin: 0; }
 #octo-rail-debug:focus-visible { outline: 2px solid #818cf8; outline-offset: 2px; }
+/* ------------------------------------------------ os4 varis karti (First run, yalniz dev) */
+/* Mevcut tokenlar; yeni renk yok. Kart rayin icinde (tablonun atasi DEGIL): yine de transform / filter /
+   will-change / contain / perspective kullanilmaz; nabiz yalniz opacity. */
+#octo-rail .octo-rail-card.octo-arr { box-shadow: inset 0 0 0 1.5px var(--octo-accent); }
+#octo-rail .octo-arr .octo-arr-skip { flex: 0 0 auto; color: var(--octo-ink-2); font-weight: 500; }
+#octo-rail .octo-arr-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#octo-rail .octo-arr-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 2px 2px 2px 6px;
+  border-radius: 8px;
+  color: var(--octo-ink);
+}
+#octo-rail .octo-arr-file:hover { background: var(--octo-line-2); }
+#octo-rail .octo-arr-file > svg { flex: 0 0 auto; color: var(--octo-ink-2); }
+#octo-rail .octo-arr-file .octo-rail-btn { flex: 0 0 auto; }
+#octo-rail .octo-arr-proof .octo-rail-pill { max-width: 100%; }
+#octo-rail .octo-arr-wait {
+  height: 4px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-accent);
+  opacity: .25;
+  animation: octo-arr-pulse 1.6s ease-in-out infinite;
+}
+@keyframes octo-arr-pulse { 0%, 100% { opacity: .18; } 50% { opacity: .6; } }
+#octo-rail[data-nomo="1"] .octo-arr-wait { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  #octo-rail .octo-arr-wait { animation: none; }
+}
+
 /* ==========================================================================
    app-tables.css  -  OCTO TABLES (os1). Sahip: B4.
    Hepsi #octo-root altinda ve .octo-tb- onekiyle (spec 2.8). Belirtecler
@@ -44637,7 +44681,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-28.os3t3';
+  var VERSION = 'octo 2026-09-28.os4';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -48333,7 +48377,9 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     throttle: 300, remount: 300, variantCheck: 500, fixedTick: 1000, sent: 2000, stale: 60000,
     connectPoll: 5000, connectMax: 120000, dsPoll: 5000, dsPollSlow: 15000, dsSlowAfter: 60000, dsMax: 900000,
     markerTtl: 180000, agentPoll: 600, agentTries: 50, deployWaitMax: 600, portalMax: 120000, search: 300, preview: 300,
-    ctxPoll: 1000, ctxWait: 30000
+    ctxPoll: 1000, ctxWait: 30000,
+    // os4 varis karti: 12 sn x en cok 25 yoklama (5 dk, soguk baslangic dahil); ilk kayit gorulunce 8 sn sonra kapanir.
+    arrPoll: 12000, arrTries: 25, arrDone: 8000, arrStale: 3
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -48382,13 +48428,14 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     { n: 9, res: '', title: 'Know your data' }
   ];
 
-  var CARDS = ['setup', 'agent', 'new', 'calendar', 'drive', 'notes', 'tasks', 'sheet', 'data', 'act', 'wait'];
+  // 'first' (os4 varis karti) agent'tan once; dugumu YALNIZ armedArrival() dogruyken kurulur (paintCard).
+  var CARDS = ['setup', 'first', 'agent', 'new', 'calendar', 'drive', 'notes', 'tasks', 'sheet', 'data', 'act', 'wait'];
   var CARD_ICON = {
-    setup: 'plug', agent: 'chat', 'new': 'plus', calendar: 'calendar', drive: 'folder', notes: 'doc',
+    setup: 'plug', first: 'play', agent: 'chat', 'new': 'plus', calendar: 'calendar', drive: 'folder', notes: 'doc',
     tasks: 'check', sheet: 'sheet', data: 'table', act: 'bell', wait: 'alert'
   };
   var CARD_LABEL = {
-    setup: 'Setup', agent: 'Agent', 'new': 'New record', calendar: 'Calendar', drive: 'Drive', notes: 'Notes',
+    setup: 'Setup', first: 'First run', agent: 'Agent', 'new': 'New record', calendar: 'Calendar', drive: 'Drive', notes: 'Notes',
     tasks: 'Tasks', sheet: 'Sheet', data: 'Data', act: 'Activity', wait: 'Waiting for you'
   };
   // Workspace sekmeleri (OCTO_TABS_SPEC 2): sabit sira, Table her zaman ilk ve acilista secili. Telefon hizli
@@ -48793,6 +48840,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (M.armed) { return true; }
     if (readSwitch()) { M.off = true; dbgSoon(); return false; }
     onbRead();
+    arrBoot();
     M.off = false;
     M.armed = true;
     M.ctxTries = ctxTriesMax();
@@ -48822,6 +48870,8 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     stopConn();
     stopDsPoll();
     stopAgentWait();
+    arrStop();
+    M.arr = null; M.arrSeen = false; M.arrAfterSetup = null;
     portalRestore();
     closeSheet();
     unmount();
@@ -48835,6 +48885,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
     M.tab = 'table'; M.tv = {}; M.panelSig = ''; M.panelView = '';
     M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
+    if (M.onb) { M.onb.kn = null; }   // os4 1d: Know durumu workspace'e bagli, kurulum nesnesiyle birlikte sifirlanir
     M.wake = 'idle'; M.note = ''; M.noteGone = false; M.yielded = false; M.sheet = '';
     M.ctxTries = 0; M.seen = null; M.ws = { code: '', ms: -1 }; M.lastErr = '';
     dbgSoon();
@@ -48956,6 +49007,9 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0;
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
     M.setup = null; M.setupRail = false; M.noteGone = false; M.note = ''; setWake('idle');
+    if (M.onb) { M.onb.kn = null; }
+    // os4: varis karti kuruldugu workspace'e baglidir; baska workspace'e gecince birakilir (yanlis sheet sayilmaz).
+    if (M.arr && M.arr.key && M.arr.key !== c.key) { arrStop(); M.arr = null; M.arrAfterSetup = null; ssDel(ARR_KEY); }
     // Yeni workspace (tablo secildi): sol menu yeniden gizlenir.
     if (M.sideUser) { M.sideUser = false; if (M.mounted) { batch(function () { sideApply(); paintTabs(); }); } }
     M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
@@ -49004,6 +49058,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     paintSoon();
     loadCards();
     if (fresh && M.afterAgent) { var aa = M.afterAgent; M.afterAgent = null; afterAgent(aa); }
+    if (M.arr) { arrKick(); }
   }
   function onWsErr(err) {
     var code = str(err && err.code) || 'provider_error';
@@ -49157,6 +49212,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     // Esc: telefon alt sayfasini kapatir (klavye kullanicisi).
     a.addEventListener('keydown', onRailKey);
     for (var i = 0; i < CARDS.length; i++) {
+      if (CARDS[i] === 'first') { continue; }       // varis karti tembel kurulur (arrSec): bayraksiz DOM ayni
       var s = el('section', 'octo-rail-card');
       s.setAttribute('data-card', CARDS[i]);
       s.setAttribute('aria-label', CARD_LABEL[CARDS[i]]);
@@ -49590,6 +49646,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     // Link a Sheet, Connect data) rayda CIZILMEZ: kurulmamis kaynak seritte soluk sekmedir, kurulumu
     // o sekmenin panelinde. 9 adimli kurulum karti yalniz raydan (Set up / Edit setup) acildiysa gorunur.
     if (id === 'setup') { return railKnown() && !!(M.setup && M.setup.open && M.setupRail); }
+    if (id === 'first') { return arrVisible(); }
     if (id === 'agent') { return !!(d.first || d.agent); }
     if (id === 'new') { return canCreate() && !!(d.screens && d.screens.create === true); }
     if (RES[id]) { if (!ok) { return false; } var rs = resState(id); return rs === 'ok' || rs === 'loading' || rs === 'error'; }
@@ -49606,6 +49663,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   }
   var PAINT = {};
   function paintCard(id) {
+    if (id === 'first' && !arrSec()) { return; }
     var sec = M.secs[id];
     if (!sec) { return; }
     var show = cardVisible(id);
@@ -49802,6 +49860,15 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     f.appendChild(row);
     return f;
   }
+  // Not ile uyandirma istegi (ajan karti ve varis karti ortak): govde YALNIZ bu dort anahtar (sunucu stage_id/list_id okumaz).
+  function wakeReq(aid, note, stage, list) {
+    return octo.request('os_wake_note', {
+      assistant_id: str(aid),
+      note: note,
+      target_stage_id: str(stage),
+      target_list_id: str(list)
+    }, { retry: false });
+  }
   function sendWake(a, text) {
     var note = str(text).trim();
     if (!note || M.wake === 'sending' || !a || !a.id) { return; }
@@ -49810,12 +49877,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     setWake('sending');
     paintSoon('agent');
     var g = M.gen;
-    octo.request('os_wake_note', {
-      assistant_id: str(a.id),
-      note: note.slice(0, NOTE_MAX),
-      target_stage_id: str(first.stage_id),
-      target_list_id: str(first.list_id)
-    }, { retry: false }).then(function () {
+    wakeReq(a.id, note.slice(0, NOTE_MAX), first.stage_id, first.list_id).then(function () {
       if (g !== M.gen) { return; }
       M.note = '';
       setWake('sent');
@@ -50459,7 +50521,10 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   }
   function knowDsId() {
     var s = M.setup;
-    return (s && s.open && s.step === 9 && s.dsId) ? s.dsId : '';
+    if (s && s.open && s.step === 9 && s.dsId) { return s.dsId; }
+    // os4 1d: onb Know adimi ice alirken yoklama o veri kumesini (dataset_id) okur.
+    var K = M.onb && M.onb.kn;
+    return (K && K.phase === 'ingest' && K.s.dsId) ? K.s.dsId : '';
   }
   function dsStatusPayload() {
     var p = { sheet_id: sheetId() };
@@ -51581,6 +51646,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     M.setupRail = false;
     stopConn();
     paintSoon();
+    arrAfterSetup();
   }
   function stepDef(n) { return STEPS[Math.max(1, Math.min(9, n)) - 1]; }
   function enterStep(s) {
@@ -52608,6 +52674,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       s.busy = false;
       M.setup = null;
       paintSoon();
+      arrAfterSetup();
       return refreshWs('done').then(function () { loadCards(true); return true; }, function () { return true; });
     }, function (err) {
       s.busy = false;
@@ -52786,8 +52853,9 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (!isObj(o) || typeof o.ts !== 'number' || Date.now() - o.ts > T.markerTtl || !RE.ds.test(str(o.dataset_id))) { ssDel(TB_KEY); return null; }
     return o;
   }
-  function resumeMarker() { var d = readMarker(); if (d) { startAgentWait(d); } }
+  function resumeMarker() { var d = readMarker(); if (d) { arrMark(); startAgentWait(d); } }
   function onAgentCreated(e) {
+    arrMark();
     var d = (e && isObj(e.detail)) ? e.detail : null;
     if (!d || typeof d.ts !== 'number') { d = readMarker(); }
     if (d) { startAgentWait(d); }
@@ -52839,7 +52907,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     M.agent = null;
     ssDel(MARK_KEY);
     var tb = readTb();
-    var job = { tb: tb, aid: aid };
+    var job = { tb: tb, aid: aid, ts: (A.d && typeof A.d.ts === 'number') ? A.d.ts : 0 };
     var c = readCtx();
     if (!c.key) { return; }
     if (c.key !== M.key) { M.afterAgent = job; load(c); return; }
@@ -52854,7 +52922,11 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (setupNeeded()) {
       if (M.collapsed) { setCollapsed(false); }
       openSetup(1);
+      // os4: kurulum acildiysa varis karti kurulum bitince (finalize / closeSetup) acilir.
+      if (armedArrival()) { M.arrAfterSetup = job; }
+      return;
     }
+    arrStart(job.aid, job.ts);
   }
 
   // --------------------------------------------- task builder olusturma (9b.6)
@@ -52879,6 +52951,8 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       if (isObj(base)) { for (var k in base) { if (Object.prototype.hasOwnProperty.call(base, k)) { ctx[k] = base[k]; } } }
       ctx.retainLive = false;
       ctx.liveTrigIds = [];
+      // 1a (os4): basari ekrani varis kipini bu taslaktan okur (HTM _gaiaResolveArrivalMode); yazilmazsa bayat kalir.
+      try { W._gaiaDraftOriginalArgs = args; } catch (e0) { /* yut */ }
       var asm = W._gadAssembleToolCallPayload(args, ctx);
       if (!asm || !asm.payload || !isArr(asm.payload.outputlist3)) { throw { code: 'bad_request' }; }
       try { if (typeof W._gadSnapshotPendingCreateTrigIds === 'function') { W._gadSnapshotPendingCreateTrigIds(); } } catch (e1) { /* yut */ }
@@ -52898,6 +52972,665 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     });
   }
 
+  // ---- arrival (first run)
+  // os4 Dilim 1c (OCTO_PRODUCTS_SPEC 4.1-4.4): ajan kurulunca ray devralir, bos tabloya dusulmez. Tek kaynak
+  // sunucudaki os_ws_arrival (ajanin DB'deki DFR'i); taslak globaller okunmaz. YALNIZ dev kanalinda
+  // (W.__gxEl.channel 'dev' ya da harness dikisi W.__octoArrDev === true) ve onb bayragi ya da oturumda
+  // octo:agent-created goruldugunde acilir; ?octo_arr=0 kapatir. Kapaliyken dugum, istek, dinleyici YOK.
+  // Durum sessionStorage 'octo_arr' = {aid, phase, t0, tries, src}; yenilemede kaldigi yerden surer.
+  // Fazlar: looking, note, batch, data, listen, running, done, empty, error (+ gone: kart yok).
+  var ARR_KEY = 'octo_arr';
+  var ARR_NOTE_MAX = 1000;
+  var ARR_FRESH = 300000;
+  var ARR_PHASES = { looking: 1, note: 1, batch: 1, data: 1, listen: 1, running: 1, done: 1, empty: 1, error: 1, gone: 1 };
+  var ARR_TITLE = {
+    looking: 'Your agent is ready', batch: 'First items', data: 'Connect your data', listen: 'Waiting for first item',
+    running: 'Working on it', done: 'First record in', empty: 'No record yet', error: 'Your agent is ready'
+  };
+  // Damga durumu (links.arrival.state, sunucudan) dugmenin yerine hap olarak.
+  var ARR_STATE_PILL = { claimed: 'Run started', started: 'Run started', done: 'Run done' };
+
+  function arrDev() {
+    try {
+      if (W.__octoArrDev === true) { return true; }
+      var g = W.__gxEl;
+      return !!(g && typeof g === 'object' && g.channel === 'dev');
+    } catch (e) { return false; }
+  }
+  function arrOffQ() { return /[?&]octo_arr=0(&|#|$)/.test(railQuery()); }
+  function armedArrival() {
+    if (!arrDev() || arrOffQ()) { return false; }
+    return !!(M.onbOn || M.arrSeen || M.arr || ssGet(ARR_KEY));
+  }
+  function arrMark() { if (arrDev() && !arrOffQ()) { M.arrSeen = true; } }
+  function arrNew(aid, t0) {
+    return {
+      aid: aid, key: str(M.key), phase: 'looking', base: '', t0: t0, tries: 0, src: '', resp: null, files: null, fbusy: false, busy: 0,
+      sending: false, note: '', timer: null, doneTimer: null, holdTimer: null, need: true, focus: true, focusTa: false,
+      focused: false, locked: false, lockState: '', noWake: false, err: '', first: null, dom: false, rows0: arrRows(), act: null,
+      watch: false, stale: 0
+    };
+  }
+  function arrBoot() {
+    M.arr = null; M.arrSeen = false; M.arrAfterSetup = null;
+    if (!arrDev()) { return; }
+    if (arrOffQ()) { ssDel(ARR_KEY); return; }
+    var raw = ssGet(ARR_KEY);
+    if (!raw) { return; }
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { o = null; }
+    if (!isObj(o) || !ARR_PHASES[str(o.phase)] || !isFinite(Date.parse(str(o.t0)))) { ssDel(ARR_KEY); return; }
+    var ph = str(o.phase);
+    var A = arrNew(idOk(o.aid) ? str(o.aid) : '', str(o.t0));
+    A.phase = (ph === 'done' || ph === 'gone') ? 'gone' : ((ph === 'running' || ph === 'empty') ? ph : 'looking');
+    A.tries = Math.max(0, Math.min(T.arrTries, Math.floor(num(o.tries) || 0)));
+    A.src = str(o.src).slice(0, 120);
+    A.need = A.phase !== 'gone';
+    A.focus = false;
+    M.arr = A;
+  }
+  function arrSave() {
+    var A = M.arr;
+    if (!A) { return; }
+    // Uyandirma ucusta iken 'running' saklanir: yenileme teklifi yeniden cizmez, ikinci kosu gitmez (4.7 adim 8).
+    var ph = (A.sending && A.act && A.act.k === 'wake' && A.phase !== 'error') ? 'running' : A.phase;
+    ssSet(ARR_KEY, JSON.stringify({ aid: A.aid, phase: ph, t0: A.t0, tries: A.tries, src: A.src }));
+  }
+  function arrStopPoll() {
+    var A = M.arr;
+    if (A && A.timer) { try { clearTimeout(A.timer); } catch (e) { /* yut */ } A.timer = null; }
+  }
+  function arrStop() {
+    var A = M.arr;
+    if (!A) { return; }
+    var tm = ['timer', 'doneTimer', 'holdTimer'];
+    for (var i = 0; i < tm.length; i++) { if (A[tm[i]]) { try { clearTimeout(A[tm[i]]); } catch (e) { /* yut */ } A[tm[i]] = null; } }
+  }
+  // Tablo satir DOM sayisi: yalniz new_since null iken "yeni kayit geldi" sinyali (4.1).
+  function arrRows() {
+    var w = findWrapper();
+    try { return w ? w.querySelectorAll('tbody tr').length : 0; } catch (e) { return 0; }
+  }
+  function arrVisible() {
+    var A = M.arr;
+    if (!A || A.phase === 'gone' || !armedArrival() || !data()) { return false; }
+    if (deployVisible()) { arrHold(); return false; }
+    return true;
+  }
+  // Basari ekrani acikken kart cizilmez; kapaninca yeniden denenir.
+  function arrHold() {
+    var A = M.arr;
+    if (!A || A.holdTimer) { return; }
+    A.holdTimer = setTimeout(function () { A.holdTimer = null; if (M.arr === A) { paintSoon('first'); } }, Math.max(100, T.agentPoll));
+  }
+  // Kart dugumu tembel: gorunur olunca agent kartinin onune kurulur, gorunmez olunca DOM'dan cikar.
+  function arrSec() {
+    var s = M.secs.first;
+    var show = arrVisible();
+    if (s && !show) {
+      if (s.parentNode) { try { s.parentNode.removeChild(s); } catch (e) { /* yut */ } }
+      delete M.secs.first;
+      if (M.sheet === 'first') { closeSheet(); }
+      return false;
+    }
+    if (!s && show) {
+      var box = M.parts.cards, ref = M.secs.agent;
+      if (!box) { return false; }
+      s = el('section', 'octo-rail-card octo-arr');
+      s.setAttribute('data-card', 'first');
+      s.setAttribute('aria-label', CARD_LABEL.first);
+      s.setAttribute('aria-live', 'polite');
+      box.insertBefore(s, (ref && ref.parentNode === box) ? ref : null);
+      M.secs.first = s;
+    }
+    return !!s;
+  }
+  function arrStart(aid, ts) {
+    if (!armedArrival()) { return; }
+    aid = idOk(aid) ? str(aid) : '';
+    var A = M.arr;
+    // Bitmis (gone) kart ayni ajan icin yeniden kurulmaz; yeni kurulum olayi (aid'siz dahil) yeni kart acar.
+    if (A && A.phase === 'gone' && aid && A.aid === aid) { return; }
+    if (A && A.phase !== 'gone' && (!aid || !A.aid || A.aid === aid)) {
+      if (aid && !A.aid) { A.aid = aid; arrSave(); }
+      return;
+    }
+    arrStop();
+    var t = (typeof ts === 'number' && ts > 0 && ts <= now()) ? ts : now();
+    M.arr = arrNew(aid, iso(t));
+    arrSave();
+    trace('arr:start');
+    paintSoon('first');
+    arrKick();
+  }
+  function arrAfterSetup() {
+    var j = M.arrAfterSetup;
+    if (!j) { return; }
+    M.arrAfterSetup = null;
+    arrStart(j.aid, j.ts);
+  }
+  // Veri (sheet id) gelince bekleyen ilk okuma; yenilemede running yoklamaya, empty yerinde kalir.
+  function arrKick() {
+    var A = M.arr;
+    if (!A || !A.need || A.phase === 'gone' || !armedArrival() || !idOk(sheetId())) { return; }
+    A.need = false;
+    if (!A.key) { A.key = str(M.key); }
+    var resume = A.phase;
+    arrFetch({}).then(function (d) {
+      if (M.arr !== A) { return; }
+      // Aid'siz ve sunucunun buldugu ajan t0'dan cok eski (ilk surec ajanina dusus; Bubble aramasi yeni ajani henuz
+      // gormuyor olabilir): birkac kez yeniden bakilir, sonra kabul edilir.
+      if (resume !== 'running' && resume !== 'empty' && !idOk(A.aid) && arrStale(d) && A.stale < T.arrStale) {
+        A.stale++;
+        A.need = true;
+        A.timer = setTimeout(function () { A.timer = null; if (M.arr === A) { arrKick(); } }, T.arrPoll);
+        return;
+      }
+      if (resume === 'running') { if (!arrCheck(d)) { arrPollSoon(); paintSoon('first'); } return; }
+      if (resume === 'empty') { paintSoon('first'); return; }
+      arrApply(d);
+    }, function (err) {
+      if (M.arr !== A) { return; }
+      // Yenilemede kosu suruyorsa tek hata (soguk baslangic) yoklamayi kesmez; butceden sayilir, teklif yeniden cizilmez.
+      if (resume === 'running') { arrPollSoon(); paintSoon('first'); return; }
+      arrFail(A, err, null);
+    });
+  }
+  function arrFetch(o) {
+    var A = M.arr;
+    o = o || {};
+    var sid = sheetId();
+    if (!A || !idOk(sid)) { return Promise.reject({ code: 'not_found' }); }
+    var p = { sheet_id: sid };
+    if (idOk(A.aid)) { p.assistant_id = A.aid; }
+    p.since = A.t0;
+    p.claim = o.claim === true;
+    if (o.release) { p.release = o.release; }
+    M.seq++;
+    A.busy++;
+    paintSoon('first');
+    return octo.request('os_ws_arrival', p, { retry: false, cacheKey: 'os_ws_arrival|' + M.seq }).then(function (d) {
+      A.busy = Math.max(0, A.busy - 1);
+      if (M.arr !== A) { return null; }
+      arrTake(d);
+      paintSoon('first');
+      return d;
+    }, function (err) {
+      A.busy = Math.max(0, A.busy - 1);
+      if (M.arr === A) { paintSoon('first'); }
+      throw err;
+    });
+  }
+  // Sunucunun sectigi ajan t0 - 300 sn'den once kurulmus (os_ws_arrival arama payi ile ayni).
+  function arrStale(d) {
+    var A = M.arr;
+    var ag = (A && isObj(d) && isObj(d.agent)) ? d.agent : null;
+    if (!ag || !idOk(ag.id)) { return false; }
+    var c = Date.parse(str(ag.created)), t = Date.parse(str(A.t0));
+    return isFinite(c) && isFinite(t) && c < t - ARR_FRESH;
+  }
+  function arrRelease(state) { arrFetch({ release: state }).then(null, function () { /* yut */ }); }
+  // Cevap: aid'siz bitisi ajan id'sine baglar (kopukluk 9); links_version ortak onbellege (linksWrite surumu).
+  function arrTake(d) {
+    var A = M.arr;
+    if (!A || !isObj(d)) { return; }
+    A.resp = d;
+    if (!idOk(A.aid) && isObj(d.agent) && idOk(d.agent.id) && (!arrStale(d) || A.stale >= T.arrStale)) { A.aid = str(d.agent.id); arrSave(); }
+    var v = num(d.links_version);
+    if (v !== null && v >= M.ver) {
+      M.ver = v;
+      var L = M.data && M.data.links;
+      if (isObj(L)) { L.version = v; try { octo.cache.set('rail:' + M.key, M.data); } catch (e) { /* yut */ } }
+    }
+  }
+  // Saf: os_ws_arrival cevabi -> faz. Kaynaksiz toplu kip batch uretmez (4.1).
+  function arrResolve(r) {
+    if (!isObj(r)) { return 'none'; }
+    var ag = isObj(r.agent) ? r.agent : null;
+    if (!ag || !idOk(ag.id)) { return 'none'; }
+    var a = str(r.arrival);
+    var srcs = isArr(r.sources) && r.sources.length > 0;
+    if (a === 'batch') { return str(ag.source_app) ? 'batch' : (srcs ? 'data' : 'note'); }
+    if (a === 'note' || a === 'data' || a === 'listen') { return a; }
+    return 'none';
+  }
+  function arrApply(d) {
+    var A = M.arr;
+    if (!A) { return; }
+    if (arrCheck(d)) { return; }
+    var ph = arrResolve(d);
+    if (A.noWake && (ph === 'note' || ph === 'batch')) { ph = (isArr(d.sources) && d.sources.length) ? 'data' : 'none'; }
+    if (ph === 'none') { arrGone(); return; }
+    A.base = ph;
+    A.phase = ph;
+    A.err = '';
+    arrSave();
+    if (ph === 'note') {
+      if (d.file_read === true) { if (A.files === null && !A.fbusy) { arrFiles(); } }
+      else { A.files = []; }
+    }
+    if ((ph === 'batch' || ph === 'listen') && d.claimed !== true && ARR_STATE_PILL[str(d.arrival_state)]) { A.locked = true; A.lockState = str(d.arrival_state); }
+    if (ph === 'listen' || A.locked) { arrPollSoon(); }
+    paintSoon('first');
+  }
+  // Tamamlanma: t0 sonrasi yeni kayit (new_since > 0); new_since null ise yalniz satir DOM artisi.
+  function arrCheck(d) {
+    var A = M.arr;
+    if (!A || !isObj(d)) { return false; }
+    var ns = num(d.new_since);
+    if (ns !== null && ns > 0) { arrDone(isObj(d.first) ? d.first : null, false); return true; }
+    if (ns === null && (A.phase === 'running' || A.phase === 'listen' || A.locked || A.watch) && arrRows() > A.rows0) { arrDone(null, true); return true; }
+    return false;
+  }
+  function arrPollSoon() {
+    var A = M.arr;
+    if (!A || A.timer || A.phase === 'gone' || A.phase === 'done' || A.phase === 'empty' || A.phase === 'error') { return; }
+    A.timer = setTimeout(function () { A.timer = null; arrPoll(A); }, T.arrPoll);
+  }
+  function arrPoll(A) {
+    if (M.arr !== A || !armedArrival() || A.phase === 'gone' || A.phase === 'done' || A.phase === 'empty' || A.phase === 'error') { return; }
+    if (A.tries >= T.arrTries) { arrBudget(); return; }
+    A.tries++;
+    arrSave();
+    function next() { if (A.tries >= T.arrTries) { arrBudget(); } else { arrPollSoon(); } }
+    // PROCESSING_TIMEOUT ve zaman asimi bir deneme sayilir, asla basari degil.
+    arrFetch({}).then(function (d) { if (M.arr === A && !arrCheck(d)) { next(); } }, function () { if (M.arr === A) { next(); } });
+  }
+  // Butce sonu: bu kartin baslattigi kosu (running) bos kaldi -> empty. Bekleme fazlari (listen, data, kilitli toplu)
+  // olu uc degildir: yoklama durur, faz ve hap kalir, damga birakilmaz (bu istemci damga almadi).
+  function arrBudget() {
+    var A = M.arr;
+    if (!A) { return; }
+    if (A.phase === 'running') { arrEmpty(); return; }
+    arrStopPoll();
+    A.watch = false;
+    trace('arr:idle');
+    paintSoon('first');
+  }
+  // Veri fazinda kisi kaynak baglar ya da kayit acar: tamamlanma yoklamasi baslar (ayni 12 sn x 25 butce).
+  function arrWatch() {
+    var A = M.arr;
+    if (!A || A.phase !== 'data') { return; }
+    A.watch = true;
+    A.rows0 = arrRows();
+    if (!A.timer) { A.tries = 0; arrSave(); }
+    arrPollSoon();
+  }
+  function arrNewRec() { arrWatch(); newRecord(); }
+  function arrEmpty() {
+    var A = M.arr;
+    if (!A || A.phase === 'done' || A.phase === 'gone') { return; }
+    arrStopPoll();
+    A.phase = 'empty';
+    arrSave();
+    trace('arr:empty');
+    // Kilitli kart (damga baskasinda, bu istemci uyandirmadi) damgayi birakmaz: baska cihazin kosusu ikinciye acilmaz.
+    if (!A.locked) { arrRelease('failed'); }
+    paintSoon('first');
+  }
+  function arrDone(first, dom) {
+    var A = M.arr;
+    if (!A || A.phase === 'done' || A.phase === 'gone') { return; }
+    arrStopPoll();
+    A.phase = 'done';
+    A.first = first;
+    A.dom = !!dom;
+    arrSave();
+    trace('arr:done');
+    arrRelease('done');
+    paintSoon('first');
+    A.doneTimer = setTimeout(function () {
+      A.doneTimer = null;
+      if (M.arr !== A) { return; }
+      A.phase = 'gone';
+      arrSave();
+      paintSoon('first');
+      if (!cardVisible('agent')) { return; }
+      if (M.phone) { if (M.sheet === 'first') { openSheet('agent'); } } else { focusCard('agent'); }
+    }, T.arrDone);
+  }
+  function arrGone() {
+    var A = M.arr;
+    if (!A) { return; }
+    arrStop();
+    A.phase = 'gone';
+    arrSave();
+    paintSoon('first');
+  }
+  function arrFail(A, err, act) {
+    A.sending = false;
+    A.phase = 'error';
+    A.err = str(err && err.code) || 'provider_error';
+    if (act) { A.act = act; }
+    arrSave();
+    paintSoon('first');
+  }
+  function arrAck(A) {
+    A.sending = false;
+    A.note = '';
+    A.phase = 'running';
+    A.tries = 0;
+    arrSave();
+    trace('arr:woke');
+    arrFetch({ release: 'started' }).then(function (d) { if (M.arr === A) { arrCheck(d); } }, function () { /* yut */ });
+    arrPollSoon();
+    paintSoon('first');
+  }
+  function arrNack(A, err) {
+    var code = str(err && err.code) || 'provider_error';
+    A.sending = false;
+    if (code === 'not_allowed') {
+      // Kip not ile uyandirilamaz: damga birakilir, kip sunucudan yeniden cozulur; not gorunumu kalmaz.
+      A.noWake = true;
+      A.phase = 'looking';
+      arrSave();
+      paintSoon('first');
+      arrFetch({ release: 'failed' }).then(null, function () { /* yut */ }).then(function () {
+        if (M.arr !== A) { return; }
+        arrFetch({}).then(function (d) { if (M.arr === A) { arrApply(d); } }, function (e2) { if (M.arr === A) { arrFail(A, e2, null); } });
+      });
+      return;
+    }
+    arrFail(A, err, null);
+    arrRelease('failed');
+  }
+  function arrWakeTarget(d) {
+    var ag = (isObj(d) && isObj(d.agent)) ? d.agent : {};
+    var first = (data() && data().first) || {};
+    return { stage: idOk(ag.stage_id) ? ag.stage_id : first.stage_id, list: idOk(ag.list_id) ? ag.list_id : first.list_id };
+  }
+  function arrWake(text, src) {
+    var A = M.arr, d = A && A.resp;
+    if (!A || A.sending || !isObj(d) || !isObj(d.agent) || !idOk(d.agent.id)) { return; }
+    var note = str(text).trim().slice(0, ARR_NOTE_MAX);
+    if (!note) { return; }
+    var tg = arrWakeTarget(d);
+    A.act = { k: 'wake', note: note, src: str(src) };
+    if (src) { A.src = str(src).slice(0, 120); }
+    A.sending = true;
+    A.rows0 = arrRows();
+    arrSave();
+    paintSoon('first');
+    wakeReq(d.agent.id, note, tg.stage, tg.list).then(function () { if (M.arr === A) { arrAck(A); } }, function (err) { if (M.arr === A) { arrNack(A, err); } });
+  }
+  function arrPickFile(f) {
+    if (!isObj(f)) { return; }
+    var name = str(f.name).replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!name) { return; }
+    var link = googleLink(f.link);
+    arrWake('Create one record from file ' + name + (link ? ' ' + link : ''), name);
+  }
+  // Toplu ilk kosu (batch) ve listen'de son 5: once damga (ajan basina tek sefer), sonra os_wake_note.
+  function arrBatch() {
+    var A = M.arr, d = A && A.resp;
+    if (!A || A.sending || A.locked || A.noWake || !isObj(d) || !isObj(d.agent)) { return; }
+    var app = str(d.agent.source_app).slice(0, 60);
+    if (!app) { return; }
+    var note = 'Process the 5 newest items from ' + app + '.' + (A.phase === 'listen' ? '' : ' Create one record per item.');
+    A.act = { k: 'batch' };
+    A.sending = true;
+    paintSoon('first');
+    arrFetch({ claim: true }).then(function (r) {
+      if (M.arr !== A) { return; }
+      if (!isObj(r) || r.claimed !== true || !isObj(r.agent) || !idOk(r.agent.id)) {
+        A.sending = false;
+        A.locked = true;
+        if (isObj(r) && ARR_STATE_PILL[str(r.arrival_state)]) { A.lockState = str(r.arrival_state); }
+        arrPollSoon();
+        paintSoon('first');
+        return;
+      }
+      var tg = arrWakeTarget(r);
+      A.src = app;
+      A.rows0 = arrRows();
+      wakeReq(r.agent.id, note, tg.stage, tg.list).then(function () { if (M.arr === A) { arrAck(A); } }, function (err) { if (M.arr === A) { arrNack(A, err); } });
+    }, function (err) { if (M.arr === A) { arrFail(A, err, null); } });
+  }
+  // Veri yolu: mevcut Data karti (bagli kume varsa) ya da tek adim kurulum 8 (Connect your data).
+  function arrConnect() {
+    arrWatch();
+    if (dataOk() && dsList().length) { focusCard('data'); return; }
+    openSetup(8);
+  }
+  function arrRetry() {
+    var A = M.arr;
+    if (!A) { return; }
+    // error: ayni eylem yeniden denenir. empty (butce bitti): ikinci kosu gonderilmez, teklif yeniden okunur.
+    var act = A.phase === 'error' ? A.act : null;
+    A.err = '';
+    if (act && act.k === 'wake') { A.phase = A.base || 'note'; arrWake(act.note, act.src); return; }
+    if (act && act.k === 'batch' && A.base) { A.phase = A.base; arrBatch(); return; }
+    A.phase = 'looking';
+    A.tries = 0;
+    A.need = true;
+    A.act = null;
+    arrSave();
+    paintSoon('first');
+    arrKick();
+  }
+  function arrSkip() { trace('arr:skip'); arrGone(); }
+  function arrOpenTable() {
+    closeSheet();
+    if (M.tab !== 'table') { selectTab('table'); }
+    try { var dt = W.dynamicTable; if (dt && typeof dt.refreshTable === 'function') { dt.refreshTable(); } } catch (e) { /* yut */ }
+    layout();
+    paintTabs();
+  }
+  // Drive: os_ws_drive page_size 20, klasorler istemcide suzulur, ilk 5 dosya; not_found ya da hata -> yalniz not alani.
+  function arrFiles() {
+    var A = M.arr;
+    var sid = sheetId();
+    if (!A) { return; }
+    if (!idOk(sid)) { A.files = []; return; }
+    A.fbusy = true;
+    M.seq++;
+    octo.request('os_ws_drive', { sheet_id: sid, page_size: 20 }, { retry: false, cacheKey: 'os_ws_drive|arr|' + M.seq }).then(function (d) {
+      if (M.arr !== A) { return; }
+      A.fbusy = false;
+      A.files = arrPick5(d);
+      if (!A.files.length) { A.focusTa = !A.focused; }
+      paintSoon('first');
+    }, function () {
+      if (M.arr !== A) { return; }
+      A.fbusy = false;
+      A.files = [];
+      A.focusTa = !A.focused;
+      paintSoon('first');
+    });
+  }
+  function arrPick5(d) {
+    var l = (isObj(d) && isArr(d.files)) ? d.files : [];
+    var out = [];
+    for (var i = 0; i < l.length && out.length < 5; i++) {
+      var f = l[i];
+      if (!isObj(f) || !RE.g.test(str(f.id)) || isFolder(f) || str(f.mimeType) === MIME_GFOLDER) { continue; }
+      out.push(f);
+    }
+    return out;
+  }
+  function arrPill(t, k) {
+    var p = el('span', 'octo-rail-pill', t);
+    p.setAttribute('data-pill', k);
+    return p;
+  }
+  // Kanit seridi: her hap bir DB alanina bagli; gelmeyen hap cizilmez. Okunma iddiasi tasiyan hap yok.
+  function arrProof(A, d) {
+    var box = el('div', 'octo-rail-pills octo-arr-proof');
+    var ag = isObj(d.agent) ? d.agent : {};
+    if (str(ag.mode)) { box.appendChild(arrPill('Mode ' + str(ag.mode).slice(0, 40), 'mode')); }
+    var cnt = num(d.count);
+    if (cnt !== null && num(d.new_since) !== null) { box.appendChild(arrPill('Records ' + fmtCount(cnt), 'records')); }
+    var lw = isObj(d.last_write) ? d.last_write : null;
+    if (lw && str(lw.tool)) {
+      var r = rel(lw.at);
+      box.appendChild(arrPill('Last write ' + str(lw.tool).slice(0, 60) + (r ? ' ' + r : ''), 'write'));
+    }
+    if (A.src) { box.appendChild(arrPill('Source ' + A.src, 'source')); }
+    return box.firstChild ? box : null;
+  }
+  function arrStatePill(d) {
+    var t = ARR_STATE_PILL[str(d.arrival_state)] || ARR_STATE_PILL[str(M.arr && M.arr.lockState)];
+    return t ? arrPill(t, 'state') : null;
+  }
+  function arrBtn(cls, label, act, icon, fn, busy) {
+    var b = btn(cls, label, null, act);
+    if (busy) { b.appendChild(spin()); } else if (icon) { b.appendChild(octo.icon(icon, 16)); }
+    b.appendChild(el('span', '', label));
+    b.disabled = !!busy;
+    b.addEventListener('click', fn);
+    return b;
+  }
+  PAINT.first = function (sec) {
+    var A = M.arr;
+    if (!A) { return; }
+    var d = isObj(A.resp) ? A.resp : {};
+    var ag = isObj(d.agent) ? d.agent : {};
+    var ph = A.phase;
+    sec.setAttribute('data-phase', ph);
+    var files = (ph === 'note' && isArr(A.files)) ? A.files : [];
+    var fwait = ph === 'note' && (A.fbusy || (d.file_read === true && A.files === null));
+    var title = ARR_TITLE[ph] || ARR_TITLE.looking;
+    if (ph === 'note') { title = fwait ? ARR_TITLE.looking : (files.length ? 'Start from a file' : 'Wake it with a note'); }
+    var skip = btn('is-link octo-arr-skip', 'Not now', 'Not now', 'arr-skip');
+    skip.addEventListener('click', arrSkip);
+    var body = frame(sec, 'first', title, { busy: A.busy > 0 || A.sending || A.fbusy, action: skip, noBody: ph === 'looking' });
+    if (body) {
+      var row = el('div', 'octo-rail-actions is-left');
+      if (ph === 'note') { arrNoteBody(body, A, files); }
+      else if (ph === 'batch') {
+        if (str(ag.source_app)) { body.appendChild(el('div', 'octo-rail-sub', str(ag.source_app))); }
+        if (A.locked || A.noWake) { var sp = arrStatePill(d); if (sp) { row.appendChild(sp); } }
+        else { row.appendChild(arrBtn('is-primary', 'Run on 5 newest', 'arr-batch', 'play', arrBatch, A.sending)); }
+      } else if (ph === 'data') {
+        arrSources(body, d);
+        row.appendChild(arrBtn('is-primary', 'Connect your data', 'arr-connect', 'plug', arrConnect, false));
+        if (canCreate()) { row.appendChild(arrBtn('is-ghost', 'New record', 'arr-new', 'plus', arrNewRec, false)); }
+      } else if (ph === 'listen') {
+        body.appendChild(arrWait());
+        if (ag.note_wake === true && str(ag.source_app) && !A.noWake) {
+          if (A.locked) { var lp = arrStatePill(d); if (lp) { row.appendChild(lp); } }
+          else { row.appendChild(arrBtn('is-ghost', 'Process last 5', 'arr-batch', 'play', arrBatch, A.sending)); }
+        }
+      } else if (ph === 'running') {
+        body.appendChild(arrWait());
+      } else if (ph === 'done') {
+        var fr = isObj(A.first) ? A.first : null;
+        if (fr && str(fr.name)) {
+          var it = D.createElement('button');
+          it.type = 'button';
+          it.className = 'octo-rail-item is-btn';
+          it.setAttribute('data-act', 'arr-first');
+          it.appendChild(octo.icon('check', 16));
+          it.appendChild(el('span', 'octo-rail-item-name', str(fr.name).slice(0, 80)));
+          var ago = rel(fr.created);
+          if (ago) { it.appendChild(el('span', 'octo-rail-time', ago)); }
+          it.addEventListener('click', arrOpenTable);
+          body.appendChild(it);
+        }
+        if (A.dom && canCreate()) { row.appendChild(arrBtn('is-ghost', 'New record', 'arr-new', 'plus', newRecord, false)); }
+        row.appendChild(arrBtn('is-primary', 'Open table', 'arr-open', 'table', arrOpenTable, false));
+      } else if (ph === 'empty') {
+        row.appendChild(arrBtn('is-primary', 'Try again', 'arr-retry', 'refresh', arrRetry, false));
+      } else if (ph === 'error') {
+        body.appendChild(errRow(arrRetry, 'Retry'));
+      }
+      if (row.firstChild) { body.appendChild(row); }
+      if (ph !== 'error') { var pr = arrProof(A, d); if (pr) { body.appendChild(pr); } }
+    }
+    arrFocus();
+  };
+  function arrWait() {
+    var w = el('div', 'octo-arr-wait');
+    w.setAttribute('aria-hidden', 'true');
+    return w;
+  }
+  function arrSources(body, d) {
+    var l = isArr(d.sources) ? d.sources : [];
+    var box = el('div', 'octo-rail-list');
+    for (var i = 0; i < l.length && i < 5; i++) {
+      var s = l[i];
+      if (!isObj(s) || !str(s.name)) { continue; }
+      var it = el('div', 'octo-rail-item');
+      it.setAttribute('data-src', str(s.kind));
+      it.appendChild(octo.icon(str(s.kind) === 'sheet' ? 'sheet' : 'table', 16));
+      it.appendChild(el('span', 'octo-rail-item-name', str(s.name).slice(0, 80)));
+      // Know kostuysa satir sayisi os_ds_status cevabindan (Data karti ile ayni kaynak).
+      var e = RE.ds.test(str(s.id)) ? dsEntry(str(s.id)) : null;
+      var rc = e ? num(e.row_count) : null;
+      if (rc !== null) { it.appendChild(el('span', 'octo-rail-time', plural(rc, 'row', 'rows').replace(/^\d+/, fmtCount(rc)))); }
+      box.appendChild(it);
+    }
+    if (box.firstChild) { body.appendChild(box); }
+  }
+  function arrNoteBody(body, A, files) {
+    if (files.length) {
+      var ul = el('ul', 'octo-arr-files');
+      for (var i = 0; i < files.length; i++) {
+        var f = files[i];
+        var li = el('li', 'octo-arr-file');
+        li.setAttribute('data-file', str(f.id));
+        li.appendChild(octo.icon(KIND_ICON[str(f.kind)] || 'file', 16));
+        li.appendChild(el('span', 'octo-rail-item-name', str(f.name)));
+        var r = rel(f.modified);
+        if (r) { li.appendChild(el('span', 'octo-rail-time', r)); }
+        var sb = btn('is-ghost', 'Start', 'Start', 'arr-start');
+        sb.disabled = A.sending;
+        sb.addEventListener('click', (function (x) { return function () { arrPickFile(x); }; })(f));
+        li.appendChild(sb);
+        ul.appendChild(li);
+      }
+      body.appendChild(ul);
+    }
+    var box = el('div', 'octo-rail-note');
+    var ta = D.createElement('textarea');
+    ta.className = 'octo-rail-input';
+    ta.rows = files.length ? 2 : 3;
+    ta.maxLength = ARR_NOTE_MAX;
+    ta.placeholder = 'Write a note';
+    ta.setAttribute('aria-label', 'Write a note');
+    ta.setAttribute('data-k', 'arr-note');
+    ta.value = A.note;
+    ta.disabled = A.sending;
+    var row = el('div', 'octo-rail-actions');
+    var wb = arrBtn(files.length ? 'is-ghost' : 'is-primary', 'Wake', 'arr-wake', 'play', function () { arrWake(ta.value, ''); }, A.sending);
+    function sync() { wb.disabled = A.sending || !ta.value.trim(); }
+    ta.addEventListener('input', function () { A.note = ta.value; sync(); });
+    sync();
+    row.appendChild(wb);
+    box.appendChild(ta);
+    box.appendChild(row);
+    body.appendChild(box);
+    if (!files.length && !A.fbusy && !A.focused) { A.focusTa = true; }
+  }
+  // Ilk cizimde kart odaga gelir (telefonda alt sayfa); dosya yoksa not alani odaklanir.
+  function arrFocus() {
+    var A = M.arr;
+    if (!A || (!A.focus && !A.focusTa)) { return; }
+    var card = A.focus, ta = A.focusTa;
+    A.focus = false;
+    if (ta) { A.focusTa = false; A.focused = true; }
+    batch(function () {
+      if (M.arr !== A || !arrVisible()) { return; }
+      if (card) { focusCard('first'); }
+      if (ta) {
+        batch(function () {
+          var s = M.secs.first;
+          var n = s && s.querySelector('[data-k="arr-note"]');
+          if (n) { focusNode(n); }
+        });
+      }
+    });
+  }
+  function arrDiag() {
+    var A = M.arr || {};
+    var d = isObj(A.resp) ? A.resp : {};
+    return {
+      phase: tok(A.phase), arrival: tok(d.arrival), aid: idOk(A.aid) ? str(A.aid) : '', count: num(d.count),
+      new_since: num(d.new_since), tries: A.tries || 0, claimed: d.claimed === true, state: tok(d.arrival_state), file_read: d.file_read === true
+    };
+  }
+  // ---- arrival end
+
   // ============================================ os3t3 ilk kurulum (YALNIZ test linki: ?octo_onb=1)
   // Kurucu (28.09): "beni baglanti akisina sok, workspace kurulumundan sonra ilk ajanimi olustur; yalniz bu
   // test linkiyle calissin". ?octo_onb=1 sekme oturumu boyunca bayrak yazar (OAuth ve Bubble yenilemesi
@@ -52910,15 +53643,16 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   var ONB_KEY = 'octo_onb';
   var ONB_APPS = [['drive', 'googledrive', 'Drive'], ['calendar', 'googlecalendar', 'Calendar'], ['sheet', 'googlesheets', 'Sheets'], ['notes', 'googledocs', 'Docs'], ['tasks', 'googletasks', 'Tasks']];
   var ONB_ANS = { drive: 'create', calendar: 'new', sheet: 'new', notes: 'create', tasks: 'create' };
-  var ONB_STEPS = [['connect', 'Connect', 'plug'], ['workspace', 'Workspace', 'grid'], ['agent', 'First agent', 'chat']];
+  // os4 1d: Know adimi Workspace ile First agent arasinda (Connect, Workspace, Know, First agent, All set).
+  var ONB_STEPS = [['connect', 'Connect', 'plug'], ['workspace', 'Workspace', 'grid'], ['know', 'Know', 'sheet'], ['agent', 'First agent', 'chat']];
   var ONB_AGENT_MS = 150000;
   function onbRead() {
     var q = railQuery();
     if (/[?&]octo_onb=1(&|#|$)/.test(q)) { ssSet(ONB_KEY, '1'); }
     else if (/[?&]octo_onb=0(&|#|$)/.test(q)) { ssDel(ONB_KEY); }
     M.onbOn = ssGet(ONB_KEY) === '1';
-    if (M.onbOn && !M.onb) { M.onb = { skip: {}, s: null, agent: '', code: '', openedKey: '', timer: null }; }
-    if (!M.onbOn) { M.onb = null; }
+    if (M.onbOn && !M.onb) { M.onb = { skip: {}, s: null, agent: '', code: '', openedKey: '', timer: null, kn: null }; }
+    if (!M.onbOn) { if (M.onb && M.onb.kn) { knowFree(M.onb.kn); } M.onb = null; }
     return M.onbOn;
   }
   function onbAppState(a) {
@@ -52933,6 +53667,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (!d || !railOk()) { return 'wait'; }
     for (var i = 0; i < ONB_APPS.length; i++) { var st = onbAppState(ONB_APPS[i]); if (st === 'todo' || st === 'run') { return 'connect'; } }
     if (!setupDone()) { return 'workspace'; }
+    if (knowOpen()) { return 'know'; }
     if (!d.agent) { return 'agent'; }
     return 'done';
   }
@@ -52974,7 +53709,9 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   function panelOnb() {
     var step = onbStep();
     var O = M.onb || {};
-    var sig = 'onb|' + step + '|' + onbSig(step, O);
+    // Know: Gaia oneriyi kendisi ister (os_ds_link); kisiye Use ya da Skip kalir.
+    if (step === 'know' && M.onb && !M.onb.kn && knowGate() === 'go') { knowStart(); }
+    var sig = 'onb|' + step + '|' + onbSig(step, O) + '|' + knowSig();
     if (M.panelSig === sig) { return; }
     keepFocus(M.parts.panel, function () {
       var keep = panelReset('onb', sig);
@@ -52986,6 +53723,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       if (step === 'wait') { card.appendChild(spin()); }
       else if (step === 'connect') { onbConnect(card); }
       else if (step === 'workspace') { onbWorkspace(card); }
+      else if (step === 'know') { onbKnow(card); }
       else if (step === 'agent') { onbAgentCard(card); }
       else { onbDone(card); }
       box.appendChild(card);
@@ -53004,13 +53742,16 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   }
   function onbSteps(step) {
     var row = el('ol', 'octo-onb-steps');
-    var idx = { wait: 0, connect: 0, workspace: 1, agent: 2, done: 3 }[step];
+    var idx = { wait: 0, connect: 0, workspace: 1, know: 2, agent: 3, done: 4 }[step];
     for (var i = 0; i < ONB_STEPS.length; i++) {
       var li = el('li', 'octo-onb-step');
-      li.setAttribute('data-state', i < idx ? 'done' : (i === idx ? 'now' : 'todo'));
+      li.setAttribute('data-step', ONB_STEPS[i][0]);
+      // Atlanan Know (aday yok, xlsx, Skip) gecildi ama tamamlandi sayilmaz.
+      var sk = i < idx && ONB_STEPS[i][0] === 'know' && knowSkipped();
+      li.setAttribute('data-state', sk ? 'skip' : (i < idx ? 'done' : (i === idx ? 'now' : 'todo')));
       if (i === idx) { li.setAttribute('aria-current', 'step'); }
       var dot = el('span', 'octo-onb-dot');
-      dot.appendChild(octo.icon(i < idx ? 'check' : ONB_STEPS[i][2], 14));
+      dot.appendChild(octo.icon(i < idx && !sk ? 'check' : ONB_STEPS[i][2], 14));
       li.appendChild(dot);
       li.appendChild(el('span', 'octo-onb-step-t', ONB_STEPS[i][1]));
       row.appendChild(li);
@@ -53135,6 +53876,205 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     }, function () { s.busy = false; paintSoon('tabs'); });
   }
 
+  // ---- know (onb)
+  // os4 1d (OCTO_PRODUCTS_SPEC 4.1b, salt okur): Workspace'ten sonra Gaia workspace verisini kendisi okur. Aday kaynak
+  // links.sheet, yoksa links.data[0]. Aday yoksa, xlsx ise (sunucuda ayristirici yok), veri modulu ya da Postgres yoksa
+  // adim atlanir; workspace'te durumu okunmus bir veri kumesi varsa veri zaten bilinir, adim gecilir. Kurulum adimi 8-9
+  // cagrilari aynen kullanilir: linkData (os_ds_link oneri), startIngest (os_ds_ingest), dsTick (os_ds_status yoklamasi),
+  // loadPlan (os_ds_run plan, yalniz kayitli kural varsa). Gosterim yalniz DB'den; apply, links yazimi, wake YOK.
+  // Aday sirasi: kisinin kendi Sheet'i (links.sheet, Gaia acmadiysa), sonra links.data[0], en son Gaia'nin actigi
+  // workspace Sheet'i (onb Workspace adiminda yeni ve bos acilir; okunamazsa adim atlanir).
+  function knowCand() {
+    var dl = dsList();
+    var sh = linkOf('sheet');
+    var shc = null;
+    if (sh) {
+      var hit = null;
+      for (var i = 0; i < dl.length; i++) { if (str(dl[i].spreadsheet_id) === str(sh.id)) { hit = dl[i]; } }
+      shc = { kind: hit ? str(hit.kind) : 'gsheet', id: str(sh.id), name: str(sh.name), ds: hit };
+      if (sh.created_by_gaia !== true) { return shc; }
+    }
+    if (dl.length) { return { kind: str(dl[0].kind), id: str(dl[0].spreadsheet_id), name: str(dl[0].name), ds: dl[0] }; }
+    return shc;
+  }
+  function knowXlsx(c) { return c.kind === 'xlsx' || /\.xlsx?$/i.test(c.name); }
+  function knowKnown() {
+    var dl = dsList();
+    for (var i = 0; i < dl.length; i++) {
+      var e = dsEntry(str(dl[i].id));
+      if (e && (e.status === 'ready' || e.status === 'evicted')) { return true; }
+    }
+    return false;
+  }
+  // skip: aday yok ya da okunamaz | known: veri zaten okunmus | wait: durum okunuyor | go: Gaia oneriyi ister
+  function knowGate() {
+    var c = knowCand();
+    if (!c || knowXlsx(c) || !dataOk() || M.ds.unavailable) { return 'skip'; }
+    if (knowKnown()) { return 'known'; }
+    if (dsList().length && !M.ds.loaded && !M.ds.err) { return 'wait'; }
+    return 'go';
+  }
+  function knowOpen() {
+    var K = M.onb && M.onb.kn;
+    if (K) { return K.phase !== 'done' && K.phase !== 'skip'; }
+    var g = knowGate();
+    return g === 'go' || g === 'wait';
+  }
+  function knowSkipped() {
+    var K = M.onb && M.onb.kn;
+    return K ? K.phase === 'skip' : knowGate() === 'skip';
+  }
+  function knowSig() {
+    var K = M.onb && M.onb.kn;
+    if (!K) { return 'k0:' + (M.ds.loaded ? 1 : 0) + (M.ds.err ? 1 : 0); }
+    var s = K.s, dd = s.data;
+    var e = dsEntry(s.dsId) || {}, j = isObj(e.job) ? e.job : {}, ps = M.plan[s.dsId] || {};
+    return ['k', K.phase, dd.busy ? 1 : 0, dd.err, dd.ds ? str(dd.ds.id) : '', dd.ingest, str(e.status), str(e.row_count), str(e.name),
+      str(e.tab), str(j.status), M.dsPoll ? 1 : 0, ps.busy ? 1 : 0, str(ps.err), ps.d ? 1 : 0].join(':');
+  }
+  // Kurulum nesnesi rayda cizilmez (open false, setupRail false); linkData ayni nesneyle calisir (M.setup === s).
+  // Use'tan once hicbir istek ve yazim yok: aday adi links'ten (DB) gosterilir. Use = onay; os_ds_link (tek links
+  // yazimi, mevcut L2 yol) ancak Use'tan sonra, aday zaten bir veri kumesiyse hic cagrilmaz. Skip = 0 istek.
+  function knowStart() {
+    var O = M.onb;
+    if (!O || O.kn || knowGate() !== 'go') { return; }
+    var c = knowCand();
+    var s = newSetup(8, 'data');
+    s.open = false;
+    s.data.mode = 'gsheet';
+    s.data.src = { kind: 'gsheet', id: c.id, name: c.name };
+    if (c.ds) {
+      s.data.ds = { id: str(c.ds.id), name: str(c.ds.name), tab: str(c.ds.tab), header_row: c.ds.header_row, key_col: str(c.ds.key_col) };
+      s.dsId = str(c.ds.id);
+    }
+    O.kn = { phase: 'offer', s: s, known: !!c.ds, name: c.name };
+    M.setup = s;
+    M.setupRail = false;
+  }
+  function knowLink(K) {
+    K.phase = 'link';
+    paintSoon('tabs');
+    linkData(K.s, false).then(function (okd) {
+      if (!M.onb || M.onb.kn !== K) { return; }
+      if (okd) { knowIngest(K); return; }
+      // Baslik satiri olmayan (bos) Sheet okunamaz: adim atlanir, akis durmaz.
+      if (!K.s.data.err || K.s.data.err === 'bad_request') { knowEnd(K, 'skip'); return; }
+      paintSoon('tabs');
+    });
+  }
+  function knowIngest(K) {
+    K.phase = 'ingest';
+    paintSoon('tabs');
+    startIngest(K.s).then(function () { paintSoon('tabs'); });
+  }
+  function knowUse(K) {
+    if (K.phase === 'offer') { if (K.known) { knowIngest(K); } else { knowLink(K); } return; }
+    if (K.phase === 'ingest') { knowIngest(K); }
+  }
+  function knowFree(K) { if (K && M.setup === K.s) { M.setup = null; } }
+  function knowEnd(K, phase) {
+    K.phase = phase;
+    knowFree(K);
+    paintSoon('tabs');
+  }
+  function knowPill(k, t) {
+    var p = el('span', 'octo-rail-pill', t);
+    p.setAttribute('data-pill', k);
+    return p;
+  }
+  function knowNav(K, main) {
+    var nav = el('div', 'octo-rail-nav');
+    nav.appendChild(el('span', 'octo-rail-grow'));
+    var sk = btn('is-ghost', 'Skip', 'Skip', 'know-skip');
+    sk.addEventListener('click', function () { knowEnd(K, 'skip'); });
+    nav.appendChild(sk);
+    if (main) { nav.appendChild(main); }
+    return nav;
+  }
+  function onbKnow(card) {
+    var K = M.onb && M.onb.kn;
+    onbHead(card, 'sheet', 'Know your data');
+    card.setAttribute('data-k', 'know');
+    if (!K) { card.appendChild(spin()); return; }
+    card.setAttribute('data-phase', K.phase);
+    var s = K.s, dd = s.data;
+    if (K.phase === 'offer') {
+      // Aday adi links'ten (DB); istek yok. Use onaydir, soru degil.
+      var box = el('div', 'octo-onb-agent');
+      box.setAttribute('data-k', 'know-offer');
+      if (str(K.name)) { box.appendChild(el('div', 'octo-onb-agent-name', str(K.name))); }
+      card.appendChild(box);
+      var use = btn('is-primary', 'Use', 'Use', 'know-use');
+      use.addEventListener('click', function () { knowUse(K); });
+      card.appendChild(knowNav(K, use));
+      return;
+    }
+    if (K.phase === 'link') {
+      if (dd.err) { card.appendChild(errRow(function () { knowLink(K); })); }
+      else { card.appendChild(spin()); }
+      card.appendChild(knowNav(K, null));
+      return;
+    }
+    // Oneri os_ds_link cevabindan (ya da bagli kumenin links kaydindan): sekme, baslik satiri, anahtar sutunu.
+    var ds = dd.ds || {};
+    function shape(all) {
+      var pl = el('div', 'octo-rail-pills');
+      if (str(ds.tab)) { pl.appendChild(knowPill('tab', 'Tab ' + str(ds.tab))); }
+      if (all && num(ds.header_row) !== null) { pl.appendChild(knowPill('header', 'Header row ' + ds.header_row)); }
+      if (all && str(ds.key_col)) { pl.appendChild(knowPill('key', 'Key ' + str(ds.key_col))); }
+      return pl.firstChild ? pl : null;
+    }
+    // ingest: satirlar yalniz os_ds_status cevabindan (M.ds, mergeDs); cevap yoksa cizilmez.
+    var id = s.dsId;
+    var e = dsEntry(id);
+    var job = e && isObj(e.job) ? e.job : null;
+    var running = !!job && job.status === 'running';
+    var bad = dd.ingest === 'error' || !!(e && e.status === 'error') || !!(job && (job.status === 'error' || job.status === 'stale'));
+    var ready = !!e && e.status === 'ready' && !running && dd.ingest !== 'busy';
+    if (!ready) {
+      if (bad || (!M.dsPoll && dd.ingest !== 'busy')) { card.appendChild(errRow(function () { knowUse(K); })); }
+      else {
+        var sg = shape(true);
+        if (sg) { sg.setAttribute('data-k', 'know-sugg'); card.appendChild(sg); }
+        card.appendChild(spin());
+      }
+      card.appendChild(knowNav(K, null));
+      return;
+    }
+    var f = el('div', 'octo-onb-agent');
+    f.setAttribute('data-k', 'know-facts');
+    if (str(e.name)) { f.appendChild(el('div', 'octo-onb-agent-name', str(e.name))); }
+    // Sekme: os_ds_status sekme gondermiyorsa os_ds_link cevabindaki (sunucu) sekme.
+    if (str(e.tab)) { var tp = el('div', 'octo-rail-pills'); tp.appendChild(knowPill('tab', 'Tab ' + str(e.tab))); f.appendChild(tp); }
+    else { var tq = shape(false); if (tq) { f.appendChild(tq); } }
+    if (num(e.row_count) !== null) {
+      var rc = el('div', 'octo-rail-big', plural(e.row_count, 'row', 'rows').replace(/^\d+/, fmtCount(e.row_count)));
+      rc.setAttribute('data-k', 'know-rows');
+      f.appendChild(rc);
+    }
+    // Istege bagli onizleme: os_ds_run plan (yazmaz), yalniz sayilar. Kural links'te kayitli degilse cizilmez.
+    var l = dsLink(id);
+    if (l && isObj(l.rule)) {
+      var ps = M.plan[id] || {};
+      if (isObj(ps.d)) { f.appendChild(planNums(ps.d, null)); }
+      else if (ps.busy) { f.appendChild(spin()); }
+      else {
+        var pv = btn('is-link', 'Preview tasks', 'Preview tasks', 'know-plan');
+        pv.addEventListener('click', function () { loadPlan(id); });
+        f.appendChild(pv);
+      }
+      if (!ps.busy && ps.err) { f.appendChild(planErr(id, ps.err)); }
+    }
+    card.appendChild(f);
+    var nav = el('div', 'octo-rail-nav');
+    nav.appendChild(el('span', 'octo-rail-grow'));
+    var go = btn('is-primary', 'Continue', 'Continue', 'know-next');
+    go.addEventListener('click', function () { knowEnd(K, 'done'); });
+    nav.appendChild(go);
+    card.appendChild(nav);
+  }
+  // ---- know end
+
   // 3 First agent: ilk surecin ajani; not ile uyandirilir, nottan tek kayit acar (create_new).
   function onbArgs() {
     var d = data() || {}, f = d.first || {};
@@ -53203,6 +54143,8 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       if (isObj(base)) { for (var k in base) { if (Object.prototype.hasOwnProperty.call(base, k)) { ctx[k] = base[k]; } } }
       ctx.retainLive = false;
       ctx.liveTrigIds = [];
+      // 1a (os4): createTaskBuilder ile ayni; basari ekrani dogru baslik ve dugmeyi bu taslaktan secer.
+      try { W._gaiaDraftOriginalArgs = args; } catch (e0) { /* yut */ }
       var asm = W._gadAssembleToolCallPayload(args, ctx);
       if (!asm || !asm.payload || !isArr(asm.payload.outputlist3)) { throw { code: 'bad_request' }; }
       try { if (typeof W._gadSnapshotPendingCreateTrigIds === 'function') { W._gadSnapshotPendingCreateTrigIds(); } } catch (e1) { /* yut */ }
@@ -53237,12 +54179,16 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   function onbFinish() {
     var O = M.onb;
     if (O && O.timer) { try { clearTimeout(O.timer); } catch (e) {} }
+    if (O && O.kn) { knowFree(O.kn); }
+    // os4: tabloya gecmeden varis karti kurulur (bayrak silinmeden: armedArrival onb bayragini okur).
+    var arr = armedArrival();
+    if (arr) { var ag = data() && data().agent; arrStart(ag && ag.id, 0); }
     ssDel(ONB_KEY);
     M.onbOn = false;
     M.onb = null;
     selectTab('table');
     paintOnbBtn();
-    focusCard('agent');
+    if (!arr || !arrVisible()) { focusCard('agent'); }
   }
 
   // ======================================================= teshis (?rail=debug)
@@ -53283,7 +54229,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     var gx = gxInfo();
     var v = '';
     try { v = tok(String(octo.version).replace(/^octo\s+/i, '').replace(/\s+/g, '_')); } catch (e) { v = ''; }
-    return {
+    var o = {
       v: v,
       ch: gx.ch,
       arch: gx.arch,
@@ -53296,6 +54242,9 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       wait: M.ctxTries || 0,
       tab: (M.mounted && TABS.indexOf(M.tab) >= 0) ? M.tab : ''
     };
+    // os4: varis durumu yalniz bayrak aciksa (bayraksiz anahtar kumesi ayni kalir).
+    if (M.arr || armedArrival()) { o.arrival = arrDiag(); }
+    return o;
   }
   function dbgLines(d) {
     var dash = '-';
@@ -53376,6 +54325,8 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     selectTab: selectTab,
     tabState: tabState,
     previewUrl: previewUrl,
+    arrResolve: arrResolve,
+    linksWrite: linksWrite,
     TABS: TABS,
     setCollapsed: setCollapsed,
     flush: flushFrame,
