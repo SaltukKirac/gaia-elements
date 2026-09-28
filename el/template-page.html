@@ -1445,10 +1445,11 @@ html #gxRail.gxr3 .gx3-burger{display:none}
   // (they get esc()'d at render and go verbatim into FAQPage JSON-LD).
   var MSG_EN={
     loading:'Loading…',
-    browseTitle:'AI Assistants & Agents for every task — Gaia',
-    browseEyebrow:'AI Assistants',
-    browseH1:'A ready-made AI assistant<br>for every business task.',
-    browseSub:'Browse the library, pick a template, and customize it with the AI Architect — no code.',
+    browseTitle:'AI Agent Templates - Ready-to-Use Automations | Gaia',
+    browseMeta:'Hundreds of ready-to-use AI agent templates: each one reads incoming work (email, tickets, forms, sheets), triages or reviews it, and drafts the next step for your approval. Connect your apps and run it in minutes.',
+    browseEyebrow:'AI Agent Templates',
+    browseH1:'Ready-to-use AI agent templates<br>for every business task.',
+    browseSub:'Pick a template, connect your apps, and the agent starts reading, triaging, reviewing and drafting - you decide how much runs on its own.',
     searchPh:'Search by name, category, integration…',searchAria:'Search templates',
     catAria:'Filter by category',integAria:'Filter by integration',
     allCats:'All categories',allIntegs:'All integrations',
@@ -2024,7 +2025,9 @@ html #gxRail.gxr3 .gx3-burger{display:none}
       var h=browseEl&&browseEl.querySelector('.browse-hero .container');if(h)h.insertBefore(n,h.firstChild);
     }catch(e){}
   }
-  var injected=window.__TEMPLATE__||(function(){try{var n=document.getElementById('tmpl-data');return n?JSON.parse(n.textContent||'null'):null;}catch(e){return null;}})();
+  // 28.09: tmpl-data 'b64:' onekiyle base64 gelebilir (fixture metinleri indekslenmesin); duz JSON da desteklenir.
+  function gxDecodeTmpl(t){t=String(t||'').trim();if(!t)return null;if(t.slice(0,4)==='b64:'){var s=atob(t.slice(4));try{return JSON.parse(decodeURIComponent(escape(s)));}catch(e){return JSON.parse(s);}}return JSON.parse(t);}
+  var injected=window.__TEMPLATE__||(function(){try{var n=document.getElementById('tmpl-data');return n?gxDecodeTmpl(n.textContent):null;}catch(e){return null;}})();
   if(injected&&injected.name){
     var _go=function(){render(injected);seo(injected);gxSeoHandoff();armRelated(injected);};
     if(typeof Promise!=='undefined'){Promise.resolve().then(_go);}else{setTimeout(_go,0);}
@@ -2092,6 +2095,10 @@ html #gxRail.gxr3 .gx3-burger{display:none}
   var browseState={query:'',cat:'',integ:'',list:[],page:1};
   function startBrowse(){
     document.title=L.browseTitle;
+    // 28.09 SEO: dizin sayfasi = 'AI agent templates' kategori sayfasi -> aciklama + canonical + CollectionPage schema (browse modunda hicbiri yoktu)
+    try{setMeta('name','description',(L.browseMeta||MSG_EN.browseMeta));setMeta('property','og:title',L.browseTitle);setMeta('property','og:description',(L.browseMeta||MSG_EN.browseMeta));
+      if(!/[?&]/.test(location.search)&&!/noindex/.test((document.querySelector('meta[name=robots]')||{}).content||'')){var _bc=document.querySelector('link[rel=canonical]');if(!_bc){_bc=document.createElement('link');_bc.rel='canonical';document.head.appendChild(_bc);}_bc.href=location.origin+'/templates';}
+      if(!document.getElementById('gxBrowseLd')){var _ld=document.createElement('script');_ld.id='gxBrowseLd';_ld.type='application/ld+json';_ld.textContent=JSON.stringify({'@context':'https://schema.org','@type':'CollectionPage','name':L.browseTitle,'description':(L.browseMeta||MSG_EN.browseMeta),'url':location.origin+'/templates','isPartOf':{'@type':'WebSite','name':'Gaia','url':location.origin}});document.head.appendChild(_ld);}}catch(e){}
     gxTag('page_type','browse');gxTrack('browse_view',{});
     root.innerHTML='';
     browseEl.style.display='';
