@@ -44704,7 +44704,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-29.os4c';
+  var VERSION = 'octo 2026-09-29.os4d';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -48987,6 +48987,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (!c.key) {
       if (M.mounted) { unmount(); }
       onbHint(true);
+      sideSweep();
       if (M.key) { M.gen++; M.key = ''; M.ctx = null; M.handle = null; M.data = null; }
       ctxWait();
       return;
@@ -49372,6 +49373,16 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (M.sideTimer) { try { clearTimeout(M.sideTimer); } catch (e) { /* yut */ } M.sideTimer = null; }
     if (M.side) { try { M.side.removeAttribute(SIDE_ATTR); } catch (e1) { /* yut */ } }
     M.side = null; M.sideOpen = false; M.sideNo = false; M.sideTries = 0;
+    sideSweep();
+  }
+  // Guvence (29.09): ray kurulu degilken belgede gizli menu kalmaz. Bubble ayni sayfada gezinirken dugumu
+  // yeniden kullanabilir; ozniteligi tasiyan her dugum (referansimiz dussa bile) geri acilir.
+  function sideSweep() {
+    var all = null;
+    try { all = D.querySelectorAll('[' + SIDE_ATTR + ']'); } catch (e) { all = null; }
+    if (!all || !all.length) { return; }
+    for (var i = 0; i < all.length; i++) { try { all[i].removeAttribute(SIDE_ATTR); } catch (e1) { /* yut */ } }
+    trace('side:sweep');
   }
   // Tablo yeniden olcsun: TEK pencere resize olayi (onResize debounce'u ayni olayi alir).
   function fireResize() {
