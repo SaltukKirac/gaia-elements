@@ -43782,11 +43782,13 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 /* os5 Home (OCTO_HOME_SPEC 2.3): tablo yokken tam ekran Start yuzeyi, govdede fixed. Panel sinifi token ve
    :is() kurallarini getirir. z: onb cipi 2147482000 < home 2147482500 < debug 2147483000 < auth / deploy 2147483647.
    Tabloya ve ray satirina kural yok; transform / filter / will-change / contain / perspective YOK. */
+/* Kurucu (29.09): yuzey ekrani kaplar, Bubble'in mobil menusu ve cubuklari dahil; yalniz OAuth portali ve GAD ustte kalir. */
+body.octo-home-open { overflow: hidden !important; }
 .octo-tabs-panel.is-home {
   position: fixed;
   inset: 0;
   top: 0;
-  z-index: 2147482500;
+  z-index: 2147483200;
   display: block;
   min-height: 0;
   overflow: auto;
@@ -44780,7 +44782,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-29.os5b';
+  var VERSION = 'octo 2026-09-29.os5c';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -54745,8 +54747,18 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     homeDrop(H, 'node');
     homeDrop(H, 'chip');
     H.body = null;
+    homeLock(false);
     trace('home:off');
     dbgSoon();
+  }
+  // Yuzey acikken arkadaki sayfa (Bubble'in tam ekran mobil menusu dahil) kaydirilmaz; yuzey en ustte durur.
+  function homeLock(on) {
+    try {
+      if (!D.body) { return; }
+      var has = D.body.classList.contains('octo-home-open');
+      if (on && !has) { D.body.classList.add('octo-home-open'); }
+      else if (!on && has) { D.body.classList.remove('octo-home-open'); }
+    } catch (e) { /* yut */ }
   }
   function homeDrop(H, k) {
     var n = H[k];
@@ -54782,7 +54794,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       H.timer = null;
       if (M.home !== H) { return; }
       if (homeBridge()) { trace('home:bridge'); homeStart(H); return; }
-      if (Date.now() - H.bw >= T.homeBridgeWait) { H.req = 'err'; H.code = 'no_request'; trace('home:no_request'); dbgSoon(); paintSoon('home'); return; }
+      if (Date.now() - H.bw >= T.homeBridgeWait) { H.req = 'err'; H.code = 'no_request'; trace('home:no_request'); homeOpen(H); dbgSoon(); paintSoon('home'); return; }
       homeBridgeWait(H);
     }, T.homeBridgeEvery);
   }
@@ -54821,7 +54833,12 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       else if (r.cold && n < 2) {
         H.timer = setTimeout(function () { H.timer = null; if (M.home === H) { homeFetch(H, 2); } }, T.homeRetry);
         return;
-      } else { H.req = 'err'; H.code = r.cold ? 'cold' : ('gate_' + r.code); }
+      } else {
+        H.req = 'err'; H.code = r.cold ? 'cold' : ('gate_' + r.code);
+        // Kurucu (29.09 gece): "ekrani kapla, benim bari gormezden gel". Sunucuya ulasilamazsa bile kullanici
+        // sayfasi bos kalmaz: yuzey acilir, Connect DOM'dan cizilir, Know/Build "Could not load" + Retry.
+        homeOpen(H);
+      }
       trace('home:' + (H.code || 'ok'));
       dbgSoon();
       paintSoon('home');
@@ -55289,8 +55306,9 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     var wc = homeChipWant(H);
     if (wc && !H.chip) { H.chip = homeChip(); D.body.appendChild(H.chip); trace('home:chip'); }
     else if (!wc && H.chip) { homeDrop(H, 'chip'); }
-    if (!H.open) { if (H.node) { homeDrop(H, 'node'); H.body = null; } return; }
+    if (!H.open) { if (H.node) { homeDrop(H, 'node'); H.body = null; } homeLock(false); return; }
     if (!H.node) { D.body.appendChild(homeShell(H)); }
+    homeLock(true);
     var sig = homeSig(H);
     if (sig !== H.sig) {
       H.sig = sig;
