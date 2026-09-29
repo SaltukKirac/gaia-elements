@@ -44780,7 +44780,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-29.os5';
+  var VERSION = 'octo 2026-09-29.os5b';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -49089,13 +49089,16 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       return;
     }
     onbHint(false);
-    homeSync(false);
-    if (c.key !== M.key) { load(c); return; }
+    if (c.key !== M.key) { homeSync(false); load(c); return; }
     if (M.mounted) {
+      homeSync(false);
       if (needsRemount()) { remount('health'); return; }
       if (M.phone !== isPhone()) { batch(layout); }
       return;
     }
+    // os5: adsiz hesap (/app/<kullanici id>): sunucu workspace bulamadi (not_found) -> Home yuzeyi (tablo yok).
+    if (M.nf && homeCtx()) { homeSync(true); if (M.home && M.home.open) { paintSoon('home'); } return; }
+    homeSync(false);
     if ((M.data || M.wsErr) && !M.nf && findWrapper()) { mount(); }
   }
 
@@ -49192,6 +49195,8 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       M.nf = true;
       M.data = null;
       if (M.mounted) { unmount(); }
+      // os5: adsiz hesabin ciplak id adresi workspace degil -> Home yuzeyi (tick karar verir).
+      if (homeCtx()) { kick(0); }
       return;
     }
     if (M.data) { paintSoon('head'); return; }   // bayat veri boyali: yerinde kalir
@@ -54693,6 +54698,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // (workspace_inspect + run_evidence yoklamasi + os_home_know haritasi), Build (create_new koprusu). Veri yalniz
   // sunucudan; sabit kopya kisa. Yeni tablo os_home ile kanitlanir, secimler octo_home_pick ile yeni tabloya devredilir.
   var HOME_RE = /^\/app\/[^\/]+-\d{13}x\d{15,}\/?$/;
+  var HOME_ID_RE = /^\/app\/\d{13}x\d{15,}\/?$/;   // adsiz hesap: slug yok, yalniz kullanici id'si
   var HOME_KNOW = 'octo_home_know';
   var HOME_BUILD = 'octo_home_build';
   var HOME_PICK = 'octo_home_pick';
@@ -54710,7 +54716,11 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (!M.onbOn || !M.onb || !arrDev()) { return false; }
     var u = '';
     try { u = octo.page.urlId() || ''; } catch (e) { u = ''; }
-    return !u && HOME_RE.test(homePath());
+    if (!u) { return HOME_RE.test(homePath()); }
+    // Ciplak kimlik (/app/<kullanici id>, adsiz hesap): sunucu workspace bulamadiysa (not_found) ve
+    // baska baglam (ekran/liste/surec) yoksa bu da kullanici sayfasidir.
+    var c = M.ctx;
+    return !!M.nf && HOME_ID_RE.test(homePath()) && !!c && !c.screen_id && !c.list_id && !c.stage_id;
   }
   function homeNew() {
     return {
@@ -55148,7 +55158,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     B.what = 'fire';
     paintSoon('home');
   }
-  function homeBuilding() { var H = M.home; return !!H && !M.key && H.b.t0 > 0 && H.b.phase !== 'open'; }
+  function homeBuilding() { var H = M.home; return !!H && (!M.key || M.nf) && H.b.t0 > 0 && H.b.phase !== 'open'; }
   // 4.3: ilk T.homeArriveWait beklenir (create asenkron), sonra T.homePoll ile os_home; ad + tarih eslesen sheet.
   function homeArrive() {
     var H = M.home;
