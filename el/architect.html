@@ -44704,7 +44704,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-29.os4b';
+  var VERSION = 'octo 2026-09-29.os4c';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -50811,7 +50811,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // ------------------------------------------------------------ durum
   // ready | unset (kurulu degil) | unlinked (bagli degil) | loading (yalniz ucustaki istek) | error | soon | off
   function tabState(k) {
-    if (k === 'onb') { return M.onbOn ? 'ready' : 'off'; }
+    if (k === 'onb') { return onbNeeded() ? 'ready' : 'off'; }
     if (k === 'table') { return 'ready'; }
     if (k === 'mail' || !RES[k]) { return 'soon'; }
     if (!data()) { return (M.handle && M.handle.busy) ? 'loading' : 'off'; }
@@ -50850,7 +50850,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   }
   function selectTab(k, o) {
     o = o || {};
-    if ((TABS.indexOf(k) < 0 && !(k === 'onb' && M.onbOn && M.parts.onbBtn)) || !M.mounted || !M.parts.tabs) { return false; }
+    if ((TABS.indexOf(k) < 0 && !(k === 'onb' && onbNeeded() && M.parts.onbBtn)) || !M.mounted || !M.parts.tabs) { return false; }
     var st = tabState(k);
     if (st === 'soon' || st === 'off') { return false; }
     if (st === 'loading' && k !== M.tab && !o.force) { return false; }
@@ -52947,6 +52947,13 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
       linksWrite({ data: [{ id: str(tb.dataset_id), task_agent_id: job.aid }] }).then(function () { paintSoon('data'); }, function () {});
     }
     if (setupNeeded()) {
+      // os4c: ajan kuruldu ama kapi gecilmemis -> Start (Sheet, Drive, Calendar) once; varis karti kapi bitince.
+      if (M.onbOn && M.onb && M.mounted) {
+        if (armedArrival()) { M.arrAfterSetup = job; }
+        M.onb.openedKey = M.key;
+        batch(function () { if (M.mounted && onbNeeded()) { selectTab('onb'); } });
+        return;
+      }
       if (M.collapsed) { setCollapsed(false); }
       openSetup(1);
       // os4: kurulum acildiysa varis karti kurulum bitince (finalize / closeSetup) acilir.
@@ -53668,24 +53675,55 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   // 3 ilk surecin ajani: kart gosterilir, Create agent rayin gorev ajani kalibiyla (_gadAssemble +
   // _gadFireToolCallSafe) kurulur; GAD kancasi (octo:agent-created) ajani raya getirir.
   var ONB_KEY = 'octo_onb';
-  var ONB_APPS = [['drive', 'googledrive', 'Drive'], ['calendar', 'googlecalendar', 'Calendar'], ['sheet', 'googlesheets', 'Sheets'], ['notes', 'googledocs', 'Docs'], ['tasks', 'googletasks', 'Tasks']];
-  var ONB_ANS = { drive: 'create', calendar: 'new', sheet: 'new', notes: 'create', tasks: 'create' };
+  // os4c workspace kapisi (kurucu 29.09): isletmenin gecmesi onerilen kapi = Sheet, Drive ve Calendar. Docs, Tasks, Gmail istenmez
+  // (kurulumda None). Kapi varsayilan ACIK: kurulumu tamamlanmamis workspace acilinca (Add table) ya da ajan kurulunca Start
+  // kendiliginden gelir; Not now workspace basina hatirlanir (octo.state onb.dismissed). ?octo_onb=0 kapatir, ?octo_onb=1 zorlar.
+  var ONB_APPS = [['drive', 'googledrive', 'Drive'], ['calendar', 'googlecalendar', 'Calendar'], ['sheet', 'googlesheets', 'Sheets']];
+  var ONB_ANS = { drive: 'create', calendar: 'new', sheet: 'new' };
+  var ONB_DISMISS = 'onb.dismissed';
   // os4 1d: Know adimi Workspace ile First agent arasinda (Connect, Workspace, Know, First agent, All set).
   var ONB_STEPS = [['connect', 'Connect', 'plug'], ['workspace', 'Workspace', 'grid'], ['know', 'Know', 'sheet'], ['agent', 'First agent', 'chat']];
   var ONB_AGENT_MS = 150000;
   function onbRead() {
     var q = railQuery();
     if (/[?&]octo_onb=1(&|#|$)/.test(q)) { ssSet(ONB_KEY, '1'); }
-    else if (/[?&]octo_onb=0(&|#|$)/.test(q)) { ssDel(ONB_KEY); }
-    M.onbOn = ssGet(ONB_KEY) === '1';
+    else if (/[?&]octo_onb=0(&|#|$)/.test(q)) { ssSet(ONB_KEY, '0'); }
+    var v = ssGet(ONB_KEY);
+    M.onbForce = v === '1';
+    M.onbOn = v !== '0';
     if (M.onbOn && !M.onb) { M.onb = { skip: {}, s: null, agent: '', code: '', openedKey: '', timer: null, kn: null }; }
     if (!M.onbOn) { if (M.onb && M.onb.kn) { knowFree(M.onb.kn); } M.onb = null; }
     return M.onbOn;
   }
+  // Kapi bu workspace icin gerekli mi: kurulum bitmemis ya da ilk ajan yok (Start sekmesi gorunur); zorlamada hep.
+  function onbNeeded() {
+    if (!M.onbOn || !M.onb) { return false; }
+    if (M.onbForce) { return true; }
+    var d = data();
+    if (!d || !railOk()) { return false; }
+    return !setupDone() || !d.agent;
+  }
+  function onbDismissed() {
+    if (M.onbForce) { return false; }
+    var m = null;
+    try { m = octo.state.get(ONB_DISMISS, null); } catch (e) { m = null; }
+    return !!(isObj(m) && sheetId() && m[sheetId()]);
+  }
+  function onbDismiss() {
+    var m = null;
+    try { m = octo.state.get(ONB_DISMISS, null); } catch (e) { m = null; }
+    if (!isObj(m)) { m = {}; }
+    if (sheetId()) { m[sheetId()] = 1; }
+    try { octo.state.set(ONB_DISMISS, m); } catch (e1) { /* yut */ }
+    trace('onb:dismiss');
+    selectTab('table');
+    // Ajan kurulduktan sonra kapi ertelendiyse varis karti yine acilir (ilk kayit yolculugu kapiya bagli degil).
+    arrAfterSetup();
+  }
   // os4 test linki: bayrak acik ama sayfada secili tablo yok (kullanici sayfasi /app/<ad>-<id>): ray kurulamaz, akis
   // sessiz kalirdi. T.onbHint sonra altta tek ipucu cipi; baglam gelince (tablo secildi) ya da kapanista kalkar.
   function onbHint(on) {
-    if (!on || !M.onbOn || !M.armed) {
+    if (!on || !M.onbForce || !M.armed) {
       if (M.hintTimer) { try { clearTimeout(M.hintTimer); } catch (e) { /* yut */ } M.hintTimer = null; }
       if (M.hintNode && M.hintNode.parentNode) { try { M.hintNode.parentNode.removeChild(M.hintNode); } catch (e1) { /* yut */ } }
       M.hintNode = null;
@@ -53694,7 +53732,7 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     if (M.hintNode || M.hintTimer) { return; }
     M.hintTimer = setTimeout(function () {
       M.hintTimer = null;
-      if (!M.onbOn || !M.armed || M.key || M.hintNode || !D.body) { return; }
+      if (!M.onbForce || !M.armed || M.key || M.hintNode || !D.body) { return; }
       var n = el('div', 'octo-onb-hint');
       n.id = 'octo-onb-hint';
       n.setAttribute('role', 'status');
@@ -53727,7 +53765,9 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     var O = M.onb;
     if (!M.onbOn || !O || !M.mounted || !railOk() || O.openedKey === M.key) { return; }
     O.openedKey = M.key;
-    batch(function () { if (M.onbOn && M.mounted) { selectTab('onb'); } });
+    // Kendiliginden acilis: zorlama ya da (kurulum bitmemis ve bu workspace icin Not now denmemis).
+    if (!(M.onbForce || (!setupDone() && !onbDismissed()))) { return; }
+    batch(function () { if (M.onbOn && M.mounted && onbNeeded()) { selectTab('onb'); } });
   }
   function onbBtn() {
     var b = D.createElement('button');
@@ -53749,11 +53789,15 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   function paintOnbBtn() {
     var b = M.parts.onbBtn;
     if (!b) { return; }
-    var on = M.onbOn && M.tab === 'onb';
-    if (b.hidden === !!M.onbOn) { b.hidden = !M.onbOn; }
+    var need = onbNeeded();
+    var on = need && M.tab === 'onb';
+    if (b.hidden === need) { b.hidden = !need; }
+    // Gizliyken sekme rolu tasimaz (serit 7 sekme sayimi ve klavye gezintisi degismez).
+    if (need) { if (b.getAttribute('role') !== 'tab') { b.setAttribute('role', 'tab'); } }
+    else if (b.hasAttribute('role')) { b.removeAttribute('role'); }
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.setAttribute('tabindex', on ? '0' : '-1');
-    b.setAttribute('data-step', M.onbOn ? onbStep() : '');
+    b.setAttribute('data-step', need ? onbStep() : '');
   }
 
   // ------------------------------------------------------------ panel
@@ -53767,6 +53811,12 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     keepFocus(M.parts.panel, function () {
       var keep = panelReset('onb', sig);
       barTitle('Get started');
+      // Kapi onerilir, zorunlu degil: Not now bu workspace icin hatirlanir, Start sekmesi kapi gecilene kadar kalir.
+      if (step !== 'done' && !M.onbForce) {
+        var nn = btn('is-link', 'Not now', 'Not now', 'onb-dismiss');
+        nn.addEventListener('click', function () { onbDismiss(); });
+        barAdd(nn);
+      }
       var box = el('div', 'octo-onb');
       box.setAttribute('data-step', step);
       box.appendChild(onbSteps(step));
@@ -54234,9 +54284,10 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
     // os4: tabloya gecmeden varis karti kurulur (bayrak silinmeden: armedArrival onb bayragini okur).
     var arr = armedArrival();
     if (arr) { var ag = data() && data().agent; arrStart(ag && ag.id, 0); }
-    ssDel(ONB_KEY);
-    M.onbOn = false;
-    M.onb = null;
+    // Zorlama bayragi duser; kapi modulu acik kalir (bir sonraki yeni tablo ya da ajan icin), bu workspace yeniden acilmaz.
+    if (ssGet(ONB_KEY) === '1') { ssDel(ONB_KEY); }
+    M.onbForce = false;
+    if (O) { O.skip = {}; O.s = null; O.agent = ''; O.code = ''; O.timer = null; O.kn = null; O.openedKey = M.key; }
     selectTab('table');
     paintOnbBtn();
     if (!arr || !arrVisible()) { focusCard('agent'); }
