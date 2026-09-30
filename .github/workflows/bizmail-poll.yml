@@ -1,0 +1,19 @@
+# Wakes the Gaia agent server and lets it poll the connected business mailboxes (IMAP, octo_bizmail.js).
+# Render's free plan sleeps after 15 idle minutes; this call is what keeps new company mail flowing into runs.
+# Working hours only (06:00-21:00 Turkey time, Monday to Saturday) so the free instance hours of the workspace
+# are not used up; mail that arrives at night is worked through, oldest first, at the first morning call.
+# The endpoint takes no secret: it only polls, and ignores calls closer than one minute apart.
+name: bizmail-poll
+on:
+  schedule:
+    - cron: '*/10 3-17 * * 1-6'
+  workflow_dispatch: {}
+permissions: {}
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: poll business mailboxes
+        run: |
+          curl -sS --max-time 150 https://composio-agent-api.onrender.com/bizmail/tick || true
