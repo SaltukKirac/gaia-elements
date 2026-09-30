@@ -43780,14 +43780,22 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 }
 
 /* os5 Home (OCTO_HOME_SPEC 2.3): tablo yokken tam ekran Start yuzeyi, govdede fixed. Panel sinifi token ve
-   :is() kurallarini getirir. z: onb cipi 2147482000 < home 2147482500 < debug 2147483000 < auth / deploy 2147483647.
+   :is() kurallarini getirir. z sirasi (30.09): onb cipi 2147482000 < debug 2147483000 < Architect kapsayicisi
+   Start acikken 2147483100 < Start 2147483200 < kapsayici Build / baglanti paneli sirasinda ve portale tasinmis
+   OAuth paneli 2147483647. GAD, dagitim ekrani ve baglanti paneli kapsayicinin ICINDEDIR (HTM 3926+).
    Tabloya ve ray satirina kural yok; transform / filter / will-change / contain / perspective YOK. */
-/* Kurucu (29.09): yuzey ekrani kaplar, Bubble'in mobil menusu ve cubuklari dahil; yalniz OAuth portali ve GAD ustte kalir. */
+/* Kurucu (29.09): yuzey ekrani kaplar, Bubble'in mobil menusu ve cubuklari dahil. */
 body.octo-home-open { overflow: hidden !important; }
+/* 30.09 (kurucu: "Start ekrani kaplamiyor"): Architect'in tam ekran sablon modulu #gaia-shell-container icinde
+   (z-index 2147483647 !important) ve Start'in USTUNDE kaliyordu. Start acikken kapsayici bir kademe asagi iner;
+   Build sirasinda (body.octo-home-build) geri cikar ki kapsayicinin icindeki dagitim ilerleme / basari ekrani
+   gorunsun (kullanici oradaki dugmeye basar, sonra yeni tabloya gecilir). */
+body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 2147483100 !important; }
 .octo-tabs-panel.is-home {
   position: fixed;
   inset: 0;
   top: 0;
+  /* Kapsayici (GAD dahil) Start acikken 2147483100'e iner; Build / baglanti paneli sirasinda geri cikar. */
   z-index: 2147483200;
   display: block;
   min-height: 0;
@@ -44782,7 +44790,7 @@ body.octo-home-open { overflow: hidden !important; }
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-30.os5e';
+  var VERSION = 'octo 2026-09-30.os5f';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -48491,7 +48499,9 @@ body.octo-home-open { overflow: hidden !important; }
     homeScanFirst: 3000, homeScanEvery: 2000, homeScanMax: 150000,
     homeArriveWait: 5000, homePoll: 3000, homeArriveMax: 300000, homeKnowTtl: 1800000, homePickTtl: 900000,
     // Kopru gec yuklenirse 250 ms x 10 sn beklenir (octo-core waitBridge butcesi); deploy ekrani acikken yonlendirme en cok 6 dk bekler.
-    homeBridgeEvery: 250, homeBridgeWait: 10000, homeHoldMax: 360000, homeSkew: 600000
+    homeBridgeEvery: 250, homeBridgeWait: 10000, homeHoldMax: 360000, homeSkew: 600000,
+    // Build 'sent' tavani: Architect dagitim bekcisiyle ayni (60 sn); + homeArriveWait sonra arrive yoklamasina gecilir.
+    homeSentMax: 60000
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -54741,7 +54751,7 @@ body.octo-home-open { overflow: hidden !important; }
     return {
       force: M.onbForce === true, open: false, seen: false, dismissed: false, focus: false,
       req: 'idle', code: '', tries: 0, bw: 0, data: null, step: 'connect', empty: false, noBridge: false,
-      node: null, body: null, chip: null, sig: '', timer: null, map: null, args: null,
+      node: null, body: null, chip: null, sig: '', timer: null, authT: null, map: null, args: null,
       kn: { phase: 'idle', ref: '', ts: 0, n: 0, reads: null, map: null, args: null, wm: null, poller: null, retried: false },
       b: { phase: 'idle', what: '', t0: 0, t1: 0, h0: 0, label: '', timer: null, eargs: null, known: null }
     };
@@ -54752,6 +54762,7 @@ body.octo-home-open { overflow: hidden !important; }
     if (!H) { return; }
     M.home = null;
     if (H.timer) { try { clearTimeout(H.timer); } catch (e) { /* yut */ } H.timer = null; }
+    if (H.authT) { try { clearTimeout(H.authT); } catch (e0) { /* yut */ } H.authT = null; }
     if (H.b.timer) { try { clearTimeout(H.b.timer); } catch (e1) { /* yut */ } H.b.timer = null; }
     var P = H.kn.poller;
     H.kn.poller = null;
@@ -54771,7 +54782,50 @@ body.octo-home-open { overflow: hidden !important; }
       var has = D.body.classList.contains('octo-home-open');
       if (on && !has) { D.body.classList.add('octo-home-open'); }
       else if (!on && has) { D.body.classList.remove('octo-home-open'); }
+      if (!on) { D.body.classList.remove('octo-home-build'); }
     } catch (e) { /* yut */ }
+  }
+  // 30.09: Build ateslenince (busy/sent/arrive/open) body.octo-home-build -> Architect kapsayicisi (#gaia-shell-container)
+  // yeniden Start'in ustune cikar; icindeki dagitim ilerleme/basari ekrani gorunur (CSS: app-rail.css, home bolumu).
+  // Ayni sey Connect sirasinda Architect'in baglanti paneli (#gaia-auth-panel) kapsayicinin icinde GERCEKTEN
+  // gorunurken (sinif degil: cizilmis, gizli atasi yok; deployVisible kalibi) ve bir baglanti yoklamasi surerken
+  // (M.conn). Portale tasinmis panel (M.portal) zaten govdede ve ustte: kapsayiciyi kaldirmak gerekmez. Panel
+  // kapanana kadar yarim saniyede bir yeniden bakilir (kapanis Home'u boyamayabilir).
+  function nodeShown(n) {
+    if (!n || !isConn(n)) { return false; }
+    try {
+      var cs = W.getComputedStyle(n);
+      if (cs.display === 'none' || cs.visibility === 'hidden') { return false; }
+      if (!n.getClientRects().length) { return false; }
+      var p = n;
+      while (p && p !== D.body) {
+        if (p.classList && p.classList.contains('is-hidden')) { return false; }
+        p = p.parentNode;
+      }
+    } catch (e) { return false; }
+    return true;
+  }
+  function homeBuildLock(H) {
+    try {
+      if (!D.body || !H || M.home !== H) { return; }
+      var p = H.b ? H.b.phase : '';
+      var on = p === 'busy' || p === 'sent' || p === 'arrive' || p === 'open';
+      var auth = false;
+      if (M.conn && !M.portal) { auth = nodeShown(D.getElementById('gaia-auth-panel')); }
+      if (auth) {
+        on = true;
+        if (!H.authT) { H.authT = setTimeout(function () { H.authT = null; if (M.home === H && H.open) { homeBuildLock(H); } }, 500); }
+      }
+      var has = D.body.classList.contains('octo-home-build');
+      if (on && !has) { D.body.classList.add('octo-home-build'); }
+      else if (!on && has) { D.body.classList.remove('octo-home-build'); }
+    } catch (e) { /* yut */ }
+  }
+  // Build sonrasi Architect'in dagitim katmani: hata / vazgecme yolunda Start'in altinda "Creating your assistant"
+  // kalmasin diye kapatilir (Architect'in kendi kapatma dugmesiyle ayni: is-hidden + bekci zamanlayicisi).
+  function homeDeployHide() {
+    try { var o = D.getElementById('gaia-deploy-overlay'); if (o && o.classList) { o.classList.add('is-hidden'); } } catch (e) { /* yut */ }
+    try { if (W.__gaiaDeployWd) { clearTimeout(W.__gaiaDeployWd); W.__gaiaDeployWd = null; } } catch (e1) { /* yut */ }
   }
   function homeDrop(H, k) {
     var n = H[k];
@@ -54920,7 +54974,7 @@ body.octo-home-open { overflow: hidden !important; }
     homeReq().then(function (r) {
       if (M.conn !== C || M.home !== H) { return; }
       if (r.ok) { homeData(H, r.d); }
-      if (homeConn(C.tk) || C.elapsed >= T.homeConnMax) { stopConn(); portalRestore(); paintSoon('home'); return; }
+      if (homeConn(C.tk) || C.elapsed >= T.homeConnMax) { stopConn(); portalRestore(); homeBuildLock(H); paintSoon('home'); return; }
       C.timer = setTimeout(function () { homePoll(C); }, T.homeConnPoll);
     });
   }
@@ -55170,13 +55224,19 @@ body.octo-home-open { overflow: hidden !important; }
       homePickSave(H);
       var nf = isArr(args.custom_fields) ? args.custom_fields.length : 0;
       try { if (typeof W._gaiaShowDeployProgress === 'function') { W._gaiaShowDeployProgress(args.workspace_label, args.process_name, { fields: nf }); } } catch (e2) { /* yut */ }
-      try { if (typeof W._gaiaArmDeployWatchdog === 'function') { W._gaiaArmDeployWatchdog(60000); } } catch (e3) { /* yut */ }
+      try { if (typeof W._gaiaArmDeployWatchdog === 'function') { W._gaiaArmDeployWatchdog(T.homeSentMax); } } catch (e3) { /* yut */ }
       W._gadFireToolCallSafe(asm.payload, 'home build', { onFail: function () { homeBuildFail(H); } });
       B.phase = 'sent';
+      // Onay kaybolursa (Architect bekcisi "Close and check your workspace later" der, Home'a olay gelmez)
+      // 'sent' sonsuza kalmasin: bekci suresi + ilk bekleme sonra arrive yoklamasina gecilir (tablo olusmus
+      // olabilir; olmadiysa T.homeArriveMax sonunda err + Retry).
+      if (B.timer) { try { clearTimeout(B.timer); } catch (e4) { /* yut */ } }
+      B.timer = setTimeout(function () { B.timer = null; if (M.home === H && B.phase === 'sent') { trace('home:sent_max'); homeArrive(); } }, T.homeSentMax + T.homeArriveWait);
       trace('home:build');
     } catch (err) {
       B.phase = 'err';
       B.what = 'fire';
+      homeDeployHide();
     }
     paintSoon('home');
   }
@@ -55184,8 +55244,10 @@ body.octo-home-open { overflow: hidden !important; }
     if (M.home !== H) { return; }
     var B = H.b;
     if (B.phase !== 'sent' && B.phase !== 'busy') { return; }
+    if (B.timer) { try { clearTimeout(B.timer); } catch (e) { /* yut */ } B.timer = null; }
     B.phase = 'err';
     B.what = 'fire';
+    homeDeployHide();
     paintSoon('home');
   }
   function homeBuilding() { var H = M.home; return !!H && (!M.key || !M.data) && H.b.t0 > 0 && H.b.phase !== 'open'; }
@@ -55324,6 +55386,7 @@ body.octo-home-open { overflow: hidden !important; }
     if (!H.open) { if (H.node) { homeDrop(H, 'node'); H.body = null; } homeLock(false); return; }
     if (!H.node) { D.body.appendChild(homeShell(H)); }
     homeLock(true);
+    homeBuildLock(H);
     var sig = homeSig(H);
     if (sig !== H.sig) {
       H.sig = sig;
