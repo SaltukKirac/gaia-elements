@@ -5227,9 +5227,142 @@
     // tanımlı değil) → "index sayfası açıldı ama hiçbir şey olmadı" bug'ı. Burada
     // featured deep-link'i AYNALIYORUZ: katalog + gaiaUseTmpl hazır olunca mevcut
     // "custom" akışını (gaiaUseTmpl(id,'custom')) tetikliyoruz — Bubble WF gerektirmez.
-    (function _templateDeepLink(){
-      var tid;
-      try { tid = new URLSearchParams(location.search).get('use_template'); } catch(e){ return; }
+    // os6 T7 dev test switch: only on the dev channel (loader __gxEl.channel 'dev') ?octo_kv2=1 turns the flagship
+    // know_v2 ending on for this tab (sessionStorage gx_kv2, survives OAuth / Bubble reloads), ?octo_kv2=0 clears it.
+    // Main never writes or reads it; the card flag activation.know_v2 stays the real switch (K2).
+    (function _gadKnowV2DevFlag(){
+      try {
+        var g = window.__gxEl; if (!(g && typeof g === 'object' && g.channel === 'dev')) return;
+        var q = String(location.search || '');
+        if (/[?&]octo_kv2=1(&|#|$)/.test(q)) sessionStorage.setItem('gx_kv2', '1');
+        else if (/[?&]octo_kv2=0(&|#|$)/.test(q)) sessionStorage.removeItem('gx_kv2');
+      } catch(_e){}
+    })();
+    // os6 (BUILD_PLAN 0.c / 3.5.2): gx_use_pending bridge. The template page writes the setup intent to storage
+    // (Bubble's login round trip may drop the query). URL params win; else sessionStorage; else localStorage (no URL
+    // intent, 30 min). Every field is validated; a bad, stale, foreign or done record is dropped from both storages.
+    // Single fire: nonce ledger gx_use_done (last 20, both storages). A template / featured intent waits for the
+    // login flag (AS SNP data-logged): 'no' keeps the record, 'yes' or 20 polls of 250 ms fire it (fail open).
+    (function _gxUsePendingBridge(){
+      var KEY = 'gx_use_pending', DONE = 'gx_use_done', FKEY = 'gx_flagship_pending', TTL = 1800000;
+      var ID_RX = /^[A-Za-z0-9_-]{1,80}$/, N_RX = /^[A-Za-z0-9_-]{4,40}$/;
+      var env = /^\/version-test(\/|$)/.test(location.pathname) ? 'test' : 'live';
+      var S = null, L = null;
+      try { S = window.sessionStorage; } catch(e){ S = null; }
+      try { L = window.localStorage; } catch(e){ L = null; }
+      // undefined = no record; false = a record that does not parse; else the parsed value
+      function rd(st){
+        var raw = null;
+        try { raw = st ? st.getItem(KEY) : null; } catch(e){ raw = null; }
+        if (!raw) return undefined;
+        try { return JSON.parse(raw); } catch(e){ return false; }
+      }
+      function clr(){
+        try { if (S) S.removeItem(KEY); } catch(e){}
+        try { if (L) L.removeItem(KEY); } catch(e){}
+      }
+      function valid(p){
+        if (!p || typeof p !== 'object' || p.v !== 1) return false;
+        if (['template', 'featured', 'flagship'].indexOf(p.kind) < 0) return false;
+        if (typeof p.id !== 'string' || !ID_RX.test(p.id)) return false;
+        if (['use', 'preview'].indexOf(p.intent) < 0) return false;
+        if (typeof p.ts !== 'number' || !isFinite(p.ts)) return false;
+        var now = Date.now();
+        if (now - p.ts >= TTL || p.ts - now > 60000) return false;
+        if (typeof p.n !== 'string' || !N_RX.test(p.n)) return false;
+        if (p.env !== env) return false;
+        p.slug = String(p.slug == null ? '' : p.slug).slice(0, 80);
+        p.fname = String(p.fname == null ? '' : p.fname).slice(0, 120);
+        return true;
+      }
+      function done(){
+        var out = [], seen = {};
+        [S, L].forEach(function(st){
+          var a = null;
+          try { a = JSON.parse((st && st.getItem(DONE)) || '[]'); } catch(e){ a = null; }
+          if (!Array.isArray(a)) return;
+          a.forEach(function(x){ if (x && typeof x.n === 'string' && !seen[x.n]) { seen[x.n] = 1; out.push({ n: x.n, ts: Number(x.ts) || 0 }); } });
+        });
+        out.sort(function(a, b){ return a.ts - b.ts; });
+        return out;
+      }
+      function isDone(n){ return !!n && done().some(function(x){ return x.n === n; }); }
+      function mark(n){
+        if (typeof n !== 'string' || !N_RX.test(n)) return;
+        var a = done().filter(function(x){ return x.n !== n; });
+        a.push({ n: n, ts: Date.now() });
+        var raw = JSON.stringify(a.slice(-20));
+        try { if (S) S.setItem(DONE, raw); } catch(e){}
+        try { if (L) L.setItem(DONE, raw); } catch(e){}
+      }
+      function track(kind){ try { if (typeof gxaTrack === 'function') gxaTrack('use_pending_consumed', { kind: kind, source: 'storage' }); } catch(e){} }
+      try {
+        var qp = null;
+        try { qp = new URLSearchParams(location.search); } catch(e){ return; }
+        var uT = qp.get('use_template'), uF = qp.get('use_featured'), uFl = qp.get('use_flagship');
+        if (uT || uF || uFl) {
+          // 1) URL first. The nonce is gxu (template, featured) or fid (flagship). A done nonce = a reload of a link that
+          //    already fired: the params are stripped and nothing starts from the URL; the storage record (fresh nonce
+          //    written by the Sign in mirror) may still fire below. A new nonce is marked and the URL fires as today.
+          var fl = !(uT || uF);
+          var u = fl ? (qp.get('fid') || '') : (qp.get('gxu') || '');
+          if (!(u && N_RX.test(u) && isDone(u))) { if (u) mark(u); clr(); return; }
+          try {
+            var cu = new URL(location.href);
+            (fl ? ['use_flagship', 'fid', 'intent', 'instant'] : ['use_template', 'use_featured', 'fname', 'gxu']).forEach(function(k){ cu.searchParams.delete(k); });
+            history.replaceState(history.state, document.title, cu.pathname + (cu.search || '') + (cu.hash || ''));
+          } catch(e){}
+          window._gxUseUrlDone = true;
+        }
+        // 2) sessionStorage, then 3) localStorage (no URL intent is left at this point)
+        var p = rd(S);
+        if (p === undefined) p = rd(L);
+        if (p === undefined) {
+          // legacy fallback: a flagship intent kept only in localStorage (a signup that finished in a new tab)
+          try {
+            var lr = L ? L.getItem(FKEY) : null;
+            if (lr) {
+              var lp = null; try { lp = JSON.parse(lr); } catch(e){ lp = null; }
+              var fresh = !!(lp && typeof lp.slug === 'string' && ID_RX.test(lp.slug) && typeof lp.ts === 'number' && (Date.now() - lp.ts) < TTL);
+              var lfid = (lp && typeof lp.fid === 'string') ? lp.fid : '';
+              if (fresh && !(lfid && isDone(lfid))) {
+                if (S && !S.getItem(FKEY)) S.setItem(FKEY, lr);
+                if (lfid) mark(lfid);
+              }
+              L.removeItem(FKEY);
+            }
+          } catch(e){}
+          return;
+        }
+        if (!valid(p) || isDone(p.n)) { clr(); return; }
+        if (p.kind === 'flagship') {
+          // _flagshipDeepLink (same script, later) reads gx_flagship_pending from sessionStorage synchronously
+          try { if (S && !S.getItem(FKEY)) S.setItem(FKEY, JSON.stringify({ slug: p.id, instant: false, intent: 'preview', ts: p.ts })); } catch(e){}
+          try { if (L) L.removeItem(FKEY); } catch(e){}
+          mark(p.n); clr(); track(p.kind);
+          return;
+        }
+        var polls = 0;
+        var iv = setInterval(function(){
+          polls++;
+          var st = '';
+          try { st = (typeof window._gadLoginState === 'function') ? String(window._gadLoginState() || '') : ''; } catch(e){ st = ''; }
+          if (st === 'no') { clearInterval(iv); return; }   // kept for the trip through /login
+          if (st !== 'yes' && polls < 20) return;
+          clearInterval(iv);
+          if (isDone(p.n)) { clr(); return; }
+          mark(p.n); clr();
+          try {
+            if (p.kind === 'featured') window._gxStartFeaturedDeepLink(p.id, p.fname);
+            else window._gxStartTemplateDeepLink(p.id);
+          } catch(e){}
+          track(p.kind);
+        }, 250);
+      } catch(e){}
+    })();
+
+    // os6 (BUILD_PLAN 3.5.1): the start logic is shared with the bridge above (storage intent after login).
+    window._gxStartTemplateDeepLink = function(tid){
       if (!tid) return;
       var started = false;
       function start(t){
@@ -5254,6 +5387,13 @@
             .catch(function(e){ console.error('[TMPL] deep-link fallback fetch hatası:', e && e.message); });
         }
       }, 250);
+    };
+    (function _templateDeepLink(){
+      var tid;
+      try { tid = new URLSearchParams(location.search).get('use_template'); } catch(e){ return; }
+      if (!tid) return;
+      if (window._gxUseUrlDone === true) return;   // os6: a reload of an already fired use link starts nothing
+      window._gxStartTemplateDeepLink(tid);
     })();
 
     // Template seçildiğinde chat panelinde kısa bir "taslak var" illüzyonu
@@ -17334,6 +17474,66 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     }
     window._gadLoginState = _gadLoginState;
 
+    // os6 (BUILD_PLAN 0.d / 0.f): true while a flagship / template setup, GAD or the create progress screen is in front.
+    // The rail (Home) reads it to bring the shell container back above Start. Pure DOM probe; false on any error.
+    function _gadSetupFront() {
+      try {
+        var shown = function (n) {
+          if (!n || !n.isConnected) return false;
+          var cs = window.getComputedStyle(n);
+          if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+          if (!n.getClientRects().length) return false;
+          for (var p = n; p && p !== document.body; p = p.parentNode) {
+            if (p.classList && p.classList.contains('is-hidden')) return false;
+          }
+          return true;
+        };
+        if (document.getElementById('gaia-flagship-activate')) return true;
+        if (shown(document.getElementById('gaia-deploy-overlay'))) return true;
+        var gad = document.getElementById('gaia-agent-dashboard');
+        if (gad && gad.classList.contains('is-open') && shown(gad)) return true;
+        // The module on its Templates tab is Bubble's onboarding (gaiaTriggerOnboarding), not a setup: Start stays
+        // on top of it (30.09 founder fix, app-rail.css). Any other tab (a template / featured chat) is a setup.
+        if (shown(document.getElementById('gaia-automation-module')) && !shown(document.getElementById('gaia-panel-templates'))) return true;
+        if (shown(document.getElementById('gaia-auth-panel'))) return true;
+      } catch (_e) {}
+      return false;
+    }
+    window._gadSetupFront = _gadSetupFront;
+
+    // os6 (BUILD_PLAN 0.c / 3.5.3): the Sign in click keeps the live setup intent for the trip through /login
+    // (Bubble may drop the query). Always a FRESH nonce: the URL nonce is already marked done by the bridge.
+    function _gxUsePendingMirror() {
+      try {
+        var ID_RX = /^[A-Za-z0-9_-]{1,80}$/;
+        var env = /^\/version-test(\/|$)/.test(location.pathname) ? 'test' : 'live';
+        var n = '';
+        try { var ra = new Uint32Array(1); window.crypto.getRandomValues(ra); n = ('00000000' + ra[0].toString(16)).slice(-8); }
+        catch (_c) { n = ('00000000' + (Date.now() % 1e8).toString(16)).slice(-8); }
+        var qp = null; try { qp = new URLSearchParams(location.search); } catch (_q) { qp = null; }
+        var ut = qp ? (qp.get('use_template') || '') : '', uf = qp ? (qp.get('use_featured') || '') : '', ufl = qp ? (qp.get('use_flagship') || '') : '';
+        var rec = null;
+        if (ut) rec = { kind: 'template', id: ut, slug: '', fname: '', intent: 'use' };
+        else if (uf) rec = { kind: 'featured', id: uf, slug: '', fname: qp.get('fname') || '', intent: 'use' };
+        else if (ufl) rec = { kind: 'flagship', id: ufl, slug: ufl, fname: '', intent: 'preview' };
+        else {
+          var a = window._gaiaDraftOriginalArgs || null;
+          var fs = (typeof _gadFlagshipSession !== 'undefined') ? _gadFlagshipSession : null;
+          if (a && a.source_assistant_id) rec = { kind: 'featured', id: String(a.source_assistant_id), slug: '', fname: String(a.workspace_label || ''), intent: 'use' };
+          else if (a && a._template_id) rec = { kind: 'template', id: String(a._template_id), slug: '', fname: String(a.workspace_label || ''), intent: 'use' };
+          else if (fs && fs.slug) rec = { kind: 'flagship', id: String(fs.slug), slug: String(fs.slug), fname: '', intent: 'preview' };
+        }
+        if (!rec || !ID_RX.test(rec.id)) return;
+        if (rec.kind === 'flagship') {
+          try { var fp = sessionStorage.getItem('gx_flagship_pending'); if (fp) localStorage.setItem('gx_flagship_pending', fp); } catch (_fp) {}
+        }
+        var raw = JSON.stringify({ v: 1, kind: rec.kind, id: rec.id, slug: String(rec.slug).slice(0, 80), fname: String(rec.fname).slice(0, 120),
+          intent: rec.intent, ts: Date.now(), n: n, env: env });
+        try { sessionStorage.setItem('gx_use_pending', raw); } catch (_s) {}
+        try { localStorage.setItem('gx_use_pending', raw); } catch (_l) {}
+      } catch (_e) {}
+    }
+
     // Taslak tetikleyici taşıyor mu? Canlı _gadTrigIds, bu oturumda yaratılanlar, args.trigger_id, DFR triggers,
     // flagship blueprint tetikleyicisi. Hiçbiri yoksa ajan elle çalışır → kapı ona dokunmaz.
     function _gadDraftHasTrigger() {
@@ -17375,6 +17575,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           if (b && b.getAttribute('data-act') === 'login') {
             // version-test altında aynı sürümün giriş sayfası
             var base = /^\/version-test(\/|$)/.test(location.pathname) ? '/version-test' : '';
+            _gxUsePendingMirror();   // os6: the setup intent survives the login round trip
             location.href = base + '/login';
             return;
           }
@@ -25884,6 +26085,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         outputlist4: outputList4
       };
     }
+    window._gadBuildFeaturedDraft = _gadBuildFeaturedDraft;   // os6 (BUILD_PLAN 0.d): Home build reuses the featured payload builder
 
     // ═══════════════════════════════════════════════════════════════════════════════════════
     // D22 — tool_call paketi: TEK assembler + canlı durumdan yeniden kurulum + tek debug paketi
@@ -26639,12 +26841,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     };
 
     // Deep-link: a template page CTA sends visitors to ?use_featured=<assistant_id>(&fname=<name>)
-    (function _featuredDeepLink(){
+    // os6 (BUILD_PLAN 3.5): the start logic is shared with the gx_use_pending bridge (storage intent after login).
+    window._gxStartFeaturedDeepLink = function(fid, fname){
       try {
-        var qp = new URLSearchParams(location.search);
-        var fid = qp.get('use_featured');
-        if (!fid) return;
-        var fname = qp.get('fname') || '';
+        fname = fname || '';
         var tries = 0;
         var iv = setInterval(function(){
           tries++;
@@ -26653,6 +26853,15 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
             window.gaiaUseFeaturedTemplate(fid, { name: fname });
           } else if (tries > 60){ clearInterval(iv); }
         }, 250);
+      } catch(e){}
+    };
+    (function _featuredDeepLink(){
+      try {
+        var qp = new URLSearchParams(location.search);
+        var fid = qp.get('use_featured');
+        if (!fid) return;
+        if (window._gxUseUrlDone === true) return;   // os6: a reload of an already fired use link starts nothing
+        window._gxStartFeaturedDeepLink(fid, qp.get('fname') || '');
       } catch(e){}
     })();
 
@@ -27352,6 +27561,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (!a || !a.confirmed) return false;
         if (a.enabling) { gL('[FLAGSHIP] yenileme atlandı: tetikleyici armed ediliyor (' + String(reason || '') + ')'); return false; }
         try { sessionStorage.removeItem('gx_flagship_pending'); } catch(e){}
+        try { localStorage.removeItem('gx_flagship_pending'); } catch(e){}
         var u = new URL(location.href);
         ['use_flagship', 'intent', 'instant'].forEach(function(k){ u.searchParams.delete(k); });
         gL('[FLAGSHIP] kurulum sonrası sayfa yenileniyor (' + String(reason || '') + ') →', u.pathname + u.search);
@@ -32666,9 +32876,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     function _gflBdMapBlock(raw){ return _gflWmObj(raw) ? _gflBdCarry(raw, 0) : null; }   // BIZDISC
     // BIZDISC-END
     // Spec bolum 1 temizligi. Gecersiz girdi null; cikti her zaman yeni nesne (girdiye referans tutmaz, ayni girdiye iki kez uygulanabilir).
-    function _gadFlagshipWorkMapClean(raw, excludedApps){
+    function _gadFlagshipWorkMapClean(raw, excludedApps, opts){
       if (!_gflWmObj(raw)) return null;
       if (raw.v != null && Number(raw.v) !== 1) return null;
+      var full = !!(opts && opts.full);   // os6: Home map card keeps every header (80 x 120); callers with two args get the old caps
       var S = _gflWmStr, MATCH = ['record_number', 'sender_email', 'name'];
       var ex = (Array.isArray(excludedApps) ? excludedApps : []).map(function(x){ return String(x || '').toLowerCase(); });
       var noSheets = ex.indexOf('googlesheets') >= 0, noDrive = ex.indexOf('googledrive') >= 0;
@@ -32689,7 +32900,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if ((S(src.app, 40).toLowerCase() || 'googlesheets') !== 'googlesheets') return;
         var sid = S(src.spreadsheet_id, 200), tab = S(src.tab, 120), hr = Math.floor(Number(src.header_row));
         if (!sid || !tab || !(hr >= 1)) return;
-        var headers = (Array.isArray(src.headers) ? src.headers : []).slice(0, 40).map(function(h){ return S(h, 60); });
+        var headers = (Array.isArray(src.headers) ? src.headers : []).slice(0, full ? 80 : 40).map(function(h){ return S(h, full ? 120 : 60); });
         var hn = headers.map(_gflWmNorm);
         // Sutun adi basliklarda olmali (norm karsilastirma); kaydedilen deger basligin kendisi, yoksa null.
         var col = function(v){ var n = _gflWmNorm(S(v, 200)), i = n ? hn.indexOf(n) : -1; return (i >= 0 && headers[i]) ? headers[i] : null; };
@@ -32777,6 +32988,31 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       return out;
     }
     window._gadFlagshipWorkMapClean = _gadFlagshipWorkMapClean;
+    // os6 (OCTO_KNOW_SPEC 4.1): client mirror of C.cleanName (octo_common.js). Pure; the dotless i is built, never typed.
+    var _GAD_CN_DL = String.fromCharCode(0x131);
+    var _GAD_CN_PAREN = new RegExp('\\s*\\((gaia(\\s+scan)?|copy|kopya|kopyas[i' + _GAD_CN_DL + ']|\\d{1,3})\\)\\s*$', 'i');
+    var _GAD_CN_KOPYA = new RegExp('\\s+kopyas[i' + _GAD_CN_DL + ']\\s*$', 'i');
+    function _gadCleanCut(str, n){
+      var max = Math.max(0, Math.floor(Number(n) || 0));
+      if (str.length <= max) return str;
+      var out = str.slice(0, max), last = out.charCodeAt(out.length - 1);
+      if (last >= 0xd800 && last <= 0xdbff) out = out.slice(0, -1);
+      return out;
+    }
+    function _gadCleanName(v, max){
+      var s = (typeof v === 'string' || typeof v === 'number') ? _gadCleanCut(String(v).replace(/\s+/g, ' ').trim(), 400) : '';
+      if (!s) return '';
+      s = s.replace(/\.(xlsx|xlsm|xls|csv|ods|tsv)$/i, '').trim();
+      for (var i = 0; i < 4; i++) {
+        var t = s.replace(_GAD_CN_PAREN, '').replace(/\s+-\s+copy\s*$/i, '').replace(_GAD_CN_KOPYA, '').replace(/^copy\s+of\s+/i, '').trim();
+        if (t === s) break;
+        s = t;
+      }
+      s = s.replace(/[\s_-]+v\d{1,3}\s*$/i, '').replace(/[\s_-]*\d{4}-\d{2}-\d{2}\s*$/, '').replace(/[\s_-]*\d{2}\.\d{2}\.\d{4}\s*$/, '').trim();
+      s = s.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+      return _gadCleanCut(s, max || 60).trim();
+    }
+    window._gadCleanName = _gadCleanName;
     // Deterministik prompt blogu (spec bolum 3, birebir bicim). Kaynak yoksa ve drive false ise '' (blok hic eklenmez).
     function _gadFlagshipWorkMapBlock(map){
       if (!_gflWmObj(map)) return '';
@@ -33118,9 +33354,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         try { _gflStageFromSession(s, 'inspect', (d && d.progress) || null, { waking: false, startedAt: s.inspectStartedAt }); } catch(_tg) {}
         try { if (typeof iopts.onTick === 'function') iopts.onTick(d || null); } catch(_te) {}
       };
-      var NET_RX = /timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|network|fetch failed|\b50[234]\b/i;
+      // os6 (OCTO_KNOW_SPEC 1.1): the transport lives in the session free pair _gadKnowPayload / _gadKnowInspect;
+      // this wrapper keeps the gating, counters, UI, cold retry and unpack (same requests, same session keys).
       var ref = 'insp_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now().toString(36);
-      var settled = false, poller = null, acked = false, hard = null, retried = false;
+      var settled = false, h = null, retried = false;
       var mine = function(){ return _gadFlagshipSession === s; };
       var setProg = function(t){ if (!mine()) return; var p = _gadFlagshipEl('gfl-prev-progress'); if (p) p.textContent = t; };
       var end = function(map, why, ev){
@@ -33133,8 +33370,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (!map && !iopts.retry && !retried && _GFL_INSP_RETRY_RX.test(String(why || ''))
             && mine() && s.step === 'preview') {
           retried = true; settled = true;
-          try { if (hard) clearTimeout(hard); } catch(e){}
-          try { if (poller && typeof poller.cancel === 'function') poller.cancel(); } catch(e){}
+          try { if (h && typeof h.cancel === 'function') h.cancel(); } catch(e){}
           s.inspecting = false;
           s.inspectCount = Math.max(0, (Number(s.inspectCount) || 1) - 1);
           try { _gadFlagshipSaveSession(); } catch(e){}
@@ -33151,8 +33387,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           return;
         }
         settled = true;
-        try { if (hard) clearTimeout(hard); } catch(e){}
-        try { if (poller && typeof poller.cancel === 'function') poller.cancel(); } catch(e){}
+        try { if (h && typeof h.cancel === 'function') h.cancel(); } catch(e){}
         s.inspecting = false;
         // ★ 19.09 gorsel denetim: tarama bittiginde kilit kalkar (sonrasinda onizleme kosarsa yeniden kilitlenir).
         try { _gadFlagshipPrimaryLabel(); } catch(e){}
@@ -33199,25 +33434,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var apps = [];
       try { apps = (Array.isArray(s.ctx.appSlugs) ? s.ctx.appSlugs : []).filter(function(x){ return _gadFlagshipIsOn(x); }); } catch(e){ apps = []; }
       var rl = String((s.prefs && s.prefs.reply_language) || 'match');
-      var payload = { referedeger: ref, apps: apps, language: (rl === 'match' ? '' : rl), purpose: String(s.ctx.activation.work_map.purpose || '') };
-      // BIZDISC-BEGIN (A3 cross audit 22.09, acceptance 24): the card's own activation flags reach the inspect.
-      // BIZDISC The server reads props.company_scan {enabled, research_tier} and props.knowledge {enabled,
-      // BIZDISC max_files}; an old card carries neither key and the server then behaves as it does today.
-      try {   // BIZDISC
-        var _bdAct = (s.ctx && _gflWmObj(s.ctx.activation)) ? s.ctx.activation : null;   // BIZDISC
-        if (_bdAct && _gflWmObj(_bdAct.company_scan)) {   // BIZDISC
-          payload.company_scan = {   // BIZDISC
-            enabled: _bdAct.company_scan.enabled !== false,   // BIZDISC
-            research_tier: String(_bdAct.company_scan.research_tier || 'noauth')   // BIZDISC
-          };   // BIZDISC
-        }   // BIZDISC
-        if (_bdAct && _gflWmObj(_bdAct.knowledge)) {   // BIZDISC
-          var _bdMax = Number(_bdAct.knowledge.max_files);   // BIZDISC
-          payload.knowledge = { enabled: _bdAct.knowledge.enabled !== false };   // BIZDISC
-          if (isFinite(_bdMax) && _bdMax >= 0) payload.knowledge.max_files = Math.floor(_bdMax);   // BIZDISC
-        }   // BIZDISC
-      } catch(_bdE){}   // BIZDISC
-      // BIZDISC-END
+      // BIZDISC: the card's company_scan / knowledge flags are derived inside _gadKnowPayload (same keys, same order).
+      var payload = _gadKnowPayload({ ref: ref, apps: apps, language: (rl === 'match' ? '' : rl), purpose: String(s.ctx.activation.work_map.purpose || ''), activation: s.ctx.activation });
       s.inspectCount = (Number(s.inspectCount) || 0) + 1;
       s.inspecting = true;
       _gadFlagshipSaveSession();
@@ -33239,7 +33457,83 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       try { _gadFlagshipSkipLink(true); } catch(e){}
       try { window._gadFlagshipRenderWorkMap(s); } catch(e){}
       gL('[WORKMAP] workspace_inspect | ref: ' + ref + ' | apps: ' + apps.join(',') + ' | language: ' + (payload.language || '-') + ' | inceleme: ' + s.inspectCount + '/3');
-      hard = setTimeout(function(){ end(null, 'timeout'); }, 160000);
+      h = _gadKnowInspect(ref, payload,
+        function(d){ if (settled || !d) return; tick(d); setProg(_gflIsMailCard(s.ctx) ? 'Still reading your mail and files...' : 'Still reading your files...'); },   /* PHONE-FLAGSHIP-FIX */
+        function(r){ end(r.map, r.why, r.ev); });
+      return true;
+    }
+    // os6 (OCTO_KNOW_SPEC 1.1, BUILD_PLAN 0.d): the Know payload. Pure. ref absent = a fresh insp_ ref. With activation the
+    // company_scan / knowledge blocks are derived exactly as the flagship card did (BIZDISC); explicit objects win.
+    function _gadKnowPayload(opts){
+      opts = (opts && typeof opts === 'object') ? opts : {};
+      var ref = String(opts.ref || '') || ('insp_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now().toString(36));
+      var payload = { referedeger: ref, apps: (Array.isArray(opts.apps) ? opts.apps.slice() : []), language: String(opts.language || ''), purpose: String(opts.purpose || '') };
+      // BIZDISC-BEGIN (A3 cross audit 22.09, acceptance 24): the card's own activation flags reach the inspect.
+      // BIZDISC The server reads props.company_scan {enabled, research_tier} and props.knowledge {enabled,
+      // BIZDISC max_files}; an old card carries neither key and the server then behaves as it does today.
+      try {   // BIZDISC
+        var _bdAct = _gflWmObj(opts.activation) ? opts.activation : null;   // BIZDISC
+        if (_bdAct && _gflWmObj(_bdAct.company_scan)) {   // BIZDISC
+          payload.company_scan = {   // BIZDISC
+            enabled: _bdAct.company_scan.enabled !== false,   // BIZDISC
+            research_tier: String(_bdAct.company_scan.research_tier || 'noauth')   // BIZDISC
+          };   // BIZDISC
+        }   // BIZDISC
+        if (_bdAct && _gflWmObj(_bdAct.knowledge)) {   // BIZDISC
+          var _bdMax = Number(_bdAct.knowledge.max_files);   // BIZDISC
+          payload.knowledge = { enabled: _bdAct.knowledge.enabled !== false };   // BIZDISC
+          if (isFinite(_bdMax) && _bdMax >= 0) payload.knowledge.max_files = Math.floor(_bdMax);   // BIZDISC
+        }   // BIZDISC
+      } catch(_bdE){}   // BIZDISC
+      // BIZDISC-END
+      try {
+        if (_gflWmObj(opts.company_scan)) {
+          // A1: the same {enabled, research_tier} shape the flagship derivation sends (server default is noauth too)
+          payload.company_scan = { enabled: opts.company_scan.enabled !== false, research_tier: String(opts.company_scan.research_tier || 'noauth').slice(0, 20) };
+        }
+        if (_gflWmObj(opts.knowledge)) {
+          var kMax = Number(opts.knowledge.max_files);
+          payload.knowledge = { enabled: opts.knowledge.enabled !== false };
+          if (isFinite(kMax) && kMax >= 0) payload.knowledge.max_files = Math.floor(kMax);
+        }
+      } catch(_kpE){}
+      return payload;
+    }
+    // os6 (OCTO_KNOW_SPEC 1.1, BUILD_PLAN 0.d): workspace_inspect + run_evidence transport, session free and DOM free.
+    // onTick(d) on every non empty evidence answer; done(result) exactly once unless the caller cancels (cancel is silent).
+    // The caller owns the cold retry (result.retryable), the 409 retry with a new ref and its own quota.
+    function _gadKnowInspect(ref, payload, onTick, done){
+      var NET_RX = /timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|network|fetch failed|\b50[234]\b/i;
+      payload = (payload && typeof payload === 'object') ? payload : {};
+      ref = String(ref || payload.referedeger || '');
+      if (payload.referedeger !== ref) { var pc = {}; Object.keys(payload).forEach(function(k){ pc[k] = payload[k]; }); pc.referedeger = ref; payload = pc; }
+      var settled = false, poller = null, acked = false, hard = null, conflict = false;
+      var handle = { ref: ref, cancel: function(){
+        settled = true;
+        var hd = hard, pl = poller;
+        hard = null; poller = null;   // a second cancel (the wrapper after done) touches nothing
+        try { if (hd) clearTimeout(hd); } catch(e){}
+        try { if (pl && typeof pl.cancel === 'function') pl.cancel(); } catch(e){}
+      } };
+      var finish = function(map, why, ev, status){
+        if (settled) return;
+        handle.cancel();
+        var O = _gflWmObj, w = String(why || '');
+        var r = { ok: !!map, why: w, ref: ref, status: String(status || ''), ev: ev || null, map: map || null,
+          inventory: (ev && O(ev.inventory)) ? ev.inventory : null,
+          coverage: (ev && O(ev.coverage)) ? ev.coverage : null,
+          reads: (ev && ev.reads && typeof ev.reads === 'object') ? ev.reads : null,
+          synthesis: (ev && ev.synthesis && typeof ev.synthesis === 'object') ? ev.synthesis : null,
+          inboxProfile: (ev && ev.inbox_profile && typeof ev.inbox_profile === 'object') ? ev.inbox_profile : null,
+          scanRows: (ev && Array.isArray(ev.scan_rows)) ? ev.scan_rows.slice(0, 8) : null,
+          companyProfile: (ev && O(ev.company_profile)) ? ev.company_profile : ((ev && O(ev.work_map) && O(ev.work_map.company)) ? ev.work_map.company : null),
+          knowledge: (ev && O(ev.knowledge)) ? ev.knowledge : ((ev && O(ev.work_map) && O(ev.work_map.knowledge)) ? ev.work_map.knowledge : null),
+          retryable: !map && (conflict || _GFL_INSP_RETRY_RX.test(w)) };
+        try { if (typeof done === 'function') done(r); } catch(e){ gW('[WORKMAP] done hatasi: ' + (e && e.message)); }
+      };
+      if (!ref) { finish(null, 'bad-ref'); return handle; }
+      if (typeof window._gadTrigRequest !== 'function' || typeof window._gadPollRunEvidence !== 'function') { finish(null, 'bridge-missing'); return handle; }
+      hard = setTimeout(function(){ finish(null, 'timeout'); }, 160000);
       var startPoll = function(){
         if (settled || poller) return;
         poller = window._gadPollRunEvidence(ref, function(status, ev){
@@ -33247,12 +33541,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           if (status === 'SUCCEEDED') {
             var map = null;
             try { map = _gadFlagshipWorkMapClean(ev && ev.work_map); } catch(e){ map = null; }
-            end(map, map ? '' : 'no_work_map', ev);
+            finish(map, map ? '' : 'no_work_map', ev, status);
             return;
           }
-          end(null, String(status || 'unknown') + ((ev && ev.error_code) ? (':' + ev.error_code) : ''), ev);
+          finish(null, String(status || 'unknown') + ((ev && ev.error_code) ? (':' + ev.error_code) : ''), ev, status);
         }, { intervalMs: 2000, timeoutMs: 150000, firstDelayMs: 3000, nullLimit: acked ? 2 : 5,
-             onTick: function(d){ if (settled || !d) return; tick(d); setProg(_gflIsMailCard(s.ctx) ? 'Still reading your mail and files...' : 'Still reading your files...'); } });   /* PHONE-FLAGSHIP-FIX */
+             onTick: function(d){ if (settled || !d) return; try { if (typeof onTick === 'function') onTick(d); } catch(_te){} } });
       };
       var onAck = function(res){
         if (settled) return;
@@ -33260,7 +33554,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (st === 'ERROR') {
           var msg = String((res && (res.message || (res.data && res.data.message))) || 'error');
           if (NET_RX.test(msg)) { gW('[WORKMAP] workspace_inspect ack ag hatasi, yoklamaya dusuluyor: ' + msg); startPoll(); return; }
-          end(null, 'rejected: ' + msg);
+          conflict = !!(res && (res.status === 409 || res.error_code === 'conflict' || (res.data && res.data.error_code === 'conflict'))) || /already used|\b409\b/i.test(msg);
+          finish(null, 'rejected: ' + msg);
           return;
         }
         if (st === 'PROCESSING' || st === 'SUCCESS' || st === 'OK') {
@@ -33272,12 +33567,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         startPoll();
       };
       try { window._gadTrigRequest('workspace_inspect', payload, onAck, 45000); }
-      catch(e){ end(null, 'send-error'); return true; }
-      // Ack gecikse de yoklama 3 sn sonra baslar (onizleme ile ayni); ret gelirse end() yoklamayi iptal eder.
+      catch(e){ finish(null, 'send-error'); return handle; }
+      // Ack gecikse de yoklama 3 sn sonra baslar (onizleme ile ayni); ret gelirse finish() yoklamayi iptal eder.
       setTimeout(function(){ if (!settled) startPoll(); }, 3000);
-      return true;
+      return handle;
     }
     window._gadFlagshipRunInspect = _gadFlagshipRunInspect;
+    window._gadKnowPayload = _gadKnowPayload;
+    window._gadKnowInspect = _gadKnowInspect;
     // 17.09: kullanici paneli hic gormeden onaylarsa (inceleme bitmeden onizlemeyi atladiysa) yazma izni TASINMAZ;
     // modelin isaretledigi sutunlar kullanicinin onayi degildir. Listeler salt okunur (lookup) olur, log yazilir.
     window._gadFlagshipWorkMapForCommit = function(sess){
@@ -38047,6 +38344,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         _gadDelivered = true; // D17: create payload'i kopruye verildi (her egress'te)
         try { if (typeof window._gadBubbleDraftMarkDone === 'function') window._gadBubbleDraftMarkDone(); } catch (_bdD4) {}   // 14.09
         delivered = true;     // T11-fix: bundan sonra onFail → rollback overlay'i de durust yapar
+        // os6 T7 (know_v2): kart bayrakliysa yeni tablo taramaya baglanir (rail homeBindOnce okur); bayraksiz hicbir sey yazilmaz
+        try { var _kv2 = !!(ctx.activation && ctx.activation.know_v2 === true); if (!_kv2) { var _kvg = window.__gxEl; _kv2 = !!(_kvg && typeof _kvg === 'object' && _kvg.channel === 'dev' && sessionStorage.getItem('gx_kv2') === '1'); } if (_kv2 && s.inspectRef) sessionStorage.setItem('octo_home_build', JSON.stringify({ ref: String(s.inspectRef), label: String(args.workspace_label || ''), process: String(args.process_name || ''), uid: '', t0: Date.now(), src: 'flagship' })); } catch(_kv){}
         // 14.09 (tetikleyici park): payload köprüye verildi (hemen ya da kuyruğa) → Bubble ajanı BU tetikleyici id'si DFR'ında
         // olarak yaratabilir. Bundan sonra onay dışı geri almalar tetikleyiciyi SİLMEZ, park eder (_gadFlagshipRollbackTrigger).
         s.handedOff = true;
@@ -38121,6 +38420,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var _FLAG_PENDING_KEY = 'gx_flagship_pending';
     function _gadFlagshipClearDeepLink(){
       try { sessionStorage.removeItem(_FLAG_PENDING_KEY); } catch(e){}
+      try { localStorage.removeItem(_FLAG_PENDING_KEY); } catch(e){}
+      try { localStorage.removeItem('gx_use_pending'); sessionStorage.removeItem('gx_use_pending'); } catch(e){}
       try {
         var u = new URL(location.href);
         if (u.searchParams.has('use_flagship') || u.searchParams.has('instant') || u.searchParams.has('intent')) {
@@ -44213,6 +44514,15 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   font: 600 11px/16px var(--octo-font);
 }
 .octo-home-ev > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* os6 (OCTO_KNOW_BUILD_PLAN 2.10): alan listesi dugmesi, kaynak satiri, bag adimlari. Mevcut tokenlar. */
+.octo-home-k { flex: 0 0 auto; color: var(--octo-ink-3t); font: 600 12px/18px var(--octo-font); }
+.octo-home-src { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; }
+.octo-onb-agent .octo-home-src { margin-top: 6px; }
+.octo-home-allf { align-self: flex-start; min-height: 32px; }
+.octo-home-ticks { display: flex; flex-direction: column; gap: 8px; }
+.octo-home-tick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; color: var(--octo-ink-2); font: 600 14px/20px var(--octo-font); }
+.octo-home-tick.is-done { color: var(--octo-ink); }
+.octo-home-tick > span { min-width: 0; overflow-wrap: anywhere; }
 .octo-onb-hint.is-home-chip { cursor: pointer; pointer-events: auto; }
 .octo-onb-hint.is-home-chip:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
 @media (max-width: 479px) {
@@ -44285,6 +44595,11 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
 #octo-rail .octo-arr-file > svg { flex: 0 0 auto; color: var(--octo-ink-2); }
 #octo-rail .octo-arr-file .octo-rail-btn { flex: 0 0 auto; }
 #octo-rail .octo-arr-proof .octo-rail-pill { max-width: 100%; }
+/* os6 deneme kosusu satirlari: "I would" + arac fiili + hedef; telefonda sarar. */
+#octo-rail .octo-arr-trial .octo-rail-item { flex-wrap: wrap; row-gap: 2px; min-width: 0; }
+#octo-rail .octo-arr-trial .octo-arr-iw { flex: 0 0 auto; color: var(--octo-ink-2); font-weight: 600; }
+#octo-rail .octo-arr-trial .octo-rail-item-name { min-width: 0; overflow-wrap: anywhere; }
+#octo-rail .octo-arr-trial .octo-rail-time { min-width: 0; overflow-wrap: anywhere; }
 #octo-rail .octo-arr-wait {
   height: 4px;
   border-radius: var(--octo-r9);
@@ -45147,7 +45462,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-30.os5f';
+  var VERSION = 'octo 2026-09-30.os6a';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -48872,7 +49187,11 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     homeSentMax: 60000,
     // Ciplak id kisinin kendi id'si degilse (baska kullanici / sirket sayfasi olabilir): cevap bu surede gelmezse
     // (soguk sunucu 25-40 sn) Start yine acilir; gercek workspace verisi gelirse kapanir.
-    homeGrace: 2500
+    homeGrace: 2500,
+    // os6 (OCTO_KNOW_BUILD_PLAN 2.1): taranan kaynaga bag (os_home_bind) en cok 3 istek, 2.5 sn arayla; yukleme
+    // yoklamasi 3 sn x 90 sn; Build kaydi 30 dk. First run deneme kosusu kaniti 2 sn x 150 sn, ilk bakis 3 sn.
+    homeBuildTtl: 1800000, homeBindMax: 90000, homeBindPoll: 3000, homeBindTries: 3, homeBindRetry: 2500,
+    arrTrialEvery: 2000, arrTrialMax: 150000, arrTrialFirst: 3000
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -49060,7 +49379,9 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     // os3t2 OS kipi: bos ray gizlenir (tablo tam genislik); Bubble'in sol menusu tablo acikken gizlenir,
     // seritteki Menu dugmesi geri getirir. setupRail: kurulum karti yalniz raydan acildiysa rayda cizilir.
     empty: false, setupRail: false,
-    side: null, sideOpen: false, sideUser: false, sideNo: false, sideTimer: null, sideTries: 0
+    side: null, sideOpen: false, sideUser: false, sideNo: false, sideTimer: null, sideTries: 0,
+    // os6 (dev): yeni tablo bagi anahtar basina bir kez (sayfa icinde sifirlanmaz); bag suruyorken kapi beklenir.
+    bindTried: {}, bindBusy: false
   };
   // ?rail=debug teshis hapi durumu (asagida "teshis" bolumu).
   var DBG = { on: false, node: null, txt: null, timer: null, last: '', min: false };
@@ -49385,7 +49706,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     M.key = ''; M.ctx = null; M.handle = null; M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0; M.writing = 0; M.loadAt = 0;
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
     M.tab = 'table'; M.tv = {}; M.panelSig = ''; M.panelView = '';
-    M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
+    M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {}; M.bindBusy = false;
     if (M.onb) { M.onb.kn = null; }   // os4 1d: Know durumu workspace'e bagli, kurulum nesnesiyle birlikte sifirlanir
     M.wake = 'idle'; M.note = ''; M.noteGone = false; M.yielded = false; M.sheet = '';
     M.ctxTries = 0; M.seen = null; M.ws = { code: '', ms: -1 }; M.lastErr = '';
@@ -49601,6 +49922,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (!M.mounted && !M.yielded) { mount(); }
     paintSoon();
     loadCards();
+    // os6 (dev): Home / amiral gemisi Build kaydi bu yeni tabloya aitse yarim kalan bag burada surer.
+    if (fresh) { homeBindLoad(); }
     if (fresh && M.afterAgent) { var aa = M.afterAgent; M.afterAgent = null; afterAgent(aa); }
     if (M.arr) { arrKick(); }
   }
@@ -50434,13 +50757,16 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     return f;
   }
   // Not ile uyandirma istegi (ajan karti ve varis karti ortak): govde YALNIZ bu dort anahtar (sunucu stage_id/list_id okumaz).
-  function wakeReq(aid, note, stage, list) {
-    return octo.request('os_wake_note', {
+  function wakeReq(aid, note, stage, list, opts) {
+    var p = {
       assistant_id: str(aid),
       note: note,
       target_stage_id: str(stage),
       target_list_id: str(list)
-    }, { retry: false });
+    };
+    // os6 First run deneme kosusu: yalniz simulate + ref eklenir; gercek uyandirma sekli aynen kalir.
+    if (opts && opts.simulate === true) { p.simulate = true; p.ref = str(opts.ref); }
+    return octo.request('os_wake_note', p, { retry: false });
   }
   function sendWake(a, text) {
     var note = str(text).trim();
@@ -53727,6 +54053,9 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       ssDel(TB_KEY);
       linksWrite({ data: [{ id: str(tb.dataset_id), task_agent_id: job.aid }] }).then(function () { paintSoon('data'); }, function () {});
     }
+    // os6 (dev): yeni tablo taranan kaynaga henuz bagli degilse once bag; kapi bag bitince (onWs tekrari) karar verir.
+    if (arrDev() && setupNeeded() && idOk(sheetId()) && !M.bindTried[M.key] && homeBuildRec()) { homeBindLoad(); M.afterAgent = job; return; }
+    if (M.bindBusy) { M.afterAgent = job; return; }
     if (setupNeeded()) {
       // os4c: ajan kuruldu ama kapi gecilmemis -> Start (Sheet, Drive, Calendar) once; varis karti kapi bitince.
       if (M.onbOn && M.onb && M.mounted) {
@@ -53797,11 +54126,18 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   var ARR_KEY = 'octo_arr';
   var ARR_NOTE_MAX = 1000;
   var ARR_FRESH = 300000;
-  var ARR_PHASES = { looking: 1, note: 1, batch: 1, data: 1, listen: 1, running: 1, done: 1, empty: 1, error: 1, gone: 1 };
+  var ARR_PHASES = { looking: 1, note: 1, batch: 1, data: 1, listen: 1, running: 1, done: 1, empty: 1, error: 1, gone: 1, trial: 1, trialed: 1 };
   var ARR_TITLE = {
     looking: 'Your agent is ready', batch: 'First items', data: 'Connect your data', listen: 'Waiting for first item',
-    running: 'Working on it', done: 'First record in', empty: 'No record yet', error: 'Your agent is ready'
+    running: 'Working on it', done: 'First record in', empty: 'No record yet', error: 'Your agent is ready',
+    trial: 'Working on it', trialed: 'Dry run done'
   };
+  // os6 deneme kosusu (OCTO_KNOW_BUILD_PLAN 0.b): simulate uyandirma; Google yazimlari tutulur, Gaia yazimlari gizli
+  // deneme kaydi olur. Kart "I would ..." satirlarini kanittan (held_rows) ve kosunun defter satirlarindan cizer.
+  // Sunucu damgasi os6'dan eskiyse dugme YOK (eski sunucu simulate'i yok sayip gercek kosu yapardi).
+  var ARR_DRY_NOTE = 'Process the 5 newest items.';
+  var ARR_DRY_CREATE = ' Create one record per item.';
+  var ARR_DRY_BUILD = 'octo-rail 2026-09-30';
   // Damga durumu (links.arrival.state, sunucudan) dugmenin yerine hap olarak.
   var ARR_STATE_PILL = { claimed: 'Run started', started: 'Run started', done: 'Run done' };
 
@@ -53823,7 +54159,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       aid: aid, key: str(M.key), phase: 'looking', base: '', t0: t0, tries: 0, src: '', resp: null, files: null, fbusy: false, busy: 0,
       sending: false, note: '', timer: null, doneTimer: null, holdTimer: null, need: true, focus: true, focusTa: false,
       focused: false, locked: false, lockState: '', noWake: false, err: '', first: null, dom: false, rows0: arrRows(), act: null,
-      watch: false, stale: 0
+      watch: false, stale: 0, trial: null
     };
   }
   function arrBoot() {
@@ -53838,6 +54174,13 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var ph = str(o.phase);
     var A = arrNew(idOk(o.aid) ? str(o.aid) : '', str(o.t0));
     A.phase = (ph === 'done' || ph === 'gone') ? 'gone' : ((ph === 'running' || ph === 'empty') ? ph : 'looking');
+    // Deneme kosusu yarida (trial) ya da satirli bitmis (trialed) ise ayni ref yeniden yoklanir; satirlar saklanmaz,
+    // kanit ve defterden yeniden okunur. Satirsiz ya da bozuk kayit teklife doner.
+    var tr = isObj(o.trial) ? o.trial : null;
+    if (tr && /^trial_[a-z0-9_]{1,80}$/.test(str(tr.ref)) && (ph === 'trial' || (ph === 'trialed' && num(tr.n) > 0))) {
+      A.phase = 'trial';
+      A.trial = { ref: str(tr.ref), t0: str(tr.t0), held: [], items: [], n: 0, poller: null };
+    }
     A.tries = Math.max(0, Math.min(T.arrTries, Math.floor(num(o.tries) || 0)));
     A.src = str(o.src).slice(0, 120);
     A.need = A.phase !== 'gone';
@@ -53849,7 +54192,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (!A) { return; }
     // Uyandirma ucusta iken 'running' saklanir: yenileme teklifi yeniden cizmez, ikinci kosu gitmez (4.7 adim 8).
     var ph = (A.sending && A.act && A.act.k === 'wake' && A.phase !== 'error') ? 'running' : A.phase;
-    ssSet(ARR_KEY, JSON.stringify({ aid: A.aid, phase: ph, t0: A.t0, tries: A.tries, src: A.src }));
+    var tr = (A.trial && (ph === 'trial' || ph === 'trialed')) ? { ref: A.trial.ref, t0: A.trial.t0, n: A.trial.n } : undefined;
+    ssSet(ARR_KEY, JSON.stringify({ aid: A.aid, phase: ph, t0: A.t0, tries: A.tries, src: A.src, trial: tr }));
   }
   function arrStopPoll() {
     var A = M.arr;
@@ -53860,6 +54204,13 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (!A) { return; }
     var tm = ['timer', 'doneTimer', 'holdTimer'];
     for (var i = 0; i < tm.length; i++) { if (A[tm[i]]) { try { clearTimeout(A[tm[i]]); } catch (e) { /* yut */ } A[tm[i]] = null; } }
+    arrTrialStop(A);
+  }
+  function arrTrialStop(A) {
+    var P = A && A.trial ? A.trial.poller : null;
+    if (!P) { return; }
+    A.trial.poller = null;
+    if (typeof P.cancel === 'function') { try { P.cancel(); } catch (e) { /* yut */ } }
   }
   // Tablo satir DOM sayisi: yalniz new_since null iken "yeni kayit geldi" sinyali (4.1).
   function arrRows() {
@@ -53943,6 +54294,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       }
       if (resume === 'running') { if (!arrCheck(d)) { arrPollSoon(); paintSoon('first'); } return; }
       if (resume === 'empty') { paintSoon('first'); return; }
+      // Yenilemede deneme kosusu: teklif fazi (Ask it icin) cozulur, ayni ref yoklanir; damga alinmaz, birakilmaz.
+      if (resume === 'trial' && A.trial) { var rb = arrResolve(d); A.base = (rb === 'note' || rb === 'batch' || rb === 'listen') ? rb : 'note'; arrTrialPoll(A); paintSoon('first'); return; }
       arrApply(d);
     }, function (err) {
       if (M.arr !== A) { return; }
@@ -54039,11 +54392,11 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   }
   function arrPollSoon() {
     var A = M.arr;
-    if (!A || A.timer || A.phase === 'gone' || A.phase === 'done' || A.phase === 'empty' || A.phase === 'error') { return; }
+    if (!A || A.timer || A.phase === 'gone' || A.phase === 'done' || A.phase === 'empty' || A.phase === 'error' || A.phase === 'trial' || A.phase === 'trialed') { return; }
     A.timer = setTimeout(function () { A.timer = null; arrPoll(A); }, T.arrPoll);
   }
   function arrPoll(A) {
-    if (M.arr !== A || !armedArrival() || A.phase === 'gone' || A.phase === 'done' || A.phase === 'empty' || A.phase === 'error') { return; }
+    if (M.arr !== A || !armedArrival() || A.phase === 'gone' || A.phase === 'done' || A.phase === 'empty' || A.phase === 'error' || A.phase === 'trial' || A.phase === 'trialed') { return; }
     if (A.tries >= T.arrTries) { arrBudget(); return; }
     A.tries++;
     arrSave();
@@ -54207,6 +54560,139 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (dataOk() && dsList().length) { focusCard('data'); return; }
     openSetup(8);
   }
+  // Deneme kosusu yalniz: dev kanali, not ile uyanan bilinen ajan, kilitsiz kart ve os6 sunucu damgasi.
+  function arrDryOk(d) {
+    var A = M.arr, ag = (isObj(d) && isObj(d.agent)) ? d.agent : {};
+    var w = data(), b = (w && isObj(w.rail)) ? str(w.rail.build) : '';
+    return arrDev() && !!A && ag.note_wake === true && idOk(ag.id) && !A.noWake && !A.locked && b >= ARR_DRY_BUILD;
+  }
+  function arrDryNote(d) {
+    var ag = (isObj(d) && isObj(d.agent)) ? d.agent : {};
+    return ARR_DRY_NOTE + (str(ag.mode) === 'create_new' ? ARR_DRY_CREATE : '');
+  }
+  function arrDry() {
+    var A = M.arr, d = A && A.resp;
+    if (!A || A.sending || !isObj(d) || !isObj(d.agent) || !arrDryOk(d)) { return; }
+    arrStopPoll();
+    arrTrialStop(A);
+    var ref = 'trial_' + homeUid().slice(-6) + '_' + Math.floor(now()).toString(36) + '_' + homeRand8();
+    var tr = { ref: ref, t0: iso(now()), held: [], items: [], n: 0, poller: null };
+    if (A.phase === 'note' || A.phase === 'batch' || A.phase === 'listen') { A.base = A.phase; }
+    A.trial = tr;
+    A.phase = 'trial';
+    A.act = { k: 'dry' };
+    A.err = '';
+    A.sending = true;
+    arrSave();
+    trace('arr:dry');
+    paintSoon('first');
+    var tg = arrWakeTarget(d);
+    wakeReq(d.agent.id, arrDryNote(d), tg.stage, tg.list, { simulate: true, ref: ref }).then(function () {
+      if (M.arr !== A || A.trial !== tr) { return; }
+      A.sending = false;
+      arrSave();
+      arrTrialPoll(A);
+    }, function (err) {
+      if (M.arr !== A || A.trial !== tr) { return; }
+      arrFail(A, err, { k: 'dry' });
+    });
+  }
+  // Kanit yoklamasi (_gadPollRunEvidence): bitince (SUCCEEDED / FAILED) kosunun defter satirlari okunur.
+  function arrTrialPoll(A) {
+    var tr = A.trial;
+    if (!tr) { return; }
+    if (typeof W._gadPollRunEvidence !== 'function') { arrFail(A, { code: 'unavailable' }, { k: 'dry' }); return; }
+    arrTrialStop(A);
+    try {
+      tr.poller = W._gadPollRunEvidence(tr.ref, function (status, ev) {
+        if (M.arr !== A || A.trial !== tr || status === 'cancelled') { return; }
+        tr.poller = null;
+        var st = str(status).toUpperCase();
+        if (st !== 'SUCCEEDED' && st !== 'FAILED') { arrFail(A, { code: 'timeout' }, { k: 'dry' }); return; }
+        tr.held = arrHeld(isObj(ev) ? ev : {});
+        arrTrialList(A, tr);
+      }, { intervalMs: T.arrTrialEvery, timeoutMs: T.arrTrialMax, firstDelayMs: T.arrTrialFirst, nullLimit: 5 });
+    } catch (e) { arrFail(A, { code: 'provider_error' }, { k: 'dry' }); }
+  }
+  // Tutulan Google yazimlari (held_rows: tool, kind, name); eski sunucu yalniz arac adlarini (held) verir.
+  function arrHeld(ev) {
+    var out = [], seen = {};
+    var l = isArr(ev.held_rows) ? ev.held_rows : (isArr(ev.held) ? ev.held : []);
+    for (var i = 0; i < l.length && out.length < 20; i++) {
+      var r = isObj(l[i]) ? l[i] : { tool: l[i] };
+      var t = str(r.tool).slice(0, 80), n = str(r.name).slice(0, 80);
+      if (!t || seen[t + '|' + n]) { continue; }
+      seen[t + '|' + n] = 1;
+      out.push({ tool: t, name: n });
+    }
+    return out;
+  }
+  function arrTrialList(A, tr) {
+    M.seq++;
+    octo.request('os_ws_activity', { sheet_id: sheetId(), limit: 20, run: tr.ref }, { retry: false, cacheKey: 'os_ws_activity|run|' + M.seq }).then(function (d) {
+      if (M.arr !== A || A.trial !== tr) { return; }
+      tr.items = (isObj(d) && isArr(d.items)) ? d.items.filter(isObj).slice(0, 20) : [];
+      arrTrialDone(A, tr);
+    }, function () {
+      if (M.arr !== A || A.trial !== tr) { return; }
+      tr.items = [];
+      arrTrialDone(A, tr);
+    });
+  }
+  function arrTrialDone(A, tr) {
+    tr.n = tr.held.length + tr.items.length;
+    A.sending = false;
+    A.phase = 'trialed';
+    arrSave();
+    trace('arr:trialed');
+    paintSoon('first');
+  }
+  // Arac adi -> kisa fiil: ilk alt cizgiye kadar (uygulama) atilir, kucuk harf, alt cizgi bosluk.
+  function arrToolWords(t) {
+    var s = str(t), i = s.indexOf('_');
+    return (i >= 0 ? s.slice(i + 1) : s).toLowerCase().replace(/_+/g, ' ').trim().slice(0, 40);
+  }
+  function arrReal() {
+    var A = M.arr, d = A && A.resp;
+    if (!A || A.sending || !isObj(d)) { return; }
+    A.trial = null;
+    arrWake(arrDryNote(d), '');
+  }
+  function arrAsk() {
+    var A = M.arr, d = A && A.resp;
+    if (!A) { return; }
+    arrTrialStop(A);
+    A.trial = null;
+    A.phase = 'note';
+    A.err = '';
+    // Not kutusu yalniz note fazinda var: dosya listesi okunmadiysa okunur, yoksa bos liste (kutu hemen cizilir).
+    if (A.files === null && !A.fbusy) { if (isObj(d) && d.file_read === true) { arrFiles(); } else { A.files = []; } }
+    A.focusTa = true;
+    A.focused = false;
+    arrSave();
+    paintSoon('first');
+  }
+  function arrTrialRows(body, A) {
+    var tr = A.trial;
+    if (!tr) { return; }
+    var box = el('div', 'octo-rail-list octo-arr-trial');
+    function row(tool, name, k) {
+      var it = el('div', 'octo-rail-item');
+      it.setAttribute('data-k', k);
+      it.appendChild(octo.icon('play', 16));
+      it.appendChild(el('span', 'octo-arr-iw', 'I would'));
+      var w = arrToolWords(tool);
+      if (w) { it.appendChild(el('span', 'octo-rail-item-name', w)); }
+      if (name) { it.appendChild(el('span', 'octo-rail-time', name)); }
+      box.appendChild(it);
+    }
+    for (var i = 0; i < tr.held.length; i++) { row(tr.held[i].tool, tr.held[i].name, 'arr-held'); }
+    for (var j = 0; j < tr.items.length; j++) {
+      var x = tr.items[j];
+      row(str(x.tool).slice(0, 80), (str(x.target_name) || str(x.summary)).slice(0, 80), 'arr-item');
+    }
+    if (box.firstChild) { body.appendChild(box); }
+  }
   function arrRetry() {
     var A = M.arr;
     if (!A) { return; }
@@ -54215,6 +54701,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     A.err = '';
     if (act && act.k === 'wake') { A.phase = A.base || 'note'; arrWake(act.note, act.src); return; }
     if (act && act.k === 'batch' && A.base) { A.phase = A.base; arrBatch(); return; }
+    // Deneme kosusu: yeni ref ile yeniden (kanit deposu ayni ref'i ikinci kez kabul etmez).
+    if (act && act.k === 'dry') { A.phase = A.base || 'note'; A.trial = null; arrDry(); return; }
     A.phase = 'looking';
     A.tries = 0;
     A.need = true;
@@ -54306,6 +54794,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var fwait = ph === 'note' && (A.fbusy || (d.file_read === true && A.files === null));
     var title = ARR_TITLE[ph] || ARR_TITLE.looking;
     if (ph === 'note') { title = fwait ? ARR_TITLE.looking : (files.length ? 'Start from a file' : 'Wake it with a note'); }
+    if (ph === 'trialed' && (!A.trial || A.trial.n === 0)) { title = 'Nothing to do'; }
     var skip = btn('is-link octo-arr-skip', 'Not now', 'Not now', 'arr-skip');
     skip.addEventListener('click', arrSkip);
     var body = frame(sec, 'first', title, { busy: A.busy > 0 || A.sending || A.fbusy, action: skip, noBody: ph === 'looking' });
@@ -54326,8 +54815,12 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
           if (A.locked) { var lp = arrStatePill(d); if (lp) { row.appendChild(lp); } }
           else { row.appendChild(arrBtn('is-ghost', 'Process last 5', 'arr-batch', 'play', arrBatch, A.sending)); }
         }
-      } else if (ph === 'running') {
+      } else if (ph === 'running' || ph === 'trial') {
         body.appendChild(arrWait());
+      } else if (ph === 'trialed') {
+        arrTrialRows(body, A);
+        row.appendChild(arrBtn('is-primary', 'Run for real', 'arr-real', 'play', arrReal, A.sending));
+        row.appendChild(arrBtn('is-ghost', 'Ask it', 'arr-ask', 'chat', arrAsk, false));
       } else if (ph === 'done') {
         var fr = isObj(A.first) ? A.first : null;
         if (fr && str(fr.name)) {
@@ -54348,6 +54841,9 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
         row.appendChild(arrBtn('is-primary', 'Try again', 'arr-retry', 'refresh', arrRetry, false));
       } else if (ph === 'error') {
         body.appendChild(errRow(arrRetry, 'Retry'));
+      }
+      if ((ph === 'note' || ph === 'batch' || ph === 'listen') && arrDryOk(d)) {
+        row.appendChild(arrBtn('is-ghost', 'Dry run', 'arr-dry', 'search', arrDry, A.sending));
       }
       if (row.firstChild) { body.appendChild(row); }
       if (ph !== 'error') { var pr = arrProof(A, d); if (pr) { body.appendChild(pr); } }
@@ -54441,7 +54937,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var d = isObj(A.resp) ? A.resp : {};
     return {
       phase: tok(A.phase), arrival: tok(d.arrival), aid: idOk(A.aid) ? str(A.aid) : '', count: num(d.count),
-      new_since: num(d.new_since), tries: A.tries || 0, claimed: d.claimed === true, state: tok(d.arrival_state), file_read: d.file_read === true
+      new_since: num(d.new_since), tries: A.tries || 0, claimed: d.claimed === true, state: tok(d.arrival_state), file_read: d.file_read === true,
+      trial: A.trial ? str(A.trial.ref) : ''
     };
   }
   // ---- arrival end
@@ -54553,6 +55050,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   }
   // Veri gelince (ilk kez bu workspace icin) panel kendiliginden acilir; Table'a gecen kullanici Start ile doner.
   function onbSync() {
+    if (M.bindBusy) { return; }
     var O = M.onb;
     if (!M.onbOn || !O || !M.mounted || !railOk() || O.openedKey === M.key) { return; }
     O.openedKey = M.key;
@@ -54822,7 +55320,18 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   }
   // skip: aday yok ya da okunamaz | known: veri zaten okunmus | wait: durum okunuyor | go: Gaia oneriyi ister
   function knowGate() {
-    // os5 devir: Home haritasi (15 dk) varsa veri bilinir; os_ds_link / os_ds_ingest cagrilmaz.
+    // os6: kurulumu bitmis ve veri kumesi bagli tablo (Home bagi dahil) links.data'dan karar verir; secim kaydi
+    // okunmaz. Okunmus kume known; durum okunurken ya da kume isleniyorken wait; durum okunamadiysa skip. Aksi halde
+    // yalniz bagli kumenin kendisi (link cagrisi olmadan ingest) onerilir; bagli tabloda yeni link ASLA onerilmez.
+    // Yalniz dev kanalinda (main kanal davranisi aynen kalir).
+    if (arrDev() && setupDone() && dsList().length) {
+      if (knowKnown()) { return 'known'; }
+      if ((!M.ds.loaded && !M.ds.err) || (!M.ds.err && anyJob())) { return 'wait'; }
+      var cb = knowCand();
+      if (M.ds.err || !cb || !cb.ds || knowXlsx(cb) || !dataOk() || M.ds.unavailable) { return 'skip'; }
+      return 'go';
+    }
+    // os5 devir: Home haritasi (15 dk) varsa veri bilinir; os_ds_link / os_ds_ingest cagrilmaz (yalniz bagsiz tabloda).
     if (homePickMap()) { return 'known'; }
     var c = knowCand();
     if (!c || knowXlsx(c) || !dataOk() || M.ds.unavailable) { return 'skip'; }
@@ -55170,9 +55679,10 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     return {
       force: M.onbForce === true, open: false, seen: false, dismissed: false, focus: false,
       req: 'idle', code: '', tries: 0, bw: 0, data: null, step: 'connect', empty: false, noBridge: false,
-      node: null, body: null, chip: null, sig: '', timer: null, authT: null, map: null, args: null,
-      kn: { phase: 'idle', ref: '', ts: 0, n: 0, reads: null, map: null, args: null, wm: null, poller: null, retried: false },
-      b: { phase: 'idle', what: '', t0: 0, t1: 0, h0: 0, label: '', timer: null, eargs: null, known: null }
+      node: null, body: null, chip: null, sig: '', timer: null, frontT: null, front: false, map: null, args: null,
+      kn: { phase: 'idle', ref: '', ts: 0, n: 0, reads: null, map: null, args: null, wm: null, inv: null, poller: null, retried: false,
+        fields: null, names: null, steps: null, primary: null, allF: false },
+      b: { phase: 'idle', what: '', t0: 0, t1: 0, h0: 0, label: '', timer: null, known: null, bind: null }
     };
   }
   function homeSync(on) {
@@ -55181,7 +55691,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (!H) { return; }
     M.home = null;
     if (H.timer) { try { clearTimeout(H.timer); } catch (e) { /* yut */ } H.timer = null; }
-    if (H.authT) { try { clearTimeout(H.authT); } catch (e0) { /* yut */ } H.authT = null; }
+    if (H.frontT) { try { clearTimeout(H.frontT); } catch (e0) { /* yut */ } H.frontT = null; }
     if (H.b.timer) { try { clearTimeout(H.b.timer); } catch (e1) { /* yut */ } H.b.timer = null; }
     var P = H.kn.poller;
     H.kn.poller = null;
@@ -55203,6 +55713,12 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       else if (!on && has) { D.body.classList.remove('octo-home-open'); }
       if (!on) { D.body.classList.remove('octo-home-build'); }
     } catch (e) { /* yut */ }
+    if (!on) { homeFrontStop(M.home); }
+  }
+  function homeFrontStop(H) {
+    if (!H || !H.frontT) { return; }
+    try { clearTimeout(H.frontT); } catch (e) { /* yut */ }
+    H.frontT = null;
   }
   // 30.09: Build ateslenince (busy/sent/arrive/open) body.octo-home-build -> Architect kapsayicisi (#gaia-shell-container)
   // yeniden Start'in ustune cikar; icindeki dagitim ilerleme/basari ekrani gorunur (CSS: app-rail.css, home bolumu).
@@ -55224,21 +55740,34 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     } catch (e) { return false; }
     return true;
   }
+  // os6 (0.f): Architect'in kurulum ekrani onde mi (amiral gemisi katmani, dagitim ilerleme ekrani, GAD, baglanti
+  // paneli): W._gadSetupFront(); yoksa iki yedek yoklama. Start acikken 500 ms'de bir KOSULSUZ bakilir: amiral gemisi
+  // commit'inden sonra dagitim ekrani Home boyanmadan belirir.
+  function homeFrontNow() {
+    try {
+      if (typeof W._gadSetupFront === 'function') { return W._gadSetupFront() === true; }
+      return !!D.getElementById('gaia-flagship-activate') || nodeShown(D.getElementById('gaia-deploy-overlay'));
+    } catch (e) { return false; }
+  }
   function homeBuildLock(H) {
     try {
       if (!D.body || !H || M.home !== H) { return; }
       var p = H.b ? H.b.phase : '';
-      var on = p === 'busy' || p === 'sent' || p === 'arrive' || p === 'open';
+      var on = p === 'busy' || p === 'sent' || p === 'arrive' || p === 'bind' || p === 'open';
       var auth = false;
       if (M.conn && !M.portal) { auth = nodeShown(D.getElementById('gaia-auth-panel')); }
-      if (auth) {
-        on = true;
-        if (!H.authT) { H.authT = setTimeout(function () { H.authT = null; if (M.home === H && H.open) { homeBuildLock(H); } }, 500); }
-      }
+      var front = homeFrontNow();
+      H.front = front;
+      if (auth || front) { on = true; }
       var has = D.body.classList.contains('octo-home-build');
       if (on && !has) { D.body.classList.add('octo-home-build'); }
       else if (!on && has) { D.body.classList.remove('octo-home-build'); }
     } catch (e) { /* yut */ }
+    homeFrontArm(H);
+  }
+  function homeFrontArm(H) {
+    if (!H || H.frontT || !H.open || M.home !== H) { return; }
+    H.frontT = setTimeout(function () { H.frontT = null; if (M.home === H && H.open) { homeBuildLock(H); } }, 500);
   }
   // Build sonrasi Architect'in dagitim katmani: hata / vazgecme yolunda Start'in altinda "Creating your assistant"
   // kalmasin diye kapatilir (Architect'in kendi kapatma dugmesiyle ayni: is-hidden + bekci zamanlayicisi).
@@ -55247,6 +55776,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     try { if (W.__gaiaDeployWd) { clearTimeout(W.__gaiaDeployWd); W.__gaiaDeployWd = null; } } catch (e1) { /* yut */ }
   }
   function homeDrop(H, k) {
+    if (k === 'node') { homeFrontStop(H); }
     var n = H[k];
     H[k] = null;
     if (n && n.parentNode) { try { n.parentNode.removeChild(n); } catch (e) { /* yut */ } }
@@ -55464,34 +55994,74 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     homeKnowSave(K, 'idle');
     K.ref = ''; K.ts = 0;
   }
-  function home409(err) {
-    var c = str(err && err.code), m = str(err && err.message), s = str(err && err.status);
-    return c === 'conflict' || s === '409' || /already used|\b409\b/i.test(m);
+  // os6 (OCTO_KNOW_SPEC 1.1): tek Know motoru = amiral gemisinin tarama cifti (Architect _gadKnowPayload +
+  // _gadKnowInspect: workspace_inspect, run_evidence yoklamasi, soguk tekrar, 409 tespiti). Home kendi istegini atmaz.
+  function homeKnowEngine() { return typeof W._gadKnowPayload === 'function' && typeof W._gadKnowInspect === 'function'; }
+  // 0.i: ref tahmin edilemesin diye 8 karakter rastgele kuyruk (deneme kosusu ref'i de kullanir).
+  function homeRand8() { return (Math.random().toString(36).slice(2) + '00000000').slice(0, 8); }
+  function homeKnowReset(H) {
+    var K = H.kn;
+    K.reads = null; K.map = null; K.args = null; K.wm = null; K.inv = null;
+    K.fields = null; K.names = null; K.steps = null; K.primary = null; K.allF = false;
+    K.why = '';
+    H.map = null; H.args = null;
+  }
+  // os6 fix 2: why a scan found nothing. access.denied (server _wmAccessOf: an app that refused every read, the 17:00
+  // Drive 403 without the listing scope) > error_code inspect_no_apps > synthesis {ok:false}. '' = no known reason.
+  function homeWhy(ev) {
+    if (!isObj(ev)) { return ''; }
+    var den = (isObj(ev.access) && isArr(ev.access.denied)) ? ev.access.denied : [];
+    if (den.indexOf('googledrive') >= 0) { return 'drive'; }
+    if (den.indexOf('googlesheets') >= 0) { return 'sheets'; }
+    if (str(ev.error_code) === 'inspect_no_apps') { return 'apps'; }
+    if (isObj(ev.synthesis) && ev.synthesis.ok === false) { return 'map'; }
+    return '';
+  }
+  var HOME_WHY = { drive: 'Reconnect Google Drive', sheets: 'Reconnect Google Sheets', apps: 'Connect Drive or Sheets first', map: 'Map step failed' };
+  function homeWhyLine(K) {
+    var t = HOME_WHY[str(K.why)] || '';
+    if (!t) { return null; }
+    var r = muted(t);
+    r.setAttribute('data-k', 'home-why');
+    r.setAttribute('data-why', str(K.why));
+    return r;
   }
   // Tarama: her tarama yeni ref; ayni anda tek; oturumda en cok HOME_SCANS (otomatik 409 tekrari dahil).
   function homeScan(H, auto) {
     var K = H.kn;
     if (M.home !== H || K.phase === 'scan' || K.phase === 'known') { return; }
     if (K.n >= HOME_SCANS) { if (auto) { K.phase = 'err'; paintSoon('home'); } return; }
+    // Motor yoksa (Architect eski ya da yuklenmedi) istek yok: Could not scan.
+    if (!homeKnowEngine()) { H.step = 'know'; homeScanFail(H); return; }
     if (!auto) { K.retried = false; }
     K.n++;
-    var ref = 'home_' + homeUid().slice(-6) + '_' + Date.now().toString(36) + '_' + K.n;
-    K.ref = ref; K.ts = Date.now(); K.phase = 'scan'; K.reads = null; K.map = null; K.args = null; K.wm = null;
-    H.map = null; H.args = null; H.step = 'know'; H.empty = false;
+    var ref = 'home_' + homeUid().slice(-6) + '_' + Date.now().toString(36) + '_' + K.n + '_' + homeRand8();
+    K.ref = ref; K.ts = Date.now(); K.phase = 'scan';
+    homeKnowReset(H);
+    H.step = 'know'; H.empty = false;
     homeKnowSave(K, 'scan');
     trace('home:scan');
     paintSoon('home');
-    var p = { referedeger: ref, apps: homeApps(), language: homeLang(), purpose: '', company_scan: { enabled: false }, knowledge: { enabled: true, max_files: 12 } };
-    octo.request('workspace_inspect', p, { retry: false, timeoutMs: 45000, cacheKey: 'workspace_inspect|' + ref }).then(function () {
-      if (M.home !== H || K.ref !== ref) { return; }
-      homePollEv(H, ref);
-    }, function (err) {
-      if (M.home !== H || K.ref !== ref) { return; }
-      // Soguk onay: sunucu isliyor olabilir, yoklama karar verir.
-      if (str(err && err.code) === 'timeout') { homePollEv(H, ref); return; }
-      if (home409(err) && !K.retried) { K.retried = true; K.phase = 'idle'; homeScan(H, true); return; }
-      homeScanFail(H);
-    });
+    var h = null;
+    try {
+      var pay = W._gadKnowPayload({ ref: ref, apps: homeApps(), language: homeLang(), purpose: '', company_scan: { enabled: true }, knowledge: { enabled: true, max_files: 12 } });
+      h = W._gadKnowInspect(ref, pay, function (d) {
+        if (M.home !== H || K.ref !== ref) { return; }
+        var r = homeReads(d);
+        if (r) { K.reads = r; paintSoon('home'); }
+      }, function (res) {
+        if (M.home !== H || K.ref !== ref) { return; }
+        K.poller = null;
+        var r = isObj(res) ? res : {};
+        if (r.ok === true && isObj(r.ev) && isObj(r.ev.work_map)) { homeKnow(H, r.ev); return; }
+        K.why = homeWhy(r.ev);
+        if (str(r.status).toUpperCase() === 'SUCCEEDED') { K.phase = 'empty'; homeKnowSave(K, 'map'); paintSoon('home'); return; }
+        // 409 (ref kullanilmis) ya da gecici hata: yeni ref ile TEK otomatik tekrar.
+        if (r.retryable === true && !K.retried) { K.retried = true; K.phase = 'idle'; homeScan(H, true); return; }
+        homeScanFail(H);
+      });
+    } catch (e) { h = null; homeScanFail(H); return; }
+    if (K.ref === ref && K.phase === 'scan' && h && typeof h.cancel === 'function') { K.poller = h; }
   }
   function homeScanFail(H) {
     if (M.home !== H) { return; }
@@ -55520,6 +56090,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
         K.poller = null;
         var st = str(status).toUpperCase();
         if (st === 'SUCCEEDED' && isObj(ev) && isObj(ev.work_map)) { homeKnow(H, ev); return; }
+        K.why = homeWhy(ev);
         if (st === 'SUCCEEDED') { K.phase = 'empty'; homeKnowSave(K, 'map'); paintSoon('home'); return; }
         homeScanFail(H);
       }, {
@@ -55537,6 +56108,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var K = H.kn, ref = K.ref;
     K.phase = 'known';
     K.wm = ev.work_map;
+    K.inv = isObj(ev.inventory) ? ev.inventory : null;
     var r = homeReads(ev);
     if (r) { K.reads = r; }
     paintSoon('home');
@@ -55546,7 +56118,15 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       var map = (isObj(d) && isObj(d.map)) ? d.map : null;
       if (!map) { homeScanFail(H); return; }
       K.map = map;
+      // os6: Build os_home_know'un ust duzey alanlarini okur (fields, steps, names, primary); args yalniz bir surum
+      // daha teshis icin tutulur (octo._rail.home.args), Build onu OKUMAZ.
       K.args = isObj(d.args) ? d.args : null;
+      var mw = isObj(map.workspace) ? map.workspace : {};
+      K.fields = (isArr(d.fields) ? d.fields : (isArr(mw.fields) ? mw.fields : [])).filter(function (f) { return isObj(f) && !!str(f.label); });
+      K.names = isObj(d.names) ? d.names : null;
+      K.steps = (isArr(d.steps) ? d.steps : []).filter(function (s) { return isObj(s) && !!str(s.name); });
+      K.primary = isObj(d.primary) ? d.primary : null;
+      K.allF = false;
       H.map = K.map;
       H.args = K.args;
       var srcs = isArr(K.wm.sources) ? K.wm.sources : [];
@@ -55562,7 +56142,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   function homeUse() {
     var H = M.home;
     if (!H || H.kn.phase !== 'map') { return; }
-    H.empty = !isObj(H.kn.args);
+    H.empty = !(H.kn.fields && H.kn.fields.length) && !H.kn.names;
     H.step = 'build';
     paintSoon('home');
   }
@@ -55573,25 +56153,74 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     H.step = 'build';
     paintSoon('home');
   }
-  // Skip yolu (3.7): harita yokken urunun kendi varsayilan iskeleti.
-  function homeEmptyArgs() {
-    var model = '';
-    try { var t = (typeof W._gadModelDefaultTier === 'function') ? W._gadModelDefaultTier() : null; model = (t && t.id) ? str(t.id) : ''; } catch (e) { model = ''; }
+  // os6 (OCTO_KNOW_BUILD_PLAN 0.e): tek args ureticisi amiral gemisininki (_gadFlagshipArgs); Home ona sentetik bir
+  // plan (bpHome) verir. Alanlar os_home_know'un ust duzey fields listesinden (en cok 60, en az bir control); Skip
+  // yolunda (harita yok) urunun tek Note alanli iskeleti.
+  var HOME_FIELDS_MAX = 60;
+  var HOME_NOTE_FIELD = { label: 'Note', type: 'long_text', role: 'control', description: '' };
+  function homePromptText(biz, steps, fields) {
+    var lines = [];
+    if (biz) { lines.push('Business: ' + biz); }
+    if (steps.length) { lines.push('Steps: ' + steps.join(', ')); }
+    if (fields.length) { lines.push('Fields: ' + fields.join(', ')); }
+    lines.push('Keep records current.');
+    return lines.join('\n').slice(0, 4000);
+  }
+  function homeBpField(f) {
+    var t = str(f.type).toLowerCase() || 'text', r = str(f.role).toLowerCase() || 'optional';
+    var o = { label: str(f.label).slice(0, 120), type: t, role: r, description: str(f.description).slice(0, 240) };
+    if (t === 'dropdown') { o.dropdown_values = isArr(f.values) ? f.values.map(str).filter(function (v) { return !!v; }) : []; }
+    if (t === 'image_pdf') { o.allow_multiple = true; }
+    return o;
+  }
+  function homeBp(H) {
+    var K = H.kn;
+    var base = { process_type: 'Table', action_tools: [], action_tool_choice: 'auto', effort: 'medium', data_flow_mode: 'create_new', manual_wake: { enabled: true, mode: 'create_new' } };
+    var bp = null;
+    if (H.empty) {
+      bp = {
+        workspace_label: 'My workspace', process_name: 'Records', custom_fields: [homeBpField(HOME_NOTE_FIELD)],
+        system_prompt_template: ['Create one record per note.', 'Fill fields from the note.', 'Keep records current.'].join('\n')
+      };
+    } else {
+      var nm = isObj(K.names) ? K.names : {};
+      var b = (isObj(K.map) && isObj(K.map.business)) ? K.map.business : {};
+      var fields = (K.fields || []).slice(0, HOME_FIELDS_MAX).map(homeBpField);
+      if (!fields.length) { fields = [homeBpField(HOME_NOTE_FIELD)]; }
+      if (!fields.some(function (f) { return f.role === 'control'; })) { fields[0].role = 'control'; }
+      var biz = [str(b.name), str(b.summary)].filter(function (x) { return !!x; }).join('. ');
+      var steps = (K.steps || []).map(function (s) { return str(s.name); });
+      bp = {
+        workspace_label: str(nm.workspace).slice(0, 120) || 'My workspace', process_name: str(nm.process).slice(0, 80) || 'Records', custom_fields: fields,
+        system_prompt_template: homePromptText(biz, steps, fields.map(function (f) { return f.label; }))
+      };
+    }
     return {
-      workspace_label: 'My workspace', process_name: 'Records', process_type: 'Table', action_mode: 'create_new',
-      action_name: 'My workspace assistant',
-      custom_fields: [{ label: 'Note', type: 'long_text', role: 'control', description: '' }], existing_custom_fields: [],
-      system_prompt_template: ['Create one record per note.', 'Fill fields from the note.', 'Keep records current.'].join('\n'),
-      model: model, effort: 'medium', action_tools: [], action_tool_choice: 'auto', trigger_id: '',
-      data_flow_rules: { manual_wake: { enabled: true, mode: 'create_new' }, schedule: { enabled: false } }
+      workspace_label: bp.workspace_label, process_name: bp.process_name, process_type: base.process_type, custom_fields: bp.custom_fields,
+      system_prompt_template: bp.system_prompt_template, action_tools: base.action_tools, action_tool_choice: base.action_tool_choice,
+      effort: base.effort, data_flow_mode: base.data_flow_mode, manual_wake: base.manual_wake
     };
   }
-  function homeArgsNow(H) {
-    if (!H.empty && isObj(H.kn.args)) { return H.kn.args; }
-    if (!H.b.eargs) { H.b.eargs = homeEmptyArgs(); }
-    return H.b.eargs;
+  // Build'e giden work_map kopyasi (0.e): donusturulmus kaynaklar (xlsx / csv tarama kopyasi, taramadan hemen sonra
+  // cope atilir) cikar; kalan her kaynak propose, yazilabilir sutun yok (K3; anahtar sutun asla yazilmaz).
+  function homeWmForBuild(wm) {
+    if (!isObj(wm)) { return null; }
+    var c = null;
+    try { c = JSON.parse(JSON.stringify(wm)); } catch (e) { return null; }
+    var keep = [];
+    var src = isArr(c.sources) ? c.sources : [];
+    for (var i = 0; i < src.length; i++) {
+      var s = src[i];
+      if (!isObj(s) || s.converted === true) { continue; }
+      s.writable = [];
+      s.apply_modes = ['propose'];
+      keep.push(s);
+    }
+    if (!keep.length) { return null; }
+    c.sources = keep;
+    return c;
   }
-  function homeBuildReady() { return typeof W._gadAssembleToolCallPayload === 'function' && typeof W._gadFireToolCallSafe === 'function'; }
+  function homeBuildReady() { return typeof W._gadFlagshipArgs === 'function' && typeof W._gadBuildFeaturedDraft === 'function' && typeof W._gadFireToolCallSafe === 'function'; }
   // Birincil kaynak (sunucu kurali ile ayni): ilk tracking, yoksa durum sutunu olan ilk, yoksa en cok baslik.
   function homePrimary(wm) {
     var srcs = (isObj(wm) && isArr(wm.sources)) ? wm.sources.filter(function (s) { return isObj(s) && str(s.tab); }) : [];
@@ -55637,42 +56266,54 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (!p || !isObj(p.sheet) || str(p.sheet.mode) !== 'existing' || !RE.g.test(str(p.sheet.id))) { return null; }
     return { mode: 'existing', id: str(p.sheet.id), name: str(p.sheet.name).slice(0, 120) };
   }
-  // Atesleme 4.2 (onbCreate kalibi): canli arac cagrisi baglami KOPYALANMAZ, ctxString bos.
+  // Atesleme (0.e): bpHome -> _gadFlagshipArgs -> _gadBuildFeaturedDraft -> _gadFireToolCallSafe; canli arac cagrisi
+  // baglami KOPYALANMAZ (ctxString bos). Taslak args ateslemeden once _gaiaDraftOriginalArgs'a yazilir.
   function homeBuild() {
     var H = M.home;
     if (!H) { return; }
     var B = H.b;
-    if (B.phase === 'busy' || B.phase === 'sent' || B.phase === 'arrive' || B.phase === 'open') { return; }
+    if (B.phase === 'busy' || B.phase === 'sent' || B.phase === 'arrive' || B.phase === 'bind' || B.phase === 'open') { return; }
     if (!homeBuildReady()) { H.noBridge = true; dbgSoon(); paintSoon('home'); return; }
-    var args = homeArgsNow(H);
+    var bp = homeBp(H);
     B.phase = 'busy';
     B.what = '';
+    B.bind = null;
     try {
+      var args = W._gadFlagshipArgs(bp, '', { workMap: H.empty ? null : homeWmForBuild(H.kn.wm), excludedApps: [] });
+      if (!isObj(args)) { throw { code: 'bad_request' }; }
       try { W._gaiaDraftOriginalArgs = args; } catch (e0) { /* yut */ }
-      var asm = W._gadAssembleToolCallPayload(args, { ctxString: '', functionCallOutputBody: '', retainLive: false, liveTrigIds: [] });
-      if (!asm || !asm.payload) { throw { code: 'bad_request' }; }
+      var payload = W._gadBuildFeaturedDraft(args);
+      if (!payload || !payload.outputlist3) { throw { code: 'bad_request' }; }
       try { if (typeof W._gadSnapshotPendingCreateTrigIds === 'function') { W._gadSnapshotPendingCreateTrigIds(); } } catch (e1) { /* yut */ }
       B.t0 = Date.now();
       B.label = str(args.workspace_label);
       // Build aninda bilinen tablo id'leri: yeni tablo bu listede olmayandir (istemci saati kaymasina dayanikli).
       B.known = null;
       if (H.data && isArr(H.data.sheets)) { B.known = {}; for (var ki = 0; ki < H.data.sheets.length; ki++) { B.known[H.data.sheets[ki].id] = 1; } }
-      ssSet(HOME_BUILD, JSON.stringify({ ref: H.kn.ref, label: B.label, process: str(args.process_name), uid: homeUid(), t0: B.t0 }));
+      // Skip yolu (harita yok) bag tasimaz: ref bos yazilir, yeni tablo sayfasi kaydi reddeder (onceki taramanin ref'i
+      // iskelet tabloyu taranan Sheet'e baglamasin).
+      ssSet(HOME_BUILD, JSON.stringify({ ref: H.empty ? '' : H.kn.ref, label: B.label, process: str(args.process_name), uid: homeUid(), t0: B.t0, src: 'home' }));
       homePickSave(H);
       var nf = isArr(args.custom_fields) ? args.custom_fields.length : 0;
       try { if (typeof W._gaiaShowDeployProgress === 'function') { W._gaiaShowDeployProgress(args.workspace_label, args.process_name, { fields: nf }); } } catch (e2) { /* yut */ }
-      try { if (typeof W._gaiaArmDeployWatchdog === 'function') { W._gaiaArmDeployWatchdog(T.homeSentMax); } } catch (e3) { /* yut */ }
-      W._gadFireToolCallSafe(asm.payload, 'home build', { onFail: function () { homeBuildFail(H); } });
+      // Bekci suresi Architect'in tek kuralindan (_gaiaDeployBudgetMs); yoksa ayni formul (alan basina 3.5 sn, tavan 240 sn).
+      var bud = 0;
+      try { bud = (typeof W._gaiaDeployBudgetMs === 'function') ? Number(W._gaiaDeployBudgetMs(args)) : 0; } catch (e3) { bud = 0; }
+      if (!(bud > 0)) { bud = Math.min(240000, 60000 + 3500 * nf); }
+      try { if (typeof W._gaiaArmDeployWatchdog === 'function') { W._gaiaArmDeployWatchdog(bud); } } catch (e3b) { /* yut */ }
+      W._gadFireToolCallSafe(payload, 'home build', { onFail: function () { homeBuildFail(H); } });
       B.phase = 'sent';
       // Onay kaybolursa (Architect bekcisi "Close and check your workspace later" der, Home'a olay gelmez)
-      // 'sent' sonsuza kalmasin: bekci suresi + ilk bekleme sonra arrive yoklamasina gecilir (tablo olusmus
-      // olabilir; olmadiysa T.homeArriveMax sonunda err + Retry).
+      // 'sent' sonsuza kalmasin: bekci suresi (en az T.homeSentMax) + ilk bekleme sonra arrive yoklamasina gecilir
+      // (tablo olusmus olabilir; olmadiysa T.homeArriveMax sonunda err + Retry).
       if (B.timer) { try { clearTimeout(B.timer); } catch (e4) { /* yut */ } }
-      B.timer = setTimeout(function () { B.timer = null; if (M.home === H && B.phase === 'sent') { trace('home:sent_max'); homeArrive(); } }, T.homeSentMax + T.homeArriveWait);
+      B.timer = setTimeout(function () { B.timer = null; if (M.home === H && B.phase === 'sent') { trace('home:sent_max'); homeArrive(); } }, Math.max(T.homeSentMax, bud) + T.homeArriveWait);
       trace('home:build');
     } catch (err) {
       B.phase = 'err';
       B.what = 'fire';
+      // Ateslenmeyen kurulumun sid'siz kaydi kalmaz: ayni sekmede acilan baska (kurulmamis) tablo taramayi devralmasin.
+      ssDel(HOME_BUILD);
       homeDeployHide();
     }
     paintSoon('home');
@@ -55684,6 +56325,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (B.timer) { try { clearTimeout(B.timer); } catch (e) { /* yut */ } B.timer = null; }
     B.phase = 'err';
     B.what = 'fire';
+    ssDel(HOME_BUILD);
     homeDeployHide();
     paintSoon('home');
   }
@@ -55710,7 +56352,9 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       if (r.ok) {
         homeData(H, r.d);
         var id = homeFind(H);
-        if (id) { B.h0 = Date.now(); homeHold(H, id); return; }
+        // os6: taranmis bir harita ile kurulduysa once taranan kaynaga bag (os_home_bind), sonra yonlendirme.
+        // Skip yolu (bos iskelet, tarama yok) bagsiz iner.
+        if (id) { B.h0 = Date.now(); if (H.empty || !HOME_REF.test(str(H.kn.ref))) { homeHold(H, id); } else { homeBind(H, id); } return; }
       }
       if (Date.now() - B.t1 >= T.homeArriveMax) { B.phase = 'err'; B.what = 'arrive'; paintSoon('home'); return; }
       paintSoon('home');
@@ -55732,9 +56376,195 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     }
     return best || alt;
   }
+  // ------------------------------------------------------------ home bag (os6, OCTO_KNOW_BUILD_PLAN 0.a, 2.6, 2.8)
+  // Yeni tablo taranan kaynaga sunucuda baglanir (os_home_bind: links.sheet, links.drive, links.data[0], ingest,
+  // kural, setup.done). Istek YALNIZ {sheet_id, ref} tasir: kaynak kimligi sunucuda run_evidence'tan okunur.
+  // Dogrudan kopru (os_home kalibi): hata govdesindeki data.failed / data.bind okunur (sunucu adimlari atlayip surer).
+  function homeBindCall(p) {
+    return new Promise(function (resolve) {
+      var done = false, t = null;
+      function fin(o) {
+        if (done) { return; }
+        done = true;
+        if (t) { try { clearTimeout(t); } catch (e) { /* yut */ } }
+        resolve(o);
+      }
+      t = setTimeout(function () { fin({ code: 'timeout', data: null }); }, 30000);
+      try {
+        W._gadTrigRequest('os_home_bind', p, function (res) {
+          var d = (res && isObj(res.data)) ? res.data : (isObj(res) ? res : {});
+          var st = str(res && res.status).toUpperCase(), bs = str(d.status).toUpperCase();
+          var code = str(d.error_code || (res && res.error_code)).toLowerCase();
+          if ((res && res.timeout === true) || st.indexOf('TIMEOUT') >= 0 || bs.indexOf('TIMEOUT') >= 0 || code === 'timeout') { fin({ code: 'timeout', data: d }); return; }
+          if (st === 'ERROR' || bs === 'ERROR' || code || d.ok === false) { fin({ code: tok(code) || 'provider_error', data: d }); return; }
+          if (st !== 'SUCCESS' && d.ok !== true) { fin({ code: 'provider_error', data: d }); return; }
+          fin({ ok: true, d: d });
+        }, 30000);
+      } catch (e) { fin({ code: 'provider_error', data: null }); }
+    });
+  }
+  // Sunucu kaldigi adimdan surer (idempotent, tablo basina kilitli): zaman asimi ya da yarim bag tasiyan saglayici
+  // hatasi yeniden gonderilir; kanit yok / kurulmus tablo (conflict) sonuctur.
+  function homeBindResumable(r) {
+    var dd = isObj(r.data) ? r.data : {};
+    return r.code === 'timeout' || (r.code === 'provider_error' && isObj(dd.bind));
+  }
+  function homeBindFinal(r) {
+    var dd = isObj(r.data) ? r.data : {};
+    return r.code === 'conflict' || (r.code === 'not_found' && isArr(dd.failed) && dd.failed.indexOf('evidence') >= 0);
+  }
+  // octo_home_build kaydi: {ref, label, process, uid, t0, src: home|flagship, sid?}. Taze (T.homeBuildTtl) ve baska
+  // tabloya ait degilse (sid) doner; aksi halde silinir (ayni sekmede acilan ikinci tablo taramayi devralmaz).
+  function homeBuildRec() {
+    var raw = ssGet(HOME_BUILD);
+    if (!raw) { return null; }
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { o = null; }
+    var ok = isObj(o) && /^(home|insp)_[A-Za-z0-9_-]{1,80}$/.test(str(o.ref)) && typeof o.t0 === 'number' && (o.src === 'home' || o.src === 'flagship');
+    var age = ok ? Date.now() - o.t0 : 0;
+    if (!ok || age >= T.homeBuildTtl || age < -60000 || (o.sid !== undefined && str(o.sid) !== sheetId())) { ssDel(HOME_BUILD); return null; }
+    return o;
+  }
+  function homeBuildSid(H, id) {
+    var o = null;
+    try { o = JSON.parse(ssGet(HOME_BUILD) || 'null'); } catch (e) { o = null; }
+    if (!isObj(o)) { o = { ref: H.kn.ref, label: H.b.label, process: '', uid: homeUid(), t0: Date.now(), src: 'home' }; }
+    o.sid = id;
+    ssSet(HOME_BUILD, JSON.stringify(o));
+  }
+  function homeBind(H, id) {
+    var B = H.b;
+    if (M.home !== H) { return; }
+    if (B.timer) { try { clearTimeout(B.timer); } catch (e) { /* yut */ } B.timer = null; }
+    B.phase = 'bind';
+    B.what = '';
+    if (!B.bind || B.bind.id !== id) { B.bind = { ref: H.kn.ref, id: id, phase: 'link', t0: Date.now(), rows: null, code: '', tries: 0, ans: null }; }
+    else { B.bind.phase = 'link'; B.bind.code = ''; B.bind.t0 = Date.now(); }
+    homeBuildSid(H, id);
+    trace('home:bind');
+    paintSoon('home');
+    homeBindReq(H, id);
+  }
+  function homeBindReq(H, id) {
+    var B = H.b, bd = B.bind;
+    if (M.home !== H || B.phase !== 'bind' || !bd) { return; }
+    bd.tries++;
+    homeBindCall({ sheet_id: id, ref: bd.ref }).then(function (r) {
+      if (M.home !== H || B.bind !== bd || B.phase !== 'bind') { return; }
+      if (r.ok) {
+        bd.ans = r.d;
+        ssDel(HOME_BUILD);
+        bd.phase = RE.ds.test(str(r.d.dataset_id)) ? 'load' : 'ok';
+        trace('home:bind_' + bd.phase);
+        paintSoon('home');
+        if (bd.phase === 'ok') { homeHold(H, id); return; }
+        homeBindTick(H, id);
+        return;
+      }
+      if (homeBindResumable(r) && bd.tries < T.homeBindTries) {
+        bd.phase = 'link';
+        B.timer = setTimeout(function () { B.timer = null; if (M.home === H && B.phase === 'bind' && B.bind === bd) { homeBindReq(H, id); } }, T.homeBindRetry);
+        return;
+      }
+      if (homeBindFinal(r)) { ssDel(HOME_BUILD); }
+      homeBindErr(H, id, r.code);
+    });
+  }
+  // Could not link + Retry; T.homeGrace sonra yine iner (yeni tabloda secim kaydi yedegi ve kayit varsa bag tekrari).
+  function homeBindErr(H, id, code) {
+    var B = H.b, bd = B.bind;
+    bd.phase = 'err';
+    bd.code = tok(code) || 'provider_error';
+    B.phase = 'err';
+    B.what = 'bind';
+    trace('home:bind_err');
+    dbgSoon();
+    paintSoon('home');
+    if (B.timer) { try { clearTimeout(B.timer); } catch (e) { /* yut */ } }
+    B.timer = setTimeout(function () {
+      B.timer = null;
+      if (M.home === H && B.phase === 'err' && B.what === 'bind' && B.bind === bd) { B.phase = 'bind'; homeHold(H, id); }
+    }, T.homeGrace);
+  }
+  function homeBindRetry() {
+    var H = M.home;
+    if (!H || !H.b.bind) { return; }
+    H.b.bind.tries = 0;
+    homeBind(H, H.b.bind.id);
+  }
+  // Yukleme: os_ds_status (bu kume) satir sayisi ve is durumu; hazir ya da is bitti -> iner. Hata ya da tavan -> yine iner.
+  function homeBindTick(H, id) {
+    var B = H.b, bd = B.bind;
+    if (M.home !== H || B.phase !== 'bind' || !bd || !bd.ans) { return; }
+    if (Date.now() - bd.t0 >= T.homeBindMax) { homeHold(H, id); return; }
+    var ds = str(bd.ans.dataset_id);
+    M.seq++;
+    octo.request('os_ds_status', { sheet_id: id, dataset_id: ds }, { retry: false, cacheKey: 'os_ds_status|home|' + M.seq }).then(function (d) {
+      if (M.home !== H || B.bind !== bd || B.phase !== 'bind') { return; }
+      var l = (isObj(d) && isArr(d.datasets)) ? d.datasets : [], row = null;
+      for (var i = 0; i < l.length; i++) { if (isObj(l[i]) && str(l[i].id) === ds) { row = l[i]; } }
+      if (!row) { homeHold(H, id); return; }
+      if (num(row.row_count) !== null) { bd.rows = row.row_count; }
+      var job = isObj(row.job) ? row.job : null, js = job ? str(job.status) : '';
+      if (js === 'running') {
+        var ph = (str(job.kind) === 'apply' && homeBindApply(bd)) ? 'work' : 'load';
+        if (ph !== bd.phase) { bd.phase = ph; trace('home:bind_' + ph); }
+        paintSoon('home');
+        B.timer = setTimeout(function () { B.timer = null; homeBindTick(H, id); }, T.homeBindPoll);
+        return;
+      }
+      if (row.status === 'ready' || row.status === 'evicted' || js === 'done' || row.status === 'error' || js === 'error' || js === 'stale') {
+        bd.phase = 'ok';
+        trace('home:bind_ok');
+        paintSoon('home');
+        homeHold(H, id);
+        return;
+      }
+      paintSoon('home');
+      B.timer = setTimeout(function () { B.timer = null; homeBindTick(H, id); }, T.homeBindPoll);
+    }, function () {
+      if (M.home !== H || B.bind !== bd || B.phase !== 'bind') { return; }
+      homeHold(H, id);
+    });
+  }
+  // Ucuncu adim (Adding open work) yalniz sunucu apply baslattiysa (canli uygulama); test surumunde yalniz ingest.
+  function homeBindApply(bd) {
+    var a = isObj(bd.ans) ? bd.ans : {}, b = isObj(a.bind) ? a.bind : {};
+    return str(b.work) === 'apply';
+  }
+  // Yeni tablo sayfasi (ray kurulu): kayit bu tabloya aitse (ya da sid'siz amiral gemisi kaydi) bag BIR kez denenir.
+  // Main kanalda (arrDev yok) hic calismaz.
+  function homeBindOnce(id, rec, cb) {
+    var n = 0;
+    function go() {
+      n++;
+      homeBindCall({ sheet_id: id, ref: str(rec.ref) }).then(function (r) {
+        if (r.ok) { ssDel(HOME_BUILD); trace('home:bind_page_ok'); cb(true); return; }
+        if (homeBindResumable(r) && n < T.homeBindTries) { setTimeout(go, T.homeBindRetry); return; }
+        if (homeBindFinal(r)) { ssDel(HOME_BUILD); }
+        trace('home:bind_page_err');
+        cb(false);
+      });
+    }
+    go();
+  }
+  function homeBindLoad() {
+    if (!arrDev() || M.bindBusy || !M.data || !setupNeeded() || !idOk(sheetId()) || M.bindTried[M.key]) { return; }
+    var br = homeBuildRec();
+    if (!br) { return; }
+    M.bindTried[M.key] = true;
+    M.bindBusy = true;
+    if (br.sid === undefined) { br.sid = sheetId(); ssSet(HOME_BUILD, JSON.stringify(br)); }
+    var key = M.key;
+    homeBindOnce(sheetId(), br, function () {
+      M.bindBusy = false;
+      if (M.key !== key) { return; }
+      refreshWs('bind').then(function () { paintSoon(); }, function () { paintSoon(); });
+    });
+  }
   // Deploy basari ekrani acikken yonlendirilmez (stepA emsali); ekran kapaninca ya da T.homeHoldMax sonra gidilir.
   function homeHold(H, id) {
-    if (M.home !== H || H.b.phase !== 'arrive') { return; }
+    if (M.home !== H || (H.b.phase !== 'arrive' && H.b.phase !== 'bind')) { return; }
     if (deployVisible() && Date.now() - H.b.h0 < T.homeHoldMax) {
       H.b.timer = setTimeout(function () { H.b.timer = null; homeHold(H, id); }, T.homePoll);
       return;
@@ -55810,7 +56640,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   }
   function homeSig(H) {
     var K = H.kn, B = H.b, parts = [H.step, H.req, H.code, H.empty ? 1 : 0, M.conn ? M.conn.tk : '', K.phase, K.n, K.ref,
-      K.reads ? (K.reads.files + '/' + K.reads.sheets) : '', K.map ? 1 : 0, B.phase, B.what, homeBuildReady() ? 1 : 0];
+      K.reads ? (K.reads.files + '/' + K.reads.sheets) : '', K.map ? 1 : 0, B.phase, B.what, homeBuildReady() ? 1 : 0, K.allF ? 1 : 0,
+      B.bind ? (B.bind.phase + ':' + B.bind.tries + ':' + (B.bind.rows === null ? '' : B.bind.rows) + ':' + (homeBindApply(B.bind) ? 1 : 0)) : ''];
     for (var i = 0; i < ONB_APPS.length; i++) { parts.push(onbAppState(ONB_APPS[i], 'home')); }
     var sh = (H.data && H.data.sheets) || [];
     for (var j = 0; j < sh.length; j++) { parts.push(sh[j].id + ':' + sh[j].name + ':' + sh[j].created); }
@@ -55961,14 +56792,67 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     }
     return box.firstChild ? box : null;
   }
+  // Baslik tek metin ya da parcalar (sabit kelime ve sayi ayri metin dugumleri: "Fields (14)").
   function homeSec(box, key, title) {
     var s = el('div', 'octo-home-sec');
     s.setAttribute('data-sec', key);
-    s.appendChild(el('div', 'octo-home-sec-t', title));
+    var t = el('div', 'octo-home-sec-t');
+    var parts = isArr(title) ? title : [title];
+    for (var i = 0; i < parts.length; i++) { t.appendChild(D.createTextNode(str(parts[i]))); }
+    s.appendChild(t);
     box.appendChild(s);
     return s;
   }
   function homePill(t, k) { var p = el('span', 'octo-rail-pill', t); if (k) { p.setAttribute('data-pill', k); } return p; }
+  // Sirket adi: tarama sirket kimligi (company.identity.name) ya da haritanin is adi.
+  function homeCoName(K) {
+    var co = (isObj(K.wm) && isObj(K.wm.company)) ? K.wm.company : {};
+    var idn = isObj(co.identity) ? co.identity.name : undefined;
+    var n = str(isObj(idn) ? idn.value : idn) || str(co.name);
+    if (!n && isObj(K.map) && isObj(K.map.business)) { n = str(K.map.business.name); }
+    return n.slice(0, 120);
+  }
+  // Birincil kaynagin kanit indeksi: ilk alanin (yoksa ilk adimin) sheet kanit kaydi.
+  function homePrimaryEv(K) {
+    var map = K.map, evs = (isObj(map) && isArr(map.evidence)) ? map.evidence : [];
+    var ws = (isObj(map) && isObj(map.workspace)) ? map.workspace : {};
+    var lists = [K.fields, K.steps, ws.fields, ws.steps];
+    for (var i = 0; i < lists.length; i++) {
+      var l = isArr(lists[i]) ? lists[i] : [];
+      for (var j = 0; j < l.length; j++) {
+        var ev = (isObj(l[j]) && isArr(l[j].ev)) ? l[j].ev : [];
+        for (var k = 0; k < ev.length; k++) {
+          var e = (typeof ev[k] === 'number') ? evs[ev[k]] : null;
+          if (isObj(e) && e.kind === 'sheet' && str(e.name)) { return ev[k]; }
+        }
+      }
+    }
+    return -1;
+  }
+  function homeSame(a, b) { return str(a).replace(/\s+/g, ' ').trim().toLowerCase() === str(b).replace(/\s+/g, ' ').trim().toLowerCase(); }
+  // Birincil kaynak (os_home_know primary, yoksa istemci kurali) work_map icinde.
+  function homeSrcOf(K) {
+    var P = isObj(K.primary) ? K.primary : null;
+    var srcs = (isObj(K.wm) && isArr(K.wm.sources)) ? K.wm.sources : [];
+    if (P) { for (var i = 0; i < srcs.length; i++) { if (isObj(srcs[i]) && str(srcs[i].spreadsheet_id) === str(P.spreadsheet_id) && homeSame(srcs[i].tab, P.tab)) { return srcs[i]; } } }
+    return homePrimary(K.wm);
+  }
+  function homePrimaryHeads(K) { var s = homeSrcOf(K); return (s && isArr(s.headers)) ? s.headers.length : 0; }
+  // Envanter sekmesinin satir sayisi (ayni spreadsheet id + sekme adi); yoksa null (cizilmez).
+  function homeInvRows(K) {
+    var s = homeSrcOf(K), iv = isObj(K.inv) ? K.inv : {};
+    if (!s) { return null; }
+    var sp = isArr(iv.spreadsheets) ? iv.spreadsheets : [];
+    for (var i = 0; i < sp.length; i++) {
+      if (!isObj(sp[i]) || str(sp[i].id) !== str(s.spreadsheet_id)) { continue; }
+      var tabs = isArr(sp[i].tabs) ? sp[i].tabs : [];
+      for (var j = 0; j < tabs.length; j++) {
+        var t = tabs[j];
+        if (isObj(t) && homeSame(t.tab, s.tab) && num(t.row_count) !== null && t.row_count >= 0) { return Math.floor(t.row_count); }
+      }
+    }
+    return null;
+  }
   // Harita karti (3.5): yalniz dolu bolumler; her satir kanit cipiyle.
   function homeMapCard(K) {
     var map = K.map, ws = isObj(map.workspace) ? map.workspace : {}, box = el('div', 'octo-home-map');
@@ -55979,7 +56863,16 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       if (l0) {
         if (str(b.name)) { l0.main.appendChild(el('div', 'octo-home-name', str(b.name))); }
         if (str(b.summary)) { l0.main.appendChild(el('div', 'octo-home-text', str(b.summary))); }
-        homeSec(box, 'business', 'Business').appendChild(l0.row);
+        var bs = homeSec(box, 'business', 'Business');
+        bs.appendChild(l0.row);
+        // Sirket kimligi (tarama company_scan ile): ad kanitli satirda ayrica.
+        var co = homeCoName(K);
+        var lc = co ? homeLine('company', b.ev, map) : null;
+        if (lc) {
+          lc.main.appendChild(el('span', 'octo-home-k', 'Company'));
+          lc.main.appendChild(el('span', 'octo-home-name', co));
+          bs.appendChild(lc.row);
+        }
       }
     }
     var steps = isArr(ws.steps) ? ws.steps.filter(function (s) { return isObj(s) && str(s.name); }) : [];
@@ -55994,17 +56887,56 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
         homeSec(box, 'steps', 'Steps').appendChild(l1.row);
       }
     }
-    var fields = isArr(ws.fields) ? ws.fields.filter(function (f) { return isObj(f) && str(f.label); }) : [];
-    var fs = null;
-    fields.forEach(function (f) {
-      var l = homeLine('field', f.ev, map);
-      if (!l) { return; }
-      l.main.appendChild(el('span', 'octo-home-name', str(f.label)));
-      if (tok(f.type)) { l.main.appendChild(homePill(str(f.type), 'type')); }
-      if (tok(f.role)) { l.main.appendChild(homePill(str(f.role), 'role')); }
-      if (!fs) { fs = homeSec(box, 'fields', 'Fields'); }
-      fs.appendChild(l.row);
-    });
+    // Alanlar (os6): birincil sekmenin her basligi; ilk 12, gerisi Show all N fields. Sunucu tavani (60) asildiysa
+    // baslik "60 of N fields". Kanitsiz satir cizilmez.
+    var fields = isArr(K.fields) ? K.fields : (isArr(ws.fields) ? ws.fields.filter(function (f) { return isObj(f) && str(f.label); }) : []);
+    var nF = fields.length, fs = null, shownF = 0;
+    var headsN = homePrimaryHeads(K);
+    var fTitle = (nF === HOME_FIELDS_MAX && headsN > HOME_FIELDS_MAX) ? ['60 of', ' ', String(headsN), ' ', 'fields'] : ['Fields', ' (', String(nF), ')'];
+    for (var fi = 0; fi < nF && (K.allF || shownF < 12); fi++) {
+      var f = fields[fi];
+      var lf = homeLine('field', f.ev, map);
+      if (!lf) { continue; }
+      lf.main.appendChild(el('span', 'octo-home-name', str(f.label)));
+      if (tok(f.type)) { lf.main.appendChild(homePill(str(f.type), 'type')); }
+      if (tok(f.role)) { lf.main.appendChild(homePill(str(f.role), 'role')); }
+      if (!fs) { fs = homeSec(box, 'fields', fTitle); }
+      fs.appendChild(lf.row);
+      shownF++;
+    }
+    if (fs && nF > 12) {
+      var ab = D.createElement('button');
+      ab.type = 'button';
+      ab.className = 'octo-rail-btn is-link octo-home-allf';
+      ab.setAttribute('data-act', 'home-allf');
+      ab.setAttribute('data-k', 'home-allf');
+      if (K.allF) { ab.appendChild(D.createTextNode('Show fewer')); }
+      else { ['Show all', ' ', String(nF), ' ', 'fields'].forEach(function (p) { ab.appendChild(D.createTextNode(p)); }); }
+      ab.addEventListener('click', function () { var h = M.home; if (h) { h.kn.allF = !h.kn.allF; paintSoon('home'); } });
+      fs.appendChild(ab);
+    }
+    // Kaynak (os6): kayitlar birincil Sheet'te kalir; satir sayisi kanit kaydindan ya da envanter sekmesinden.
+    var pe = homePrimaryEv(K);
+    if (pe >= 0) {
+      var er = map.evidence[pe];
+      var ls = homeLine('source', [pe], map);
+      if (ls) {
+        var ss = homeSec(box, 'source', 'Source');
+        var srow = el('span', 'octo-home-src');
+        srow.appendChild(el('span', 'octo-home-k', 'Records stay in'));
+        srow.appendChild(el('span', 'octo-home-name', str(er.name)));
+        ls.main.appendChild(srow);
+        if (str(er.tab)) { ls.main.appendChild(homePill(str(er.tab), 'tab')); }
+        ss.appendChild(ls.row);
+        var rows = num(er.rows) !== null ? er.rows : homeInvRows(K);
+        var lr = (rows !== null) ? homeLine('rows', [pe], map) : null;
+        if (lr) {
+          lr.main.appendChild(el('span', 'octo-home-k', 'Rows found'));
+          lr.main.appendChild(homePill(fmtCount(rows), 'rows'));
+          ss.appendChild(lr.row);
+        }
+      }
+    }
     var en = isObj(ws.entry) ? ws.entry : {};
     if (str(en.kind) && en.kind !== 'manual' && str(en.source)) {
       var l2 = homeLine('entry', en.ev, map);
@@ -56077,13 +57009,16 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       card.appendChild(homeNav([nn, again, use]));
       return;
     }
+    var why = homeWhyLine(K);
     if (K.phase === 'empty') {
       card.appendChild(muted('Nothing found yet'));
+      if (why) { card.appendChild(why); }
       card.appendChild(homeNav([skip, again]));
       return;
     }
     if (K.phase === 'err') {
       card.appendChild(homeErr('Could not scan', more ? function () { var h = M.home; if (h) { homeScan(h, false); } } : null, 'home-scanerr'));
+      if (why) { card.appendChild(why); }
       card.appendChild(homeNav([skip]));
       return;
     }
@@ -56103,25 +57038,63 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     go.disabled = !more;
     card.appendChild(homeNav([skip, go]));
   }
+  function homePlanLine(k, v, dk) {
+    var r = el('div', 'octo-home-src');
+    r.setAttribute('data-k', dk);
+    r.appendChild(el('span', 'octo-home-k', k));
+    r.appendChild(el('span', 'octo-home-name', v));
+    return r;
+  }
+  // Bag adimlari: bitenler onay isaretli, suren adim donen isaretli; sonrakiler cizilmez.
+  function homeBindRows(card, bd) {
+    var ticks = [['link', 'Linking your sheet'], ['load', 'Loading your records']];
+    if (homeBindApply(bd)) { ticks.push(['work', 'Adding open work']); }
+    var cur = bd.phase === 'ok' ? ticks.length : 0;
+    for (var i = 0; i < ticks.length; i++) { if (ticks[i][0] === bd.phase) { cur = i; } }
+    var box = el('div', 'octo-home-ticks');
+    box.setAttribute('data-k', 'home-bind');
+    for (var j = 0; j <= cur && j < ticks.length; j++) {
+      var t = el('div', 'octo-home-tick' + (j < cur ? ' is-done' : ''));
+      t.setAttribute('data-k', 'home-bind-' + ticks[j][0]);
+      t.appendChild(j < cur ? okMark() : spin());
+      t.appendChild(el('span', 'octo-home-tick-t', ticks[j][1]));
+      if (ticks[j][0] === 'load' && bd.rows !== null && num(bd.rows) !== null) { t.appendChild(homePill(fmtCount(bd.rows), 'rows')); }
+      box.appendChild(t);
+    }
+    card.appendChild(box);
+  }
   // 3 Build: plan onizlemesi (kilitli kart) + Build workspace; kopru yoksa dugme yok (home_no_bridge).
   function homeBuildCard(H, card) {
     var B = H.b;
     onbHead(card, 'grid', 'Build');
     card.setAttribute('data-phase', B.phase);
     if (H.code) { card.appendChild(homeErr('Could not load', homeRetry, 'home-load')); return; }
-    var args = homeArgsNow(H);
+    var bp = homeBp(H);
+    var K = H.kn;
     var box = el('div', 'octo-onb-agent');
     box.setAttribute('data-k', 'home-plan');
-    box.appendChild(el('div', 'octo-onb-agent-name', str(args.workspace_label)));
+    box.appendChild(el('div', 'octo-onb-agent-name', str(bp.workspace_label)));
     var pl = el('div', 'octo-rail-pills');
     if (H.empty) { pl.appendChild(homePill('Empty workspace', 'empty')); }
-    if (str(args.process_name)) { pl.appendChild(homePill(str(args.process_name), 'process')); }
-    var nf = isArr(args.custom_fields) ? args.custom_fields.length : 0;
+    if (str(bp.process_name)) { pl.appendChild(homePill(str(bp.process_name), 'process')); }
+    var nf = isArr(bp.custom_fields) ? bp.custom_fields.length : 0;
     pl.appendChild(homePill(plural(nf, 'field', 'fields'), 'fields'));
     box.appendChild(pl);
+    // Kaynak ve klasor yalniz kanitla (harita kanit kaydi / work_map documents).
+    if (!H.empty) {
+      var pe = homePrimaryEv(K);
+      var er = (pe >= 0 && isObj(K.map)) ? K.map.evidence[pe] : null;
+      if (isObj(K.primary) && er) { box.appendChild(homePlanLine('Source', str(er.name), 'home-src')); }
+      var fo = (isObj(K.wm) && isObj(K.wm.documents)) ? str(K.wm.documents.folder_name).slice(0, 120) : '';
+      if (fo) { box.appendChild(homePlanLine('Folder', fo, 'home-folder')); }
+    }
     card.appendChild(box);
     if (B.phase === 'busy' || B.phase === 'sent') { card.appendChild(homeBusy('Creating workspace', 'home-creating')); return; }
+    // Yalniz suren bag adimlari cizilir; hata sonrasi inis (bind.phase err) "Linking" demez, Opening new table der.
+    if (B.phase === 'bind' && B.bind && (B.bind.phase === 'link' || B.bind.phase === 'load' || B.bind.phase === 'work')) { homeBindRows(card, B.bind); return; }
+    if (B.phase === 'bind') { card.appendChild(homeBusy('Opening new table', 'home-opening')); return; }
     if (B.phase === 'arrive' || B.phase === 'open') { card.appendChild(homeBusy('Opening new table', 'home-opening')); return; }
+    if (B.phase === 'err' && B.what === 'bind') { card.appendChild(homeErr('Could not link', homeBindRetry, 'home-binderr')); return; }
     if (B.phase === 'err') {
       card.appendChild(homeErr('Could not create', function () {
         var h = M.home;
@@ -56168,6 +57141,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       // os5 Home teshisi: home_no_request | home_cold | home_gate_<kod> | home_no_bridge
       if (M.home && M.home.code) { return 'home_' + M.home.code; }
       if (M.home && M.home.noBridge) { return 'home_no_bridge'; }
+      // os6: bag hatasi (Could not link) home_bind_<kod>
+      if (M.home && M.home.b.what === 'bind' && M.home.b.bind) { return 'home_bind_' + (tok(M.home.b.bind.code) || 'provider_error'); }
       return 'no_ctx';
     }
     if (M.nf) { return 'not_found'; }
