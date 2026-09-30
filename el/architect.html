@@ -28132,6 +28132,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (s.companyProfile) copy.companyProfile = s.companyProfile;   // BIZDISC
         if (s.knowledge) copy.knowledge = s.knowledge;   // BIZDISC
         // BIZDISC-END
+        if (_gxKnowOn(s.ctx)) { copy.knowBp = s.knowBp || null; copy.knowSrc = s.knowSrc || null; copy.knowDrop = Array.isArray(s.knowDrop) ? s.knowDrop.slice(0, 10) : []; copy.knowState = String(s.knowState || ''); copy.knowRef = String(s.knowRef || ''); copy.knowTs = Number(s.knowTs) || 0; } if (s.gxClosed === true) copy.gxClosed = true;   // os6b (plan 1.7)
         // 18.09 (GUIDED_SETUP_SPEC karar 4 / bolum 7): kisinin verdigi cevaplar (overrides) ve sectigi izinler
         // oturumda yasar. Geri gidip gelmek onlari kaybetmez (kabul 8); katalog hicbir zaman degismez.
         copy.overrides   = _gflGsCleanOverrides(s.overrides);
@@ -28166,7 +28167,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // T11-fix: bellekte onaysiz/basarisiz kalmis onceki taahhut (kanca + bekleyen DISABLED tetikleyici) once sokulur;
       // yeni oturumun onayi onu enable edemez, bekleyen listesi karismaz.
       try { _gadFlagshipDropUnconfirmed('new-session', ['unconfirmed', 'failed']); } catch(e){}
-      var saved = _gadFlagshipLoadSession(ctx.slug);
+      var saved = _gadFlagshipLoadSession(ctx.slug); if (saved && _gxIsWsCard(ctx) && (/^(creating|arming|unconfirmed)$/.test(String(saved.phase || '')) || (Number(saved.knowTs) > 0 && Date.now() - Number(saved.knowTs) > 1500000))) saved = null;   // os6b: a handed-off workspace session is Home's; a scan older than 25 min is not reused
       var s = {
         slug: ctx.slug, ctx: ctx, phase: 'idle', step: 'connect',
         apps: { required: ctx.requiredSlugs.slice(), optional: ctx.optionalSlugs.slice(), connected: [], skipped: [] },
@@ -28245,6 +28246,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         s.workMap = null; s.workMapState = ''; s.inspectCount = 0; s.inspecting = false; s.workMapSeen = false;
         s.inspectRef = ''; s.inboxProfile = null; s.scanRows = null; s.inspectReads = null;
         s.companyProfile = null; s.knowledge = null;   // BIZDISC (spec 2.4 / 3.1): a fresh session claims nothing
+        if (_gxKnowOn(ctx)) { s.knowBp = null; s.knowState = ''; s.knowRef = ''; s.knowTs = 0; s.knowDrop = []; s.knowSrc = null; s.knowUse = null; }   // os6b (plan 0.d)
         if (saved) {
           try {
             var _wmSt = String(saved.workMapState || '');
@@ -28267,6 +28269,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
             s.companyProfile = (saved.companyProfile && typeof saved.companyProfile === 'object' && !Array.isArray(saved.companyProfile)) ? saved.companyProfile : null;   // BIZDISC
             s.knowledge = (saved.knowledge && typeof saved.knowledge === 'object' && !Array.isArray(saved.knowledge)) ? saved.knowledge : null;   // BIZDISC
             // BIZDISC-END
+            // os6b (plan 1.7): the Know fields and the source choice survive a reload; the plan is re-derived from them.
+            if (_gxKnowOn(ctx)) { s.knowBp = _gxKnowCleanBp(saved.knowBp); s.knowSrc = _gxKnowCleanSrc(saved.knowSrc); s.knowDrop = Array.isArray(saved.knowDrop) ? saved.knowDrop.map(String).slice(0, 10) : []; s.knowState = /^(done|local|failed)$/.test(String(saved.knowState || '')) ? String(saved.knowState) : ''; s.knowRef = String(saved.knowRef || '').slice(0, 80); s.knowTs = Number(saved.knowTs) || 0; if (s.workMapState === 'done') _gxKnowApply(s); }
           } catch(e){}
         }
       }
@@ -29536,7 +29540,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         + '<div class="gfl-card">'
         + '<button type="button" class="gfl-x" id="gfl-close" aria-label="Close">&times;</button>'
         + '<div class="gfl-scroll">'
-        + '<div class="gfl-eyebrow">Flagship product</div>'
+        + '<div class="gfl-eyebrow">' + _flagEsc((_gxIsWsCard(ctx) && act.eyebrow) ? act.eyebrow : 'Flagship product') + '</div>'
         + '<h3 id="gfl-title">' + _flagEsc(ctx.name || 'Assistant') + '</h3>'
         + '<div class="gfl-sub" id="gfl-sub">' + _flagEsc(act.headline || 'Connect your accounts and it starts working on your own data.') + '</div>'
         // 18.09 (GUIDED_SETUP_SPEC karar 1): baglanti On kosuldur; baglandiktan sonra cubukta DORT giris kalir
@@ -29756,6 +29760,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // Bağlantı sonrası (settle / Refresh status): zorunlular bağlı ve bekleyen isteğe bağlı yoksa önizlemeye geçer (true).
     function _gadFlagshipConnectAdvance(s){
       if (!s || s.step !== 'connect' || _gadFlagshipRequiredMissing(s).length > 0) return false;
+      if (s.ctx && _gxIsWsCard(s.ctx)) { if (!_gadFlagshipIsOn('googlesheets') && !_gadFlagshipIsOn('googledrive')) return false; _gadFlagshipStep('preview'); return true; }   // os6b (plan 1.5c): Sheets OR Drive
       if (_gadFlagshipPendingOptional(s).length) { _gadFlagshipConnectHint(s); return false; }
       _gadFlagshipStep('preview');
       return true;
@@ -29768,6 +29773,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var order = ['connect','preview','verify','configure','launch'];
       var prevStep = String(s.step || '');
       s.step = step;
+      if (_gxKnowOn(s.ctx) && (step === 'verify' || step === 'configure' || step === 'launch')) { try { _gxKnowApply(s); } catch(_ka){} }   // os6b (plan 1.10c)
       var cur = order.indexOf(step);
       _gflStepsPaint(ov, step, order, cur);
       var panels = { connect: 'gfl-step-connect', preview: 'gfl-step-preview', verify: 'gfl-step-verify', configure: 'gfl-step-configure', launch: 'gfl-step-launch' };
@@ -33417,6 +33423,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         s.knowledge = (ev && _gflWmObj(ev.knowledge)) ? ev.knowledge   // BIZDISC
           : ((ev && _gflWmObj(ev.work_map) && _gflWmObj(ev.work_map.knowledge)) ? ev.work_map.knowledge : null);   // BIZDISC
         // BIZDISC-END
+        try { if (_gxKnowOn(s.ctx)) _gxKnowFetch(s, ref, map ? ev : null); } catch(_kf){ gW('[KNOW] alan cagrisi: ' + (_kf && _kf.message)); }   // os6b (plan 1.9)
         if (map) gL('[WORKMAP] harita hazir | kaynak: ' + map.sources.length + ' | kural: ' + map.rules.length + ' | drive: ' + map.drive + (inv ? (' | envanter: ' + JSON.stringify(inv).slice(0, 300)) : '') + ' | ref: ' + ref);
         else gW('[WORKMAP] inceleme basarisiz (' + String(why || '') + '), onizleme yalniz posta ile kosar | ref: ' + ref);
         if (mine()) {
@@ -33575,6 +33582,302 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     window._gadFlagshipRunInspect = _gadFlagshipRunInspect;
     window._gadKnowPayload = _gadKnowPayload;
     window._gadKnowInspect = _gadKnowInspect;
+    // os6b (OCTO_KNOW_UI_PLAN 0.d): fields, source choice and commit wait for know_v2 cards (today only the workspace card).
+    // The raw helpers mirror octo_rail.js (hStr, homeMap source filter, hPrimary) so client and server agree on indexes.
+    function _gxHStr(v, n){ return (v === null || v === undefined || typeof v === 'object') ? '' : String(v).replace(/\s+/g, ' ').trim().slice(0, n).trim(); }
+    function _gxKnowId(v){ var t = _gxHStr(v, 64); return /^[a-z0-9_]{2,32}$/.test(t) ? t : ''; }
+    function _gxKnowRawSrcs(wm){
+      var l = (wm && Array.isArray(wm.sources)) ? wm.sources : [];
+      return l.filter(function(x){ return _gflWmObj(x) && !!_gxHStr(x.tab, 200); });
+    }
+    function _gxKnowRawPrimary(list){
+      var i;
+      for (i = 0; i < list.length; i++) if (list[i].role === 'tracking') return i;
+      for (i = 0; i < list.length; i++) if (_gxHStr(list[i].status_column, 120)) return i;
+      var best = -1, bn = -1;
+      for (i = 0; i < list.length; i++) { var n = Array.isArray(list[i].headers) ? list[i].headers.length : 0; if (n > bn) { best = i; bn = n; } }
+      return best;
+    }
+    function _gxKnowTrimSrc(x){
+      if (!_gflWmObj(x)) return null;
+      var sv = [];
+      (Array.isArray(x.status_values) ? x.status_values : []).forEach(function(v){ var t = _gxHStr(v, 60); if (t && sv.length < 12) sv.push(t); });
+      return { id: _gxKnowId(x.id), spreadsheet_id: _gxHStr(x.spreadsheet_id, 200), spreadsheet_name: _gxHStr(x.spreadsheet_name, 200),
+        tab: _gxHStr(x.tab, 120), headers: (Array.isArray(x.headers) ? x.headers : []).slice(0, 80).map(function(h){ return _gxHStr(h, 120); }),
+        key_column: _gxHStr(x.key_column, 120), status_column: _gxHStr(x.status_column, 120), status_values: sv };
+    }
+    function _gxKnowSize(o){
+      var j = '';
+      try { j = JSON.stringify(o) || ''; } catch(e){ return Infinity; }
+      try { return unescape(encodeURIComponent(j)).length; } catch(e2){ return j.length * 3; }
+    }
+    // The os_home_know body: the raw map without knowledge (homeMap never reads it), then without samples; over 60000 bytes -> null.
+    function _gxKnowBody(wm){
+      if (!_gflWmObj(wm)) return null;
+      var c = {};
+      Object.keys(wm).forEach(function(k){ if (k !== 'knowledge') c[k] = wm[k]; });
+      if (_gxKnowSize(c) <= 60000) return c;
+      var d = {};
+      Object.keys(c).forEach(function(k){ d[k] = c[k]; });
+      if (Array.isArray(c.sources)) d.sources = c.sources.map(function(x){ if (!_gflWmObj(x)) return x; var y = {}; Object.keys(x).forEach(function(k){ if (k !== 'samples') y[k] = x[k]; }); return y; });
+      return (_gxKnowSize(d) <= 60000) ? d : null;
+    }
+    // One field, the rail homeBpField rules (a saved copy carries dropdown_values instead of values).
+    function _gxKnowField(f){
+      if (!_gflWmObj(f)) return null;
+      var lb = _gxHStr(f.label, 120); if (!lb) return null;
+      var t = _gxHStr(f.type, 40).toLowerCase() || 'text', r = _gxHStr(f.role, 40).toLowerCase() || 'optional';
+      var o = { label: lb, type: t, role: r, description: _gxHStr(f.description, 240) };
+      if (t === 'dropdown') o.dropdown_values = (Array.isArray(f.values) ? f.values : (Array.isArray(f.dropdown_values) ? f.dropdown_values : [])).map(function(v){ return _gxHStr(v, 120); }).filter(Boolean);
+      if (t === 'image_pdf') o.allow_multiple = true;
+      return o;
+    }
+    function _gxKnowPrompt(biz, steps, labels){
+      var lines = [];
+      if (biz) lines.push('Business: ' + biz);
+      if (steps && steps.length) lines.push('Steps: ' + steps.join(', '));
+      if (labels && labels.length) lines.push('Fields: ' + labels.join(', '));
+      lines.push('Keep records current.');
+      return lines.join('\n').slice(0, 4000);
+    }
+    function _gxKnowFromAnswer(d, ref){
+      if (!_gflWmObj(d)) return null;
+      var map = _gflWmObj(d.map) ? d.map : {}, mw = _gflWmObj(map.workspace) ? map.workspace : {};
+      var raw = Array.isArray(d.fields) ? d.fields : (Array.isArray(mw.fields) ? mw.fields : []);
+      var fields = [];
+      raw.forEach(function(f){ if (fields.length >= 60) return; var o = _gxKnowField(f); if (o) fields.push(o); });
+      var nm = _gflWmObj(d.names) ? d.names : {};
+      var ws = _gxHStr(nm.workspace, 120), pr = _gxHStr(nm.process, 80);
+      if (!fields.length && !ws && !pr) return null;
+      var b = _gflWmObj(map.business) ? map.business : {};
+      var biz = [_gxHStr(b.name, 240), _gxHStr(b.summary, 240)].filter(Boolean).join('. ');
+      var steps = (Array.isArray(d.steps) ? d.steps : []).map(function(x){ return _gflWmObj(x) ? _gxHStr(x.name, 120) : ''; }).filter(Boolean);
+      return { ref: _gxHStr(ref, 80), fields: fields, workspace_label: ws, process_name: pr,
+        prompt: _gxKnowPrompt(biz, steps, fields.map(function(f){ return f.label; })) };
+    }
+    function _gxKnowCleanBp(raw){
+      if (!_gflWmObj(raw)) return null;
+      var fields = [];
+      (Array.isArray(raw.fields) ? raw.fields : []).forEach(function(f){ if (fields.length >= 60) return; var o = _gxKnowField(f); if (o) fields.push(o); });
+      var ws = _gxHStr(raw.workspace_label, 120), pr = _gxHStr(raw.process_name, 80);
+      if (!fields.length && !ws && !pr) return null;
+      return { ref: _gxHStr(raw.ref, 80), fields: fields, workspace_label: ws, process_name: pr,
+        prompt: (typeof raw.prompt === 'string') ? raw.prompt.slice(0, 4000) : '' };
+    }
+    function _gxKnowCleanSrc(raw){
+      if (!_gflWmObj(raw)) return null;
+      var idx = {}, n = 0, own = Object.prototype.hasOwnProperty;
+      if (_gflWmObj(raw.idx)) Object.keys(raw.idx).forEach(function(k){
+        var id = _gxKnowId(k), v = raw.idx[k];
+        if (!id || own.call(idx, id) || n >= 10 || typeof v !== 'number' || Math.floor(v) !== v || v < 0 || v > 9) return;
+        idx[id] = v; n++;
+      });
+      return { primary: _gxKnowId(raw.primary), idx: idx, prim: raw.prim ? _gxKnowTrimSrc(raw.prim) : null };
+    }
+    // Local fields of one source (a trimmed raw primary, a cleaned work map source or a Change source entry). Pure.
+    var _GX_SYS_RE = new RegExp('^(gaia\\s*)?s[i' + String.fromCharCode(0x131, 0x130) + ']stem$', 'i');
+    var _GX_GENERIC_TAB_RE = /^(sheet|sayfa|tablo|table|data|list|liste|veri|records?)\s*\d*$/i;
+    var _GX_BLANK_COL_RE = /^(Column [A-Z]{1,3}|Unnamed: ?\d+)$/i;
+    function _gxKnowLocal(src, s){
+      if (!_gflWmObj(src)) return null;
+      var hs = (Array.isArray(src.headers) ? src.headers : []).map(function(h){ return _gxHStr(h, 120); }).filter(Boolean);
+      var key = _gxHStr(src.key_column, 120), st = _gxHStr(src.status_column, 120);
+      var kn = _gflWmNorm(key), sn = _gflWmNorm(st);
+      var sv = [];
+      (Array.isArray(src.status_values) ? src.status_values : []).forEach(function(v){ var t = _gxHStr(v, 60); if (t && sv.length < 12 && sv.indexOf(t) < 0) sv.push(t); });
+      var order = [];
+      if (key) order.push(key);
+      hs.forEach(function(h, i){
+        if (_GX_BLANK_COL_RE.test(h)) return;
+        if (i === hs.length - 1 && _GX_SYS_RE.test(h)) return;
+        order.push(h);
+      });
+      if (st) order.push(st);
+      var seen = {}, fields = [];
+      order.forEach(function(lb){
+        var n = _gflWmNorm(lb);
+        if (!n || seen[n] || fields.length >= 60) return;
+        seen[n] = 1;
+        if (key && n === kn) fields.push({ label: lb, type: 'text', role: 'control', description: '' });
+        else if (st && n === sn) fields.push(sv.length ? { label: lb, type: 'dropdown', role: 'mandatory', description: '', dropdown_values: sv.slice() } : { label: lb, type: 'text', role: 'mandatory', description: '' });
+        else fields.push({ label: lb, type: 'text', role: 'optional', description: '' });
+      });
+      if (fields.length && !fields.some(function(f){ return f.role === 'control'; })) fields[0].role = 'control';
+      var wl = _gadCleanName(src.spreadsheet_name, 120);
+      var pn = _gadCleanName(src.tab, 80);
+      if (pn && (_GX_GENERIC_TAB_RE.test(pn) || (wl && _gflWmNorm(pn) === _gflWmNorm(wl)))) pn = '';
+      if (!fields.length && !wl && !pn) return null;
+      var biz = (s && s.workMap && typeof s.workMap.business === 'string') ? _gxHStr(s.workMap.business, 240) : '';
+      var lines = [];
+      if (biz) lines.push('Business: ' + biz);
+      if (fields.length) lines.push('Fields: ' + fields.map(function(f){ return f.label; }).join(', '));
+      lines.push('Keep records current.');
+      return { ref: _gxHStr(s && s.inspectRef, 80), fields: fields, workspace_label: wl, process_name: pn, prompt: lines.join('\n').slice(0, 4000) };
+    }
+    function _gxKnowSheetOf(s, x, pending){
+      if (!_gflWmObj(x)) return null;
+      var id = _gxHStr(x.spreadsheet_id, 120);
+      if (!/^[A-Za-z0-9_-]{10,120}$/.test(id)) return null;
+      if (!pending && Array.isArray(s.knowDrop) && s.knowDrop.indexOf(String(x.id)) >= 0) return null;
+      return { id: id, name: _gadCleanName(x.spreadsheet_name, 120) || _gxHStr(x.tab, 120) };
+    }
+    // Choice rule (plan 0.d): the Verify step's Use this source / Change source decide fields and bind. Pure.
+    function _gxKnowChoice(s){
+      var K = _gflWmObj(s.knowSrc) ? s.knowSrc : null, pid = K ? String(K.primary || '') : '';
+      var su = _gflWmObj(s.sourceUse) ? s.sourceUse : {}, sp = _gflWmObj(s.sourcePending) ? s.sourcePending : {};
+      var own = Object.prototype.hasOwnProperty;
+      var off = function(id){ return own.call(su, id) && su[id] === false; };
+      var pend = function(id){ return (own.call(sp, id) && _gflWmObj(sp[id])) ? sp[id] : null; };
+      if (!pid || (!off(pid) && !pend(pid))) {
+        var kb = (s.knowBp && s.knowBp.ref === s.inspectRef) ? s.knowBp : ((K && K.prim) ? _gxKnowLocal(K.prim, s) : null);
+        return { mode: 'plan', kb: kb, bind: true, pick: -1, sheet: K ? _gxKnowSheetOf(s, K.prim, false) : null };
+      }
+      if (!off(pid)) return { mode: 'other', kb: _gxKnowLocal(pend(pid), s), bind: false, pick: -1, sheet: _gxKnowSheetOf(s, pend(pid), true) };
+      var list = (s.workMap && Array.isArray(s.workMap.sources)) ? s.workMap.sources : [], c = null;
+      for (var i = 0; i < list.length; i++) { var x = list[i]; if (x && x.id !== pid && !off(x.id)) { c = x; break; } }
+      if (!c) return { mode: 'none', kb: null, bind: false, pick: -1, sheet: null };
+      if (pend(c.id)) return { mode: 'other', kb: _gxKnowLocal(pend(c.id), s), bind: false, pick: -1, sheet: _gxKnowSheetOf(s, pend(c.id), true) };
+      var ix = (K.idx && own.call(K.idx, c.id)) ? K.idx[c.id] : null;
+      var okIx = (typeof ix === 'number' && Math.floor(ix) === ix && ix >= 0 && ix <= 9);
+      return { mode: 'pick', kb: _gxKnowLocal(c, s), bind: okIx, pick: okIx ? ix : -1, sheet: _gxKnowSheetOf(s, c, false) };
+    }
+    // Merge (spec S6): the card's own fields first, then the chosen source's fields; never an empty table (Note).
+    function _gxKnowMergeBp(base, kb, ws){
+      var b = _gflWmObj(base) ? base : {};
+      var o = {};
+      Object.keys(b).forEach(function(k){ o[k] = b[k]; });
+      var mine = Array.isArray(b.custom_fields) ? b.custom_fields : [];
+      var fields = mine.slice(0, 60), seen = {};
+      fields.forEach(function(f){ var n = _gflWmNorm(f && f.label); if (n) seen[n] = 1; });
+      ((kb && Array.isArray(kb.fields)) ? kb.fields : []).forEach(function(f){
+        if (fields.length >= 60 || !f || !f.label) return;
+        var n = _gflWmNorm(f.label); if (!n || seen[n]) return; seen[n] = 1;
+        var c = {}; Object.keys(f).forEach(function(k){ c[k] = Array.isArray(f[k]) ? f[k].slice() : f[k]; });
+        fields.push(c);
+      });
+      if (!fields.length) fields = [{ label: 'Note', type: 'long_text', role: 'control', description: '' }];
+      else if (!mine.length && !fields.some(function(f){ return String((f && f.role) || '').toLowerCase() === 'control'; })) {
+        var f0 = {}; Object.keys(fields[0]).forEach(function(k){ f0[k] = fields[0][k]; }); f0.role = 'control'; fields[0] = f0;
+      }
+      o.custom_fields = fields;
+      if (ws) {
+        if (kb && kb.workspace_label) o.workspace_label = kb.workspace_label;
+        if (kb && kb.process_name) o.process_name = kb.process_name;
+        if (kb && kb.prompt) o.system_prompt_template = kb.prompt;
+      } else if (kb && kb.prompt) o.system_prompt_template = String(b.system_prompt_template || '') + '\n\n' + kb.prompt;
+      return o;
+    }
+    // The ONLY writer of ctx.blueprint for a know_v2 card. Deterministic from the session, idempotent.
+    function _gxKnowApply(s){
+      if (!s || !s.ctx || !_gxKnowOn(s.ctx)) return null;
+      var c = _gxKnowChoice(s);
+      s.knowUse = { bind: !!c.bind, pick: c.pick, sheet: c.sheet };
+      if (!s.ctx.bpBase) s.ctx.bpBase = s.ctx.blueprint;
+      s.ctx.blueprint = _gxKnowMergeBp(s.ctx.bpBase, c.kb, _gxIsWsCard(s.ctx));
+      try { _gxKnowSpecPaint(s); } catch(e){}
+      return c;
+    }
+    // "What it will do": the Fields it fills pair follows the plan (createElement + textContent only).
+    function _gxKnowSpecPaint(s){
+      if (!s || _gadFlagshipSession !== s) return;
+      var ov = _gadFlagshipOv(); if (!ov) return;
+      var body = ov.querySelector('#gfl-spec .gfl-specbody'); if (!body) return;
+      Array.prototype.slice.call(body.querySelectorAll('[data-gx="fields"]')).forEach(function(n){ if (n.parentNode) n.parentNode.removeChild(n); });
+      Array.prototype.slice.call(body.children).forEach(function(n){
+        if (n.parentNode !== body || n.tagName !== 'B' || !/^Fields it fills/.test(n.textContent || '')) return;
+        var nx = n.nextElementSibling;
+        if (nx && nx.tagName === 'DIV') body.removeChild(nx);
+        body.removeChild(n);
+      });
+      var fl = ((s.ctx.blueprint && Array.isArray(s.ctx.blueprint.custom_fields)) ? s.ctx.blueprint.custom_fields : []).map(function(f){ return f && f.label; }).filter(Boolean);
+      if (!fl.length) return;
+      var b = document.createElement('b'); b.setAttribute('data-gx', 'fields'); b.textContent = 'Fields it fills (' + fl.length + ')';
+      var d = document.createElement('div'); d.setAttribute('data-gx', 'fields'); d.textContent = fl.join(', ');
+      var ol = null;
+      Array.prototype.forEach.call(body.children, function(n){ if (!ol && n.tagName === 'OL') ol = n; });
+      var at = ol ? ol.nextSibling : body.firstChild;
+      body.insertBefore(b, at); body.insertBefore(d, at);
+    }
+    // Commit work map: converted sources leave (their spreadsheet_id is the trashed inspect copy). Other cards: same reference.
+    function _gxKnowCommitWm(ctx, s, wm){
+      if (!_gxKnowOn(ctx) || !wm) return wm;
+      var c = null;
+      try { c = JSON.parse(JSON.stringify(wm)); } catch(e){ return null; }
+      if (!_gflWmObj(c)) return null;
+      var drop = (s && Array.isArray(s.knowDrop)) ? s.knowDrop.map(String) : [];
+      if (Array.isArray(c.sources)) c.sources = c.sources.filter(function(x){ return !(x && drop.indexOf(String(x.id)) >= 0); });
+      return c;
+    }
+    function _gxKnowAcct(){ try { if (typeof loadConnectedAccounts === 'function') loadConnectedAccounts(); return !!connectedAccountsLoaded; } catch(e){ return true; } }
+    // Commit guard: waits (at most 35 s) for the fields answer and (10 s) for the account list, then commits with the merged plan.
+    function _gxKnowWait(ctx, s, copts){
+      copts = copts || {};
+      if (!_gxKnowOn(ctx) || copts._knowOk || copts.fromReview) return false;
+      var need = s.knowState === 'busy' || !_gxKnowAcct();
+      if (!need) { _gxKnowApply(s); return false; }
+      _gadFlagshipSetBusy(true, 'Preparing your fields...');
+      var t0 = Date.now();
+      var iv = setInterval(function(){
+        if (_gadFlagshipSession !== s) { clearInterval(iv); return; }
+        var el = Date.now() - t0;
+        if (!((s.knowState !== 'busy' || el >= 35000) && (_gxKnowAcct() || el >= 10000))) return;
+        clearInterval(iv);
+        if (s.knowState === 'busy') s.knowState = 'local';
+        try { _gxKnowApply(s); } catch(e){}
+        try { _gadFlagshipSaveSession(); } catch(e){}
+        s.busy = false;
+        var c2 = {};
+        Object.keys(copts).forEach(function(k){ c2[k] = copts[k]; });
+        c2._knowOk = true;
+        var r = false;
+        try { r = _gadFlagshipCommit(ctx, c2); } catch(e){ gE('[KNOW] taahhut yeniden kosulamadi:', e && e.message); r = false; }
+        if (r === false) { _gadFlagshipSetBusy(false); try { _gadFlagshipPrimaryLabel(); } catch(e){} }
+      }, 500);
+      return true;
+    }
+    // One os_home_know per scan (plan 0.d request); the answer becomes s.knowBp. A late answer for an old ref is dropped.
+    function _gxKnowFetch(s, ref, ev){
+      if (_gadFlagshipSession !== s) return;
+      if (s.ctx.bpBase) s.ctx.blueprint = s.ctx.bpBase;
+      s.knowBp = null; s.knowSrc = null; s.knowUse = null; s.knowRef = String(ref || ''); s.knowTs = Date.now();
+      var save = function(){ try { _gadFlagshipSaveSession(); } catch(e){} };
+      var wm = (ev && _gflWmObj(ev.work_map)) ? ev.work_map : null;
+      if (!wm) { s.knowState = 'failed'; s.knowDrop = []; _gxKnowApply(s); save(); return; }
+      var raw = _gxKnowRawSrcs(wm), drop = [], idx = {}, own = Object.prototype.hasOwnProperty, i;
+      raw.forEach(function(x){ var id = _gxKnowId(x.id); if (id && x.converted === true && drop.length < 10 && drop.indexOf(id) < 0) drop.push(id); });
+      for (i = 0; i < raw.length && i < 10; i++) { var id2 = _gxKnowId(raw[i].id); if (id2 && !own.call(idx, id2)) idx[id2] = i; }
+      var pi = _gxKnowRawPrimary(raw);
+      s.knowDrop = drop;
+      s.knowSrc = { primary: pi >= 0 ? _gxKnowId(raw[pi].id) : '', idx: idx, prim: pi >= 0 ? _gxKnowTrimSrc(raw[pi]) : null };
+      var body = _gxKnowBody(wm);
+      s.knowState = 'busy'; save();
+      if (!body || typeof window._gadTrigRequest !== 'function') {
+        s.knowState = 'local'; _gxKnowApply(s); save();
+        gW('[KNOW] alan cagrisi yok (' + (body ? 'bridge' : 'size') + ') | ref: ' + ref);
+        return;
+      }
+      var inv = _gflWmObj(ev.inventory) ? ev.inventory : null, cov = _gflWmObj(ev.coverage) ? ev.coverage : null;
+      var live = function(){ return _gadFlagshipSession === s && s.knowRef === ref && s.knowState === 'busy'; };
+      var send = function(k){
+        var cb = function(res){
+          if (!live()) return;
+          var d = (res && res.data && typeof res.data === 'object') ? res.data : ((res && typeof res === 'object') ? res : {});
+          var st = String((res && res.status) || '').toUpperCase(), bs = String(d.status || '').toUpperCase();
+          var code = String(d.error_code || (res && res.error_code) || '').toLowerCase();
+          var tmo = !!(res && res.timeout === true) || st.indexOf('TIMEOUT') >= 0 || bs.indexOf('TIMEOUT') >= 0 || code === 'timeout';
+          if (k === 1 && (tmo || code === 'rate_limited')) { setTimeout(function(){ if (live()) send(2); }, 2500); return; }
+          var ok = !tmo && st !== 'ERROR' && bs !== 'ERROR' && !code && d.ok !== false && (st === 'SUCCESS' || bs === 'SUCCESS' || d.ok === true);
+          s.knowBp = ok ? _gxKnowFromAnswer(d, ref) : null;
+          s.knowState = s.knowBp ? 'done' : 'local';
+          _gxKnowApply(s); save();
+          gL('[KNOW] alanlar | ' + (s.knowBp ? s.knowBp.fields.length : 0) + ' | ' + s.knowState + ' | ref: ' + ref);
+        };
+        try { window._gadTrigRequest('os_home_know', { ref: ref, work_map: body, inventory: inv, coverage: cov }, cb, 30000); }
+        catch(e){ cb({ status: 'ERROR', message: 'send failed' }); }
+      };
+      send(1);
+    }
+    window._gxKnowApply = _gxKnowApply;
     // 17.09: kullanici paneli hic gormeden onaylarsa (inceleme bitmeden onizlemeyi atladiysa) yazma izni TASINMAZ;
     // modelin isaretledigi sutunlar kullanicinin onayi degildir. Listeler salt okunur (lookup) olur, log yazilir.
     window._gadFlagshipWorkMapForCommit = function(sess){
@@ -37917,7 +38220,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (s.busy || s.gateRunning) return;   // T10-fix: OAuth kapisi kosarken (sheet gizli) kapanis/temizlik yok
         if (o && o.parentNode) o.parentNode.removeChild(o);
         try { document.removeEventListener('keydown', onKey, true); } catch(e){}
-        if (s.phase !== 'creating' && s.phase !== 'arming' && s.phase !== 'configuring') _gadFlagshipClearSession();
+        if (s.phase !== 'creating' && s.phase !== 'arming' && s.phase !== 'configuring') { if (!_gxKnowKeep(s)) _gadFlagshipClearSession(); }
+        if (_gxIsWsCard(ctx) && !s.handedOff) _gxKnowMark('closed');
         try { if (prevFocus && prevFocus.focus) prevFocus.focus(); } catch(e){}
         gL('[FLAGSHIP] sheet kapandi:', reason || 'close');
         // 14.09: "Open workspace" — bu sayfa oturumunda onaylanmış kurulum varsa sayfa yenilenir (bkz. _gadFlagshipReloadAfterSetup)
@@ -38036,10 +38340,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         try { if (typeof loadConnectedAccounts === 'function') loadConnectedAccounts(); } catch(e){}
         var startStep = 'connect';
         if (!opts.instant && ['preview','verify','configure','launch'].indexOf(s.step) >= 0 && _gadFlagshipRequiredMissing(s).length === 0) startStep = s.step;
+        if (_gxIsWsCard(ctx) && startStep === 'preview') startStep = 'connect';   // os6b: an unfinished scan restarts after the account list
         _gadFlagshipStep(startStep);
         _gadFlagshipRepaintApps();
         // "Checking..." rozeti: hesap listesi henuz yuklenmemisse kisa yoklama
         var chk = 0, chkIv = setInterval(function(){ chk++; var loaded = false; try { loaded = !!connectedAccountsLoaded; } catch(e){ loaded = true; } _gadFlagshipRepaintApps(); if (loaded || chk > 20 || !_gadFlagshipOv()) clearInterval(chkIv); }, 500);
+        // os6b (plan 1.5b): the workspace card moves on by itself once the account list has loaded and Sheets OR Drive is on (30 s).
+        // A step resumed after a reload (verify / configure / launch) is drawn again once the list has loaded, so "What I read" and the app chips are not stale.
+        if (_gxIsWsCard(ctx)) { var wsN = 0, wsLd0 = true; try { wsLd0 = !!connectedAccountsLoaded; } catch(e){ wsLd0 = true; } var wsIv = setInterval(function(){ wsN++; if (_gadFlagshipSession !== s || !_gadFlagshipOv() || wsN > 60 || (s.step !== 'connect' && (wsLd0 || s.busy))) { clearInterval(wsIv); return; } try { if (typeof loadConnectedAccounts === 'function') loadConnectedAccounts(); } catch(e){} var ld = true; try { ld = !!connectedAccountsLoaded; } catch(e){ ld = true; } if (!ld) return; try { _gadFlagshipRepaintApps(); } catch(e){} if (s.step !== 'connect') { clearInterval(wsIv); if (s.step === 'verify' || s.step === 'configure' || s.step === 'launch') { try { _gadFlagshipStep(s.step); } catch(e){} } return; } if (_gadFlagshipIsOn('googlesheets') || _gadFlagshipIsOn('googledrive')) { clearInterval(wsIv); _gadFlagshipConnectAdvance(s); } }, 500); }
       }
       try { var cl = _gadFlagshipEl('gfl-close'); if (cl) cl.focus(); } catch(e){}
       return ov;
@@ -38155,6 +38463,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       copts = copts || {};
       var s = _gadFlagshipSession;
       if (!s || s.busy) return false;
+      if (_gxKnowWait(ctx, s, copts)) return true;   // os6b (plan 1.10a): know_v2 cards commit the merged plan
       var fromReview = !!copts.fromReview;
       var bp = ctx.blueprint || {};
       var changeText = fromReview ? '' : String(s.changeText || '').trim();
@@ -38164,7 +38473,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // 18.09 (GUIDED_SETUP_SPEC karar 6): izinler taahhude AYNEN biner. Adim 3 kisinin acik secimidir: kapali izin
       // araci pakete girmez, liste guncelleme kapaliysa harita salt okunur, aciksa yalniz isaretlenen sutunlar.
       var argOpts = function(){ return { prefs: s.prefs, excludedApps: excluded, model: mdl, prefKeys: ctx.prefKeys, appLabels: ctx.appLabels,
-        workMap: (typeof window._gadFlagshipWorkMapForCommit === 'function') ? window._gadFlagshipWorkMapForCommit(s) : s.workMap,
+        workMap: _gxKnowCommitWm(ctx, s, (typeof window._gadFlagshipWorkMapForCommit === 'function') ? window._gadFlagshipWorkMapForCommit(s) : s.workMap),
         // 18.09 capraz denetim (spec 3.5): "remember" kapsamli takma adlar taahhut haritasina BURADA biner;
         // "this_request" olanlar binmez. Sunucunun _workmapValidate'i envanterin kanitlamadigini zaten duser.
         permissions: s.permissions, sourceUse: s.sourceUse, overrides: s.overrides,   // BIZDISC
@@ -38266,7 +38575,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           } catch(e){ gW('[FLAGSHIP] DFR (fromReview) hatasi:', e && e.message); }
           // 17.09 (WORK MAP): inceleme dalinda DFR bastan kuruldugu icin temizlenmis harita burada yeniden yazilir (yoksa anahtar hic olmaz)
           try {
-            var _wmSrc = (typeof window._gadFlagshipWorkMapForCommit === 'function') ? window._gadFlagshipWorkMapForCommit(s) : s.workMap;
+            var _wmSrc = _gxKnowCommitWm(ctx, s, (typeof window._gadFlagshipWorkMapForCommit === 'function') ? window._gadFlagshipWorkMapForCommit(s) : s.workMap);
             var _wmLive = _wmSrc ? _gadFlagshipWorkMapClean(_wmSrc, excluded) : null;
             if (live.data_flow_rules && typeof live.data_flow_rules === 'object') { if (_wmLive) live.data_flow_rules.work_map = _wmLive; else delete live.data_flow_rules.work_map; }
             if (_wmLive) live.work_map = _wmLive; else delete live.work_map;
@@ -38312,6 +38621,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           // T11-fix: teslim iddiasindan SONRA kopru basarisiz (bridge-timeout / superseded): kanca sokulur,
           // overlay "could not be sent" der (60 sn watchdog'un "Almost there" iyimserligi yerine).
           if (delivered) { try { if (typeof _gadFlagshipDeployFailed === 'function') _gadFlagshipDeployFailed(reason); } catch(_df){} }
+          if (delivered && _gxIsWsCard(ctx)) { try { var _om = JSON.parse(sessionStorage.getItem('octo_home_build') || 'null'); if (_om && _om.card === 'workspace' && _om.ref === String(s.inspectRef || '')) sessionStorage.removeItem('octo_home_build'); } catch(_rm){} try { _gxKnowMark('failed'); } catch(_kf2){} }   // os6b (plan 1.11)
         };
         // Tek atim: onay gelince (gaiaAutomationCompleted) T11 disabled tetikleyiciyi enable eder.
         onConfirmed = function(){
@@ -38345,7 +38655,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         try { if (typeof window._gadBubbleDraftMarkDone === 'function') window._gadBubbleDraftMarkDone(); } catch (_bdD4) {}   // 14.09
         delivered = true;     // T11-fix: bundan sonra onFail → rollback overlay'i de durust yapar
         // os6 T7 (know_v2): kart bayrakliysa yeni tablo taramaya baglanir (rail homeBindOnce okur); bayraksiz hicbir sey yazilmaz
-        try { var _kv2 = !!(ctx.activation && ctx.activation.know_v2 === true); if (!_kv2) { var _kvg = window.__gxEl; _kv2 = !!(_kvg && typeof _kvg === 'object' && _kvg.channel === 'dev' && sessionStorage.getItem('gx_kv2') === '1'); } if (_kv2 && s.inspectRef) sessionStorage.setItem('octo_home_build', JSON.stringify({ ref: String(s.inspectRef), label: String(args.workspace_label || ''), process: String(args.process_name || ''), uid: '', t0: Date.now(), src: 'flagship' })); } catch(_kv){}
+        try { var _kv2 = !!(ctx.activation && ctx.activation.know_v2 === true); if (!_kv2) { var _kvg = window.__gxEl; _kv2 = !!(_kvg && typeof _kvg === 'object' && _kvg.channel === 'dev' && sessionStorage.getItem('gx_kv2') === '1'); } var _ws = _gxIsWsCard(ctx); if (_kv2 && s.inspectRef && (!_ws || (String(s.workMapState || '') === 'done' && s.knowUse && s.knowUse.bind === true))) { var _mk = _ws ? { ref: String(s.inspectRef), label: String(args.workspace_label || ''), process: String(args.process_name || ''), uid: '', t0: Date.now(), src: 'flagship', card: 'workspace' } : { ref: String(s.inspectRef), label: String(args.workspace_label || ''), process: String(args.process_name || ''), uid: '', t0: Date.now(), src: 'flagship' }; if (_ws && s.knowUse.pick >= 0) _mk.pick = s.knowUse.pick; sessionStorage.setItem('octo_home_build', JSON.stringify(_mk)); } } catch(_kv){}
+        // os6b (plan 1.11): Home learns the hire from the run state (label, process, ref and the chosen Sheet).
+        try { if (_gxIsWsCard(ctx)) _gxKnowMark('hired', { label: args.workspace_label, process: args.process_name, ref: s.inspectRef || '', sheet: s.knowUse ? s.knowUse.sheet : null }); } catch(_km){}
         // 14.09 (tetikleyici park): payload köprüye verildi (hemen ya da kuyruğa) → Bubble ajanı BU tetikleyici id'si DFR'ında
         // olarak yaratabilir. Bundan sonra onay dışı geri almalar tetikleyiciyi SİLMEZ, park eder (_gadFlagshipRollbackTrigger).
         s.handedOff = true;
@@ -38411,7 +38723,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       try { if (s.triggerState !== 'armed' && typeof window._gadFlagshipRollbackTrigger === 'function') window._gadFlagshipRollbackTrigger(s.triggerId || '', reason || 'abandon'); } catch(e){}
       if (s.phase !== 'done') _gadFlagshipClearPendingDone(s.slug);   // FINAL-fix: birakilan taahhudun gecici isareti kalkar
       try { if (typeof gxaTrack === 'function') gxaTrack('flagship_abandoned', { slug: s.slug, phase: s.phase, reason: reason || '' }); } catch(e){}
-      _gadFlagshipClearSession();
+      try { if (s.ctx && _gxIsWsCard(s.ctx)) _gxKnowMark('closed'); } catch(e){}
+      if (!_gxKnowKeep(s)) _gadFlagshipClearSession();
       gL('[FLAGSHIP] oturum birakildi:', reason || '');
     }
     window._gadFlagshipAbandon = _gadFlagshipAbandon;
@@ -38430,6 +38743,100 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         }
       } catch(e){}
     }
+
+    // os6b (founder 01.10): Home step 2 opens THIS configurator with a generic workspace card.
+    // Contract: octonom\shell\OCTO_KNOW_UI_PLAN.md 0.b / 0.c. Nothing here runs for a card without activation.workspace_card.
+    var _GX_WS_SLUG = 'gx-workspace';
+    function _gxIsWsCard(ctx){ return !!(ctx && ctx.activation && ctx.activation.workspace_card === true); }
+    function _gxKnowOn(ctx){ return !!(ctx && ctx.activation && ctx.activation.know_v2 === true); }
+    function _gxKnowDev(){ var g = window.__gxEl; return !!(g && typeof g === 'object' && g.channel === 'dev'); }
+    // A new object on every call (the configurator writes ctx.blueprint; no two boots share a card).
+    function _gxWorkspaceCard(){
+      return { Slug: _GX_WS_SLUG, slug: _GX_WS_SLUG, name: 'Your workspace', _id: '',
+        demo_output: {
+          product_kind: 'flagship', product_name: 'Your workspace', entry_channel: 'table',
+          blueprint: {
+            process_type: 'Table', effort: 'medium', model: '', action_tool_choice: 'auto',
+            apps: ['googlesheets', 'googledrive'], action_tools: [],
+            data_flow_mode: 'create_new', manual_wake: { enabled: true, mode: 'create_new' },
+            custom_fields: [],
+            workspace_label: 'My workspace', process_name: 'Records',
+            system_prompt_template: ['Create one record per note.', 'Fill fields from the note.', 'Keep records current.'].join('\n')
+          },
+          activation: {
+            workspace_card: true, know_v2: true, eyebrow: 'Know the business',
+            work_map: { enabled: true, read_only: true,
+              purpose: 'Learn how this business works from its own Sheets and Drive files and find the main list its work lives in. Read only.' },
+            company_scan: { enabled: true, research_tier: 'noauth' },
+            knowledge: { enabled: true, max_files: 12 },
+            apps: [
+              { slug: 'googlesheets', label: 'Google Sheets', required: false, why: 'I read your lists.' },
+              { slug: 'googledrive', label: 'Google Drive', required: false, why: 'I read your files.' }
+            ],
+            preferences: ['reply_language', 'timezone'],
+            permissions: { list_update: false },
+            headline: 'I read how you work.',
+            time_to_value: 'About one minute.',
+            first_value: 'Open your workspace.',
+            after: 'Nothing is written to files.'
+          },
+          guardrails: ['I never change your files.'],
+          economics: {},
+          how_it_works: ['I read Sheets and Drive.', 'You check what I found.', 'I build matching columns.']
+        } };
+    }
+    // Run state Home polls (0.b): n grows on every boot of the workspace card; phase open/closed/hired/failed/error.
+    var _gxKnowRun = null;
+    function _gxKnowSheetOk(x){
+      if (!x || typeof x !== 'object') return null;
+      var id = _gxHStr(x.id, 120);
+      if (!/^[A-Za-z0-9_-]{10,120}$/.test(id)) return null;
+      return { id: id, name: _gxHStr(x.name, 120) };
+    }
+    function _gxKnowMark(phase, extra, isNew){
+      var now = Date.now();
+      if (isNew || !_gxKnowRun) _gxKnowRun = { n: (_gxKnowRun ? _gxKnowRun.n : 0) + 1, phase: '', t0: now, t1: now, label: '', process: '', ref: '', sheet: null };
+      var r = _gxKnowRun;
+      r.phase = String(phase || ''); r.t1 = now;
+      r.label = ''; r.process = ''; r.ref = ''; r.sheet = null;
+      if (r.phase === 'hired' && extra && typeof extra === 'object') {
+        r.label = _gxHStr(extra.label, 120);
+        r.process = _gxHStr(extra.process, 80);
+        r.ref = _gxHStr(extra.ref, 80);
+        r.sheet = _gxKnowSheetOk(extra.sheet);
+      }
+      return r;
+    }
+    window._gxKnowState = function(){
+      var r = _gxKnowRun; if (!r) return null;
+      return { n: r.n, phase: r.phase, t0: r.t0, t1: r.t1, label: r.label, process: r.process, ref: r.ref,
+        sheet: r.sheet ? { id: r.sheet.id, name: r.sheet.name } : null };
+    };
+    // Opens the flagship configurator with the workspace card. Dev channel only; never throws.
+    window.gaiaKnowBusiness = function(opts){
+      var fail = function(){ try { _gxKnowMark('error', null, !_gxKnowRun || _gxKnowRun.phase !== 'open'); } catch(_m){} return false; };
+      try {
+        var o = (opts && typeof opts === 'object') ? opts : {};
+        if (!_gxKnowDev()) return fail();
+        var cur = _gadFlagshipSession;
+        if (cur && (cur.busy || cur.gateRunning)) return fail();
+        var src = String((o.source === null || o.source === undefined) ? '' : o.source).slice(0, 20) || 'home';
+        var booted = false;
+        window.gaiaUseFlagship(_gxWorkspaceCard(), { intent: 'preview', source: src, __mpDone: true, onBoot: function(ok){ booted = !!ok; } });
+        if (!booted || !_gadFlagshipOv()) return fail();
+        gL('[KNOW] configurator acildi | source: ' + src + ' | n: ' + (_gxKnowRun ? _gxKnowRun.n : 0));
+        return true;
+      } catch(e){ try { gW('[KNOW] gaiaKnowBusiness hatasi: ' + (e && e.message)); } catch(_w){} return fail(); }
+    };
+    // A close after a scan keeps the saved session (marked gxClosed) so Know the business reopens it without a new scan.
+    function _gxKnowKeep(s){
+      if (!s || !s.ctx || !_gxIsWsCard(s.ctx) || s.handedOff || !((Number(s.inspectCount) || 0) > 0)) return false;
+      s.phase = 'idle'; s.inspecting = false; s.gxClosed = true;
+      _gadFlagshipSaveSession();
+      _gadFlagshipSetSession(null);
+      return true;
+    }
+    window._gxWorkspaceCard = _gxWorkspaceCard;
 
     // Public giris: kart slug'i (veya dogrudan blueprint tasiyan bir obje) ile urunu ac.
     // opts = { instant, intent, source, onBoot(ok) }
@@ -38486,8 +38893,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         gL('[FLAGSHIP] hazir |', ctx.name, '| apps:', ctx.appSlugs.join(','), '| required:', ctx.requiredSlugs.join(','), '| fields:', (bp.custom_fields||[]).length, '| tools:', (bp.action_tools||[]).length, '| channel:', ctx.channel, '| mail card:', _gflIsMailCard(ctx));   /* PHONE-FLAGSHIP-FIX */
         try { if (typeof gxaOnce === 'function') gxaOnce('flagship:'+ctx.slug, 'template_setup_start', { template_id: ctx.slug, setup_mode: 'flagship', ready_to_use: true }); } catch(e){}
         try { if (typeof window._gaiaConciergeResolve === 'function') window._gaiaConciergeResolve('flagship'); } catch(e){}
-        var done = _gadFlagshipReadDone(ctx.slug);
+        var done = _gxIsWsCard(ctx) ? null : _gadFlagshipReadDone(ctx.slug);
         _gadConfiguratorOpen(ctx, { instant: !!opts.instant, done: done, source: opts.source || 'direct' });
+        if (_gxIsWsCard(ctx)) _gxKnowMark('open', null, true);
         _gadFlagshipClearDeepLink();
         notify(true);
       };
@@ -38495,6 +38903,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (slugOrCard && typeof slugOrCard === 'object') { try { boot(slugOrCard); } catch(e){ gE('[FLAGSHIP] boot hatasi:', e && e.message); _gadFlagshipRenderError('Product', 'Could not open this product. Please try again.', null); notify(false); } return; }
       var slug = String(slugOrCard||'').trim();
       if (!slug) { gW('[FLAGSHIP] slug yok'); notify(false); return; }
+      if (slug === _GX_WS_SLUG && (opts.source === 'resume' || _gxKnowDev())) { try { boot(_gxWorkspaceCard()); } catch(e){ gE('[FLAGSHIP] boot hatasi:', e && e.message); _gadFlagshipRenderError('Product', 'Could not open this product. Please try again.', null); notify(false); } return; }
       var url = _gadDataApiBase() + '/api/1.1/obj/templates?constraints='
               + encodeURIComponent(JSON.stringify([{ key:'Slug', constraint_type:'equals', value: slug }]));
       var retry = function(){ window.gaiaUseFlagship(slug, opts); };
@@ -39148,6 +39557,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
               var sv = null; try { sv = JSON.parse(sessionStorage.getItem(sk) || 'null'); } catch(_pe){ sv = null; }
               if (!sv || !sv.slug || !sv.ts || (Date.now() - sv.ts) > _GFL_SESSION_TTL) continue;
               var pendingPh = (sv.phase === 'creating' || sv.phase === 'arming' || sv.phase === 'unconfirmed');
+              if (String(sv.slug) === _GX_WS_SLUG && (pendingPh || sv.gxClosed === true)) continue;   // os6b (plan 1.12): Home owns a handed-off or closed workspace run
               var stepOk = (['preview','verify','configure','launch'].indexOf(sv.step) >= 0);
               if (!(pendingPh || (stepOk && (sv.phase === 'idle' || sv.phase === 'preview' || !sv.phase)))) continue;
               if (sv.ts > bestTs) { best = sv; bestTs = sv.ts; }
@@ -44449,6 +44859,8 @@ body.octo-home-open { overflow: hidden !important; }
    Build sirasinda (body.octo-home-build) geri cikar ki kapsayicinin icindeki dagitim ilerleme / basari ekrani
    gorunsun (kullanici oradaki dugmeye basar, sonra yeni tabloya gecilir). */
 body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 2147483100 !important; }
+/* os6b (01.10): while the Architect flagship configurator (Know the business) is open, Start is hidden under it. */
+body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
 .octo-tabs-panel.is-home {
   position: fixed;
   inset: 0;
@@ -45462,7 +45874,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-30.os6a';
+  var VERSION = 'octo 2026-10-01.os6b';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -49191,7 +49603,10 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     // os6 (OCTO_KNOW_BUILD_PLAN 2.1): taranan kaynaga bag (os_home_bind) en cok 3 istek, 2.5 sn arayla; yukleme
     // yoklamasi 3 sn x 90 sn; Build kaydi 30 dk. First run deneme kosusu kaniti 2 sn x 150 sn, ilk bakis 3 sn.
     homeBuildTtl: 1800000, homeBindMax: 90000, homeBindPoll: 3000, homeBindTries: 3, homeBindRetry: 2500,
-    arrTrialEvery: 2000, arrTrialMax: 150000, arrTrialFirst: 3000
+    arrTrialEvery: 2000, arrTrialMax: 150000, arrTrialFirst: 3000,
+    // os6b (OCTO_KNOW_UI_PLAN 2.1): the flagship configurator hired the workspace; Home waits this long (the flagship
+    // deploy watchdog cap) + homeArriveWait before it polls os_home for the new table without an event.
+    homeExtSent: 240000
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -53989,6 +54404,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   function onAgentCreated(e) {
     arrMark();
     // os5: Home kipinde (tablo yok, Build gonderildi) bekleyici yeni tabloyu os_home ile bulur.
+    // os6b (2.9): the flagship configurator is open over Start: its create counts as the Home build.
+    if (homeExtLive()) { homeExtHired(M.home, (e && isObj(e.detail)) ? e.detail : null); }
     if (homeBuilding()) { homeArrive(); return; }
     var d = (e && isObj(e.detail)) ? e.detail : null;
     if (!d || typeof d.ts !== 'number') { d = readMarker(); }
@@ -55636,6 +56053,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   var HOME_APPS = ['googledrive', 'googlesheets', 'googlecalendar'];
   var HOME_SCANS = 3;
   var HOME_PICK_MAX = 32768;
+  var HOME_EXT_GONE = 4;   // os6b: ticks (500 ms) without the configurator overlay before an open run counts as closed
 
   function homePath() {
     try { return (typeof W.__octoUrlPath === 'string') ? W.__octoUrlPath : String((W.location && W.location.pathname) || ''); } catch (e) { return ''; }
@@ -55682,7 +56100,9 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       node: null, body: null, chip: null, sig: '', timer: null, frontT: null, front: false, map: null, args: null,
       kn: { phase: 'idle', ref: '', ts: 0, n: 0, reads: null, map: null, args: null, wm: null, inv: null, poller: null, retried: false,
         fields: null, names: null, steps: null, primary: null, allF: false },
-      b: { phase: 'idle', what: '', t0: 0, t1: 0, h0: 0, label: '', timer: null, known: null, bind: null }
+      b: { phase: 'idle', what: '', t0: 0, t1: 0, h0: 0, label: '', timer: null, known: null, bind: null },
+      // os6b (0.g): Know the business run inside the Architect flagship configurator. idle | open | closed | hired | err
+      x: { phase: 'idle', n: 0, t0: 0, known: null, gone: 0 }
     };
   }
   function homeSync(on) {
@@ -55711,7 +56131,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       var has = D.body.classList.contains('octo-home-open');
       if (on && !has) { D.body.classList.add('octo-home-open'); }
       else if (!on && has) { D.body.classList.remove('octo-home-open'); }
-      if (!on) { D.body.classList.remove('octo-home-build'); }
+      if (!on) { D.body.classList.remove('octo-home-build'); D.body.classList.remove('octo-home-away'); }
     } catch (e) { /* yut */ }
     if (!on) { homeFrontStop(M.home); }
   }
@@ -55752,16 +56172,24 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   function homeBuildLock(H) {
     try {
       if (!D.body || !H || M.home !== H) { return; }
+      var front = homeFrontNow();
+      H.front = front;
+      // os6b (2.4): the configurator signals (open / closed / hired / failed) are polled here, before the Build
+      // phase is read (a hire moves B to 'sent').
+      homeExtTick(H, front);
       var p = H.b ? H.b.phase : '';
       var on = p === 'busy' || p === 'sent' || p === 'arrive' || p === 'bind' || p === 'open';
       var auth = false;
       if (M.conn && !M.portal) { auth = nodeShown(D.getElementById('gaia-auth-panel')); }
-      var front = homeFrontNow();
-      H.front = front;
       if (auth || front) { on = true; }
       var has = D.body.classList.contains('octo-home-build');
       if (on && !has) { D.body.classList.add('octo-home-build'); }
       else if (!on && has) { D.body.classList.remove('octo-home-build'); }
+      // While the configurator is open Start is hidden (visibility) so it never covers or leaks through the overlay.
+      var away = !!H.x && H.x.phase === 'open';
+      var hasA = D.body.classList.contains('octo-home-away');
+      if (away && !hasA) { D.body.classList.add('octo-home-away'); }
+      else if (!away && hasA) { D.body.classList.remove('octo-home-away'); }
     } catch (e) { /* yut */ }
     homeFrontArm(H);
   }
@@ -55792,6 +56220,15 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var H = homeNew();
     M.home = H;
     trace('home:boot');
+    // os6b (2.8): the flagship configurator hired the workspace and the page reloaded at the same address: Start
+    // opens at Build 'sent' and waits for the new table (no new build, no Home bind).
+    var xr = homeExtReady() ? homeExtResumeRec() : null;
+    if (xr) {
+      H.open = true; H.seen = true; H.step = 'build';
+      H.x.phase = 'hired'; H.x.t0 = xr.t0;
+      H.b.phase = 'sent'; H.b.t0 = xr.t0; H.b.label = str(xr.label).slice(0, 120);
+      trace('home:know_resume');
+    }
     // Not now hatirlanir (KISIYE ozel anahtar: ayni tarayicida baska hesap Start'i gorur; kurucu 30.09 "bir sey yok
     // ortada"): tam yuzey acilmaz ama os_home yine okunur ve Start cipi cizilir (geri donus yolu).
     if (!H.force && onbDismissed(homeDismissKey())) { H.dismissed = true; }
@@ -55802,6 +56239,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   function homeStart(H) {
     homeFetch(H, 1);
     homeResume(H);
+    if (H.x.phase === 'hired' && H.b.phase === 'sent') { homeArrive(); }
     paintSoon('home');
   }
   // Yukleme sirasi yarisi: kopru ilk tick'te yoksa T.homeBridgeEvery ile T.homeBridgeWait boyunca beklenir;
@@ -55973,6 +56411,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   }
   // Yenileme: kayit 30 dk icindeyse ayni ref yoklanir (kanit TTL); eskiyse yoklama yok, yeni tarama (yeni ref).
   function homeResume(H) {
+    // os6b (2.5): with the flagship configurator the scan belongs to the Architect (it resumes its own session).
+    if (homeExtReady()) { return; }
     var rec = homeKnowRec();
     if (!rec) { return; }
     var K = H.kn;
@@ -56152,6 +56592,146 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     H.empty = true;
     H.step = 'build';
     paintSoon('home');
+  }
+  // os6b (founder 01.10, "I said merge"): Know the business = the flagship configurator (Architect W.gaiaKnowBusiness).
+  // Home opens it with the generic workspace card and only watches: W._gxKnowState() in the 500 ms tick, the
+  // octo:agent-created event and the octo_home_build record (0.f, reload resume). Home never fires a build on this
+  // path; the new table page binds itself from the record (homeBindLoad, with source_index from the record pick).
+  // Without the export (an older Architect) the old Home map card below stays the fallback.
+  function homeExtReady() {
+    try { return typeof W.gaiaKnowBusiness === 'function' && typeof W._gxKnowState === 'function'; } catch (e) { return false; }
+  }
+  // A copy of the Architect state, or null when missing or malformed.
+  function homeExtState() {
+    var st = null;
+    try { st = (typeof W._gxKnowState === 'function') ? W._gxKnowState() : null; } catch (e) { st = null; }
+    if (!isObj(st) || !(num(st.n) > 0) || !/^(open|closed|hired|failed|error)$/.test(str(st.phase))) { return null; }
+    var sh = null;
+    if (isObj(st.sheet) && RE.g.test(str(st.sheet.id))) { sh = { id: str(st.sheet.id), name: str(st.sheet.name).slice(0, 120) }; }
+    return { n: st.n, phase: str(st.phase), t0: num(st.t0) || 0, label: str(st.label).slice(0, 120), process: str(st.process).slice(0, 80), ref: str(st.ref).slice(0, 80), sheet: sh };
+  }
+  // Table ids Home knew when the configurator opened (the new table is the one not in this list); null without data.
+  function homeExtSnap(H) {
+    if (!H.data || !isArr(H.data.sheets)) { return null; }
+    var k = {};
+    for (var i = 0; i < H.data.sheets.length; i++) { k[H.data.sheets[i].id] = 1; }
+    return k;
+  }
+  // Handover to the new table (4.4): calendar choice and the chosen Google Sheet (Setup preselects it if the bind fails).
+  function homeExtPick(info) {
+    var o = { calendar: homeConn('googlecalendar'), ts: Date.now() };
+    if (info && isObj(info.sheet) && RE.g.test(str(info.sheet.id))) {
+      o.sheet = { mode: 'existing', id: str(info.sheet.id), name: str(info.sheet.name).slice(0, 120) };
+    }
+    ssSet(HOME_PICK, JSON.stringify(o));
+  }
+  function homeExtOpen(H) {
+    if (!H || M.home !== H || !homeExtReady()) { return; }
+    var B = H.b, X = H.x;
+    if (B.phase === 'busy' || B.phase === 'sent' || B.phase === 'arrive' || B.phase === 'bind' || B.phase === 'open') { return; }
+    if (X.phase === 'open' || X.phase === 'hired') { return; }
+    H.step = 'know';
+    X.known = homeExtSnap(H);
+    X.gone = 0;
+    var okk = false;
+    try { okk = W.gaiaKnowBusiness({ source: 'home' }) === true; } catch (e) { okk = false; }
+    var st = homeExtState();
+    if (okk && st && st.phase === 'open') {
+      X.phase = 'open';
+      X.n = st.n;
+      X.t0 = st.t0 || Date.now();
+      trace('home:know_open');
+      homeBuildLock(H);
+      paintSoon('home');
+      return;
+    }
+    homeExtFail(H);
+  }
+  function homeExtHired(H, info) {
+    if (!H || M.home !== H || H.x.phase !== 'open') { return; }
+    var B = H.b, X = H.x;
+    X.phase = 'hired';
+    X.gone = 0;
+    H.step = 'build';
+    B.phase = 'sent';
+    B.what = '';
+    B.bind = null;
+    B.t0 = X.t0 || Date.now();
+    B.known = X.known;
+    B.label = (info ? str(info.label || info.workspace_label) : '').slice(0, 120) || 'My workspace';
+    homeExtPick(info);
+    if (B.timer) { try { clearTimeout(B.timer); } catch (e) { /* yut */ } }
+    B.timer = setTimeout(function () { B.timer = null; if (M.home === H && B.phase === 'sent') { trace('home:sent_max'); homeArrive(); } }, T.homeExtSent + T.homeArriveWait);
+    trace('home:know_hired');
+    paintSoon('home');
+  }
+  function homeExtClosed(H) {
+    var X = H.x;
+    X.phase = 'closed';
+    X.gone = 0;
+    H.step = 'know';
+    H.focus = true;
+    trace('home:know_closed');
+    paintSoon('home');
+  }
+  function homeExtFail(H) {
+    H.x.phase = 'err';
+    H.x.gone = 0;
+    H.step = 'know';
+    trace('home:know_err');
+    dbgSoon();
+    paintSoon('home');
+  }
+  // The create failed after delivery (bridge timeout): Build back to idle, the sid-less workspace record goes, Know.
+  function homeExtUnhire(H) {
+    var B = H.b;
+    if (B.timer) { try { clearTimeout(B.timer); } catch (e) { /* yut */ } B.timer = null; }
+    B.phase = 'idle';
+    B.t0 = 0;
+    B.label = '';
+    if (homeExtResumeRec()) { ssDel(HOME_BUILD); }
+    homeExtClosed(H);
+  }
+  function homeExtLive() { return !!M.home && M.home.x.phase === 'open'; }
+  // 0.f: the record the configurator writes for the workspace card (src flagship, card workspace, no sid yet).
+  function homeExtResumeRec() {
+    var o = homeBuildRec();
+    return (o && o.src === 'flagship' && o.card === 'workspace' && o.sid === undefined) ? o : null;
+  }
+  // 0.g, in this order: adopt a configurator the Architect reopened by itself; a failure after the hire; the state
+  // of the open run; the missed-signal guard (no overlay and nothing in front for HOME_EXT_GONE ticks).
+  function homeExtTick(H, front) {
+    var X = H.x;
+    if (!X || !homeExtReady()) { return; }
+    var st = homeExtState();
+    var ov = false;
+    try { ov = !!D.getElementById('gaia-flagship-activate'); } catch (e) { ov = false; }
+    if (st && st.phase === 'open' && st.n !== X.n && H.b.phase === 'idle' && ov && (X.phase === 'idle' || X.phase === 'closed' || X.phase === 'err')) {
+      X.phase = 'open';
+      X.n = st.n;
+      X.t0 = st.t0 || Date.now();
+      X.gone = 0;
+      X.known = homeExtSnap(H);
+      H.step = 'know';
+      trace('home:know_adopt');
+      paintSoon('home');
+      return;
+    }
+    if (X.phase === 'hired') {
+      if (st && st.n === X.n && st.phase === 'failed' && H.b.phase === 'sent') { homeExtUnhire(H); }
+      return;
+    }
+    if (X.phase !== 'open') { return; }
+    if (st && st.n === X.n) {
+      if (st.phase === 'hired') { homeExtHired(H, st); return; }
+      if (st.phase === 'closed' || st.phase === 'failed' || st.phase === 'error') { homeExtClosed(H); return; }
+    }
+    if (!ov && !front) {
+      X.gone++;
+      if (X.gone >= HOME_EXT_GONE) { homeExtClosed(H); }
+      return;
+    }
+    X.gone = 0;
   }
   // os6 (OCTO_KNOW_BUILD_PLAN 0.e): tek args ureticisi amiral gemisininki (_gadFlagshipArgs); Home ona sentetik bir
   // plan (bpHome) verir. Alanlar os_home_know'un ust duzey fields listesinden (en cok 60, en az bir control); Skip
@@ -56536,9 +57116,13 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   // Main kanalda (arrDev yok) hic calismaz.
   function homeBindOnce(id, rec, cb) {
     var n = 0;
+    // os6b (2.10): the configurator record carries the chosen source (pick, 0..9 into the scan's source list);
+    // the server binds that source instead of its primary. A record without a valid pick sends {sheet_id, ref}.
+    var p = { sheet_id: id, ref: str(rec.ref) };
+    if (typeof rec.pick === 'number' && rec.pick >= 0 && rec.pick <= 9 && Math.floor(rec.pick) === rec.pick) { p.source_index = rec.pick; }
     function go() {
       n++;
-      homeBindCall({ sheet_id: id, ref: str(rec.ref) }).then(function (r) {
+      homeBindCall(p).then(function (r) {
         if (r.ok) { ssDel(HOME_BUILD); trace('home:bind_page_ok'); cb(true); return; }
         if (homeBindResumable(r) && n < T.homeBindTries) { setTimeout(go, T.homeBindRetry); return; }
         if (homeBindFinal(r)) { ssDel(HOME_BUILD); }
@@ -56641,7 +57225,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   function homeSig(H) {
     var K = H.kn, B = H.b, parts = [H.step, H.req, H.code, H.empty ? 1 : 0, M.conn ? M.conn.tk : '', K.phase, K.n, K.ref,
       K.reads ? (K.reads.files + '/' + K.reads.sheets) : '', K.map ? 1 : 0, B.phase, B.what, homeBuildReady() ? 1 : 0, K.allF ? 1 : 0,
-      B.bind ? (B.bind.phase + ':' + B.bind.tries + ':' + (B.bind.rows === null ? '' : B.bind.rows) + ':' + (homeBindApply(B.bind) ? 1 : 0)) : ''];
+      B.bind ? (B.bind.phase + ':' + B.bind.tries + ':' + (B.bind.rows === null ? '' : B.bind.rows) + ':' + (homeBindApply(B.bind) ? 1 : 0)) : '',
+      H.x.phase, H.x.n];
     for (var i = 0; i < ONB_APPS.length; i++) { parts.push(onbAppState(ONB_APPS[i], 'home')); }
     var sh = (H.data && H.data.sheets) || [];
     for (var j = 0; j < sh.length; j++) { parts.push(sh[j].id + ':' + sh[j].name + ':' + sh[j].created); }
@@ -56759,6 +57344,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   // daha once taranmis (devam kaydi) ya da bagli uygulama yoksa dugme / uyari kalir.
   function homeEnterKnow(H) {
     H.step = 'know';
+    // os6b (2.5): the configurator path never waits for os_home (a cold server blocks only the fallback below).
+    if (homeExtReady()) { if (H.x.phase === 'idle') { homeExtOpen(H); return; } paintSoon('home'); return; }
     var K = H.kn;
     if (!H.code && K.phase === 'idle' && K.n === 0 && homeKnowApps()) { homeScan(H, true); return; }
     paintSoon('home');
@@ -56985,10 +57572,27 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     r.appendChild(el('span', '', text));
     return r;
   }
-  // 2 Know the business: tek dugme; soru yok, kisi Use ya da Skip der.
+  // os6b (2.5): Know card of the configurator path. open: Start is hidden, the text is for screen readers;
+  // err: Could not open + Retry; idle / closed: Know the business reopens the same configurator session.
+  function homeExtCard(H, card) {
+    var X = H.x;
+    card.setAttribute('data-phase', 'x' + X.phase);
+    var reopen = function () { var h = M.home; if (h) { homeExtOpen(h); } };
+    var skip = homeBtn('is-ghost', 'Skip', 'home-skip', homeSkip);
+    if (X.phase === 'open') { card.appendChild(homeBusy('Opening setup', 'home-know-open')); return; }
+    if (X.phase === 'hired') { card.appendChild(homeBusy('Creating workspace', 'home-creating')); return; }
+    if (X.phase === 'err') {
+      card.appendChild(homeErr('Could not open', reopen, 'home-know-err'));
+      card.appendChild(homeNav([skip]));
+      return;
+    }
+    card.appendChild(homeNav([skip, withIcon(homeBtn('is-primary', 'Know the business', 'home-know', reopen), 'sheet')]));
+  }
+  // 2 Know the business: tek dugme; soru yok, kisi Use ya da Skip der. (os6b: fallback, no gaiaKnowBusiness.)
   function homeKnowCard(H, card) {
     var K = H.kn;
     onbHead(card, 'sheet', 'Know the business');
+    if (homeExtReady() || H.x.phase !== 'idle') { homeExtCard(H, card); return; }
     card.setAttribute('data-phase', K.phase);
     if (H.code) { card.appendChild(homeErr('Could not load', homeRetry, 'home-load')); return; }
     var more = K.n < HOME_SCANS;
@@ -57068,11 +57672,20 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var B = H.b;
     onbHead(card, 'grid', 'Build');
     card.setAttribute('data-phase', B.phase);
-    if (H.code) { card.appendChild(homeErr('Could not load', homeRetry, 'home-load')); return; }
-    var bp = homeBp(H);
-    var K = H.kn;
+    var xh = H.x.phase === 'hired';
+    // os6b: a hire of the configurator does not depend on os_home (a cold server only delays the arrival).
+    if (H.code && !xh) { card.appendChild(homeErr('Could not load', homeRetry, 'home-load')); return; }
     var box = el('div', 'octo-onb-agent');
     box.setAttribute('data-k', 'home-plan');
+    if (xh) {
+      // os6b (2.6): the plan was built by the configurator; Home shows only the workspace name it created.
+      box.appendChild(el('div', 'octo-onb-agent-name', str(B.label) || 'My workspace'));
+      card.appendChild(box);
+      homeBuildPhase(H, card);
+      return;
+    }
+    var bp = homeBp(H);
+    var K = H.kn;
     box.appendChild(el('div', 'octo-onb-agent-name', str(bp.workspace_label)));
     var pl = el('div', 'octo-rail-pills');
     if (H.empty) { pl.appendChild(homePill('Empty workspace', 'empty')); }
@@ -57089,6 +57702,11 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       if (fo) { box.appendChild(homePlanLine('Folder', fo, 'home-folder')); }
     }
     card.appendChild(box);
+    homeBuildPhase(H, card);
+  }
+  // Build phase rows (shared by the Home build and the configurator hire).
+  function homeBuildPhase(H, card) {
+    var B = H.b;
     if (B.phase === 'busy' || B.phase === 'sent') { card.appendChild(homeBusy('Creating workspace', 'home-creating')); return; }
     // Yalniz suren bag adimlari cizilir; hata sonrasi inis (bind.phase err) "Linking" demez, Opening new table der.
     if (B.phase === 'bind' && B.bind && (B.bind.phase === 'link' || B.bind.phase === 'load' || B.bind.phase === 'work')) { homeBindRows(card, B.bind); return; }
@@ -57099,7 +57717,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       card.appendChild(homeErr('Could not create', function () {
         var h = M.home;
         if (!h) { return; }
-        if (h.b.what === 'arrive') { h.b.phase = 'sent'; homeArrive(); return; }
+        // os6b (2.6): after a configurator hire Retry only looks for the table again, it never builds.
+        if (h.x.phase === 'hired' || h.b.what === 'arrive') { h.b.phase = 'sent'; homeArrive(); return; }
         h.b.phase = 'idle';
         homeBuild();
       }, 'home-builderr'));
