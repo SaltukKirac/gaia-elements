@@ -49474,9 +49474,14 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       load(c);
       // os5: ciplak id sayfasi cevap beklerken bos kalmaz; Home hemen acilir (veri gelirse onWs kapatir).
       if (homeCtx()) { homeSync(true); if (M.home && M.home.open) { paintSoon('home'); } }
+      // os5g: kimlik henuz okunmadiysa (baslik gec) kendi sayfasi olabilir: T.ctxPoll ile yeniden bakilir.
+      else if (homeMaybe()) { kick(T.ctxPoll); }
       return;
     }
     if (M.mounted) {
+      // os5g: kimlik gec okunduysa (Bubble basligi gec cizilir / bozuk JSON) ve bu kisinin kendi sayfasiysa hata rayi
+      // yerine Home (kurucu 30.09: "hicbir sey gormuyorum" = hata rayi kurulmus, Start bir daha acilamamisti).
+      if (homeCtx() && !M.data) { unmount(); homeSync(true); if (M.home && M.home.open) { paintSoon('home'); } return; }
       homeSync(false);
       if (needsRemount()) { remount('health'); return; }
       if (M.phone !== isPhone()) { batch(layout); }
@@ -49486,7 +49491,22 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     // not_found cevapta ray KURULMAZ; ekran bos kalmaz). Veri gelirse asagiya duser: Home kapanir, ray kurulur.
     if (homeCtx() && !M.data) { homeSync(true); if (M.home && M.home.open) { paintSoon('home'); } return; }
     homeSync(false);
+    // Ciplak id + bos baglam + kimlik henuz okunamadi: hata rayi kurulmaz; kimlik gelene kadar T.ctxPoll ile yeniden
+    // bakilir (baska tetik olmayabilir), gelince yukaridaki dal karar verir.
+    if (!M.data && homeMaybe()) { kick(T.ctxPoll); return; }
     if ((M.data || M.wsErr) && !M.nf && findWrapper()) { mount(); }
+  }
+  // Kullanici sayfasi OLABILIR ama kimlik (bubble-options user_id) daha okunmadi: ne Home ne hata rayi, beklenir.
+  function homeMaybe() {
+    if (!M.onbOn || !M.onb || !arrDev()) { return false; }
+    var u = '';
+    try { u = octo.page.urlId() || ''; } catch (e) { u = ''; }
+    if (!u || !HOME_ID_RE.test(homePath())) { return false; }
+    var c = M.ctx;
+    if (!c || c.screen_id || c.list_id || c.stage_id) { return false; }
+    var uid = '';
+    try { uid = str(octo.page.ids().user_id); } catch (e2) { uid = ''; }
+    return !idOk(uid);
   }
 
   // ------------------------------------------------------------- ortu (2.3)
@@ -49591,7 +49611,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (M.data) { paintSoon('head'); return; }   // bayat veri boyali: yerinde kalir
     M.wsErr = code;
     // os5: kullanici sayfasi adayinda (ciplak id, baglam yok) hata basligiyla ray kurulmaz; Home yuzeyi kalir.
-    if (homeCtx()) { kick(0); return; }
+    // os5g: kimlik henuz okunmadiysa da (homeMaybe) kurulmaz; tick kimlik gelince karar verir.
+    if (homeCtx() || homeMaybe()) { kick(0); return; }
     if (!M.mounted && !M.yielded) { mount(); }
     paintSoon();
   }
