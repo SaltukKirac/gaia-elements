@@ -5310,6 +5310,7 @@
       telegram: { label: 'Telegram', icon: '✈️' },
       microsoft365: { label: 'Microsoft 365', icon: '🏢' },
       outlook: { label: 'Outlook', icon: '📮' },
+      bizmail: { label: 'Business email', icon: '✉️' }, /* MAILPROV */
       onedrive: { label: 'OneDrive', icon: '☁️' },
       dropbox: { label: 'Dropbox', icon: '📦' },
       asana: { label: 'Asana', icon: '🎯' },
@@ -5352,6 +5353,8 @@
       slug = String(slug || '').trim().toLowerCase();
       if (!slug) return false;
       if (connectedSlugs.has(slug)) return true;
+      /* MAILPROV */ // bizmail is not a Composio account: connectedSlugs is rebuilt from Composio, so the bizmail mark lives on window
+      if (slug === 'bizmail' && window.__gflBizmail && window.__gflBizmail.account_id) return true;
       const cachedId = authConfigCache[slug];
       if (cachedId && connectedAuthConfigIds.has(cachedId)) return true;
       return false;
@@ -14115,14 +14118,22 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // yalniz paketten yazar (yeni sunucu); paket yoksa eskisi gibi 10 mesaj ceker (yeni HTM + eski sunucu). Sunucu _pvBlock
     // ile BIREBIR ayni (<N> = limit, <FIELDS> = alan metni); parite testi A16 iki fonksiyonu karsilastirir.
     function _gadPreviewBlockText(limit) {
+      /* MAILPROV */ // gmail keeps the exact text (server parity A16); outlook / bizmail name their own fetch tool
+      var _mpApp = (typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail';
+      var _mpTool = _mpApp === 'outlook' ? 'OUTLOOK_LIST_MESSAGES' : (_mpApp === 'bizmail' ? 'BIZMAIL_FETCH_EMAILS' : 'GMAIL_FETCH_EMAILS');
+      var _mpFetch = _mpApp === 'outlook'
+        ? 'If there is no PREVIEW PACKET, fetch the newest 10 messages in the inbox with OUTLOOK_LIST_MESSAGES (folder inbox, top 10, orderby receivedDateTime desc, select id, conversationId, subject, from, toRecipients, ccRecipients, receivedDateTime, body, hasAttachments). '
+        : (_mpApp === 'bizmail'
+          ? 'If there is no PREVIEW PACKET, fetch the newest 10 messages with BIZMAIL_FETCH_EMAILS (max_results 10). '
+          : 'If there is no PREVIEW PACKET, fetch the newest 10 messages in scope with GMAIL_FETCH_EMAILS, max_results 10 and include_payload false, and add -from:accounts.google.com to the query: those are Google account security alerts, for example about connecting this assistant. ');
       return 'PREVIEW RUN. Nothing is written in this run. Call no tool that creates, labels, drafts or sends anything. '
-        + 'If the user message contains a PREVIEW PACKET, work only from it and do not call GMAIL_FETCH_EMAILS: its messages are the person\'s own mail, already chosen and read for you, and each one carries the evidence the server already looked up: rows from the person\'s lists, not_found numbers, documents, and one shared calendar with the events and the free_slots of the next 14 days. Write one JSON object for each packet message, in the packet order, in a top-level records array using the json_schema field names exactly, and copy the message ref into a "_ref" key. '
+        + 'If the user message contains a PREVIEW PACKET, work only from it and do not call ' + _mpTool + ': its messages are the person\'s own mail, already chosen and read for you, and each one carries the evidence the server already looked up: rows from the person\'s lists, not_found numbers, documents, and one shared calendar with the events and the free_slots of the next 14 days. Write one JSON object for each packet message, in the packet order, in a top-level records array using the json_schema field names exactly, and copy the message ref into a "_ref" key. '
         + 'Use the evidence and nothing else: when rows holds a row, state its real values in Business Check and name it in What It Read; when not_found holds a number, say it was not found; never state a row value, a file name or a free time that is not in the packet. '
         + 'When a message asks for a meeting or a call and calendar.free_slots is present, propose at most two of those slots in Drafted Reply, write Calendar Check as "Checked <time zone>: <the slots>", and add a propose_time action with the ev of the first slot. When calendar.connected is false, write Calendar Check "Not connected". When calendar.connected is true and the message asks for no meeting, write "Not needed". '
         + 'When a message reports a change to a row and the column is listed in that row\'s writable, add a row_update action and write Tracking Update as "Would update <source> <key>: <column> from <old> to <new>". '
         + 'When a message is a payment receipt, an invoice or a payment notice: if lists holds a list that tracks payments, add a row_add_suggestion action for it; if not, add a list_suggestion action and say so in Suggested Next Step. '
         + 'A record may carry an "actions" array with at most 4 items, only of these shapes: {"kind":"row_update","ev":"r1","changes":[{"column":"Status","to":"Shipped"}],"detail":"one short sentence"} or {"kind":"propose_time","ev":"s2","detail":"one short sentence"} or {"kind":"list_suggestion","title":"Payments","columns":["Date","From","Amount","Reference","Status"],"detail":"one short sentence"} or {"kind":"row_add_suggestion","source":"payments","values":{"Date":"2026-09-17","Amount":"1200"},"detail":"one short sentence"}. Labels, drafts and document links are added by the server from your fields, so do not list them. '
-        + 'If there is no PREVIEW PACKET, fetch the newest 10 messages in scope with GMAIL_FETCH_EMAILS, max_results 10 and include_payload false, and add -from:accounts.google.com to the query: those are Google account security alerts, for example about connecting this assistant. '
+        + _mpFetch /* MAILPROV */
         + 'Write one JSON object for ' + limit + ' of them in a top-level records array using the json_schema field names exactly. '
         + 'Choose them this way: first the messages that need something from the person (a person asking for something or reporting a change, a dated notice, a failed payment, a bank detail change), newest first; routine notifications only to fill up to ' + limit + '. '
         + 'Never say you will send, email or deliver anything: you have no send tool. Say you will prepare a draft reply that contains it. Example: write "I will prepare a draft reply with the price list", not "I will send the price list". '
@@ -26687,12 +26698,46 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // trigger is a Gmail trigger. The phone card has Gmail as an OPTIONAL app and no trigger, so it is not a mail card even when
     // the founder connects Gmail; the tool list (/GMAIL_/) is never used as the test, because the phone card carries Gmail tools too.
     // demo.entry_channel is carried into ctx as ctx.channel for logging and probes; the mail cards say "trigger", the phone card "table".
+    /* MAILPROV */ // 30.09 (MAIL_PROVIDERS_SPEC 2): the mail app of a card = a REQUIRED gmail/outlook/bizmail app, else the blueprint trigger app.
+    function _gflMailApp(ctx){
+      ctx = (ctx && typeof ctx === 'object') ? ctx : {};
+      var req = Array.isArray(ctx.requiredSlugs) ? ctx.requiredSlugs : [];
+      var MA = ['gmail', 'outlook', 'bizmail'];
+      for (var i = 0; i < req.length; i++) { var r = String(req[i] || '').toLowerCase(); if (MA.indexOf(r) >= 0) return r; }
+      var tr = (ctx.blueprint && ctx.blueprint.trigger) || null;
+      if (tr && typeof tr === 'object') {
+        var a = String(tr.app_slug || '').toLowerCase();
+        if (MA.indexOf(a) >= 0) return a;
+        var ts = String(tr.trigger_slug || '');
+        if (/^GMAIL_/i.test(ts)) return 'gmail';
+        if (/^OUTLOOK_/i.test(ts)) return 'outlook';
+        if (/^BIZMAIL_/i.test(ts)) return 'bizmail';
+      }
+      return '';
+    }
+    window._gflMailApp = _gflMailApp;
+    /* MAILPROV */ function _gflMailLabel(app){
+      app = String(app || '').toLowerCase();
+      if (app === 'outlook') return 'Outlook';
+      if (app === 'bizmail') { var em = (window.__gflBizmail && window.__gflBizmail.email) || ''; return em ? String(em) : 'your business mailbox'; }
+      return 'Gmail';
+    }
+    window._gflMailLabel = _gflMailLabel;
+    /* MAILPROV */ function _gflMailAppNow(){
+      try { var s = (typeof _gadFlagshipSession !== 'undefined') ? _gadFlagshipSession : null; var a = _gflMailApp(s && s.ctx); return a || 'gmail'; } catch(e){ return 'gmail'; }
+    }
+    window._gflMailAppNow = _gflMailAppNow;
+    /* MAILPROV */ function _gflMailNameNow(){ return _gflMailLabel(_gflMailAppNow()); }
+    window._gflMailNameNow = _gflMailNameNow;
+    /* MAILPROV */ function _gflMailDraftsNow(){ var a = _gflMailAppNow(); return a === 'outlook' ? 'Outlook Drafts' : (a === 'bizmail' ? 'the Drafts folder of your mailbox' : 'Gmail Drafts'); }
+    window._gflMailDraftsNow = _gflMailDraftsNow;
     function _gflIsMailCard(ctx){
       ctx = (ctx && typeof ctx === 'object') ? ctx : {};
       var req = Array.isArray(ctx.requiredSlugs) ? ctx.requiredSlugs : [];
       if (req.indexOf('gmail') >= 0) return true;
       var tr = (ctx.blueprint && ctx.blueprint.trigger) || null;
       if (tr && typeof tr === 'object' && (String(tr.app_slug || '').toLowerCase() === 'gmail' || /^GMAIL_/i.test(String(tr.trigger_slug || '')))) return true;
+      if (_gflMailApp(ctx)) return true; /* MAILPROV */ // outlook / bizmail required or trigger (gmail merely optional still returns '' above)
       return false;
     }
     window._gflIsMailCard = _gflIsMailCard;
@@ -27017,7 +27062,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var connId = '';
       try { if (typeof connectedAccountIdCache !== 'undefined' && connectedAccountIdCache && connectedAccountIdCache[app]) connId = String(connectedAccountIdCache[app]); } catch(e){}
       var cfg = {}; try { Object.keys(t.trigger_config || {}).forEach(function(k){ cfg[k] = t.trigger_config[k]; }); } catch(e){}
-      try {
+      if (!connId && app === 'bizmail' && window.__gflBizmail && window.__gflBizmail.account_id) connId = String(window.__gflBizmail.account_id); /* MAILPROV */
+      if (app === 'gmail') try { /* MAILPROV */ // Gmail search syntax only: Outlook and bizmail keep the blueprint trigger_config
         if (typeof scopeQuery === 'string' && scopeQuery.trim()) cfg.query = scopeQuery.trim();
         else if (scopeQuery && typeof scopeQuery === 'object' && scopeQuery.kind && typeof _gadFlagshipScopeQuery === 'function') {
           var sfx = _gadFlagshipScopeQuery('', scopeQuery);
@@ -27117,7 +27163,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           if (hint) {
             var _ap = (typeof _gflGsCleanPerms === 'function') ? _gflGsCleanPerms(a.args && a.args.permissions) : null;
             var _at = 'When a new email arrives in the scope you chose, I look at it.';
-            if (!_ap || _ap.draft) _at += ' Drafts wait in Gmail Drafts.';
+            if (!_ap || _ap.draft) _at += ' Drafts wait in ' + _gflMailDraftsNow() + '.'; /* MAILPROV */
             if (_ap && _ap.label) _at += ' Mail that needs you is marked.';
             hint.textContent = _at + ' I have not processed a new email yet.';
           }
@@ -27166,7 +27212,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
             if (fbNote) fbNote.textContent = a.firstValue || 'Add one record and press Run.';
           } else
           if (!a.enabling && fbHead && closeBtn && closeBtn.parentNode) {
-            var fbMail = /GMAIL_/.test(JSON.stringify((a.args && a.args.action_tools) || []));
+            var fbMail = /GMAIL_|OUTLOOK_|BIZMAIL_/.test( /* MAILPROV */JSON.stringify((a.args && a.args.action_tools) || []));
             var fbLabel = fbMail ? ('Triage my ' + _GFL_FIRST_BATCH_LIMIT + ' newest emails now') : ('Run it on my ' + _GFL_FIRST_BATCH_LIMIT + ' newest items now');
             if (!fb) {
               fb = document.createElement('button');
@@ -27399,7 +27445,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     function _gadFlagshipFirstBatchText(messages, limit){
       var msgs = (Array.isArray(messages) ? messages : []).filter(function(m){ return m && typeof m === 'object' && _gflFbOne(m.from, 120); }).slice(0, _GFL_FIRST_BATCH_LIMIT);
       if (!msgs.length) return 'First run. There is no incoming message. Fetch the ' + limit + ' newest messages in the configured scope, oldest first, and process each one. Never invent a row when there is nothing to process.';
-      return 'First run: fetch the newest 10 messages in scope with GMAIL_FETCH_EMAILS (query in:inbox -category:promotions -category:social -category:forums -from:accounts.google.com, max_results 10, include_payload false) and write rows for these messages from the preview: '
+      var _mpApp = (typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail'; /* MAILPROV */
+      var _mpHead = _mpApp === 'outlook'
+        ? 'First run: fetch the newest 10 messages in the inbox with OUTLOOK_LIST_MESSAGES (folder inbox, top 10, orderby receivedDateTime desc, select id, conversationId, subject, from, toRecipients, ccRecipients, receivedDateTime, body, hasAttachments) and write rows for these messages from the preview: '
+        : (_mpApp === 'bizmail'
+          ? 'First run: fetch the newest 10 messages with BIZMAIL_FETCH_EMAILS (max_results 10) and write rows for these messages from the preview: '
+          : 'First run: fetch the newest 10 messages in scope with GMAIL_FETCH_EMAILS (query in:inbox -category:promotions -category:social -category:forums -from:accounts.google.com, max_results 10, include_payload false) and write rows for these messages from the preview: ');
+      return _mpHead /* MAILPROV */
         + msgs.map(function(m, i){ return (i + 1) + ') ' + _gflFbOne(m.from, 120) + ' | ' + (_gflFbOne(m.subject, 160) || '(no subject)'); }).join(' ')
         + ' If one is not found, take the next message that needs something from the person.';
     }
@@ -29151,11 +29203,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         + (act.time_to_value ? '<div class="gfl-ttv">' + _flagEsc(act.time_to_value) + '</div>' : '')
         + '<div class="gfl-h4">Connect your accounts</div>'
         + appRows
-        + ((hasGmail && hasGcal && _mailCtx) ? '<div class="gfl-hint">One Google sign-in can cover both. If Calendar already shows Connected, nothing else is needed.</div>' : '')   /* PHONE-FLAGSHIP-FIX */ // the hint is a Gmail hint
+        + ((hasGmail && hasGcal && _mailCtx && _gflMailApp(ctx) === 'gmail' /* MAILPROV */) ? '<div class="gfl-hint">One Google sign-in can cover both. If Calendar already shows Connected, nothing else is needed.</div>' : '')   /* PHONE-FLAGSHIP-FIX */ // the hint is a Gmail hint
         + '</div>';
 
       // Adim 2: onizleme bolgesi (tablo yalniz textContent ile doldurulur)
-      var readApp = _mailCtx ? (ctx.appLabels[ctx.requiredSlugs[0]] || 'your account') : String(bp.workspace_label || bp.process_name || 'your records');   /* PHONE-FLAGSHIP-FIX */
+      var readApp = _mailCtx ? (ctx.appLabels[_gflMailApp(ctx)] /* MAILPROV */ || ctx.appLabels[ctx.requiredSlugs[0]] || 'your account') : String(bp.workspace_label || bp.process_name || 'your records');   /* PHONE-FLAGSHIP-FIX */
       var previewPanel = '<div id="gfl-step-preview" hidden>'
         // 17.09 (DEEP_SCAN spec 5.7): baslik artik "bes en yeni mesaj" demiyor; tarama 45 gunluk, secim puanli.
         // 18.09 (GUIDED_SETUP_SPEC 2.1): adim 1 basligi kurucunun cumlesi.
@@ -29484,7 +29536,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var list = (names.length === 1) ? names[0] : (names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]);
       var reqs = (s.ctx && Array.isArray(s.ctx.requiredSlugs)) ? s.ctx.requiredSlugs : [];
       var _reqNames = reqs.map(function(x){ return String(labels[x] || x); });   /* PHONE-FLAGSHIP-FIX */ // 22.09: labels.gmail exists on the phone card (optional Gmail), so it would claim Gmail is connected
-      var _lead = _gflIsMailCard(s.ctx) ? String(labels.gmail || labels[reqs[0]] || 'Gmail') + ' is'
+      var _mpA = _gflMailApp(s.ctx); /* MAILPROV */
+      var _lead = _gflIsMailCard(s.ctx) ? String(labels[_mpA] || labels[reqs[0]] || _gflMailLabel(_mpA)) + ' is'
         : ((_reqNames.length > 1 ? (_reqNames.slice(0, -1).join(', ') + ' and ' + _reqNames[_reqNames.length - 1]) : (_reqNames[0] || 'Your required apps')) + (_reqNames.length > 1 ? ' are' : ' is'));
       var text = _lead + ' connected. Connect ' + list + ' too, or press Continue to go on without them.';
       el.textContent = text; el.hidden = false;
@@ -29537,7 +29590,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       else if (sub && step === 'verify' && s.verifyView === 'questions') _gflSubPill(sub, 'question', 'Answer or skip.', 'Answer what this request needs. You can skip and I will say what is missing.');
       else if (sub && step === 'verify') _gflSubPill(sub, 'pencil', 'Suggestions. Change anything.', 'I filled in what I found as suggestions. Change anything that is wrong.');
       else if (sub && step === 'launch' && s.launchView === 'summary') _gflSubPill(sub, 'lock', 'Nothing written until Start.', 'Nothing is written until you press Start.');
-      else if (sub && step === 'launch') _gflSubPill(sub, 'eye', 'A test. Nothing written.', 'I show the result here. I will not write to Gmail or your records yet.');
+      else if (sub && step === 'launch') _gflSubPill(sub, 'eye', 'A test. Nothing written.', 'I show the result here. I will not write to ' + _gflMailNameNow() + ' or your records yet.'); /* MAILPROV */
       else if (sub) _gflSubPill(sub, 'shield', 'You choose. Never sends.', 'You control what I read and what I prepare. I never send email.');
       if (step === 'configure') _gadFlagshipFillSummary();
       _gadFlagshipNote(step === 'configure' ? String((s.ctx.activation && s.ctx.activation.after) || '') : '');
@@ -30098,8 +30151,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // 17.09 (DEEP_SCAN spec 5.7): mesaj sayisi artik sabit degil, gercek kayit sayisi (opts.count).
       var _planN = (Number(opts.count) > 0) ? Math.floor(Number(opts.count)) : 0;
       host.appendChild(_gflNode('div', 'gfl-psub', _planN
-        ? ('Built from the ' + ((typeof _gflPlural === 'function') ? _gflPlural(_planN, 'message', 'messages') : (_planN + ' messages')) + ' in the preview. Nothing was written to Gmail.')
-        : 'Built from the messages in the preview. Nothing was written to Gmail.'));
+        ? ('Built from the ' + ((typeof _gflPlural === 'function') ? _gflPlural(_planN, 'message', 'messages') : (_planN + ' messages')) + ' in the preview. Nothing was written to ' + _gflMailNameNow() + '.')
+        : 'Built from the messages in the preview. Nothing was written to ' + _gflMailNameNow() + '.')); /* MAILPROV */
       if (opts.writeFree === false) host.appendChild(_gflNode('div', 'gfl-warnband', 'The run did not report a write-free result; treat this as an estimate.'));
       // 1. What it found -> kucuk kartlar: turune gore simge, bes sozcukluk baslik, sayi rozeti ve
       // ornek tek sessiz satir (ornek KISININ KENDI verisi, oldugu gibi durur).
@@ -30235,7 +30288,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // ★ 20.09 (LIVING_UI_SPEC 7, build lr2): altlik cumlesi EKRANDAN kalkti (basligin altindaki belirtec
       // zaten soyluyor) ama KAYBOLMADI: sonuc sutununun erisilebilir adi oldu.
       host.setAttribute('role', 'group');
-      host.setAttribute('aria-label', 'Everything above is a preview. Nothing was written to Gmail, your Sheet, your Drive or your calendar.');
+      host.setAttribute('aria-label', 'Everything above is a preview. Nothing was written to ' + _gflMailNameNow() + ', your Sheet, your Drive or your calendar.'); /* MAILPROV */
       host.hidden = false;
       return true;
     };
@@ -36984,7 +37037,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       r1.appendChild(ch1);
       // Ne olacagini anlatan cumle satirin adinda ve title'inda durur (6.3 ile ayni kural).
       var sent = 'When a new email arrives in ' + _gflGsScopeSentence(s || {}) + ', I look at it.';
-      if (p.draft) sent += ' Drafts wait in Gmail Drafts.';
+      if (p.draft) sent += ' Drafts wait in ' + _gflMailDraftsNow() + '.'; /* MAILPROV */
       if (p.label) sent += ' Mail that needs you is marked.';
       r1.setAttribute('title', sent);
       r1.setAttribute('aria-label', sent);
@@ -45523,9 +45576,10 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   var ID_RE = /^\d{13}x\d{15,}$/;
   function pageIds() {
     var out = { stage_id: '', list_id: '', user_id: '' };
+    var raw = '';
     try {
       var n = document.getElementById('bubble-options');
-      var raw = n ? String(n.textContent || '') : '';
+      raw = n ? String(n.textContent || '') : '';
       var s = raw.indexOf('{');
       if (s < 0) { return out; }
       var depth = 0, inStr = false, esc = false, end = -1;
@@ -45538,14 +45592,24 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
         if (ch === '{') { depth++; }
         else if (ch === '}') { depth--; if (depth === 0) { end = i; break; } }
       }
-      if (end < 0) { return out; }
+      if (end < 0) { throw new Error('unterminated'); }   // kapanmayan JSON: asagidaki duz metin yolu
       var o = JSON.parse(raw.slice(s, end + 1)) || {};
       var keys = ['stage_id', 'list_id', 'user_id'];
       for (var k = 0; k < keys.length; k++) {
         var v = o[keys[k]];
         out[keys[k]] = (typeof v === 'string' || typeof v === 'number') ? String(v).trim() : '';
       }
-    } catch (e) { /* bozuk metin: bos kimlik */ }
+    } catch (e) {
+      // Bubble basligindaki JSON bozuk olabilir (30.09 canli: `"tools": []","user_id":"...",tool_required":null`):
+      // uc anahtar duz metinden okunur; degeri tirnakli olmayan (null) anahtar bos kalir.
+      try {
+        var ks = ['stage_id', 'list_id', 'user_id'];
+        for (var j = 0; j < ks.length; j++) {
+          var m = new RegExp('"' + ks[j] + '"\\s*:\\s*"([^"]{1,80})"').exec(raw);
+          out[ks[j]] = m ? String(m[1]).trim() : '';
+        }
+      } catch (e2) { /* bos kimlik */ }
+    }
     return out;
   }
   // /app/<id> adresindeki id (sheet ya da surec id). Harness dikisi:
@@ -54745,11 +54809,20 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var u = '';
     try { u = octo.page.urlId() || ''; } catch (e) { u = ''; }
     if (!u) { return HOME_RE.test(homePath()); }
-    // Ciplak kimlik (/app/<kullanici id>, adsiz hesap): ekran/liste/surec baglami yoksa kullanici sayfasi adayidir.
-    // Home hemen acilir (kurucu 30.09: "hicbir sey olmadi" = sunucu cevabi beklenirken bos ekran); sunucu gercek
-    // bir workspace dondururse (M.data) tick Home'u kapatir ve ray kurulur.
+    // Ciplak kimlik (/app/<id>): YALNIZ kisinin kendi kullanici sayfasi (adresteki id = Bubble'in verdigi user_id)
+    // ve ekran/liste/surec baglami yokken. Tablo id'si de ayni bicimdedir: kurucu 30.09 "tabloyu acmama engel olan
+    // bir durum" = Start, tablo sayfasini kullanici sayfasi sanip sunucu cevabi gelene kadar (soguk sunucu 25 sn+)
+    // tablonun ustunu kapatiyordu. Kendi sayfasinda Home hemen acilir; gercek workspace verisi gelirse (M.data)
+    // tick kapatir. Baska bir id (tablo) icin Home acilmaz, ray os_workspace'i bekler.
+    if (!HOME_ID_RE.test(homePath())) { return false; }
+    // Sunucu "bu id bir workspace degil" dediyse (os_workspace not_found; kurucu 30.09 tablosuz hesap: not_found
+    // geldi, ekran/liste baglami yuzunden Start acilmadi, "bir sey yok ortada") baglama bakilmaz: kullanici sayfasi.
+    if (M.nf) { return true; }
     var c = M.ctx;
-    return HOME_ID_RE.test(homePath()) && !!c && !c.screen_id && !c.list_id && !c.stage_id;
+    if (!c || c.screen_id || c.list_id || c.stage_id) { return false; }
+    var uid = '';
+    try { uid = str(octo.page.ids().user_id); } catch (e2) { uid = ''; }
+    return idOk(uid) && uid === u;
   }
   function homeNew() {
     return {
@@ -54847,8 +54920,9 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var H = homeNew();
     M.home = H;
     trace('home:boot');
-    // Not now hatirlanir: zorlama yoksa hic istek ve dugum yok.
-    if (!H.force && onbDismissed('home')) { H.dismissed = true; return; }
+    // Not now hatirlanir (KISIYE ozel anahtar: ayni tarayicida baska hesap Start'i gorur; kurucu 30.09 "bir sey yok
+    // ortada"): tam yuzey acilmaz ama os_home yine okunur ve Start cipi cizilir (geri donus yolu).
+    if (!H.force && onbDismissed(homeDismissKey())) { H.dismissed = true; }
     if (H.force) { H.open = true; H.seen = true; H.focus = true; }
     if (!homeBridge()) { H.req = 'wait'; H.bw = Date.now(); homeBridgeWait(H); paintSoon('home'); return; }
     homeStart(H);
@@ -54945,7 +55019,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   function homeDismiss() {
     var H = M.home;
     if (!H) { return; }
-    onbDismiss('home', { quiet: true });
+    onbDismiss(homeDismissKey(), { quiet: true });
     H.open = false;
     H.dismissed = !H.force;
     trace('home:dismiss');
@@ -55349,10 +55423,12 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
   }
 
   // ------------------------------------------------------------ home cizim
+  // Not now sonrasi da cip kalir (tam yuzeye donus yolu); tablolu kullanicida her zaman cip.
+  function homeDismissKey() { return 'home:' + homeUid(); }
   function homeChipWant(H) {
-    if (H.open || (H.dismissed && !H.force)) { return false; }
+    if (H.open) { return false; }
     if (H.force) { return H.seen; }
-    return H.req === 'ok' && !!H.data && H.data.sheets_total > 0;
+    return H.req === 'ok' && !!H.data && (H.dismissed || H.data.sheets_total > 0);
   }
   function homeChip() {
     var c = el('div', 'octo-onb-hint is-home-chip');
