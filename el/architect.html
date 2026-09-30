@@ -29754,6 +29754,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var _lead = _gflIsMailCard(s.ctx) ? String(labels[_mpA] || labels[reqs[0]] || _gflMailLabel(_mpA)) + ' is'
         : ((_reqNames.length > 1 ? (_reqNames.slice(0, -1).join(', ') + ' and ' + _reqNames[_reqNames.length - 1]) : (_reqNames[0] || 'Your required apps')) + (_reqNames.length > 1 ? ' are' : ' is'));
       var text = _lead + ' connected. Connect ' + list + ' too, or press Continue to go on without them.';
+      // 01.10 (os6b): a card with no required app (the Know the business workspace card) has nothing "connected" to claim
+      if (!reqs.length && !_gflIsMailCard(s.ctx)) text = 'Connect ' + list + ' so I can read your work.';
       el.textContent = text; el.hidden = false;
       return text;
     }
