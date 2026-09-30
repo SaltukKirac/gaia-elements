@@ -55446,16 +55446,19 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var rec = homeKnowRec();
     if (!rec) { return; }
     var K = H.kn;
-    K.n = rec.n;
+    // Sayac 30 dk pencerelidir (os5h, kurucu 30.09 "Know'da hicbir sey calismiyor": ayni sekmede gun boyu 3 tarama
+    // dolunca dugme olu kaliyordu): kayit eskiyse (> T.homeKnowTtl) sayac sifirlanir.
+    var fresh = (Date.now() - rec.ts <= T.homeKnowTtl) && rec.ts <= Date.now() + 60000;
+    K.n = fresh ? rec.n : 0;
     if (rec.state !== 'scan' && rec.state !== 'map') { return; }
     H.step = 'know';
-    if (Date.now() - rec.ts <= T.homeKnowTtl && rec.ts <= Date.now() + 60000) {
+    if (fresh) {
       K.ref = rec.ref; K.ts = rec.ts; K.phase = 'scan';
       homePollEv(H, rec.ref);
       return;
     }
     // Eski kayit: yalniz yarida kalan tarama (state scan) yeniden baslar; biten harita icin tiklamasiz ucretli tarama yok,
-    // kayit 'idle' olur (oturum sayaci n korunur), kisi Scan my files der.
+    // kayit 'idle' olur (sayac 30 dk sonra sifirlanmis olur), kisi Scan my files der.
     if (rec.state === 'scan') { homeScan(H, false); return; }
     K.ref = rec.ref; K.ts = rec.ts;
     homeKnowSave(K, 'idle');
@@ -56087,6 +56090,12 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     // Bagli Drive / Sheets yokken tarama anlamsiz: dugme yerine tek satir + Skip (kurucu 30.09: "Nothing found yet").
     if (!homeKnowApps()) {
       card.appendChild(muted('Connect Drive or Sheets first'));
+      card.appendChild(homeNav([skip]));
+      return;
+    }
+    // 30 dk icinde 3 tarama doldu: olu dugme yerine tek satir + Skip (sayac T.homeKnowTtl sonra sifirlanir).
+    if (!more) {
+      card.appendChild(muted('Scan limit reached'));
       card.appendChild(homeNav([skip]));
       return;
     }
