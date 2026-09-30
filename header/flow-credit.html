@@ -1,10 +1,10 @@
 <!-- ════════════════════════════════════════
      FLOW CREDIT WIDGET — Bubble HTML Element
      Fluid width, scrollbar-free, direkt yapıştır
-     (30.09.2026) Bubble dinamik değerleri koda değil, aşağıdaki gizli <span id="fcw-in-*">
-     etiketlerinin İÇİNE yazılır; betik oradan metin olarak okur. Değer boşsa (yeni hesap,
-     plan yok) kod bozulmaz, widget gizlenir. Eskiden setFlows( , , "") "Unexpected token ','"
-     hatası veriyordu. Stil kuralları #fcw-wrap ile sınırlı (eski html,body sıfırlaması tüm sayfaya uyguluyordu).
+     (30.09.2026) Üç Bubble dinamik değeri en alttaki setFlows( "", "", "" ) çağrısında
+     TIRNAKLARIN İÇİNE eklenir; betik metin olarak okur. Değer boşsa (yeni hesap, plan yok)
+     kod bozulmaz, widget gizlenir. Eskiden setFlows( , , "") "Unexpected token ','" veriyordu.
+     Stil kuralları #fcw-wrap ile sınırlı (eski html,body sıfırlaması tüm sayfaya uyguluyordu).
      ════════════════════════════════════════ -->
 
 <style>
@@ -69,13 +69,6 @@
 .fcw-alert{animation:fcw-pulse 1.8s ease infinite}
 </style>
 
-<!-- ── BUBBLE DİNAMİK DEĞERLER: her etiketin İÇİNE yalnız ifadeyi koy (tırnak, virgül yok) ──
-     remaining = kalan flow, bought = toplam flow, renew = yenileme tarihi metni ("28 Apr '26").
-     Betik bunları metin olarak okur; tırnak / satır sonu / boş değer kodu bozamaz. -->
-<span id="fcw-in-remaining" hidden></span>
-<span id="fcw-in-bought" hidden></span>
-<span id="fcw-in-renew" hidden></span>
-
 <div id="fcw-wrap" hidden>
   <div class="fcw-top">
     <div class="fcw-left">
@@ -119,7 +112,6 @@
     var n=Number(s);
     return isFinite(n)?n:null;
   }
-  function slot(id){ var n=document.getElementById(id); return n?String(n.textContent||''):''; }
 
   function animNum(el,from,to,ms){
     var start=null;
@@ -172,7 +164,11 @@
     else wrapEl.classList.remove('fcw-alert');
   };
 
-  /* ── İLK DEĞERLER: yukaridaki <span id="fcw-in-*"> etiketlerinden okunur (Bubble oraya yazar) ── */
-  setFlows(slot('fcw-in-remaining'), slot('fcw-in-bought'), slot('fcw-in-renew'));
+  /* ── İLK DEĞERLER — Bubble dinamik verisini TIRNAKLARIN İÇİNE ekle (üçü de metin olarak okunur) ── */
+  setFlows(
+    "",   /* ← remaining (kalan)  : Current User's UserSirket's <kalan flow alanı>   */
+    "",   /* ← bought   (toplam)  : Current User's UserSirket's boughtunitcount       */
+    ""    /* ← renew date         : Current User's UserSirket's renewdate             */
+  );
 })();
 </script>
