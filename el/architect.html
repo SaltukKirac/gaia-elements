@@ -48869,7 +48869,10 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     // Kopru gec yuklenirse 250 ms x 10 sn beklenir (octo-core waitBridge butcesi); deploy ekrani acikken yonlendirme en cok 6 dk bekler.
     homeBridgeEvery: 250, homeBridgeWait: 10000, homeHoldMax: 360000, homeSkew: 600000,
     // Build 'sent' tavani: Architect dagitim bekcisiyle ayni (60 sn); + homeArriveWait sonra arrive yoklamasina gecilir.
-    homeSentMax: 60000
+    homeSentMax: 60000,
+    // Ciplak id kisinin kendi id'si degilse (baska kullanici / sirket sayfasi olabilir): cevap bu surede gelmezse
+    // (soguk sunucu 25-40 sn) Start yine acilir; gercek workspace verisi gelirse kapanir.
+    homeGrace: 2500
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -49379,7 +49382,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     for (var i = 0; i < tms.length; i++) { if (M[tms[i]]) { try { clearTimeout(M[tms[i]]); } catch (e2) {} M[tms[i]] = null; } }
     M.armed = false;
     M.gen++;
-    M.key = ''; M.ctx = null; M.handle = null; M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0; M.writing = 0;
+    M.key = ''; M.ctx = null; M.handle = null; M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0; M.writing = 0; M.loadAt = 0;
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
     M.tab = 'table'; M.tv = {}; M.panelSig = ''; M.panelView = '';
     M.setup = null; M.afterAgent = null; M.tb = {}; M.run = {}; M.runErr = {}; M.dec = {}; M.plan = {};
@@ -49474,8 +49477,10 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
       load(c);
       // os5: ciplak id sayfasi cevap beklerken bos kalmaz; Home hemen acilir (veri gelirse onWs kapatir).
       if (homeCtx()) { homeSync(true); if (M.home && M.home.open) { paintSoon('home'); } }
-      // os5g: kimlik henuz okunmadiysa (baslik gec) kendi sayfasi olabilir: T.ctxPoll ile yeniden bakilir.
+      // os5g: kimlik henuz okunmadiysa (baslik gec) kendi sayfasi olabilir: T.ctxPoll ile yeniden bakilir;
+      // kimlik farkliysa T.homeGrace sonra (cevap hala yoksa) Start acilir.
       else if (homeMaybe()) { kick(T.ctxPoll); }
+      else if (homePending()) { kick(T.homeGrace + 20); }
       return;
     }
     if (M.mounted) {
@@ -49494,6 +49499,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     // Ciplak id + bos baglam + kimlik henuz okunamadi: hata rayi kurulmaz; kimlik gelene kadar T.ctxPoll ile yeniden
     // bakilir (baska tetik olmayabilir), gelince yukaridaki dal karar verir.
     if (!M.data && homeMaybe()) { kick(T.ctxPoll); return; }
+    if (homePending()) { kick(T.homeGrace + 20); return; }
     if ((M.data || M.wsErr) && !M.nf && findWrapper()) { mount(); }
   }
   // Kullanici sayfasi OLABILIR ama kimlik (bubble-options user_id) daha okunmadi: ne Home ne hata rayi, beklenir.
@@ -49539,6 +49545,7 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     var g = M.gen;
     M.key = c.key;
     M.ctx = c;
+    M.loadAt = Date.now();
     M.data = null; M.wsErr = ''; M.nf = false; M.ver = 0;
     M.c = {}; M.ds = { byId: {}, loaded: false, err: '', unavailable: false };
     M.setup = null; M.setupRail = false; M.noteGone = false; M.note = ''; setWake('idle');
@@ -55143,7 +55150,21 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (!c || c.screen_id || c.list_id || c.stage_id) { return false; }
     var uid = '';
     try { uid = str(octo.page.ids().user_id); } catch (e2) { uid = ''; }
-    return idOk(uid) && uid === u;
+    if (idOk(uid) && uid === u) { return true; }
+    // Kimlik farkli (bu id bir tablo ya da baska bir sayfa olabilir): cevap T.homeGrace icinde gelmediyse (soguk
+    // sunucu 25-40 sn; kurucu 30.09 "30 saniye gec geliyor ekran") Start yine acilir; gercek workspace verisi
+    // gelirse tick kapatir. Acildiysa veri gelene kadar kalir (zaman asimi cevabi kapatmaz).
+    if (M.home && !M.data) { return true; }
+    return !M.data && !M.wsErr && M.loadAt > 0 && (Date.now() - M.loadAt) >= T.homeGrace;
+  }
+  // Ciplak id + bos baglam + cevap bekleniyor: T.homeGrace dolunca yeniden bakilsin (baska tetik olmayabilir).
+  function homePending() {
+    if (!M.onbOn || !M.onb || !arrDev() || M.data || M.wsErr || M.nf) { return false; }
+    var u = '';
+    try { u = octo.page.urlId() || ''; } catch (e) { u = ''; }
+    if (!u || !HOME_ID_RE.test(homePath())) { return false; }
+    var c = M.ctx;
+    return !!c && !c.screen_id && !c.list_id && !c.stage_id;
   }
   function homeNew() {
     return {
@@ -55896,10 +55917,20 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (H.code) { card.appendChild(homeErr('Could not load', homeRetry, 'home-load')); }
     var any = onbAppState(ONB_APPS[0], 'home') === 'ok' || onbAppState(ONB_APPS[2], 'home') === 'ok';
     var sk = any ? null : homeBtn('is-ghost', 'Skip', 'home-skip', homeSkip);
-    var nx = homeBtn('is-primary', 'Next', 'home-next', function () { var h = M.home; if (h) { h.step = 'know'; paintSoon('home'); } });
+    var nx = homeBtn('is-primary', 'Next', 'home-next', function () { var h = M.home; if (h) { homeEnterKnow(h); } });
     nx.disabled = !any;
     card.appendChild(homeNav([sk, nx]));
   }
+  // Know adimina gecis: bagli uygulama varsa tarama KENDILIGINDEN baslar (kurucu 30.09: "aslinda otomatik baslamali");
+  // daha once taranmis (devam kaydi) ya da bagli uygulama yoksa dugme / uyari kalir.
+  function homeEnterKnow(H) {
+    H.step = 'know';
+    var K = H.kn;
+    if (!H.code && K.phase === 'idle' && K.n === 0 && homeKnowApps()) { homeScan(H, true); return; }
+    paintSoon('home');
+  }
+  // Taranacak bir sey var mi: sunucunun bagli listesi ya da (sunucu henuz gormediyse) sayfadaki baglanti durumu.
+  function homeKnowApps() { return homeApps().length > 0 || homeConn('googledrive') || homeConn('googlesheets'); }
   function homeLine(k, ev, map) {
     var row = el('div', 'octo-home-line');
     row.setAttribute('data-k', k);
@@ -56050,6 +56081,12 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     }
     if (K.phase === 'err') {
       card.appendChild(homeErr('Could not scan', more ? function () { var h = M.home; if (h) { homeScan(h, false); } } : null, 'home-scanerr'));
+      card.appendChild(homeNav([skip]));
+      return;
+    }
+    // Bagli Drive / Sheets yokken tarama anlamsiz: dugme yerine tek satir + Skip (kurucu 30.09: "Nothing found yet").
+    if (!homeKnowApps()) {
+      card.appendChild(muted('Connect Drive or Sheets first'));
       card.appendChild(homeNav([skip]));
       return;
     }
