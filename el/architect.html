@@ -44782,7 +44782,7 @@ body.octo-home-open { overflow: hidden !important; }
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-09-29.os5c';
+  var VERSION = 'octo 2026-09-30.os5d';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -49091,15 +49091,22 @@ body.octo-home-open { overflow: hidden !important; }
       return;
     }
     onbHint(false);
-    if (c.key !== M.key) { homeSync(false); load(c); return; }
+    if (c.key !== M.key) {
+      homeSync(false);
+      load(c);
+      // os5: ciplak id sayfasi cevap beklerken bos kalmaz; Home hemen acilir (veri gelirse onWs kapatir).
+      if (homeCtx()) { homeSync(true); if (M.home && M.home.open) { paintSoon('home'); } }
+      return;
+    }
     if (M.mounted) {
       homeSync(false);
       if (needsRemount()) { remount('health'); return; }
       if (M.phone !== isPhone()) { batch(layout); }
       return;
     }
-    // os5: adsiz hesap (/app/<kullanici id>): sunucu workspace bulamadi (not_found) -> Home yuzeyi (tablo yok).
-    if (M.nf && homeCtx()) { homeSync(true); if (M.home && M.home.open) { paintSoon('home'); } return; }
+    // os5: adsiz hesap (/app/<kullanici id>): gercek workspace verisi gelene kadar Home yuzeyi (bekleyen, hatali ya da
+    // not_found cevapta ray KURULMAZ; ekran bos kalmaz). Veri gelirse asagiya duser: Home kapanir, ray kurulur.
+    if (homeCtx() && !M.data) { homeSync(true); if (M.home && M.home.open) { paintSoon('home'); } return; }
     homeSync(false);
     if ((M.data || M.wsErr) && !M.nf && findWrapper()) { mount(); }
   }
@@ -49184,6 +49191,8 @@ body.octo-home-open { overflow: hidden !important; }
     var fresh = !(meta && meta.stale);
     var L = links();
     if (fresh && !M.writing && typeof L.version === 'number') { M.ver = L.version; }
+    // os5: ciplak id sayfasinda Home acikken gercek workspace geldi -> Home kapanir, ray kurulur.
+    if (M.home) { homeSync(false); }
     if (!M.mounted && !M.yielded) { mount(); }
     paintSoon();
     loadCards();
@@ -49203,6 +49212,8 @@ body.octo-home-open { overflow: hidden !important; }
     }
     if (M.data) { paintSoon('head'); return; }   // bayat veri boyali: yerinde kalir
     M.wsErr = code;
+    // os5: kullanici sayfasi adayinda (ciplak id, baglam yok) hata basligiyla ray kurulmaz; Home yuzeyi kalir.
+    if (homeCtx()) { kick(0); return; }
     if (!M.mounted && !M.yielded) { mount(); }
     paintSoon();
   }
@@ -54719,10 +54730,11 @@ body.octo-home-open { overflow: hidden !important; }
     var u = '';
     try { u = octo.page.urlId() || ''; } catch (e) { u = ''; }
     if (!u) { return HOME_RE.test(homePath()); }
-    // Ciplak kimlik (/app/<kullanici id>, adsiz hesap): sunucu workspace bulamadiysa (not_found) ve
-    // baska baglam (ekran/liste/surec) yoksa bu da kullanici sayfasidir.
+    // Ciplak kimlik (/app/<kullanici id>, adsiz hesap): ekran/liste/surec baglami yoksa kullanici sayfasi adayidir.
+    // Home hemen acilir (kurucu 30.09: "hicbir sey olmadi" = sunucu cevabi beklenirken bos ekran); sunucu gercek
+    // bir workspace dondururse (M.data) tick Home'u kapatir ve ray kurulur.
     var c = M.ctx;
-    return !!M.nf && HOME_ID_RE.test(homePath()) && !!c && !c.screen_id && !c.list_id && !c.stage_id;
+    return HOME_ID_RE.test(homePath()) && !!c && !c.screen_id && !c.list_id && !c.stage_id;
   }
   function homeNew() {
     return {
@@ -55175,7 +55187,7 @@ body.octo-home-open { overflow: hidden !important; }
     B.what = 'fire';
     paintSoon('home');
   }
-  function homeBuilding() { var H = M.home; return !!H && (!M.key || M.nf) && H.b.t0 > 0 && H.b.phase !== 'open'; }
+  function homeBuilding() { var H = M.home; return !!H && (!M.key || !M.data) && H.b.t0 > 0 && H.b.phase !== 'open'; }
   // 4.3: ilk T.homeArriveWait beklenir (create asenkron), sonra T.homePoll ile os_home; ad + tarih eslesen sheet.
   function homeArrive() {
     var H = M.home;
