@@ -5962,7 +5962,7 @@
         // key'i server-side plugin (context.keys/properties) ekler → tarayıcıya inmez.
         // Son güvenlik ağı: çağıran yanlışlıkla key geçirse bile client payload'ından düş.
         if (payload.openai_api_key) { delete payload.openai_api_key; }
-        console.log('[TRIGGER MANAGER] manageTrigger:', action_type, (/^voice_provision$/.test(action_type) ? '(hidden)' : payload));   /* PHONE-SETUP-HOOK */
+        console.log('[TRIGGER MANAGER] manageTrigger:', action_type, (/^(voice_provision|bizmail_connect)$/.test(action_type) ? '(hidden)' : payload));   /* PHONE-SETUP-HOOK */ /* MAILPROV */ // bizmail_connect carries a password: never logged
         var _mtPayloadStr = JSON.stringify(payload);
         if (typeof bubble_fn_manage_trigger === "function") {
           bubble_fn_manage_trigger(_mtPayloadStr);
@@ -14119,7 +14119,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // ile BIREBIR ayni (<N> = limit, <FIELDS> = alan metni); parite testi A16 iki fonksiyonu karsilastirir.
     function _gadPreviewBlockText(limit) {
       /* MAILPROV */ // gmail keeps the exact text (server parity A16); outlook / bizmail name their own fetch tool
-      var _mpApp = (typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail';
+      var _mpApp = (typeof window._gflMailAppNow === 'function') ? window._gflMailAppNow() : 'gmail';
       var _mpTool = _mpApp === 'outlook' ? 'OUTLOOK_LIST_MESSAGES' : (_mpApp === 'bizmail' ? 'BIZMAIL_FETCH_EMAILS' : 'GMAIL_FETCH_EMAILS');
       var _mpFetch = _mpApp === 'outlook'
         ? 'If there is no PREVIEW PACKET, fetch the newest 10 messages in the inbox with OUTLOOK_LIST_MESSAGES (folder inbox, top 10, orderby receivedDateTime desc, select id, conversationId, subject, from, toRecipients, ccRecipients, receivedDateTime, body, hasAttachments). '
@@ -26901,7 +26901,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // D27: trigger_config.query kapsam secimine gore yeniden yazilir (T11 create bunu kullanir).
       var tcfg = {};
       try { var _src = (bp.trigger && bp.trigger.trigger_config) || {}; Object.keys(_src).forEach(function(k){ tcfg[k] = _src[k]; }); } catch(e){ tcfg = {}; }
-      if (prefs && prefs.scope && typeof tcfg.query === 'string') tcfg.query = _gadFlagshipScopeQuery(tcfg.query, prefs.scope);
+      if (prefs && prefs.scope && typeof tcfg.query === 'string' && String((bp.trigger && bp.trigger.app_slug) || 'gmail').toLowerCase() === 'gmail' /* MAILPROV */) tcfg.query = _gadFlagshipScopeQuery(tcfg.query, prefs.scope);
 
       // DFR'i ELDE KURMA - kanonik builder'i kullan. Builder uc seyi ekliyor ve ucu de sessizce
       // kaybolursa urun "calisiyor gibi" gorunup yarisini yapmaz:
@@ -29943,7 +29943,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (!reads || typeof reads !== 'object') return out;
       var P = (typeof _gflPlural === 'function') ? _gflPlural : function(n, a, b){ return n + ' ' + (Number(n) === 1 ? a : b); };
       var names = (typeof _GFL_APP_NAME === 'object' && _GFL_APP_NAME) ? _GFL_APP_NAME : {};
-      ['gmail', 'googlesheets', 'googledrive', 'googlecalendar'].forEach(function(app){
+      var _mpA = (typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail'; /* MAILPROV */ // no Gmail counter on an Outlook / bizmail card
+      [_mpA, 'googlesheets', 'googledrive', 'googlecalendar'].forEach(function(app){
         var r = reads[app];
         if (!r || typeof r !== 'object') return;
         var calls = Number(r.calls) || 0, ok = Number(r.ok) || 0, failed = Number(r.failed) || 0;
@@ -29966,7 +29967,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (ev.write_free === true) add(_gflChipEl('lock', 'Nothing written', 'ok'));
       var reads = (ev.reads && typeof ev.reads === 'object') ? ev.reads : null;
       var appChips = 0;
-      if (reads) ['gmail', 'googlesheets', 'googledrive', 'googlecalendar'].forEach(function(app){
+      if (reads) [((typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail') /* MAILPROV */, 'googlesheets', 'googledrive', 'googlecalendar'].forEach(function(app){
         var r = reads[app];
         if (!r || typeof r !== 'object') return;
         var calls = Number(r.calls) || 0, ok = Number(r.ok) || 0, failed = Number(r.failed) || 0;
@@ -30026,7 +30027,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (app === 'googlesheets') used = 'Connected. In this preview I looked up your lists ' + P(calls, 'time', 'times') + ' and found ' + P(items, 'row', 'rows') + '.';
         else if (app === 'googledrive') used = 'Connected. In this preview I searched Drive ' + P(calls, 'time', 'times') + ' and found ' + P(items, 'file', 'files') + '.';
         else if (app === 'googlecalendar') used = 'Connected. In this preview I read your calendar ' + P(calls, 'time', 'times') + ' and saw ' + P(items, 'event', 'events') + ' to find free time.';
-        else if (app === 'gmail') used = 'Connected. In this preview I read your mail ' + P(calls, 'time', 'times') + ' and worked through ' + P(items, 'message', 'messages') + '.';
+        else if (app === 'gmail' || app === 'outlook' || app === 'bizmail' /* MAILPROV */) used = 'Connected. In this preview I read your mail ' + P(calls, 'time', 'times') + ' and worked through ' + P(items, 'message', 'messages') + '.';
         if (failed > 0) used += ' ' + P(failed, 'read', 'reads') + ' did not come back.';
         return used;
       }
@@ -30035,7 +30036,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (app === 'googlesheets') return 'Connected, but your lists could not be read this time.';
         if (app === 'googledrive') return 'Connected, but Drive could not be read this time.';
         if (app === 'googlecalendar') return 'Connected, but your calendar could not be read this time.';
-        if (app === 'gmail') return 'Connected, but your mail could not be read this time.';
+        if (app === 'gmail' || app === 'outlook' || app === 'bizmail' /* MAILPROV */) return 'Connected, but your mail could not be read this time.';
         return 'Connected, but it could not be read this time.';
       }
       // 3) hic cagri gitmedi. Sebep YALNIZ is haritasi 'done' iken bilinir: dogrulanmis kaynak yoksa bakacak yer yoktu.
@@ -30322,6 +30323,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var _GFL_APP_TINT = { gmail: '#d93025', googlecalendar: '#1a73e8', googlesheets: '#188038', googledrive: '#f9ab00' };
     var _GFL_APP_NAME = { gmail: 'Gmail', googlecalendar: 'Calendar', googlesheets: 'Sheets', googledrive: 'Drive' };
     var _GFL_APPS_OK  = ['gmail', 'googlecalendar', 'googlesheets', 'googledrive'];
+    /* MAILPROV */ _GFL_APP_TINT.outlook = '#0f6cbd'; _GFL_APP_TINT.bizmail = '#475569';
+    _GFL_APP_NAME.outlook = 'Outlook'; _GFL_APP_NAME.bizmail = 'Business email';
+    _GFL_APPS_OK.push('outlook', 'bizmail');
     var _GFL_KINDS_OK = ['label', 'draft', 'propose_time', 'row_update', 'row_add_suggestion', 'list_suggestion', 'doc_link'];
     var _GFL_ST_OK    = ['would_do', 'needs_you', 'suggestion', 'found'];
     var _GFL_WHY_TEXT = { waiting: 'Waiting for your answer', known_sender: 'You write to this person', record: 'Names a row in your lists',
@@ -30342,7 +30346,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       wrap.setAttribute('title', _GFL_APP_NAME[app] || app);
       var svg = _gflSvg('svg', { viewBox: '0 0 16 16', width: '16', height: '16', 'aria-hidden': 'true', focusable: 'false' });
       var st = { fill: 'none', stroke: tint, 'stroke-width': '1.6', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
-      if (app === 'gmail') {
+      if (app === 'gmail' || app === 'outlook' || app === 'bizmail' /* MAILPROV */) {
         svg.appendChild(_gflSvg('rect', { x: '1.2', y: '3.2', width: '13.6', height: '9.6', rx: '2', fill: 'none', stroke: tint, 'stroke-width': '1.6' }));
         svg.appendChild(_gflSvg('path', { d: 'M2 4.6 L8 9 L14 4.6', fill: st.fill, stroke: st.stroke, 'stroke-width': st['stroke-width'], 'stroke-linejoin': 'round' }));
       } else if (app === 'googlecalendar') {
@@ -30826,7 +30830,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         });
       }
       if (!card) {
-        checked = [{ app: 'gmail', kind: 'message', state: 'read', ev: '', title: '', detail: '', data: null }];
+        checked = [{ app: ((typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail') /* MAILPROV */, kind: 'message', state: 'read', ev: '', title: '', detail: '', data: null }];
         _gflLabelRules(rec).forEach(function(nm){
           actions.push({ id: 'a' + (actions.length + 1), app: 'gmail', kind: 'label', status: 'would_do', label: nm, by: 'server' });
         });
@@ -31145,7 +31149,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (c) { out[a] = c[a] === true; return; }
         try { out[a] = (typeof _gadFlagshipIsOn === 'function') ? !!_gadFlagshipIsOn(a) : false; } catch(e){ out[a] = false; }
       });
-      out.gmail = true;   // onizleme Gmail olmadan hic kosmaz
+      /* MAILPROV */ // the preview never runs without the card's mail app (gmail, outlook or bizmail); a non gmail mail card does not claim Gmail
+      var _mpA = (typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail';
+      out[_mpA] = true;
+      if (_mpA !== 'gmail') out.gmail = false;
       return out;
     }
     function _gflJoinNames(list){
@@ -32081,6 +32088,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       preview: { gmail: [['read', 'read']], googlesheets: [['rows', 'rows']],
                  googledrive: [['documents', 'files']], googlecalendar: [['calendar', 'events']] }
     };
+    /* MAILPROV */ _GFL_STG_APPS.push('outlook', 'bizmail'); _GFL_STG_SLOT.outlook = 315; _GFL_STG_SLOT.bizmail = 315;
+    _GFL_STG_CNT.preview.outlook = [['read', 'read']]; _GFL_STG_CNT.preview.bizmail = [['read', 'read']];
     var _GFL_STG_TM = [];
     function _gflStgClearTimers(){ _GFL_STG_TM.forEach(function(id){ try { clearTimeout(id); } catch(e){} }); _GFL_STG_TM = []; }
     function _gflStgAt(ms, fn){ var id = setTimeout(function(){ var k = _GFL_STG_TM.indexOf(id); if (k >= 0) _GFL_STG_TM.splice(k, 1); try { fn(); } catch(e){} }, Math.max(0, ms)); _GFL_STG_TM.push(id); return id; }
@@ -32574,6 +32583,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         try { on = (typeof _gadFlagshipIsOn === 'function') ? !!_gadFlagshipIsOn(a) : false; } catch(e){ on = false; }
         conn[a] = on;
       });
+      try { var _mpA = _gflMailApp(s && s.ctx); if (_mpA && _mpA !== 'gmail') conn.gmail = false; } catch(_mp){} /* MAILPROV */ // no Gmail tile / inbox counters on an Outlook or bizmail card
       var model = { phase: phase, waking: opts.waking === true, progress: progress || null, apps: conn,
         scanRows: (s && Array.isArray(s.scanRows)) ? s.scanRows : null,
         startedAt: Number(opts.startedAt) || 0, compact: opts.compact === true };
@@ -33080,7 +33090,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (!o.reinspect && st && st !== 'skipped') return false;
       // 17.09 (DEEP_SCAN spec D2): inceleme artik Gmail bagliyken de kosar. Gelen kutusu profili ve etiket rayi yalniz
       // Gmail'i olan ziyaretci icin de gerekli; sunucu tek uygulama ile de inceliyor.
-      var connected = _gadFlagshipIsOn('gmail') || _gadFlagshipIsOn('googlesheets') || _gadFlagshipIsOn('googledrive');
+      var _mpA = _gflMailApp(s.ctx); /* MAILPROV */ // workspace_inspect reads Gmail; an Outlook / bizmail card inspects only when Sheets or Drive is on
+      var connected = ((!_mpA || _mpA === 'gmail') && _gadFlagshipIsOn('gmail')) || _gadFlagshipIsOn('googlesheets') || _gadFlagshipIsOn('googledrive');
       if (!connected || (Number(s.inspectCount) || 0) >= 3) {
         if (!st) { s.workMapState = 'skipped'; _gadFlagshipSaveSession(); }
         return false;
@@ -35979,6 +35990,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // listeyi bosaltir, etiket kapsami tetikleyici sorgusunu yeniden yazar (hepsi _gadFlagshipArgs icinde).
     var _GFL_TOOLS_DRAFT = ['GMAIL_CREATE_EMAIL_DRAFT'];
     var _GFL_TOOLS_LABEL = ['GMAIL_ADD_LABEL_TO_EMAIL', 'GMAIL_CREATE_LABEL'];
+    /* MAILPROV */ _GFL_TOOLS_DRAFT.push('OUTLOOK_CREATE_DRAFT', 'OUTLOOK_CREATE_DRAFT_REPLY', 'BIZMAIL_CREATE_DRAFT'); _GFL_TOOLS_LABEL.push('BIZMAIL_ADD_FLAG', 'OUTLOOK_UPDATE_EMAIL', 'OUTLOOK_CREATE_MASTER_CATEGORY', 'OUTLOOK_LIST_MASTER_CATEGORIES');   /* MAILPROV */ // Outlook categories = these three (inbox-chief-of-staff-outlook brief)
     function _gflGsToolId(t){ return String((t && typeof t === 'object') ? (t.type || t.tool || t.id || '') : (t || '')).trim().toUpperCase(); }
     function _gflGsExcludedTools(perms){
       var p = _gflGsCleanPerms(perms), out = [];
@@ -36051,7 +36063,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     function _gflGsAccount(s){
       var a = '';
       try { a = _gflStr((s.inboxProfile && (s.inboxProfile.account || s.inboxProfile.email)) || (s.evidence && s.evidence.account) || ''); } catch(e){ a = ''; }
-      return a ? _gflCut(a, 120) : 'your Gmail account';
+      if (!a) { var _mpA = _gflMailApp(s && s.ctx); if (_mpA === 'bizmail' && window.__gflBizmail && window.__gflBizmail.email) a = String(window.__gflBizmail.email); } /* MAILPROV */
+      return a ? _gflCut(a, 120) : (_gflMailAppNow() === 'outlook' ? 'your Outlook account' : (_gflMailAppNow() === 'bizmail' ? 'your business mailbox' : 'your Gmail account')); /* MAILPROV */
     }
     // Taranan kullanici etiketleri (urunun kendi yeni etiketleri haric). Tarama yoksa liste bostur ve secim cizilmez.
     function _gflGsLabelNames(s){
@@ -36160,6 +36173,24 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       list:   'When this is off I read your lists and never change a row. When it is on I may only write the columns you tick below, on the list you choose.',
       send:   'There is no send tool in this assistant. It cannot send an email, now or later.'
     };
+    /* MAILPROV */ // draft and label read the session's mail app; the gmail sentences stay exactly as above
+    (function(){
+      var _gD = _GFL_PERM_WHY.draft, _gL = _GFL_PERM_WHY.label;
+      try {
+        Object.defineProperty(_GFL_PERM_WHY, 'draft', { enumerable: true, configurable: true, get: function(){
+          var a = _gflMailAppNow();
+          if (a === 'outlook') return 'Sending is your click. A reply is prepared as an Outlook draft and waits there. Nothing is written during the preview.';
+          if (a === 'bizmail') return 'Sending is your click. A reply is prepared as a draft in the Drafts folder of your mailbox and waits there. Nothing is written during the preview.';
+          return _gD;
+        } });
+        Object.defineProperty(_GFL_PERM_WHY, 'label', { enumerable: true, configurable: true, get: function(){
+          var a = _gflMailAppNow();
+          if (a === 'outlook') return 'Marking uses three categories under Chief of Staff. They are written to Outlook after you start, never before.';
+          if (a === 'bizmail') return 'Needs you is starred (flagged) in your mailbox. Marks are written after you start, never before.';
+          return _gL;
+        } });
+      } catch(e){}
+    })();
     /* PHONE-FLAGSHIP-FIX */ // 22.09 (phone readiness): the permission cards of a card that is NOT a mail card. They are built
     // from the card's own activation.permissions keys (draft, list_update, outbound_calls, answer_phone_line), the mail four
     // (scope, replies, marking) are never drawn, and the one permission the product is sold on (placing calls) has a real switch.
@@ -36299,8 +36330,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // 2) Taslak
       // Anahtarin kendi etiketi EKRANDA yazilmaz (kartin adi zaten orada): adi erisilebilir addan okunur,
       // sonucu ise etki satiri soyler. Ayni cumle iki kez yazilmaz.
-      var c2 = card('pencil', 'Replies', { on: p.draft, act: 'perm-draft', label: 'Prepare replies as Gmail drafts', bare: true }, 'draft');
-      c2.__body.appendChild(_gflNode('div', 'gfl-pc-e', p.draft ? 'Prepared as Gmail drafts.' : 'No reply is prepared.'));
+      var _mpA = _gflMailAppNow(); /* MAILPROV */
+      var _mpDr = _mpA === 'outlook' ? 'Outlook drafts' : (_mpA === 'bizmail' ? 'drafts in your mailbox' : 'Gmail drafts');
+      var c2 = card('pencil', 'Replies', { on: p.draft, act: 'perm-draft', label: 'Prepare replies as ' + _mpDr, bare: true }, 'draft');
+      c2.__body.appendChild(_gflNode('div', 'gfl-pc-e', p.draft ? ('Prepared as ' + _mpDr + '.') : 'No reply is prepared.'));
       // 3) Etiket
       var c3 = card('tag', 'Marking', { on: p.label, act: 'perm-label', label: 'Mark mail that needs me', bare: true }, 'label');
       c3.__body.appendChild(_gflNode('div', 'gfl-pc-e', p.label ? 'Mail that needs you is marked.' : 'Nothing is marked.'));
@@ -36751,7 +36784,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (body) cmp.appendChild(_gflNode('div', 'gfl-cmp-body', body));
         var foot = _gflNode('div', 'gfl-cmp-f');
         foot.appendChild(_gflIcon('eye', 14));
-        foot.appendChild(_gflNode('span', '', 'Preview. Not saved to Gmail.'));
+        foot.appendChild(_gflNode('span', '', 'Preview. Not saved to ' + _gflMailNameNow() + '.')); /* MAILPROV */
         cmp.appendChild(foot);
         k3.appendChild(cmp);
         // Ayni gercek iki kez yazilmaz: muhur zaten sonucu soyler, burada YALNIZ acik kalan sey yazilir.
@@ -37271,8 +37304,273 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       _gadFlagshipSaveSession();
     }
 
+    /* MAILPROV-BEGIN */ // 30.09 (MAIL_PROVIDERS_SPEC 1-2): business mailbox (IMAP) connect form + provider router.
+    var _GFL_BZ_ERR = {
+      auth_failed: 'The email or password was not accepted by your mail server.',
+      host_not_found: 'We could not find the mail server for this address. Open Server settings and enter it.',
+      tls: 'The mail server\'s secure connection could not be verified.',
+      timeout: 'The mail server did not answer in time. Try again.'
+    };
+    function _gflMpStored(){ try { var o = JSON.parse(sessionStorage.getItem('gx_mail_provider') || 'null'); return (o && typeof o === 'object') ? o : null; } catch(e){ return null; } }
+    window._gflMpStored = _gflMpStored;
+    function _gflMpStore(app, email){ try { sessionStorage.setItem('gx_mail_provider', JSON.stringify({ app: String(app || ''), email: String(email || ''), ts: Date.now() })); } catch(e){} }
+    function _gflMpIsEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim()); }
+    function _gflMpCss(){
+      if (document.getElementById('gfl-mailprov-css')) return;
+      var st = document.createElement('style'); st.id = 'gfl-mailprov-css';
+      st.textContent = '.gfl-bz{width:100%;margin-top:8px;display:flex;flex-direction:column;gap:10px;}'
+        + '.gfl-bz label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--gx-ink-2,#475569);}'
+        + '.gfl-bz input,.gfl-bz select{width:100%;min-height:44px;padding:11px 12px;border:1px solid var(--gx-line,#e2e8f0);border-radius:var(--gx-r-md,10px);font-family:inherit;font-size:16px;color:var(--gx-ink,#0f172a);background:var(--gx-surface,#fff);box-sizing:border-box;}'
+        + '.gfl-bz input:focus,.gfl-bz select:focus{outline:none;border-color:var(--gx-primary,#6366f1);box-shadow:0 0 0 3px rgba(99,102,241,.12);}'
+        + '.gfl-bz details>summary{cursor:pointer;min-height:40px;padding:10px 0;font-size:13px;font-weight:600;color:var(--gx-ink-2,#475569);}'
+        + '.gfl-bz-row{display:flex;gap:8px;flex-wrap:wrap;}.gfl-bz-row>label{flex:1 1 120px;min-width:0;}'
+        + '.gfl-bz-err{font-size:14px;line-height:1.45;color:#991b1b;background:#fef2f2;border-radius:10px;padding:9px 12px;}'
+        + '.gfl-bz-help{font-size:13px;line-height:1.45;color:var(--gx-ink-3,#64748b);}'
+        + '.gmp-links{display:flex;flex-direction:column;align-items:flex-start;margin-top:4px;}'
+        + '.gmp-links .gfl-link{font-size:14px;min-height:40px;padding:8px 0;text-align:left;}'
+        + '#gaia-mailprov .gfl-card{max-width:460px;}'
+        + '#gaia-mailprov .gfl-scroll{padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));}';
+      (document.head || document.documentElement).appendChild(st);
+    }
+    // Marks bizmail connected (never a Composio account: isSlugConnected reads window.__gflBizmail too).
+    function _gflBizmailMark(accountId, email){
+      var id = String(accountId || '').trim(); if (!id) return false;
+      window.__gflBizmail = { account_id: id, email: String(email || '') };
+      try { if (typeof connectedAccountIdCache !== 'undefined' && connectedAccountIdCache) connectedAccountIdCache.bizmail = id; } catch(e){}
+      try { if (typeof connectedSlugs !== 'undefined' && connectedSlugs && typeof connectedSlugs.add === 'function') connectedSlugs.add('bizmail'); } catch(e){}
+      return true;
+    }
+    window._gflBizmailMark = _gflBizmailMark;
+    // Once per sheet: an already stored mailbox counts as connected.
+    function _gflBizmailStatus(s){
+      if (!s || s.__bzStatusAsked || typeof window._gadTrigRequest !== 'function') return;
+      s.__bzStatusAsked = true;
+      try {
+        window._gadTrigRequest('bizmail_status', {}, function(res){
+          var st = String((res && res.status) || '').toUpperCase();
+          if (!res || res.timeout || st === 'ERROR' || st === 'TIMEOUT') { gW('[MAILPROV] bizmail_status failed:', String((res && (res.error_code || res.message)) || st)); return; }
+          var d = (res && res.data && typeof res.data === 'object') ? res.data : res;
+          var list = (Array.isArray(d.accounts) ? d.accounts : []).filter(function(a){ return a && a.account_id; });
+          if (!list.length) return;
+          var want = String(((_gflMpStored() || {}).email) || '').toLowerCase(), pick = null;
+          list.forEach(function(a){ if (!pick && want && String(a.email || '').toLowerCase() === want) pick = a; });
+          if (!pick) pick = list[0];
+          _gflBizmailMark(pick.account_id, pick.email);
+          gL('[MAILPROV] business mailbox already connected:', String(pick.email || ''));
+          if (_gadFlagshipSession === s) _gadFlagshipRepaintApps();
+        }, 20000);
+      } catch(e){ gW('[MAILPROV] bizmail_status error:', e && e.message); }
+    }
+    // The bizmail row: inline form (no OAuth gate).
+    function _gflBizmailForm(){
+      var s = _gadFlagshipSession; if (!s || s.busy || s.gateRunning) return;
+      var ov = _gadFlagshipOv(); if (!ov) return;
+      var row = ov.querySelector('.gfl-app[data-slug="bizmail"]'); if (!row) return;
+      _gflMpCss();
+      var box = row.querySelector('.gfl-bz');
+      if (box) {
+        box.hidden = !box.hidden;
+        if (!box.hidden) { try { var f0 = box.querySelector('input[name="gfl-bz-pass"]'); if (f0) f0.focus(); } catch(e){} }
+        return;
+      }
+      var pre = (window.__gflBizmail && window.__gflBizmail.email) || ((_gflMpStored() || {}).email) || '';
+      box = document.createElement('form');
+      box.className = 'gfl-bz';
+      box.setAttribute('novalidate', '');
+      box.innerHTML = '<label>Work email<input type="email" name="gfl-bz-email" autocomplete="username" inputmode="email" spellcheck="false" placeholder="you@company.com"></label>'
+        + '<label>Password<input type="password" name="gfl-bz-pass" autocomplete="current-password"></label>'
+        + '<div class="gfl-bz-help">Use the password of this mailbox. If your provider uses two-step sign-in, create an app password and use it here.</div>'
+        + '<details class="gfl-bz-adv"><summary>Server settings</summary><div class="gfl-bz-row">'
+        + '<label>IMAP server<input type="text" name="gfl-bz-host" autocomplete="off" spellcheck="false" placeholder="mail.company.com"></label>'
+        + '<label>Port<input type="number" name="gfl-bz-port" inputmode="numeric" min="1" max="65535" placeholder="993"></label>'
+        + '<label>Security<select name="gfl-bz-sec"><option value="ssl">SSL/TLS</option><option value="starttls">STARTTLS</option></select></label>'
+        + '</div></details>'
+        + '<div class="gfl-bz-err" role="alert" hidden></div>'
+        + '<div><button type="submit" class="gfl-btn gfl-bz-go">Connect</button></div>';
+      var em = box.querySelector('input[name="gfl-bz-email"]'); if (em) em.value = pre;
+      row.appendChild(box);
+      box.addEventListener('submit', function(ev){ try { ev.preventDefault(); } catch(e){} _gflBizmailSubmit(box); });
+      try { var fx = pre ? box.querySelector('input[name="gfl-bz-pass"]') : em; if (fx) fx.focus(); } catch(e){}
+    }
+    function _gflBizmailSubmit(box){
+      var s = _gadFlagshipSession;
+      if (!box || box.__busy || !s || s.busy || s.gateRunning) return;
+      var q = function(n){ return box.querySelector('[name="' + n + '"]'); };
+      var errEl = box.querySelector('.gfl-bz-err'), go = box.querySelector('.gfl-bz-go');
+      var showErr = function(t){ if (errEl) { errEl.textContent = t || ''; errEl.hidden = !t; } };
+      var emEl = q('gfl-bz-email'), pwEl = q('gfl-bz-pass');
+      var email = String((emEl && emEl.value) || '').trim();
+      if (!_gflMpIsEmail(email)) { showErr('Enter your work email.'); try { emEl.focus(); } catch(e){} return; }
+      if (!pwEl || !pwEl.value) { showErr('Enter the password of this mailbox.'); try { pwEl.focus(); } catch(e){} return; }
+      if (typeof window._gadTrigRequest !== 'function') { showErr('Connection failed. Try again.'); return; }
+      var payload = { email: email, password: String(pwEl.value) };
+      var host = String(((q('gfl-bz-host') || {}).value) || '').trim();
+      var port = parseInt(((q('gfl-bz-port') || {}).value) || '', 10);
+      var sec = String(((q('gfl-bz-sec') || {}).value) || 'ssl');
+      if (host) payload.host = host;
+      if (port > 0 && port < 65536) payload.port = port;
+      if (host || payload.port || sec === 'starttls') payload.security = (sec === 'starttls') ? 'starttls' : 'ssl';
+      showErr('');
+      box.__busy = true; s.gateRunning = true;
+      if (go) { go.disabled = true; go.textContent = 'Connecting...'; go.setAttribute('aria-busy', 'true'); }
+      var finished = false;
+      var endBusy = function(){
+        box.__busy = false; s.gateRunning = false;
+        if (go) { go.disabled = false; go.textContent = 'Connect'; go.removeAttribute('aria-busy'); }
+      };
+      try {
+        window._gadTrigRequest('bizmail_connect', payload, function(res){
+          if (finished) return; finished = true;
+          endBusy();
+          var st = String((res && res.status) || '').toUpperCase();
+          if (!res || res.timeout || st === 'TIMEOUT' || st === 'ERROR') {
+            var code = String((res && res.error_code) || ((res && (res.timeout || st === 'TIMEOUT')) ? 'timeout' : '')).toLowerCase();
+            showErr(_GFL_BZ_ERR[code] || 'Connection failed. Try again.');
+            if (code === 'host_not_found') { try { var adv = box.querySelector('.gfl-bz-adv'); if (adv) adv.open = true; } catch(e){} }
+            gW('[MAILPROV] bizmail_connect failed:', code || st || 'no-answer');
+            try { if (typeof gxaTrack === 'function') gxaTrack('app_connect_fail', { app: 'bizmail', source: 'flagship', code: code || 'error' }); } catch(e){}
+            _gadFlagshipRepaintApps();
+            return;
+          }
+          var d = (res && res.data && typeof res.data === 'object') ? res.data : res;
+          if (!_gflBizmailMark(d.account_id, d.email || email)) { showErr('Connection failed. Try again.'); return; }
+          _gflMpStore('bizmail', String(d.email || email));
+          gL('[MAILPROV] business mailbox connected:', String(d.email || email), '| host:', String(d.host || ''));
+          try { if (typeof gxaTrack === 'function') gxaTrack('app_connect_done', { app: 'bizmail', source: 'flagship' }); } catch(e){}
+          box.hidden = true;
+          _gadFlagshipRepaintApps();
+          var s2 = _gadFlagshipSession;
+          if (s2 && _gadFlagshipIsOn('bizmail')) _gadFlagshipConnectAdvance(s2);
+        }, 60000);
+      } catch(e){
+        if (!finished) { finished = true; endBusy(); showErr('Connection failed. Try again.'); }
+      }
+      // The password leaves the page with the request (serialised synchronously): clear it from the DOM and memory now.
+      try { pwEl.value = ''; } catch(e){}
+      payload.password = ''; payload = null;
+    }
+    // Provider router (spec 2): one question before an inbox-chief-of-staff card boots.
+    var _GFL_MP_SLUGS = { gmail: 'inbox-chief-of-staff-business', outlook: 'inbox-chief-of-staff-outlook', bizmail: 'inbox-chief-of-staff-imap' };
+    function _gflMpSlugFor(app, reqSlug, serverSlug){
+      app = String(app || '').toLowerCase();
+      var req = String(reqSlug || '');
+      if (app === 'gmail') return (req === _GFL_MP_SLUGS.outlook || req === _GFL_MP_SLUGS.bizmail) ? _GFL_MP_SLUGS.gmail : req;   // Gmail keeps the slug that was asked for
+      if (app === 'outlook' || app === 'bizmail') return String(serverSlug || '') || _GFL_MP_SLUGS[app];
+      return req;
+    }
+    function _gflMpFetchRow(slug, cb){
+      try {
+        var url = _gadDataApiBase() + '/api/1.1/obj/templates?constraints='
+                + encodeURIComponent(JSON.stringify([{ key:'Slug', constraint_type:'equals', value: slug }]));
+        fetch(url, { headers:{ Accept:'application/json' } })
+          .then(function(r){ if (!r.ok) throw new Error('templates ' + r.status); return r.json(); })
+          .then(function(j){ var rows = (j && j.response && j.response.results) || []; cb(rows.length ? rows[0] : null); })
+          .catch(function(err){ gW('[MAILPROV] card fetch failed:', slug, err && err.message); cb(null); });
+      } catch(e){ cb(null); }
+    }
+    function _gflMailProviderAsk(reqSlug, onPick, onClose){
+      _gflMpCss();
+      var old = document.getElementById('gaia-mailprov'); if (old && old.parentNode) old.parentNode.removeChild(old);
+      var ov = document.createElement('div');
+      ov.id = 'gaia-mailprov';
+      ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'gmp-title');
+      ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.55);display:flex;align-items:flex-end;justify-content:center;'
+        + "font-family:var(--gx-font,'Inter',system-ui,-apple-system,'Segoe UI',sans-serif);";
+      var css = (typeof _gadFlagshipCss === 'function') ? _gadFlagshipCss('#gaia-mailprov') : '';
+      var pre = String(((_gflMpStored() || {}).email) || '');
+      ov.innerHTML = css
+        + '<div class="gfl-card">'
+        + '<button type="button" class="gfl-x" data-mp="close" aria-label="Close">&times;</button>'
+        + '<form class="gfl-scroll gfl-bz" novalidate>'
+        + '<h3 id="gmp-title">Which mailbox should it work in?</h3>'
+        + '<label>Your work email<input type="email" name="gmp-email" autocomplete="email" inputmode="email" spellcheck="false" placeholder="you@company.com"></label>'
+        + '<div class="gfl-bz-err" role="alert" hidden></div>'
+        + '<button type="submit" class="gfl-btn" data-mp="go">Continue</button>'
+        + '<div class="gmp-links">'
+        + '<button type="button" class="gfl-link" data-mp-app="gmail">Gmail or Google Workspace</button>'
+        + '<button type="button" class="gfl-link" data-mp-app="outlook">Outlook or Microsoft 365</button>'
+        + '<button type="button" class="gfl-link" data-mp-app="bizmail">Another provider (IMAP)</button>'
+        + '</div></form></div>';
+      document.body.appendChild(ov);
+      var form = ov.querySelector('form'), inp = ov.querySelector('input[name="gmp-email"]');
+      var errEl = ov.querySelector('.gfl-bz-err'), goBtn = ov.querySelector('[data-mp="go"]');
+      if (inp) inp.value = pre;
+      var busy = false, closed = false;
+      var showErr = function(t){ if (errEl) { errEl.textContent = t || ''; errEl.hidden = !t; } };
+      var onKey = function(ev){ if (ev.key === 'Escape' && !busy) { ev.preventDefault(); close('escape'); } };
+      var teardown = function(){ closed = true; try { document.removeEventListener('keydown', onKey, true); } catch(e){} if (ov.parentNode) ov.parentNode.removeChild(ov); };
+      var close = function(why){ if (closed) return; teardown(); gL('[MAILPROV] provider question closed:', why || ''); try { onClose && onClose(); } catch(e){} };
+      var pick = function(app, email, serverSlug, how){
+        if (closed) return;
+        _gflMpStore(app, email);
+        try { if (typeof gxaTrack === 'function') gxaTrack('mail_provider_chosen', { app: app, how: how || 'link' }); } catch(e){}
+        teardown();
+        onPick(_gflMpSlugFor(app, reqSlug, serverSlug), app);
+      };
+      document.addEventListener('keydown', onKey, true);
+      ov.addEventListener('click', function(ev){
+        var t = ev.target; if (!t || !t.closest) return;
+        if (t === ov) { if (!busy) close('backdrop'); return; }
+        if (t.closest('[data-mp="close"]')) { if (!busy) close('x'); return; }
+        var l = t.closest('[data-mp-app]');
+        if (l && !busy) { var e1 = String((inp && inp.value) || '').trim(); pick(l.getAttribute('data-mp-app'), _gflMpIsEmail(e1) ? e1 : '', '', 'link'); }
+      });
+      form.addEventListener('submit', function(ev){
+        try { ev.preventDefault(); } catch(e){}
+        if (busy) return;
+        var email = String((inp && inp.value) || '').trim();
+        if (!_gflMpIsEmail(email)) { showErr('Enter your work email.'); try { inp.focus(); } catch(e){} return; }
+        var fallback = function(){ showErr('We could not check this address. Choose your provider.'); };
+        if (typeof window._gadTrigRequest !== 'function') { fallback(); return; }
+        busy = true; showErr('');
+        if (goBtn) { goBtn.disabled = true; goBtn.textContent = 'Checking...'; goBtn.setAttribute('aria-busy', 'true'); }
+        var endBusy = function(){ busy = false; if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Continue'; goBtn.removeAttribute('aria-busy'); } };
+        try {
+          window._gadTrigRequest('mail_provider', { email: email }, function(res){
+            if (closed) return;
+            endBusy();
+            var st = String((res && res.status) || '').toUpperCase();
+            if (!res || res.timeout || st === 'TIMEOUT' || st === 'ERROR') { gW('[MAILPROV] mail_provider failed:', String((res && (res.error_code || res.message)) || st)); fallback(); return; }
+            var d = (res && res.data && typeof res.data === 'object') ? res.data : res;
+            var app = String(d.app || '').toLowerCase();
+            if (String(d.provider || '') === 'unknown' || ['gmail', 'outlook', 'bizmail'].indexOf(app) < 0) { fallback(); return; }
+            gL('[MAILPROV] provider:', String(d.provider || ''), '| app:', app, '| mx:', String(d.mx || ''));
+            pick(app, email, String(d.slug || ''), 'email');
+          }, 15000);
+        } catch(e){ endBusy(); fallback(); }
+      });
+      try { if (inp) inp.focus(); } catch(e){}
+    }
+    // true = the request was taken over (the question is open); gaiaUseFlagship returns and is re-entered with the chosen card.
+    function _gflMailProviderRoute(slugOrCard, opts){
+      opts = opts || {};
+      if (opts.__mpDone || opts.source === 'resume') return false;   // a resumed session is never asked again
+      var isObj = !!(slugOrCard && typeof slugOrCard === 'object');
+      var reqSlug = isObj ? String(slugOrCard.Slug || slugOrCard.slug || '') : String(slugOrCard || '').trim();
+      if (!/^inbox-chief-of-staff/i.test(reqSlug)) return false;
+      var o2 = {}; Object.keys(opts).forEach(function(k){ o2[k] = opts[k]; }); o2.__mpDone = true;
+      var bootSlug = function(newSlug){
+        if (!newSlug || newSlug === reqSlug) { window.gaiaUseFlagship(slugOrCard, o2); return; }
+        _gflMpFetchRow(newSlug, function(row){
+          if (row) { window.gaiaUseFlagship(row, o2); return; }
+          gW('[MAILPROV] no card for', newSlug, '- falling back to', reqSlug);
+          window.gaiaUseFlagship(slugOrCard, o2);
+        });
+      };
+      var stored = _gflMpStored();
+      if (stored && ['gmail', 'outlook', 'bizmail'].indexOf(String(stored.app || '')) >= 0) { bootSlug(_gflMpSlugFor(stored.app, reqSlug, '')); return true; }
+      _gflMailProviderAsk(reqSlug, function(newSlug){ bootSlug(newSlug); }, function(){
+        _gadFlagshipClearDeepLink();   // closing the question drops the pending intent (no reopen on the next load)
+        try { if (typeof opts.onBoot === 'function') opts.onBoot(false); } catch(e){}
+      });
+      return true;
+    }
+    window._gflMailProviderRoute = _gflMailProviderRoute;
+    /* MAILPROV-END */
+
     // Satir bazli baglanti: TEK slug, sheet gizli, ikinci satir kilitli; bitince rozet taze okunur.
     function _gadFlagshipConnectRow(slug){
+      if (String(slug || '').toLowerCase() === 'bizmail') { _gflBizmailForm(); return; }   /* MAILPROV */ // email + password form, no OAuth gate
       var s = _gadFlagshipSession; if (!s || s.busy || s.gateRunning) return;
       var ov = _gadFlagshipOv(); if (!ov) return;
       s.gateRunning = true; s.phase = 'auth'; _gadFlagshipRepaintApps();
@@ -37310,6 +37608,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       opts = opts || {};
       var s = _gadFlagshipNewSession(ctx);
       var ov = _gadConfiguratorMarkup(ctx, s);
+      try { if (_gflMailApp(ctx) === 'bizmail' || (ctx.appSlugs || []).indexOf('bizmail') >= 0) _gflBizmailStatus(s); } catch(_mpe){}   /* MAILPROV */
       var prevFocus = document.activeElement;
       try { if (typeof gxaTrack === 'function') gxaTrack('configurator_shown', { source: opts.source || 'direct', slug: ctx.slug }); } catch(e){}
       // 14.09: koşu sunucusu (Render, ücretsiz plan) uyuyor olabilir → Connect adımında (OAuth sürerken) uyansın ki
@@ -37835,6 +38134,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // opts = { instant, intent, source, onBoot(ok) }
     window.gaiaUseFlagship = function(slugOrCard, opts){
       opts = opts || {};
+      try { if (_gflMailProviderRoute(slugOrCard, opts)) return; } catch(_mpe){ gW('[MAILPROV] router error:', _mpe && _mpe.message); }   /* MAILPROV */ // inbox-chief-of-staff*: which mailbox first
       var notify = function(ok){ try { if (typeof opts.onBoot === 'function') opts.onBoot(!!ok); } catch(e){} };
       var boot = function(card){
         var demo = card && (card.demo || card.demo_output);
@@ -37856,7 +38156,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var pushApp = function(a){
           var slug = String((a && (a.slug || a)) || '').toLowerCase().trim();
           if (!slug || seen[slug]) return; seen[slug] = 1;
-          appObjs.push({ slug: slug, label: String((a && a.label) || (cat[slug] && cat[slug].label) || slug), why: String((a && a.why) || ''), required: !(a && a.required === false),
+          appObjs.push({ slug: slug, label: String((a && a.label) || (cat[slug] && cat[slug].label) || (slug === 'bizmail' ? 'Business email' : slug) /* MAILPROV */), why: String((a && a.why) || ''), required: !(a && a.required === false),
             blocking: !!(a && a.blocking === true), skip_note: String((a && a.skip_note) || '') });   /* PHONE-FLAGSHIP-FIX */ // optional app whose skip has a cost
         };
         if (Array.isArray(act.apps) && act.apps.length) act.apps.forEach(pushApp);
