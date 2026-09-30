@@ -1,16 +1,16 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "dev",
-    "rev":  24,
-    "updated":  "2026-09-30T16:19:11Z",
+    "rev":  25,
+    "updated":  "2026-09-30T20:55:12Z",
     "elements":  {
                      "architect":  {
-                                       "commit":  "627246a1c6a662428c4c1373c9dc72c590d4e4e2",
+                                       "commit":  "99c919bbcb783e9650e070bc9d60b1faef64a7a8",
                                        "path":  "el/architect.html",
-                                       "blob":  "85e189899eb23e7c323d4fa760176ea5a577aefd",
-                                       "bytes":  3214569,
+                                       "blob":  "abeebd9c6721e6b1af58ab65f6dceb9c011b5714",
+                                       "bytes":  3270847,
                                        "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-09-30T16:19:11Z"
+                                       "updated":  "2026-09-30T20:55:12Z"
                                    },
                      "form":  {
                                   "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
@@ -57,13 +57,12 @@
                                    "from":  "main"
                                },
                      "template-page":  {
-                                           "commit":  "c77b2c8ced887610e63a4c135e346c781bc86100",
+                                           "commit":  "99c919bbcb783e9650e070bc9d60b1faef64a7a8",
                                            "path":  "el/template-page.html",
-                                           "blob":  "fac7d73737fb945cd19d7b950b74144054a3000c",
-                                           "bytes":  270132,
+                                           "blob":  "b1d782386296200bddb4978cc37351e0a0b85f01",
+                                           "bytes":  273386,
                                            "title":  "Template detail page (public, /template/\u003cslug\u003e)",
-                                           "updated":  "2026-09-28T11:33:16Z",
-                                           "from":  "main"
+                                           "updated":  "2026-09-30T20:55:12Z"
                                        },
                      "templates-button":  {
                                               "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
