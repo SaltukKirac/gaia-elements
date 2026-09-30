@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "main",
-    "rev":  12,
-    "updated":  "2026-09-28T12:55:35Z",
+    "rev":  13,
+    "updated":  "2026-09-30T13:10:00Z",
     "elements":  {
                      "architect":  {
                                        "commit":  "acb6dd6b25e023bced81922704c8d361bee5b726",
@@ -13,20 +13,20 @@
                                        "updated":  "2026-09-28T12:55:34Z"
                                    },
                      "form":  {
-                                  "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
+                                  "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
                                   "path":  "el/form.html",
-                                  "blob":  "24bba233c3e7abe213de77ac988348d34fff39d8",
-                                  "bytes":  781725,
-                                  "title":  "Dynamic form",
-                                  "updated":  "2026-09-24T20:35:50Z"
+                                  "blob":  "676b4da8e20173811003e8a58a62f421bc91b8ec",
+                                  "bytes":  781881,
+                                  "title":  "Dynamic form - app page",
+                                  "updated":  "2026-09-30T13:10:00Z"
                               },
                      "onboarding":  {
-                                        "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                        "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
                                         "path":  "el/onboarding.html",
-                                        "blob":  "15c01287c1babbf932d0b23b283da29e2fa1dc85",
-                                        "bytes":  58152,
+                                        "blob":  "054f1a108f13ff366d14489d07ba1e1b8a4feaf6",
+                                        "bytes":  58373,
                                         "title":  "Onboarding widget",
-                                        "updated":  "2026-09-24T21:46:46Z"
+                                        "updated":  "2026-09-30T13:10:00Z"
                                     },
                      "pricing":  {
                                      "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
@@ -45,12 +45,12 @@
                                             "updated":  "2026-09-24T20:35:50Z"
                                         },
                      "table":  {
-                                   "commit":  "1bcd73b59fd50d724cdbbb90aa0bb8420dd49662",
+                                   "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
                                    "path":  "el/table.html",
-                                   "blob":  "ce7dfe64b21df286d3bbccfd9798147f3e55611d",
-                                   "bytes":  439802,
+                                   "blob":  "40b4674e39073591ca28aa7e26c3995eb8f243c9",
+                                   "bytes":  440194,
                                    "title":  "Dynamic table (tablev2) - app page",
-                                   "updated":  "2026-09-25T17:23:49Z"
+                                   "updated":  "2026-09-30T13:10:00Z"
                                },
                      "template-page":  {
                                            "commit":  "c77b2c8ced887610e63a4c135e346c781bc86100",
