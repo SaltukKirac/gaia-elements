@@ -862,6 +862,10 @@
             window.__OW_GLOBAL_STATE__ = STATE;
         }
 
+        // (30.09.2026) initWidget() asagidaki bloktan SENKRON cagrilir; bu tanim ondan ONCE gelmeli.
+        // Eskiden 953. satirdaydi -> "Cannot access 'syncTimer' before initialization" (TDZ), her sayfa yuklemesinde.
+        let syncTimer = null;
+
         // ============================================================
         // INITIALIZATION
         // ============================================================
@@ -946,8 +950,6 @@
 
             return { isConf: c_conf, saved: c_saved, dismissed: c_dism, screen: c_screen };
         }
-
-        let syncTimer = null;
 
         function syncWidgetVisibility() {
             const btnStarts = document.querySelectorAll('#ow-btn-start');

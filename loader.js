@@ -1,4 +1,4 @@
-/*! gx-el loader v1 | Gaia (Octonom) Bubble HTML elements served from GitHub (SaltukKirac/gaia-elements) via jsDelivr.
+/*! gx-el loader v2 | Gaia (Octonom) Bubble HTML elements served from GitHub (SaltukKirac/gaia-elements) via jsDelivr.
  *
  * Bubble holds only a stub per element:  <div data-gx-el="NAME" hidden></div>  + a tiny script that loads this file.
  * Flow per page view:
@@ -8,7 +8,13 @@
  *   <script> tags of the element then run in document order; external ones are awaited (3 s cap) like a parser would,
  *   inline ones see document.currentScript = themselves. type="application/json" data blocks stay inert.
  * Channel: page URL ?gxel=dev (kept for the tab session), ?gxel=main resets. Harness: set window.__gxElLocal = 'http://host/'.
- * Debug: window.__gxEl (mounted, errors, manifest), console lines prefixed [gx-el], window event 'gx:el-mounted'.
+ * v2 (30.09.2026): deferred globals. Bubble "Run javascript" actions call element entry points (gaiaNotifyToolkits(...),
+ *   window.dynamicTable.refresh(), ...) as soon as their workflow fires; with the code coming from the CDN the element may
+ *   not be mounted yet (or not be on the page at all). Until the real function exists a shim queues the call; every mount
+ *   replays the queue in call order. A shim never replaces something that already exists. Stub v2 installs the same
+ *   shims synchronously (window.__gxElShim) so the gap before this file arrives is covered too; the loader adopts them.
+ *   The two name lists live in element-deploy.ps1 ($StubTemplate) and here; the deploy script checks they match.
+ * Debug: window.__gxEl (mounted, errors, manifest, shims), console lines prefixed [gx-el], window event 'gx:el-mounted'.
  * Source of truth: elementler/element-deploy/loader.js (deployed by element-deploy.ps1). Do not edit on GitHub.
  */
 (function (W, D) {
@@ -24,19 +30,37 @@
   var SAFE_SHA = /^[0-9a-f]{7,40}$/;
   var SAFE_PATH = /^[A-Za-z0-9._\/-]{1,200}$/;
 
+  // Entry points Bubble workflows call on the elements (window.NAME = function ... inside the element code).
+  // Only names that are called FROM Bubble go here. Names other code probes with typeof (gaiaSetTab,
+  // gaiaOpenAgentDashboard, gaiaTriggerOnboarding, gaiaConnectApp, bubble_fn_hydratePromptBuilder, flagship helpers,
+  // dynamicTable.refreshTable/setTableData/reloadFromConfig ...) stay out: a shim would make that probe true and hide
+  // the fallback path. GX-SHIM-FN / GX-SHIM-OBJ markers: element-deploy.ps1 compares these with the stub template.
+  var SHIM_FN = /*GX-SHIM-FN*/'gaiaNotifyToolkits,gaiaNotifyTools,gaiaNotifyTriggers,gaiaNotifyConnected,gaiaNotifyAuthCheck,gaiaNotifyResponse,gaiaNotifyContext,gaiaNotifyCustomFields,gaiaOnScheduleStatus,gaiaReceiveKnowledgeUrls,gaiaTmplLoad,gaiaAutomationCompleted,gaiaIngestResponse,gaiaHandleArchitectToolCall,gaiaRouting,gaiaSetOpenAIKey,setTableData,refreshTable,reloadFromConfig,refreshTableAssistant,bubble_fn_notifyCustomFields,bdf_setUploaderUrls,bdf_setUploaderUrlsByUploaderId,bdf_resetUploaderByField,bdf_resetUploaderByUploaderId,bdf_forceUnlockUi'/*GX-SHIM-FN*/.split(',');
+  // Objects Bubble calls methods on. The element assigns a NEW object (window.dynamicTable = {...}); the queue is
+  // replayed once the global no longer points at the shim object.
+  var SHIM_OBJ = /*GX-SHIM-OBJ*/'dynamicTable:refresh|setAssistant|wakeResult,gaiaRoutingManager:onRoutingResponse|send'/*GX-SHIM-OBJ*/;
+  var REPLAY_LATER_MS = [0, 1000, 4000];   // an element may define its globals a beat after its scripts ran
+  var QUEUE_CAP = 20;                      // per key; these are "latest state" notifications, older ones are dropped
+
   var LOCAL = typeof W.__gxElLocal === 'string' && /^https?:\/\//.test(W.__gxElLocal) ? W.__gxElLocal : null;
   var channel = readChannel();
   var manifestP = null;
   var bodies = {};
+  var shimQ = [];      // [{ k: 'name' | 'obj.method', a: [args] }] in call order
+  var shimFns = {};    // name -> shim function (identity: "still the shim?")
+  var shimObjs = {};   // obj -> shim object
+  var shimSeen = {};   // key -> number of calls queued so far (log once per key)
 
   var api = W.__gxEl = {
-    v: 1,
+    v: 2,
     channel: channel,
     local: LOCAL,
     manifest: null,
     mounted: {},
     errors: [],
-    scan: scan
+    shims: { queued: 0, replayed: 0, dropped: 0, pending: pendingShims },
+    scan: scan,
+    replay: replayShims
   };
 
   function readChannel() {
@@ -64,6 +88,115 @@
   function isConnected(node) {
     if (typeof node.isConnected === 'boolean') return node.isConnected;
     return D.documentElement.contains(node);
+  }
+
+  // ---- deferred globals
+  function enqueue(key, args) {
+    var n = 0, i;
+    for (i = 0; i < shimQ.length; i++) if (shimQ[i].k === key) n++;
+    if (n >= QUEUE_CAP) {
+      for (i = 0; i < shimQ.length; i++) if (shimQ[i].k === key) { shimQ.splice(i, 1); api.shims.dropped += 1; break; }
+    }
+    shimQ.push({ k: key, a: args });
+    api.shims.queued += 1;
+    shimSeen[key] = (shimSeen[key] || 0) + 1;
+    if (shimSeen[key] === 1) log('info', key + ' was called before its element mounted; queued');
+  }
+
+  function makeShim(key) {
+    var f = function () { enqueue(key, Array.prototype.slice.call(arguments)); };
+    f.__gxShim = true;
+    return f;
+  }
+
+  function parseObj(spec) {
+    var out = {}, parts = spec.split(','), i, kv;
+    for (i = 0; i < parts.length; i++) { kv = parts[i].split(':'); out[kv[0]] = kv[1].split('|'); }
+    return out;
+  }
+
+  // Stub v2 installed the same shims synchronously and kept their queue in window.__gxElShim
+  // ({ fns, objs, q: [{ k, a }, ...] }). Take them over: the stub's functions are re-pointed at loader shims (same
+  // global names, same object identity for dynamicTable/gaiaRoutingManager), its queue is imported in order.
+  function adoptStubShims() {
+    var S = W.__gxElShim, k, m, o, q, i;
+    if (!S || typeof S !== 'object' || S.adopted) return;
+    try {
+      q = S.q || [];
+      for (i = 0; i < q.length; i++) if (q[i] && typeof q[i].k === 'string') enqueue(q[i].k, q[i].a || []);
+      S.q = [];
+      if (S.fns) for (k in S.fns) {
+        if (!Object.prototype.hasOwnProperty.call(S.fns, k)) continue;
+        try { if (W[k] === S.fns[k]) { shimFns[k] = W[k] = makeShim(k); } } catch (e1) { /* non-writable */ }
+      }
+      if (S.objs) for (k in S.objs) {
+        if (!Object.prototype.hasOwnProperty.call(S.objs, k)) continue;
+        o = S.objs[k];
+        if (W[k] !== o) continue;
+        for (m in o) if (Object.prototype.hasOwnProperty.call(o, m) && typeof o[m] === 'function' && o[m].__gxShim) o[m] = makeShim(k + '.' + m);
+        shimObjs[k] = o;
+      }
+      S.adopted = true;
+      if (q.length) log('info', 'adopted ' + q.length + ' call(s) queued by the stub before the loader arrived');
+    } catch (e) { log('warn', 'stub shim adoption failed', e); }
+  }
+
+  function installShims() {
+    var i, n, o, ms, objs = parseObj(SHIM_OBJ);
+    adoptStubShims();
+    for (i = 0; i < SHIM_FN.length; i++) {
+      n = SHIM_FN[i];
+      try { if (typeof W[n] === 'undefined') { shimFns[n] = W[n] = makeShim(n); } } catch (e) { /* non-writable global */ }
+    }
+    for (n in objs) {
+      if (!Object.prototype.hasOwnProperty.call(objs, n)) continue;
+      try {
+        if (W[n] === undefined || W[n] === null) {
+          o = {}; ms = objs[n];
+          for (i = 0; i < ms.length; i++) o[ms[i]] = makeShim(n + '.' + ms[i]);
+          o.__gxShim = true;
+          shimObjs[n] = W[n] = o;
+        }
+      } catch (e) { /* non-writable global */ }
+    }
+  }
+
+  function pendingShims() {
+    var out = {}, i;
+    for (i = 0; i < shimQ.length; i++) out[shimQ[i].k] = (out[shimQ[i].k] || 0) + 1;
+    return out;
+  }
+
+  // Replays, in call order, every queued call whose real target now exists; the rest stay queued.
+  function replayShims() {
+    if (!shimQ.length) return;
+    var keep = [], done = {}, i, e, parts, target, fn, ready;
+    for (i = 0; i < shimQ.length; i++) {
+      e = shimQ[i];
+      parts = e.k.split('.');
+      ready = false; target = null; fn = null;
+      if (parts.length === 1) {
+        fn = W[e.k];
+        if (typeof fn === 'function' && fn !== shimFns[e.k] && !fn.__gxShim) { target = W; ready = true; }
+      } else {
+        target = W[parts[0]];
+        if (target && target !== shimObjs[parts[0]] && !target.__gxShim) {
+          fn = target[parts[1]];
+          if (typeof fn === 'function') ready = true;
+          else { log('warn', e.k + ': element mounted without this method, call dropped'); api.shims.dropped += 1; continue; }
+        }
+      }
+      if (!ready) { keep.push(e); continue; }
+      try { fn.apply(target, e.a); api.shims.replayed += 1; done[e.k] = (done[e.k] || 0) + 1; }
+      catch (x) { log('error', e.k + ': replayed call threw', x); }
+    }
+    shimQ.length = 0;
+    for (i = 0; i < keep.length; i++) shimQ.push(keep[i]);
+    for (i in done) if (Object.prototype.hasOwnProperty.call(done, i)) log('info', i + ': ' + done[i] + ' queued call(s) replayed');
+  }
+
+  function replaySoon() {
+    for (var i = 0; i < REPLAY_LATER_MS.length; i++) setTimeout(replayShims, REPLAY_LATER_MS[i]);
   }
 
   function fetchFirst(urls, cacheMode) {
@@ -117,6 +250,7 @@
   function scan() {
     var list = D.querySelectorAll('[data-gx-el]:not([data-gx-state])');
     for (var i = 0; i < list.length; i++) mount(list[i]);
+    replayShims();
   }
 
   function mount(ph) {
@@ -140,6 +274,8 @@
         api.mounted[name] = rec;
         log('info', name + ' @' + res.entry.commit.slice(0, 7) + (channel !== 'main' ? ' [' + channel + ']' : '') +
           (LOCAL ? ' [local]' : '') + ' mounted in ' + ms + ' ms');
+        replayShims();
+        replaySoon();
         try {
           W.dispatchEvent(new CustomEvent('gx:el-mounted', { detail: { name: name, commit: res.entry.commit, channel: channel } }));
         } catch (e) { /* old browser */ }
@@ -199,6 +335,7 @@
     timer = setTimeout(function () { log('warn', 'external script slow (>' + EXT_TIMEOUT_MS / 1000 + ' s), continuing: ' + s.src); go(); }, EXT_TIMEOUT_MS);
   }
 
+  installShims();
   scan();
   setTimeout(scan, 400);
 })(window, document);

@@ -1,0 +1,178 @@
+<!-- ════════════════════════════════════════
+     FLOW CREDIT WIDGET — Bubble HTML Element
+     Fluid width, scrollbar-free, direkt yapıştır
+     (30.09.2026) Bubble dinamik değerleri koda değil, aşağıdaki gizli <span id="fcw-in-*">
+     etiketlerinin İÇİNE yazılır; betik oradan metin olarak okur. Değer boşsa (yeni hesap,
+     plan yok) kod bozulmaz, widget gizlenir. Eskiden setFlows( , , "") "Unexpected token ','"
+     hatası veriyordu. Stil kuralları #fcw-wrap ile sınırlı (eski html,body sıfırlaması tüm sayfaya uyguluyordu).
+     ════════════════════════════════════════ -->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Element sayfanin icinde (iframe degil): kurallar #fcw-wrap ile sinirli. Eski html,body / * sifirlamasi TUM
+   Bubble sayfasina uyguluyordu (kaydirma kilidi, kenar bosluklari). */
+#fcw-wrap,#fcw-wrap *{box-sizing:border-box;margin:0;padding:0}
+#fcw-wrap{
+  width:100%;
+  background:#fff;
+  border-top:0.5px solid rgba(0,0,0,0.08);
+  padding:9px 12px 10px;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  position:relative;
+  overflow:hidden;
+  user-select:none;
+}
+#fcw-wrap[hidden]{display:none!important}
+#fcw-wrap::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.55) 0%,transparent 60%);
+  pointer-events:none;
+}
+.fcw-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px}
+.fcw-left{display:flex;align-items:baseline;gap:3px}
+#fcw-num{
+  font-size:17px;font-weight:700;
+  color:#1d1d1f;letter-spacing:-0.03em;
+  line-height:1;font-variant-numeric:tabular-nums;
+}
+.fcw-unit{font-size:9.5px;font-weight:600;color:#aeaeb2;letter-spacing:.06em;text-transform:uppercase}
+#fcw-total{font-size:9.5px;font-weight:500;color:#c7c7cc}
+.fcw-track{height:3.5px;background:rgba(0,0,0,0.07);border-radius:99px;overflow:hidden;margin-bottom:6px;position:relative}
+#fcw-fill{
+  height:100%;border-radius:99px;
+  transition:width .75s cubic-bezier(.34,1.56,.64,1),background .5s ease;
+  position:relative;overflow:hidden;
+}
+#fcw-fill::after{
+  content:'';position:absolute;top:0;bottom:0;width:55%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);
+  animation:fcw-shimmer 2.4s ease infinite;
+}
+@keyframes fcw-shimmer{0%{left:-55%}100%{left:130%}}
+.fcw-healthy  {background:linear-gradient(90deg,#34c759,#30d158)}
+.fcw-moderate {background:linear-gradient(90deg,#ff9f0a,#ffb340)}
+.fcw-critical {background:linear-gradient(90deg,#ff3b30,#ff453a)}
+.fcw-bottom{display:flex;align-items:center;justify-content:space-between}
+#fcw-renew{font-size:9.5px;color:#aeaeb2;font-weight:400}
+#fcw-renew span{color:#ff9f0a;font-weight:500}
+#fcw-used{
+  display:flex;align-items:center;gap:3px;
+  font-size:9.5px;font-weight:600;color:#c7c7cc;
+  opacity:0;transform:translateY(3px);
+  transition:opacity .3s,transform .3s;
+}
+#fcw-used .d{width:4px;height:4px;border-radius:50%;background:currentColor}
+#fcw-used.on{opacity:1;transform:translateY(0)}
+@keyframes fcw-flip{0%{transform:translateY(-5px);opacity:0}100%{transform:translateY(0);opacity:1}}
+.fcw-flip{animation:fcw-flip .28s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes fcw-pulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.2)}70%{box-shadow:0 0 0 5px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
+.fcw-alert{animation:fcw-pulse 1.8s ease infinite}
+</style>
+
+<!-- ── BUBBLE DİNAMİK DEĞERLER: her etiketin İÇİNE yalnız ifadeyi koy (tırnak, virgül yok) ──
+     remaining = kalan flow, bought = toplam flow, renew = yenileme tarihi metni ("28 Apr '26").
+     Betik bunları metin olarak okur; tırnak / satır sonu / boş değer kodu bozamaz. -->
+<span id="fcw-in-remaining" hidden></span>
+<span id="fcw-in-bought" hidden></span>
+<span id="fcw-in-renew" hidden></span>
+
+<div id="fcw-wrap" hidden>
+  <div class="fcw-top">
+    <div class="fcw-left">
+      <div id="fcw-num">0</div>
+      <div class="fcw-unit">Flows</div>
+    </div>
+    <div id="fcw-total">of 0</div>
+  </div>
+  <div class="fcw-track">
+    <div id="fcw-fill" class="fcw-healthy" style="width:0%"></div>
+  </div>
+  <div class="fcw-bottom">
+    <div id="fcw-renew">Renews <span id="fcw-date"></span></div>
+    <div id="fcw-used"><div class="d"></div><span id="fcw-usednum">0</span> used</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var _r=0,_b=0,_raf;
+  var numEl=document.getElementById('fcw-num'),
+      totalEl=document.getElementById('fcw-total'),
+      fillEl=document.getElementById('fcw-fill'),
+      dateEl=document.getElementById('fcw-date'),
+      renewEl=document.getElementById('fcw-renew'),
+      usedEl=document.getElementById('fcw-used'),
+      usedNumEl=document.getElementById('fcw-usednum'),
+      wrapEl=document.getElementById('fcw-wrap');
+  if(!wrapEl||!numEl||!totalEl||!fillEl||!dateEl||!renewEl||!usedEl||!usedNumEl) return;
+
+  /* Bubble'dan gelen sayi: 9999 | "9999" | "9.999" | "9,999" | "1,234.00" | "1.234,5" | "" -> null (veri yok).
+     Iki ayrac varsa SONUNCUSU ondaliktir; tek ayrac 3'lu gruplarla geliyorsa binliktir. */
+  function num(v){
+    if(typeof v==='number') return isFinite(v)?v:null;
+    var s=String(v==null?'':v).replace(/[^\d.,-]/g,'');
+    if(!/\d/.test(s)) return null;
+    var lp=s.lastIndexOf('.'), lc=s.lastIndexOf(',');
+    if(lp>=0&&lc>=0){ s=(lp>lc)?s.replace(/,/g,''):s.replace(/\./g,'').replace(',','.'); }
+    else if(lc>=0){ s=/^-?\d{1,3}(,\d{3})+$/.test(s)?s.replace(/,/g,''):s.replace(',','.'); }
+    else if(lp>=0&&/^-?\d{1,3}(\.\d{3})+$/.test(s)){ s=s.replace(/\./g,''); }
+    var n=Number(s);
+    return isFinite(n)?n:null;
+  }
+  function slot(id){ var n=document.getElementById(id); return n?String(n.textContent||''):''; }
+
+  function animNum(el,from,to,ms){
+    var start=null;
+    cancelAnimationFrame(_raf);
+    function step(now){
+      if(!start)start=now;
+      var p=Math.min((now-start)/ms,1);
+      var e=p===1?1:1-Math.pow(2,-10*p);
+      el.textContent=Math.round(from+(to-from)*e).toLocaleString();
+      if(p<1)_raf=requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ══ PUBLIC API ══  Bubble'dan: setFlows(remaining, bought, renewDateStr)
+     remaining ya da bought bos/gecersizse widget gizlenir (kaynagi olmayan veri cizilmez). */
+  window.setFlows=function(remainingRaw,boughtRaw,renewDate){
+    var remaining=num(remainingRaw), bought=num(boughtRaw);
+    if(remaining===null||bought===null){ wrapEl.hidden=true; return; }
+    wrapEl.hidden=false;
+    remaining=Math.max(0,remaining); bought=Math.max(0,bought);
+    var prevR=_r, prevU=Math.max(0,_b-_r);
+    _r=remaining; _b=bought;
+    var pct=bought>0?Math.min(100,Math.max(0,(remaining/bought)*100)):0;
+    var used=Math.max(0,bought-remaining);
+    var state=pct>35?'healthy':pct>15?'moderate':'critical';
+
+    fillEl.style.width=pct+'%';
+    fillEl.className=state==='healthy'?'fcw-healthy':state==='moderate'?'fcw-moderate':'fcw-critical';
+
+    animNum(numEl,prevR,remaining,580);
+    numEl.classList.remove('fcw-flip');
+    void numEl.offsetWidth;
+    numEl.classList.add('fcw-flip');
+
+    totalEl.textContent='of '+bought.toLocaleString();
+    var rd=String(renewDate==null?'':renewDate).trim();
+    dateEl.textContent=rd;
+    renewEl.style.display=rd?'':'none';
+
+    if(used>0){
+      animNum(usedNumEl,prevU,used,380);
+      usedEl.classList.add('on');
+    } else {
+      usedEl.classList.remove('on');
+      usedNumEl.textContent='0';
+    }
+
+    if(state==='critical') wrapEl.classList.add('fcw-alert');
+    else wrapEl.classList.remove('fcw-alert');
+  };
+
+  /* ── İLK DEĞERLER: yukaridaki <span id="fcw-in-*"> etiketlerinden okunur (Bubble oraya yazar) ── */
+  setFlows(slot('fcw-in-remaining'), slot('fcw-in-bought'), slot('fcw-in-renew'));
+})();
+</script>

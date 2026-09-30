@@ -6289,14 +6289,20 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // Kısa polling — BUBBLE_INPUTS/DOM tablo init'inden veya bir refresh sinyalinden BİRAZ
   // sonra güncellenebilir (Bubble async). Bulununca değil, sabit tur boyunca çalışır
   // (ekran değişiminde assistant_id eskiden farklıya geçtiyse her tur canlı değeri okur).
-  var _assistPollIv = null;
+  var _assistPollIv = null, _assistPollLeft = 0;
   function startAssistantPoll(maxTries) {
+    var max = maxTries || 8;
+    // (30.09) Suren daha uzun bir yoklama (baslangictaki 20 tur) daha kisa bir istekle KISALTILMAZ: Bubble'in
+    // "ekran degisti" refresh'i yukleyici kuyrugundan montaj aninda gelince 10 sn'lik butce 4 sn'ye inmesin.
+    if (_assistPollIv && _assistPollLeft >= max) return;
     if (_assistPollIv) clearInterval(_assistPollIv);
-    var tries = 0, max = maxTries || 8;
+    var tries = 0;
+    _assistPollLeft = max;
     _assistPollIv = setInterval(function () {
       tries++;
+      _assistPollLeft = max - tries;
       try { applyWakeConfig(state.wake._lastConfig || {}); } catch (e) {}
-      if (tries >= max) { clearInterval(_assistPollIv); _assistPollIv = null; }
+      if (tries >= max) { clearInterval(_assistPollIv); _assistPollIv = null; _assistPollLeft = 0; }
     }, 500);
   }
 
