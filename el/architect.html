@@ -8830,6 +8830,9 @@
 
     function showAuthPanel(app, idx, total, authUrl) {
       const panel = document.getElementById('gaia-auth-panel');
+      // 30.09 (os5f): panel durumu ozniteligi (open | retry | closed). Start (app-rail home) baglanti yoklamasini
+      // 60 sn beklemeden bitirmek icin okur: popup kapanip baglanti dogrulanamayinca ya da panel kapaninca.
+      try { if (panel) panel.setAttribute('data-auth', 'open'); } catch (_da) {}
       const iconEl = document.getElementById('auth-panel-icon');
       const titleEl = document.getElementById('auth-panel-title');
       const stepEl = document.getElementById('auth-panel-step');
@@ -8948,6 +8951,7 @@
       const checkingEl = document.getElementById('auth-panel-checking');
       const ctaBtn = document.getElementById('auth-panel-cta-btn');
       const descEl = document.getElementById('auth-panel-desc');
+      try { const _pn = document.getElementById('gaia-auth-panel'); if (_pn) _pn.setAttribute('data-auth', 'retry'); } catch (_da) {}
       if (checkingEl) checkingEl.classList.add('is-hidden');
       if (descEl) descEl.textContent = 'Connection could not be verified. Please try again.';
       if (ctaBtn) ctaBtn.style.display = 'flex';
@@ -9021,7 +9025,7 @@
 
     function closeAuthPanel() {
       const panel = document.getElementById('gaia-auth-panel');
-      if (panel) panel.classList.add('is-hidden');
+      if (panel) { panel.classList.add('is-hidden'); try { panel.setAttribute('data-auth', 'closed'); } catch (_da) {} }
       authState.pendingResult = false;
       authState.phase = 'idle'; // bir sonraki akış için temiz state
       authState.skipPrompt = null; // skip context'i sonraki akışa sızmasın
@@ -54964,6 +54968,18 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     try { s = octo.conn.state(tk); } catch (e) { s = ''; }
     return s === 'connected';
   }
+  // Architect baglanti paneli bitti mi (HTM data-auth: open | retry | closed): popup kapanip baglanti
+  // dogrulanamadiysa (retry) ya da panel kapandiysa (basari / vazgecme) 60 sn beklenmez; bu turun os_home
+  // okumasindan sonra yoklama durur, satirdaki spinner kalkar (kurucu 30.09: "kapattim, spinner takildi").
+  function authEnded() {
+    var p = null;
+    try { p = D.getElementById('gaia-auth-panel'); } catch (e) { p = null; }
+    if (!p) { return false; }
+    // Yalniz oznitelik okunur (sinif degil): panel yeni akista showAuthPanel ile 'open' olur; harness fiksturunde
+    // oznitelik hic yoktur, eski davranis (60 sn tavan) korunur.
+    var a = str(p.getAttribute('data-auth'));
+    return a === 'retry' || a === 'closed';
+  }
   // Baglanti yoklamasi (startConnect poll): octo.conn tazelenir + os_home; T.homeConnPoll x T.homeConnMax.
   function homePoll(C) {
     var H = M.home;
@@ -54974,7 +54990,9 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     homeReq().then(function (r) {
       if (M.conn !== C || M.home !== H) { return; }
       if (r.ok) { homeData(H, r.d); }
-      if (homeConn(C.tk) || C.elapsed >= T.homeConnMax) { stopConn(); portalRestore(); homeBuildLock(H); paintSoon('home'); return; }
+      var ended = authEnded();
+      if (ended) { trace('home:auth_end'); }
+      if (homeConn(C.tk) || C.elapsed >= T.homeConnMax || ended) { stopConn(); portalRestore(); homeBuildLock(H); paintSoon('home'); return; }
       C.timer = setTimeout(function () { homePoll(C); }, T.homeConnPoll);
     });
   }
