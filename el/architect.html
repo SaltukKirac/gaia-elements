@@ -44039,6 +44039,9 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 /* os3t3 ilk kurulum (yalniz ?octo_onb=1): seritte Start sekmesi + panelde uc adim. */
 .octo-tabs-onb .octo-tabs-ico { color: var(--octo-accent); }
 .octo-tabs-onb[aria-selected="true"] { color: var(--octo-accent); }
+.octo-tabs-onb { position: relative; }
+.octo-tabs-onb .octo-tabs-ico { position: relative; }
+.octo-tabs-onb.is-attn .octo-tabs-ico::after { content: ''; position: absolute; top: -2px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--octo-accent); box-shadow: 0 0 0 2px var(--octo-surface); }
 .octo-onb {
   width: 100%;
   max-width: 560px;
@@ -54557,8 +54560,13 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     if (!M.onbOn || !O || !M.mounted || !railOk() || O.openedKey === M.key) { return; }
     O.openedKey = M.key;
     // Kendiliginden acilis: zorlama ya da (kurulum bitmemis ve bu workspace icin Not now denmemis).
-    if (!(M.onbForce || (!setupDone() && !onbDismissed()))) { return; }
-    batch(function () { if (M.onbOn && M.mounted && onbNeeded()) { selectTab('onb'); } });
+    // 01.10 kurucu: bir tablo acilinca ONCE TABLO gorunur. Start sekmesi seritte dikkat noktasiyla durur; kendiliginden
+    // yalniz zorlama linkinde (?octo_onb=1) acilir. Not now denmis workspace'te nokta da yok.
+    if (M.onbForce) { batch(function () { if (M.onbOn && M.mounted && onbNeeded()) { selectTab('onb'); } }); return; }
+    paintSoon('tabs');
+  }
+  function onbAttn() {
+    return onbNeeded() && M.tab !== 'onb' && !setupDone() && !onbDismissed();
   }
   function onbBtn() {
     var b = D.createElement('button');
@@ -54589,6 +54597,8 @@ body.octo-home-open:not(.octo-home-build) #gaia-shell-container { z-index: 21474
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.setAttribute('tabindex', on ? '0' : '-1');
     b.setAttribute('data-step', need ? onbStep() : '');
+    var attn = need && onbAttn();
+    if (b.classList.contains('is-attn') !== attn) { b.classList.toggle('is-attn', attn); }
   }
 
   // ------------------------------------------------------------ panel
