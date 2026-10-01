@@ -49622,7 +49622,9 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     arrTrialEvery: 2000, arrTrialMax: 150000, arrTrialFirst: 3000,
     // os6b (OCTO_KNOW_UI_PLAN 2.1): the flagship configurator hired the workspace; Home waits this long (the flagship
     // deploy watchdog cap) + homeArriveWait before it polls os_home for the new table without an event.
-    homeExtSent: 240000
+    homeExtSent: 240000,
+    // ?tani_record (TANI_TASI_SPEC 4.4 kaset kaydi): durum yoklamasi 10 sn x en cok 15 dk; login bayragi 1 sn x 30 sn beklenir.
+    trPoll: 10000, trMax: 900000, trLoginEvery: 1000, trLoginWait: 30000
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -50086,6 +50088,105 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     return /^https:\/\/([a-z0-9-]+\.)*google\.com(\/|$)/i.test(s) ? s : '';
   }
 
+  // ======================================================= ?tani_record (gelistirici kancasi)
+  // TANI_TASI_SPEC 4.4: kasetin eksik cevaplarini kurucu kaydeder. ?tani_record=1 (ya da =<n>, n > 0: adres
+  // degistirilerek yeniden acilabilir) ve oturum acik sayfa: ray acilisinda sayfa yuklemesi basina BIR kez
+  // octo.request('tani_record', {mode:'start'}); sonra T.trPoll'da bir {mode:'status'}, en cok T.trMax. Sol altta
+  // kucuk sabit hap: 'Recording', sonra 'Recorded N' ya da 'Record failed' (deger yok). Yetki sunucuda (operator ya
+  // da Admin UserType); rayin baska hicbir davranisi degismez. Login: AS SNP #gaia-appsumo-host[data-logged];
+  // 'no' = hicbir sey; bayrak gelmezse T.trLoginWait sonra sayfada Bubble kullanici id'si varsa devam (sunucu kontrol eder).
+  var TR = { armed: false, ended: false, node: null, timer: null, t0: 0, job: '', waited: 0, seq: 0 };
+  function trWanted() {
+    var m = /[?&]tani_record=([^&#]*)/.exec(railQuery());
+    return !!m && /^[1-9][0-9]{0,5}$/.test(String(m[1] || '').trim());
+  }
+  function trLogin() {
+    try {
+      var ns = D.querySelectorAll('[id="gaia-appsumo-host"]');
+      var h = ns.length ? ns[ns.length - 1] : null;
+      var v = h ? String(h.getAttribute('data-logged') || '').trim().toLowerCase() : '';
+      return (v === 'yes' || v === 'no') ? v : '';
+    } catch (e) { return ''; }
+  }
+  function trPill(text) {
+    if (!D.body) { return; }
+    var n = TR.node;
+    if (!n || !n.parentNode) {
+      n = D.createElement('div');
+      n.id = 'octo-tani-record';
+      n.setAttribute('role', 'status');
+      n.setAttribute('aria-live', 'polite');
+      n.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:2147483000;padding:6px 12px;border-radius:999px;' +
+        'background:#0f172a;color:#fff;font:600 12px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+        'box-shadow:0 2px 8px rgba(15,23,42,.25);pointer-events:none;white-space:nowrap';
+      D.body.appendChild(n);
+      TR.node = n;
+    }
+    n.textContent = String(text);
+  }
+  function trEnd(text) {
+    TR.ended = true;
+    if (TR.timer) { try { clearTimeout(TR.timer); } catch (e) { /* yut */ } TR.timer = null; }
+    trPill(text);
+  }
+  function trBoot() {
+    if (TR.armed || TR.timer || !trWanted()) { return; }
+    var s = trLogin();
+    if (s === 'no') { return; }
+    if (s !== 'yes') {
+      if (TR.waited < T.trLoginWait) {
+        TR.waited += T.trLoginEvery;
+        TR.timer = setTimeout(function () { TR.timer = null; trBoot(); }, T.trLoginEvery);
+        return;
+      }
+      var uid = '';
+      try { uid = String((octo.page.ids() || {}).user_id || ''); } catch (e) { uid = ''; }
+      if (!idOk(uid)) { return; }
+    }
+    TR.armed = true;
+    TR.t0 = Date.now();
+    trPill('Recording');
+    octo.request('tani_record', { mode: 'start' }, { retry: false, cacheKey: 'tani_record|start|' + TR.t0 }).then(function (d) {
+      TR.job = (d && typeof d.job === 'string') ? d.job : '';
+      trNext();
+    }, function (err) {
+      var c = String((err && err.code) || '');
+      // busy: bu sirkette bir kayit zaten suruyor, o izlenir; timeout: is sunucuda baslamis olabilir, yoklama karar verir
+      if (c === 'busy' || c === 'timeout') { trNext(); return; }
+      trEnd('Record failed');
+    });
+  }
+  function trNext() {
+    if (TR.ended || TR.timer) { return; }
+    if (Date.now() - TR.t0 >= T.trMax) { trEnd('Record failed'); return; }
+    TR.timer = setTimeout(function () { TR.timer = null; trAsk(); }, T.trPoll);
+  }
+  function trAsk() {
+    if (TR.ended) { return; }
+    var p = { mode: 'status' };
+    if (TR.job) { p.job = TR.job; }
+    TR.seq++;
+    octo.request('tani_record', p, { cacheKey: 'tani_record|status|' + TR.seq }).then(function (d) {
+      var st = String((d && d.state) || '');
+      var n = Math.max(0, Math.floor(Number(d && d.done) || 0));
+      if (d && typeof d.job === 'string' && d.job) { TR.job = d.job; }
+      if (st === 'done') { trEnd(n > 0 ? 'Recorded ' + n : 'Record failed'); return; }
+      if (st === 'failed') { trEnd('Record failed'); return; }
+      trNext();
+    }, function (err) {
+      var c = String((err && err.code) || '');
+      if (c === 'not_allowed' || c === 'bad_request' || c === 'unavailable') { trEnd('Record failed'); return; }
+      trNext();
+    });
+  }
+  // harness dikisi: kancayi sayfa yuklemesi durumuna geri alir (zamanlayici ve hap silinir)
+  function trReset() {
+    if (TR.timer) { try { clearTimeout(TR.timer); } catch (e) { /* yut */ } }
+    if (TR.node && TR.node.parentNode) { try { TR.node.parentNode.removeChild(TR.node); } catch (e2) { /* yut */ } }
+    TR = { armed: false, ended: false, node: null, timer: null, t0: 0, job: '', waited: 0, seq: 0 };
+    return true;
+  }
+
   // ================================================================= acilis
   function boot() {
     if (M.armed) { return true; }
@@ -50114,6 +50215,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     } catch (e2) { M.mo = null; }
     kick(0);
     resumeMarker();
+    try { trBoot(); } catch (eTr) { /* gelistirici kancasi: ray acilisini asla bozmaz */ }
     return true;
   }
 
@@ -57896,6 +57998,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     previewUrl: previewUrl,
     arrResolve: arrResolve,
     linksWrite: linksWrite,
+    trReset: trReset,
+    trState: function () { return { armed: TR.armed, ended: TR.ended, job: TR.job, text: TR.node ? String(TR.node.textContent || '') : '' }; },
     TABS: TABS,
     setCollapsed: setCollapsed,
     flush: flushFrame,
