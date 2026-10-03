@@ -45041,6 +45041,94 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   #octo-rail .octo-arr-wait { animation: none; }
 }
 
+/* ---- os7 drop + jobs (OCTO_DROP_SPEC 2.1, 2.3, 2.4): mevcut tokenlar, yeni renk yok; rayda transform / filter /
+   backdrop-filter / will-change / contain / perspective YOK. Perde #octo-home (.octo-tabs-panel.is-home, fixed)
+   icinde fixed: kaydirilan govdede de tum yuzeyi kaplar; isaretci olaylari altta kalir (depth sayaci JS'te). */
+.octo-drop-box { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+.octo-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 112px;
+  padding: 16px;
+  border: 2px dashed var(--octo-line);
+  border-radius: 12px;
+  background: var(--octo-bg);
+  color: var(--octo-ink-2);
+  font: 600 14px/20px var(--octo-font);
+  cursor: pointer;
+  text-align: center;
+}
+.octo-drop:hover, .octo-drop:focus-visible { border-color: var(--octo-accent); color: var(--octo-ink); outline: none; }
+.octo-drop[data-phase="ready"] { border-style: solid; border-color: var(--octo-ok); color: var(--octo-ink); }
+.octo-drop[data-phase="error"], .octo-drop[data-phase="needs_files"] { border-color: var(--octo-accent); }
+.octo-drop-in { display: none; }
+.octo-drop-t { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
+.octo-drop-t > svg { flex: 0 0 auto; }
+.octo-drop-n { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+.octo-drop-wait {
+  width: 120px;
+  height: 4px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-accent);
+  opacity: .25;
+  animation: octo-arr-pulse 1.6s ease-in-out infinite;
+}
+#octo-home[data-nomo="1"] .octo-drop-wait, #octo-rail[data-nomo="1"] .octo-drop-wait { animation: none; }
+.octo-drop-acts { display: flex; justify-content: center; gap: 8px; }
+.octo-drop.is-phone { cursor: default; border-style: solid; }
+.octo-drop.is-phone .octo-drop-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.octo-drop.is-phone .octo-rail-btn { min-height: 44px; }
+.octo-drop-hint, .octo-drop-cap { color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+.octo-drop-noorg { color: var(--octo-ink-2); }
+.octo-home-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgba(99, 102, 241, .06);
+  border: 2px dashed var(--octo-accent);
+  border-radius: 16px;
+  font: 600 16px/24px var(--octo-font);
+  color: var(--octo-accent);
+}
+.octo-home-veil.is-active { display: flex; }
+#octo-rail .octo-jobs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 2px;
+  min-height: 36px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  color: var(--octo-ink);
+  font: 500 13px/18px var(--octo-font);
+}
+#octo-rail .octo-jobs-name { font-weight: 600; }
+#octo-rail .octo-jobs-state::before, #octo-rail .octo-jobs-n::before { content: " \00B7 "; color: var(--octo-ink-3t); }
+#octo-rail .octo-jobs-row[data-status="done"] { color: var(--octo-ink-2); }
+#octo-rail .octo-jobs-wait, #octo-rail .octo-jobs-keep { flex: 1 1 100%; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+#octo-rail .octo-jobs-keep { padding: 4px 6px 0; }
+#octo-rail .octo-jobs-err { padding: 0 6px; }
+#octo-rail .octo-jobs-err .octo-rail-err-t { flex: 1 1 auto; min-width: 0; }
+#octo-rail .octo-drop-rows { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+#octo-rail .octo-drop-data, #octo-rail .octo-drop-stay { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-height: 36px; }
+#octo-rail .octo-drop-stay-t { flex: 1 1 100%; color: var(--octo-ink); font: 600 13px/18px var(--octo-font); }
+#octo-rail .octo-drop-stay-b, #octo-rail .octo-drop-stay-n, #octo-rail .octo-drop-st { color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+#octo-rail .octo-drop-stay-n::before { content: "\00B7  "; }
+@media (max-width: 899px) {
+  .octo-drop { min-height: 96px; }
+  .octo-home-veil { border-radius: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .octo-drop-wait { animation: none; }
+}
+
 /* ==========================================================================
    app-tables.css  -  OCTO TABLES (os1). Sahip: B4.
    Hepsi #octo-root altinda ve .octo-tb- onekiyle (spec 2.8). Belirtecler
@@ -49609,6 +49697,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     homeRetry: 5000, homeReqMax: 30000, homeConnPoll: 3000, homeConnMax: 60000,
     homeScanFirst: 3000, homeScanEvery: 2000, homeScanMax: 150000,
     homeArriveWait: 5000, homePoll: 3000, homeArriveMax: 300000, homeKnowTtl: 1800000, homePickTtl: 900000,
+    // os7 drop: dogrudan durum 12 sn; kopru 60 sn (is varken) / 5 dk (is yokken); file() butcesi 30 sn; uyandirma 5 sn; PUT 3 deneme ustel.
+    dropStatus: 12000, dropBridgeBusy: 60000, dropBridgeIdle: 300000, dropStat: 30000, dropWake: 5000, dropRetry: 1000, dropPutMax: 100000,
     // Kopru gec yuklenirse 250 ms x 10 sn beklenir (octo-core waitBridge butcesi); deploy ekrani acikken yonlendirme en cok 6 dk bekler.
     homeBridgeEvery: 250, homeBridgeWait: 10000, homeHoldMax: 360000, homeSkew: 600000,
     // Build 'sent' tavani: Architect dagitim bekcisiyle ayni (60 sn); + homeArriveWait sonra arrive yoklamasina gecilir.
@@ -49675,13 +49765,14 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
 
   // 'first' (os4 varis karti) agent'tan once; dugumu YALNIZ armedArrival() dogruyken kurulur (paintCard).
   // OCTO-WA-CARD: 'wa' (WhatsApp eslestirme, os_wa_pair) ajan kartinin hemen altinda; glif 'chat' (marka glifi yok).
-  var CARDS = ['setup', 'first', 'agent', 'wa', 'new', 'calendar', 'drive', 'notes', 'tasks', 'sheet', 'data', 'act', 'wait'];
+  // os7: 'jobs' (Working in the background) first'un hemen altinda, agent'tan once (PROD:99-104; needs Dilim 2).
+  var CARDS = ['setup', 'first', 'jobs', 'agent', 'wa', 'new', 'calendar', 'drive', 'notes', 'tasks', 'sheet', 'data', 'act', 'wait'];
   var CARD_ICON = {
-    setup: 'plug', first: 'play', agent: 'chat', wa: 'chat', 'new': 'plus', calendar: 'calendar', drive: 'folder', notes: 'doc',
+    setup: 'plug', first: 'play', jobs: 'refresh', agent: 'chat', wa: 'chat', 'new': 'plus', calendar: 'calendar', drive: 'folder', notes: 'doc',
     tasks: 'check', sheet: 'sheet', data: 'table', act: 'bell', wait: 'alert'
   };
   var CARD_LABEL = {
-    setup: 'Setup', first: 'First run', agent: 'Agent', wa: 'WhatsApp', 'new': 'New record', calendar: 'Calendar', drive: 'Drive', notes: 'Notes',
+    setup: 'Setup', first: 'First run', jobs: 'Working in the background', agent: 'Agent', wa: 'WhatsApp', 'new': 'New record', calendar: 'Calendar', drive: 'Drive', notes: 'Notes',
     tasks: 'Tasks', sheet: 'Sheet', data: 'Data', act: 'Activity', wait: 'Waiting for you'
   };
   // Workspace sekmeleri (OCTO_TABS_SPEC 2): sabit sira, Table her zaman ilk ve acilista secili. Telefon hizli
@@ -49814,7 +49905,9 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     empty: false, setupRail: false,
     side: null, sideOpen: false, sideUser: false, sideNo: false, sideTimer: null, sideTries: 0,
     // os6 (dev): yeni tablo bagi anahtar basina bir kez (sayfa icinde sifirlanmaz); bag suruyorken kapi beklenir.
-    bindTried: {}, bindBusy: false
+    bindTried: {}, bindBusy: false,
+    // os7 (OCTO_DROP_SPEC 2.1): birakma oturumu (dropNew); bilet yalniz burada, bellekte.
+    drop: null
   };
   // ?rail=debug teshis hapi durumu (asagida "teshis" bolumu).
   var DBG = { on: false, node: null, txt: null, timer: null, last: '', min: false };
@@ -50193,6 +50286,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     if (readSwitch()) { M.off = true; dbgSoon(); return false; }
     onbRead();
     arrBoot();
+    dropResume('rail');
     M.off = false;
     M.armed = true;
     M.ctxTries = ctxTriesMax();
@@ -51068,6 +51162,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     // o sekmenin panelinde. 9 adimli kurulum karti yalniz raydan (Set up / Edit setup) acildiysa gorunur.
     if (id === 'setup') { return railKnown() && !!(M.setup && M.setup.open && M.setupRail); }
     if (id === 'first') { return arrVisible(); }
+    if (id === 'jobs') { return ok && dropJobsVisible(); }
     if (id === 'agent') { return !!(d.first || d.agent); }
     if (id === 'new') { return canCreate() && !!(d.screens && d.screens.create === true); }
     if (RES[id]) { if (!ok) { return false; } var rs = resState(id); return rs === 'ok' || rs === 'loading' || rs === 'error'; }
@@ -51782,6 +51877,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     if (loading) { return; }
     if (!M.ds.loaded && c && c.err) { body.appendChild(errRow(function () { cardRefresh('data'); })); return; }
     for (var i = 0; i < list.length; i++) { body.appendChild(dsRow(list[i])); }
+    body.appendChild(dropDataRows());
   };
   // Tekrar denemekle degismeyen kodlar (SERVER_CONTRACT 23, 25, 27): is hatasi ya da istegin bad_request cevabi.
   // Try again ayni cevabi verirdi; kart kisa bir durma satiri cizer (Run again ve Know your data yerinde kalir).
@@ -56345,6 +56441,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     var H = homeNew();
     M.home = H;
     trace('home:boot');
+    dropResume('home');
     // os6b (2.8): the flagship configurator hired the workspace and the page reloaded at the same address: Start
     // opens at Build 'sent' and waits for the new table (no new build, no Home bind).
     var xr = homeExtReady() ? homeExtResumeRec() : null;
@@ -56776,6 +56873,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     if (!H || M.home !== H || H.x.phase !== 'open') { return; }
     var B = H.b, X = H.x;
     X.phase = 'hired';
+    dropMark({ hire_at: Date.now() });
     X.gone = 0;
     H.step = 'build';
     B.phase = 'sent';
@@ -57059,7 +57157,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
         var id = homeFind(H);
         // os6: taranmis bir harita ile kurulduysa once taranan kaynaga bag (os_home_bind), sonra yonlendirme.
         // Skip yolu (bos iskelet, tarama yok) bagsiz iner.
-        if (id) { B.h0 = Date.now(); if (H.empty || !HOME_REF.test(str(H.kn.ref))) { homeHold(H, id); } else { homeBind(H, id); } return; }
+        if (id) { B.h0 = Date.now(); dropMark({ t_b: B.h0 }); if (H.empty || !HOME_REF.test(str(H.kn.ref))) { homeHold(H, id); } else { homeBind(H, id); } return; }
       }
       if (Date.now() - B.t1 >= T.homeArriveMax) { B.phase = 'err'; B.what = 'arrive'; paintSoon('home'); return; }
       paintSoon('home');
@@ -57341,6 +57439,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     n.appendChild(bar);
     var body = el('div', 'octo-home-body');
     n.appendChild(body);
+    dropHomeVeil(H, n);
     n.addEventListener('keydown', function (e) { if (e && e.key === 'Escape') { homeDismiss(); } });
     H.node = n;
     H.body = body;
@@ -57352,6 +57451,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       K.reads ? (K.reads.files + '/' + K.reads.sheets) : '', K.map ? 1 : 0, B.phase, B.what, homeBuildReady() ? 1 : 0, K.allF ? 1 : 0,
       B.bind ? (B.bind.phase + ':' + B.bind.tries + ':' + (B.bind.rows === null ? '' : B.bind.rows) + ':' + (homeBindApply(B.bind) ? 1 : 0)) : '',
       H.x.phase, H.x.n];
+    parts.push(dropSig());
     for (var i = 0; i < ONB_APPS.length; i++) { parts.push(onbAppState(ONB_APPS[i], 'home')); }
     var sh = (H.data && H.data.sheets) || [];
     for (var j = 0; j < sh.length; j++) { parts.push(sh[j].id + ':' + sh[j].name + ':' + sh[j].created); }
@@ -57439,6 +57539,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   // 1 Connect: Drive, Calendar, Sheets; Next en az Drive ya da Sheets bagliyken; hicbiri yoksa Skip.
   function homeConnectCard(H, card) {
     onbHead(card, 'plug', 'Connect');
+    card.appendChild(dropHomeZone(H));
     var list = el('div', 'octo-onb-list');
     var first = true;
     for (var i = 0; i < ONB_APPS.length; i++) {
@@ -57460,15 +57561,18 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     card.appendChild(list);
     if (H.code) { card.appendChild(homeErr('Could not load', homeRetry, 'home-load')); }
     var any = onbAppState(ONB_APPS[0], 'home') === 'ok' || onbAppState(ONB_APPS[2], 'home') === 'ok';
-    var sk = any ? null : homeBtn('is-ghost', 'Skip', 'home-skip', homeSkip);
+    // os7 (OCTO_DROP_SPEC 2.1): birakma baglanmaya esdeger kapi; Next = any || M.drop.ready (ack + zip_pending 0).
+    var go = any || dropReady();
+    var sk = go ? null : homeBtn('is-ghost', 'Skip', 'home-skip', homeSkip);
     var nx = homeBtn('is-primary', 'Next', 'home-next', function () { var h = M.home; if (h) { homeEnterKnow(h); } });
-    nx.disabled = !any;
+    nx.disabled = !go;
     card.appendChild(homeNav([sk, nx]));
   }
   // Know adimina gecis: bagli uygulama varsa tarama KENDILIGINDEN baslar (kurucu 30.09: "aslinda otomatik baslamali");
   // daha once taranmis (devam kaydi) ya da bagli uygulama yoksa dugme / uyari kalir.
   function homeEnterKnow(H) {
     H.step = 'know';
+    dropMark({ t1_click: Date.now() });
     // os6b (2.5): the configurator path never waits for os_home (a cold server blocks only the fallback below).
     if (homeExtReady()) { if (H.x.phase === 'idle') { homeExtOpen(H); return; } paintSoon('home'); return; }
     var K = H.kn;
@@ -57476,7 +57580,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     paintSoon('home');
   }
   // Taranacak bir sey var mi: sunucunun bagli listesi ya da (sunucu henuz gormediyse) sayfadaki baglanti durumu.
-  function homeKnowApps() { return homeApps().length > 0 || homeConn('googledrive') || homeConn('googlesheets'); }
+  function homeKnowApps() { return homeApps().length > 0 || homeConn('googledrive') || homeConn('googlesheets') || dropReady(); }
   function homeLine(k, ev, map) {
     var row = el('div', 'octo-home-line');
     row.setAttribute('data-k', k);
@@ -57855,6 +57959,1299 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   }
   // ---- home end
 
+  // ---- drop
+  // os7 (OCTO_DROP_SPEC 2.1, 2.3, 2.4, 3.2, 10.1-10.2): surukle birak bileseni octo-drop. Kopru yalniz kucuk JSON
+  // tasir (os_drop_open, os_drop_status, os_drop_cancel, os_drop_keep, os_jobs_tick); manifest ve baytlar DOGRUDAN
+  // sunucuya gider (upload_url + /drop/<id>/..., Authorization: Bearer <bilet>). Bilet ve grant YALNIZ bellekte
+  // (M.drop): sayfa deposuna, DOM'a, ize ve konsola girmez. Sayfa deposunda yalniz {drop_id, sheet_id, at, upload_url}.
+  // Gizli ad kapisi (T:115-128 kopyasi) readEntries adinda, file() CAGRILMADAN calisir; gizli girdinin adi hicbir
+  // yere yazilmaz. Iz kaydi yalniz olay adi ve sayi tasir (dosya adi, adres, hucre yok).
+  var DROP_SS = 'octo.drop';
+  var DROP_ID_RE = /^[A-Za-z0-9_:-]{4,80}$/;
+  var DROP_URL_RE = /^https:\/\/[A-Za-z0-9.-]{1,253}(:\d{1,5})?$/;
+  var DROP_FID_RE = /^drop:[a-z0-9:]{8,60}$/;
+  var DROP_PAGE = 2500;          // manifest sayfasi (spec 10.4 manifest_page; sunucu 2500 ustunu 413 ile reddeder)
+  var DROP_STREAMS = 2;          // manifest akislari (spec 2.1 sabit); PUT akislari caps.parallel_put'tan okunur
+  var DROP_STAT_GROUP = 32;      // file() paralel grup (SECIM)
+  var DROP_READ_PAGE = 100;      // readEntries sayfasi (tarayici davranisi; sahte agac da ayni)
+  var DROP_TRIES = 3;            // PUT / manifest deneme tavani (ustel bekleme T.dropRetry)
+  var DROP_WANTED_TRIES = 5;     // GET /wanted: pages_missing bosalana dek
+  var DROP_WANTED_GAP = 2000;
+  var DROP_TICKET_GAP = 60000;   // needs_ticket en cok dakikada bir (dongu korumasi)
+  var DROP_SHA_MAX = 8388608;    // X-Drop-Sha256 istege bagli: yalniz bu boyuta kadar hesaplanir
+  var DROP_SHA_WAIT = 3000;      // baslik icin okuma bekleme tavani
+  var DROP_PENDING_MAX = 32;
+  var DROP_SKIP_RE = /^(~\$|\.ds_store$|thumbs\.db$|desktop\.ini$|\.git$|node_modules$)/i;
+  var DROP_SECRET_RE = /(erisim|sifre|parola|password|passwd|credential|login|access|token)/;
+  // T:115-128 FOLD_PAIRS birebir (kod noktalari sayi olarak; kaynak ASCII kalir).
+  var DROP_FOLD = [[0x130, 'I'], [0x131, 'i'], [0x15e, 'S'], [0x15f, 's'], [0xc7, 'C'], [0xe7, 'c'], [0x11e, 'G'], [0x11f, 'g'],
+    [0xd6, 'O'], [0xf6, 'o'], [0xdc, 'U'], [0xfc, 'u'], [0xc2, 'A'], [0xe2, 'a'], [0xce, 'I'], [0xee, 'i'], [0xdb, 'U'], [0xfb, 'u']];
+  var DROP_FOLD_MAP = {};
+  var DROP_FOLD_RE = null;
+  var DROP_COMB_RE = null;
+  (function () {
+    var s = '';
+    for (var i = 0; i < DROP_FOLD.length; i++) { var c = String.fromCharCode(DROP_FOLD[i][0]); DROP_FOLD_MAP[c] = DROP_FOLD[i][1]; s += c; }
+    DROP_FOLD_RE = new RegExp('[' + s + ']', 'g');
+    DROP_COMB_RE = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
+  })();
+  var DROP_PUT_FAIL = { 403: 'secret', 404: 'not_found', 413: 'too_large', 415: 'unsupported' };
+  var DROP_ACTIVE = { open: 1, wake: 1, reading: 1, manifest: 1, uploading: 1 };
+  var DROPX = { seq: 0 };
+
+  // M.drop tek anahtar; dropStart / dropResume doldurur, dropCancel bosaltir.
+  function dropNew(from) {
+    return {
+      from: from === 'data' ? 'data' : 'home',
+      phase: 'idle',              // idle | wake | open | reading | manifest | uploading | ready | needs_files | cancelled | error
+      code: '',                   // son hata kodu: bad_request | not_found | expired | busy | unavailable | rate_limited | net
+      noOrg: false,
+      drop_id: '', sheet_id: '', upload_url: '', caps: null, expires_at: '',
+      ticket: '',                 // YALNIZ bellek
+      root: '',
+      entries: null, ing: null, reading: null,
+      pages: [], pageOf: 0, pagesDone: 0, pagesInFlight: 0,
+      n: { files: null, folders: null, secret: null },
+      wanted: [], put: {}, wantedIn: null,
+      ack: false, zipPending: null, status: null,
+      jobs: [], pending: [],
+      t: { status: null, bridge: null, wake: null, stat: null },
+      sleeps: [], bridgeMs: 0,
+      busy: 0,
+      marks: {}, markQ: null,
+      readN: 0, statCalls: 0, statBudgetHit: false,
+      bytes: 0, upDone: 0, upTotal: 0,
+      again: false, kept: false, keepBusy: false, retryWait: false, ntAt: 0, ntP: null
+    };
+  }
+  // spec 2.1 M.drop.ready: manifest ack alindi VE zip_pending 0. Istenen yuklemeler ve ayristirma BEKLENMEZ.
+  function dropReady() { var d = M.drop; return !!(d && d.ack && d.zipPending === 0); }
+  function dropLive(d) { return !!d && M.drop === d; }
+  function dropPhase(d, p) { if (d.phase !== p) { d.phase = p; trace('drop:' + p); } }
+  function dropPaint() { paintSoon('home'); if (M.mounted) { paintSoon('jobs'); paintSoon('data'); } }
+  function dropStop(d) {
+    if (!d) { return; }
+    for (var k in d.t) {
+      if (Object.prototype.hasOwnProperty.call(d.t, k) && d.t[k]) { try { clearTimeout(d.t[k]); } catch (e) { /* yut */ } d.t[k] = null; }
+    }
+    for (var i = 0; i < d.sleeps.length; i++) { try { clearTimeout(d.sleeps[i]); } catch (e2) { /* yut */ } }
+    d.sleeps = [];
+  }
+  function dropSleep(d, ms) {
+    return new Promise(function (resolve) {
+      var t = setTimeout(function () {
+        var k = d.sleeps.indexOf(t);
+        if (k >= 0) { d.sleeps.splice(k, 1); }
+        resolve();
+      }, Math.max(0, ms));
+      d.sleeps.push(t);
+    });
+  }
+  // Sunucu (ya da yenileme) oturumu artik yok: bellek ve sayfa deposu bosalir, alan birakma durumuna doner.
+  function dropForget(d) {
+    dropStop(d);
+    if (M.drop === d) { M.drop = null; ssDel(DROP_SS); }
+    trace('drop:forget');
+    dropPaint();
+  }
+  function dropFail(d, code) {
+    if (!dropLive(d)) { return false; }
+    d.code = tok(code) || 'net';
+    dropPhase(d, 'error');
+    dropPaint();
+    return false;
+  }
+  // 410: oturum kapandi (iptal ya da bitti). Yoklama ve yukleme durur.
+  function dropClosed(d, why) {
+    if (!dropLive(d)) { return; }
+    dropStop(d);
+    if (why === 'cancelled') { dropPhase(d, 'cancelled'); ssDel(DROP_SS); } else { dropPhase(d, 'ready'); }
+    dropPaint();
+  }
+  function dropSsWrite(d) {
+    // Bilet ve grant YAZILMAZ; upload_url kamu sunucu adresidir (resume cevabi tasimadiginda yedek, SECIM).
+    ssSet(DROP_SS, JSON.stringify({ drop_id: d.drop_id, sheet_id: d.sheet_id, at: Date.now(), upload_url: d.upload_url }));
+  }
+  function dropSsRead() {
+    var raw = ssGet(DROP_SS);
+    if (!raw) { return null; }
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { o = null; }
+    return (isObj(o) && DROP_ID_RE.test(str(o.drop_id))) ? o : null;
+  }
+
+  // ------------------------------------------------ ASCII katlama + gizli ad kapisi (T:115-128 JS kopyasi)
+  function dropFold(v) {
+    var s = str(v).replace(DROP_FOLD_RE, function (c) { return DROP_FOLD_MAP[c] || c; });
+    try { s = s.normalize('NFKD').replace(DROP_COMB_RE, ''); } catch (e) { /* eski motor: oldugu gibi */ }
+    return s.toLowerCase().replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function dropSecretName(n) { return DROP_SECRET_RE.test(dropFold(n)); }
+  function dropSkipName(n) { return DROP_SKIP_RE.test(str(n)); }
+
+  // ------------------------------------------------ sha256 (senkron, saf JS) ve fid (spec 2.1, 5.4)
+  var DROP_SHA = { k: null, h: null };
+  function dropShaInit() {
+    if (DROP_SHA.k) { return; }
+    var k = [], h = [], n = 2;
+    while (k.length < 64) {
+      var prime = true;
+      for (var q = 2; q * q <= n; q++) { if (n % q === 0) { prime = false; break; } }
+      if (prime) {
+        if (h.length < 8) { h.push((Math.pow(n, 1 / 2) * 4294967296) | 0); }
+        k.push((Math.pow(n, 1 / 3) * 4294967296) | 0);
+      }
+      n++;
+    }
+    DROP_SHA.k = k;
+    DROP_SHA.h = h;
+  }
+  // UTF-8 baytlari; eslenmemis vekil U+FFFD olur (sunucunun Buffer kodlamasiyla ayni).
+  function dropUtf8(s) {
+    var out = [];
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c >= 0xd800 && c <= 0xdfff) {
+        var c2 = (c <= 0xdbff && i + 1 < s.length) ? s.charCodeAt(i + 1) : 0;
+        if (c2 >= 0xdc00 && c2 <= 0xdfff) { c = 0x10000 + ((c - 0xd800) << 10) + (c2 - 0xdc00); i++; } else { c = 0xfffd; }
+      }
+      if (c < 0x80) { out.push(c); }
+      else if (c < 0x800) { out.push(0xc0 | (c >> 6), 0x80 | (c & 63)); }
+      else if (c < 0x10000) { out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63)); }
+      else { out.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63)); }
+    }
+    return out;
+  }
+  function dropRotr(x, n) { return (x >>> n) | (x << (32 - n)); }
+  function dropSha256Hex(v) {
+    dropShaInit();
+    var b = dropUtf8(str(v));
+    var bits = b.length * 8;
+    b.push(0x80);
+    while (b.length % 64 !== 56) { b.push(0); }
+    var hi = Math.floor(bits / 4294967296), lo = bits >>> 0;
+    b.push((hi >>> 24) & 255, (hi >>> 16) & 255, (hi >>> 8) & 255, hi & 255, (lo >>> 24) & 255, (lo >>> 16) & 255, (lo >>> 8) & 255, lo & 255);
+    var K = DROP_SHA.k, H = DROP_SHA.h.slice(), w = new Array(64), t;
+    for (var off = 0; off < b.length; off += 64) {
+      for (t = 0; t < 16; t++) { w[t] = (b[off + 4 * t] << 24) | (b[off + 4 * t + 1] << 16) | (b[off + 4 * t + 2] << 8) | b[off + 4 * t + 3]; }
+      for (t = 16; t < 64; t++) {
+        var x = w[t - 15], y = w[t - 2];
+        var s0 = dropRotr(x, 7) ^ dropRotr(x, 18) ^ (x >>> 3);
+        var s1 = dropRotr(y, 17) ^ dropRotr(y, 19) ^ (y >>> 10);
+        w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
+      }
+      var a = H[0], bb = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+      for (t = 0; t < 64; t++) {
+        var S1 = dropRotr(e, 6) ^ dropRotr(e, 11) ^ dropRotr(e, 25);
+        var ch = (e & f) ^ (~e & g);
+        var t1 = (h + S1 + ch + K[t] + w[t]) | 0;
+        var S0 = dropRotr(a, 2) ^ dropRotr(a, 13) ^ dropRotr(a, 22);
+        var mj = (a & bb) ^ (a & c) ^ (bb & c);
+        var t2 = (S0 + mj) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = bb; bb = a; a = (t1 + t2) | 0;
+      }
+      H[0] = (H[0] + a) | 0; H[1] = (H[1] + bb) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+      H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+    }
+    var hex = '';
+    for (t = 0; t < 8; t++) { var p = (H[t] >>> 0).toString(16); hex += '00000000'.slice(p.length) + p; }
+    return hex;
+  }
+  // fid = 'drop:' + sha256(kok adi + '/' + kok ALTINDAKI goreli yol)[0..20]; tek ust klasor yoksa kok adi '' (R1 SECIM).
+  function dropFid(root, rel) { return 'drop:' + dropSha256Hex(str(root) + '/' + str(rel)).slice(0, 20); }
+  function dropFidSecret(parentFid, i) { return 'drop:secret:' + dropSha256Hex(str(parentFid) + '#' + i).slice(0, 20); }
+  function fmtBytes(n) {
+    var v = num(n);
+    if (v === null || v < 0) { v = 0; }
+    if (v < 1024) { return Math.round(v) + ' B'; }
+    var u = ['KB', 'MB', 'GB', 'TB'], i = -1;
+    do { v = v / 1024; i++; } while (v >= 1024 && i < u.length - 1);
+    return (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : String(Math.round(v))) + ' ' + u[i];
+  }
+  function dropExt(n) {
+    var s = str(n), k = s.lastIndexOf('.');
+    if (k <= 0 || k === s.length - 1) { return ''; }
+    var e = s.slice(k + 1).toLowerCase();
+    return /^[a-z0-9]{1,12}$/.test(e) ? e : '';
+  }
+
+  // ------------------------------------------------ girdi kaynaklari (surukleme, webkitdirectory, duz liste)
+  function dropFileEnt(f, name) {
+    return { isFile: true, isDirectory: false, name: str(name || (f && f.name)), file: function (cb) { cb(f); } };
+  }
+  function dropDirEnt(name) {
+    var kids = [];
+    return {
+      isFile: false, isDirectory: true, name: str(name), kids: kids,
+      createReader: function () {
+        var at = 0;
+        return { readEntries: function (cb) { var part = kids.slice(at, at + DROP_READ_PAGE); at += part.length; setTimeout(function () { cb(part); }, 0); } };
+      }
+    };
+  }
+  // <input webkitdirectory> ya da duz dosya listesi: webkitRelativePath ilk parcasi kok klasordur.
+  function dropFromFiles(list) {
+    var top = [], dirs = {};
+    for (var i = 0; list && i < list.length; i++) {
+      var f = list[i];
+      if (!f) { continue; }
+      var parts = str(f.webkitRelativePath).split('/');
+      if (parts.length < 2) { top.push(dropFileEnt(f)); continue; }
+      var key = '', parent = null;
+      for (var j = 0; j < parts.length - 1; j++) {
+        key = key ? (key + '/' + parts[j]) : parts[j];
+        var dd = Object.prototype.hasOwnProperty.call(dirs, key) ? dirs[key] : null;
+        if (!dd) { dd = dropDirEnt(parts[j]); dirs[key] = dd; if (parent) { parent.kids.push(dd); } else { top.push(dd); } }
+        parent = dd;
+      }
+      parent.kids.push(dropFileEnt(f, parts[parts.length - 1]));
+    }
+    return top;
+  }
+  // Surukleme: webkitGetAsEntry (agac korunur); null donerse getAsFile sarmalayicisi. drop olayi icinde senkron okunur.
+  function dropFromEvent(e) {
+    var dt = e && e.dataTransfer, out = [], i;
+    if (!dt) { return out; }
+    var items = dt.items;
+    if (items && items.length) {
+      for (i = 0; i < items.length; i++) {
+        var it = items[i];
+        if (!it || (it.kind && it.kind !== 'file')) { continue; }
+        var ent = null;
+        try { ent = (typeof it.webkitGetAsEntry === 'function') ? it.webkitGetAsEntry() : null; } catch (x) { ent = null; }
+        if (ent) { out.push(ent); continue; }
+        var f = null;
+        try { f = (typeof it.getAsFile === 'function') ? it.getAsFile() : null; } catch (x2) { f = null; }
+        if (f) { out.push(dropFileEnt(f)); }
+      }
+      return out;
+    }
+    var fl = dt.files;
+    for (i = 0; fl && i < fl.length; i++) { if (fl[i]) { out.push(dropFileEnt(fl[i])); } }
+    return out;
+  }
+  function dropHasFiles(e) {
+    var dt = e && e.dataTransfer, ty = dt && dt.types;
+    if (!ty) { return false; }
+    try {
+      if (typeof ty.indexOf === 'function') { return ty.indexOf('Files') >= 0; }
+      if (typeof ty.contains === 'function') { return ty.contains('Files'); }
+      for (var i = 0; i < ty.length; i++) { if (ty[i] === 'Files') { return true; } }
+    } catch (x) { return false; }
+    return false;
+  }
+
+  // ------------------------------------------------ agac okuyucu (spec 2.1: sira, ebeveyn, d:1, suzgec, 100'luk okuma)
+  function dropReadAll(dir) {
+    return new Promise(function (resolve) {
+      var all = [], rd = null;
+      try { rd = dir.createReader(); } catch (e) { resolve(all); return; }
+      (function next() {
+        try {
+          rd.readEntries(function (list) {
+            if (!list || !list.length) { resolve(all); return; }
+            for (var i = 0; i < list.length; i++) { all.push(list[i]); }
+            next();
+          }, function () { resolve(all); });
+        } catch (e2) { resolve(all); }
+      })();
+    });
+  }
+  // Gizli alt agacin girdi sayisi: YALNIZ readEntries; file() cagrilmaz, adlar yalniz sayilir.
+  function dropCount(ent) {
+    if (!ent || !ent.isDirectory) { return Promise.resolve(1); }
+    return dropReadAll(ent).then(function (kids) {
+      var n = kids.length, ps = [];
+      for (var i = 0; i < kids.length; i++) { if (kids[i] && kids[i].isDirectory) { ps.push(dropCount(kids[i])); } }
+      return Promise.all(ps).then(function (r) { for (var j = 0; j < r.length; j++) { n += r[j]; } return n; });
+    });
+  }
+  function dropStatGroup(part, left) {
+    return new Promise(function (resolve) {
+      var n = part.length, over = false, tm = null;
+      function fin() { if (over) { return; } over = true; if (tm) { try { clearTimeout(tm); } catch (e) { /* yut */ } } resolve(n > 0); }
+      if (!n) { fin(); return; }
+      tm = setTimeout(fin, Math.max(1, left));
+      part.forEach(function (x) {
+        var done = false;
+        function one(f) {
+          if (done) { return; }
+          done = true;
+          if (!over && f) {
+            x.h.f = f;
+            var s = num(f.size);
+            x.it.s = (s !== null && s >= 0) ? s : null;
+            var m = null;
+            try { m = (typeof f.lastModified === 'number') ? new Date(f.lastModified).toISOString() : null; } catch (e) { m = null; }
+            x.it.m = m;
+          }
+          n--;
+          if (n === 0) { fin(); }
+        }
+        try { x.h.ent.file(one, function () { one(null); }); } catch (e2) { one(null); }
+      });
+    });
+  }
+  // dropIngest(entries) -> Promise<{items, secret, root, files, bytes, zip, statBudgetHit}>. BFS: i 0'dan surekli,
+  // p = ebeveynin i'si (ust duzey -1, SECIM). Klasor {i,p,n,d:1}; dosya {i,p,n,s,m,e} (d alani YOK);
+  // gizli girdi {i,p,secret:true,count} (string alan yok, cocuklari i tuketmez).
+  function dropIngest(entries) {
+    var top = [];
+    for (var a = 0; entries && a < entries.length; a++) {
+      var x0 = entries[a];
+      if (x0 && (x0.isFile || x0.isDirectory) && !dropSkipName(x0.name)) { top.push(x0); }
+    }
+    var single = top.length === 1 && !!top[0].isDirectory && !dropSecretName(top[0].name);
+    var R = { items: [], secret: [], root: single ? str(top[0].name) : '', files: {}, bytes: 0, zip: false, statBudgetHit: false, fileN: 0 };
+    var q = [], stats = [], counts = [];
+    function add(ent, p, prel, isRoot) {
+      var i = R.items.length, name = str(ent.name);
+      if (dropSecretName(name)) {
+        var sc = { i: i, p: p, secret: true, count: 0 };
+        R.items.push(sc);
+        var sum = { i: i, p: p, count: 0 };
+        R.secret.push(sum);
+        counts.push(dropCount(ent).then(function (c) { sc.count = c; sum.count = c; }));
+        return;
+      }
+      var rel = isRoot ? '' : (prel ? (prel + '/' + name) : name);
+      if (ent.isDirectory) {
+        R.items.push({ i: i, p: p, n: name, d: 1 });
+        q.push({ ent: ent, i: i, rel: rel });
+        return;
+      }
+      var e = dropExt(name);
+      var it = { i: i, p: p, n: name, s: null, m: null, e: e };
+      R.items.push(it);
+      var h = { ent: ent, f: null, it: it };
+      R.files[dropFid(R.root, rel)] = h;
+      stats.push({ h: h, it: it });
+      R.fileN++;
+      if (e === 'zip') { R.zip = true; }
+    }
+    for (var b = 0; b < top.length; b++) { add(top[b], -1, '', single); }
+    function walk() {
+      if (!q.length) { return Promise.resolve(); }
+      var dq = q.shift();
+      return dropReadAll(dq.ent).then(function (kids) {
+        for (var k = 0; k < kids.length; k++) {
+          var c = kids[k];
+          if (!c || !(c.isFile || c.isDirectory) || dropSkipName(c.name)) { continue; }
+          add(c, dq.i, dq.rel, false);
+        }
+        return walk();
+      });
+    }
+    // file() butcesi (spec 2.1): T.dropStat; asilinca kalan dosyalar s/m null ile gider.
+    function stat() {
+      var t0 = perfNow(), k = 0;
+      function group() {
+        if (k >= stats.length) { return Promise.resolve(); }
+        var left = T.dropStat - (perfNow() - t0);
+        if (left <= 0) { R.statBudgetHit = true; return Promise.resolve(); }
+        var part = stats.slice(k, k + DROP_STAT_GROUP);
+        k += part.length;
+        return dropStatGroup(part, left).then(function (late) { if (late) { R.statBudgetHit = true; return null; } return group(); });
+      }
+      return group();
+    }
+    return walk().then(function () { return Promise.all(counts); }).then(stat).then(function () {
+      for (var j = 0; j < stats.length; j++) { if (stats[j].it.s !== null) { R.bytes += stats[j].it.s; } }
+      return R;
+    });
+  }
+  // Sayfa boyu: caps.manifest_page (sunucu degeri), en cok DROP_PAGE; caps yoksa DROP_PAGE.
+  function dropPages(items, size) {
+    var out = [], n = (typeof size === 'number' && size >= 1) ? Math.min(DROP_PAGE, Math.floor(size)) : DROP_PAGE;
+    for (var k = 0; k < items.length; k += n) { out.push(items.slice(k, k + n)); }
+    if (!out.length) { out.push([]); }
+    return out;
+  }
+
+  // ------------------------------------------------ dogrudan istek (spec 10.2) ve bilet (spec 3.2)
+  // Harness dikisi: W.__octoFetch (yoksa fetch). Bilet yalniz Authorization basliginda; adres upload_url + /drop/<id>.
+  function dropFetch(d, method, path, body, hdr, noAuth) {
+    var f = (typeof W.__octoFetch === 'function') ? W.__octoFetch : W.fetch;
+    if (typeof f !== 'function' || !d.upload_url || !d.drop_id) { return Promise.reject(new Error('no_fetch')); }
+    var h = {};
+    for (var k in hdr) { if (Object.prototype.hasOwnProperty.call(hdr, k)) { h[k] = hdr[k]; } }
+    if (!noAuth) { h.Authorization = 'Bearer ' + d.ticket; }
+    var init = { method: method, headers: h, credentials: 'omit', cache: 'no-store', mode: 'cors' };
+    if (body != null) { init.body = body; }
+    var p;
+    d.busy++;
+    if (M.drop === d) { paintSoon('jobs'); }
+    try { p = Promise.resolve(f.call(W, d.upload_url + '/drop/' + enc(d.drop_id) + path, init)); } catch (e) { p = Promise.reject(e); }
+    function down() { d.busy = Math.max(0, d.busy - 1); if (M.drop === d) { paintSoon('jobs'); } }
+    return p.then(function (r) { down(); return r || { status: 0 }; }, function (e2) { down(); throw e2; });
+  }
+  function dropJson(r) {
+    try { return Promise.resolve(r && typeof r.json === 'function' ? r.json() : {}).then(function (j) { return isObj(j) ? j : {}; }, function () { return {}; }); } catch (e) { return Promise.resolve({}); }
+  }
+  function dropBackoff(r, tries) {
+    var ra = null;
+    try { ra = (r && r.headers && typeof r.headers.get === 'function') ? Number(r.headers.get('Retry-After')) : null; } catch (e) { ra = null; }
+    if (typeof ra === 'number' && isFinite(ra) && ra > 0) { return Math.min(30, Math.max(1, ra)) * 1000; }
+    return T.dropRetry * Math.pow(2, Math.max(0, tries - 1));
+  }
+  // 401 -> needs_ticket koprusu -> yeni bilet -> istek BIR kez yinelenir.
+  function dropCall(d, method, path, body, hdr, again) {
+    return dropFetch(d, method, path, body, hdr || {}, false).then(function (r) {
+      if (r.status !== 401 || again || !dropLive(d)) { return r; }
+      return dropNeedsTicket(d).then(function (ok2) { return (ok2 && dropLive(d)) ? dropCall(d, method, path, body, hdr, true) : r; });
+    });
+  }
+  // POST /drop/<id>/session {grant} -> {ticket}; Authorization YOK. soft: kopru grant'i (hata karti cizmez).
+  function dropSession(d, grant, soft) {
+    if (!grant) { if (!soft) { dropFail(d, 'expired'); } return Promise.resolve(false); }
+    return dropFetch(d, 'POST', '/session', JSON.stringify({ grant: grant }), { 'Content-Type': 'application/json' }, true).then(function (r) {
+      if (!dropLive(d)) { return false; }
+      if (r.status === 200 || r.status === 201) {
+        return dropJson(r).then(function (j) {
+          var t = str(j.ticket);
+          if (!t || !dropLive(d)) { if (!soft) { dropFail(d, 'expired'); } return false; }
+          d.ticket = t;
+          if (j.expires_at) { d.expires_at = str(j.expires_at).slice(0, 40); }
+          trace('drop:ticket');
+          return true;
+        });
+      }
+      if (r.status === 410) { dropClosed(d, 'cancelled'); return false; }
+      if (!soft) { dropFail(d, 'expired'); }
+      return false;
+    }, function () { if (!soft) { dropFail(d, 'net'); } return false; });
+  }
+  // Bilet kaybi (spec 3.2): kopru os_drop_status {reason:'needs_ticket'} -> grant -> /session. Dakikada en cok bir.
+  function dropNeedsTicket(d) {
+    var t = Date.now();
+    if (d.ntAt && t - d.ntAt < DROP_TICKET_GAP) { return d.ntP || Promise.resolve(false); }
+    d.ntAt = t;
+    var old = d.ticket;
+    d.ntP = dropBridge(d, 'needs_ticket').then(function () { return !!d.ticket && d.ticket !== old; });
+    return d.ntP;
+  }
+
+  // ------------------------------------------------ acilis (t0): os_drop_open -> grant -> /session -> manifest
+  function dropCaps(c) {
+    if (!isObj(c)) { return null; }
+    return { file_mb: c.file_mb, zip_mb: num(c.zip_mb), total_mb: num(c.total_mb), manifest_page: num(c.manifest_page), files_max: num(c.files_max), parallel_put: num(c.parallel_put) };
+  }
+  function dropStart(entries, o) {
+    o = o || {};
+    var list = [];
+    for (var i = 0; entries && i < entries.length; i++) { if (entries[i]) { list.push(entries[i]); } }
+    if (!list.length) { return Promise.resolve(false); }
+    var prev = M.drop;
+    if (prev && DROP_ACTIVE[prev.phase]) { trace('drop:busy'); return Promise.resolve(false); }
+    var d = dropNew(o.from);
+    d.sheet_id = (d.from === 'data' && idOk(o.sheet_id)) ? str(o.sheet_id) : '';
+    d.entries = list;
+    var replace = !!prev && prev.phase === 'cancelled';
+    if (prev && prev.phase === 'needs_files' && prev.drop_id) {
+      // Ikinci birakma (spec 2.1 needs_files): ayni oturum; os_drop_open resume cevabi ayni drop_id'yi verir.
+      d.again = true; d.drop_id = prev.drop_id; d.upload_url = prev.upload_url; d.pending = prev.pending.slice();
+      if (!d.sheet_id) { d.sheet_id = prev.sheet_id; }
+    }
+    dropStop(prev);
+    M.drop = d;
+    dropPhase(d, 'open');
+    d.reading = dropIngest(list).then(function (r) {
+      if (!dropLive(d)) { return null; }
+      d.ing = r; d.root = r.root; d.bytes = r.bytes; d.readN = r.items.length; d.statBudgetHit = r.statBudgetHit;
+      trace('drop:read:' + r.items.length);
+      return r;
+    }, function () { return null; });
+    var pay = {};
+    if (d.sheet_id) { pay.sheet_id = d.sheet_id; }
+    if (replace) { pay.replace = true; }
+    dropPaint();
+    return dropOpen(d, pay, 1);
+  }
+  function dropOpen(d, pay, n) {
+    return octo.request('os_drop_open', pay, { retry: false, cacheKey: 'os_drop_open|' + (++DROPX.seq) + '|' + Date.now() }).then(function (b) {
+      if (!dropLive(d)) { return false; }
+      if (str(b && b.status).toUpperCase().indexOf('TIMEOUT') >= 0) { return dropWake(d, pay, n); }
+      return dropOpened(d, b);
+    }, function (err) {
+      if (!dropLive(d)) { return false; }
+      var c = str(err && err.code);
+      if (c === 'timeout') { return dropWake(d, pay, n); }
+      if (c === 'bad_request') {
+        // VARSAYIM 17: sirketsiz hesap. Birakma alani kalkar, Create your company satiri gelir.
+        d.noOrg = true; d.code = 'bad_request';
+        dropPhase(d, 'idle');
+        ssDel(DROP_SS);
+        dropPaint();
+        return false;
+      }
+      return dropFail(d, c || 'net');
+    });
+  }
+  // Soguk sunucu (HOME:66/159 kurali): Waking up, T.dropWake sonra BIR kez daha; ikinci de duserse Could not finish.
+  function dropWake(d, pay, n) {
+    if (n >= 2) { return dropFail(d, 'net'); }
+    dropPhase(d, 'wake');
+    dropPaint();
+    return new Promise(function (resolve) {
+      d.t.wake = setTimeout(function () {
+        d.t.wake = null;
+        if (!dropLive(d)) { resolve(false); return; }
+        dropPhase(d, 'open');
+        dropPaint();
+        resolve(dropOpen(d, pay, 2));
+      }, T.dropWake);
+    });
+  }
+  function dropOpened(d, b) {
+    var id = str(b && b.drop_id);
+    if (!isObj(b) || b.ok === false || !DROP_ID_RE.test(id)) { return dropFail(d, 'bad_request'); }
+    if (d.drop_id && d.drop_id !== id) { d.again = false; d.pending = []; }
+    d.drop_id = id;
+    var u = str(b.upload_url).replace(/\/+$/, '');
+    if (DROP_URL_RE.test(u)) { d.upload_url = u; }
+    if (!d.upload_url) { var ss = dropSsRead(); if (ss && str(ss.drop_id) === id && DROP_URL_RE.test(str(ss.upload_url))) { d.upload_url = str(ss.upload_url); } }
+    if (!d.upload_url) { return dropFail(d, 'unavailable'); }
+    var cp = dropCaps(b.caps);
+    if (cp) { d.caps = cp; }
+    d.expires_at = str(b.expires_at).slice(0, 40);
+    if (b.resume === true) { d.again = true; if (isArr(b.pending)) { d.pending = dropFids(b.pending); } }
+    dropSsWrite(d);
+    dropPhase(d, 'reading');
+    dropPaint();
+    return dropSession(d, str(b.grant), false).then(function (ok1) {
+      if (!ok1 || !dropLive(d)) { return false; }
+      return d.reading.then(function (r) {
+        if (!r || !dropLive(d)) { return false; }
+        dropPhase(d, 'manifest');
+        dropPaint();
+        return dropManifest(d);
+      });
+    });
+  }
+  function dropFids(list) {
+    var out = [];
+    for (var i = 0; isArr(list) && i < list.length && out.length < 5000; i++) { var f = str(list[i]); if (DROP_FID_RE.test(f)) { out.push(f); } }
+    return out;
+  }
+  function dropCounts(d, j) {
+    if (num(j.files_n) !== null) { d.n.files = j.files_n; }
+    if (num(j.folders_n) !== null) { d.n.folders = j.folders_n; }
+    if (num(j.secret_n) !== null) { d.n.secret = j.secret_n; }
+  }
+
+  // ------------------------------------------------ manifest (spec 2.1, 10.2): 2.500'luk sayfalar, 2 akis, herhangi sira
+  function dropManifest(d) {
+    var pages = dropPages(d.ing.items, d.caps ? num(d.caps.manifest_page) : null), of = pages.length, queue = [], resent = false, bad = '';
+    for (var q0 = 0; q0 < of; q0++) { queue.push(q0); }
+    d.pages = pages; d.pageOf = of; d.pagesDone = 0; d.pagesInFlight = 0; d.wantedIn = null;
+    function send(k, tries) {
+      var items = pages[k], sec = [];
+      for (var j = 0; j < items.length; j++) { if (items[j].secret) { sec.push({ i: items[j].i, p: items[j].p, count: items[j].count }); } }
+      var body = JSON.stringify({ page: k + 1, of: of, items: items, secret: sec });
+      d.pagesInFlight++;
+      return dropCall(d, 'POST', '/manifest', body, { 'Content-Type': 'application/json' }).then(function (r) {
+        d.pagesInFlight--;
+        if (!dropLive(d)) { return null; }
+        var st = r.status;
+        if (st === 200 || st === 201) {
+          return dropJson(r).then(function (jb) { dropCounts(d, jb); if (isArr(jb.wanted)) { d.wantedIn = jb.wanted; } d.pagesDone++; dropPaint(); });
+        }
+        if (st === 409) {
+          // page_order / state: sayfa daha once alinmis sayilir (yeniden GONDERILMEZ); fid_collision: sekil hatasi;
+          // pages_missing: sunucu sayfa tamponunu kaybetti (yeniden baslama), listedeki sayfalar BIR kez yeniden gider.
+          return dropJson(r).then(function (jb) {
+            var ec = str(jb.error || jb.code);
+            if (ec === 'fid_collision') { bad = 'bad_request'; return; }
+            if (ec === 'pages_missing') {
+              if (resent || !isArr(jb.pages_missing)) { bad = 'bad_request'; return; }
+              resent = true;
+              d.pagesDone = 0;
+              for (var m = 0; m < jb.pages_missing.length; m++) {
+                var pg = num(jb.pages_missing[m]);
+                if (pg !== null && pg >= 1 && pg <= of && queue.indexOf(pg - 1) < 0) { queue.push(pg - 1); }
+              }
+              trace('drop:pages_missing');
+              return;
+            }
+            d.pagesDone++;
+          });
+        }
+        if (st === 410) { return dropJson(r).then(function (jb) { bad = str(jb.error || jb.code) === 'cancelled' ? 'cancelled' : 'closed'; }); }
+        if ((st === 429 || st >= 500 || st === 0) && tries < DROP_TRIES) { return dropSleep(d, dropBackoff(r, tries)).then(function () { return send(k, tries + 1); }); }
+        bad = (st === 401) ? 'expired' : (st >= 500 || st === 0 ? 'net' : 'bad_request');
+        return null;
+      }, function () {
+        d.pagesInFlight = Math.max(0, d.pagesInFlight - 1);
+        if (!dropLive(d)) { return null; }
+        if (tries < DROP_TRIES) { return dropSleep(d, T.dropRetry * Math.pow(2, tries - 1)).then(function () { return send(k, tries + 1); }); }
+        bad = 'net';
+        return null;
+      });
+    }
+    function worker() {
+      if (bad || !dropLive(d) || !queue.length) { return Promise.resolve(); }
+      var k = queue.shift();
+      return send(k, 1).then(worker);
+    }
+    var ws = [];
+    for (var w = 0; w < Math.min(DROP_STREAMS, of); w++) { ws.push(worker()); }
+    return Promise.all(ws).then(function () {
+      if (!dropLive(d)) { return false; }
+      if (bad === 'cancelled') { dropClosed(d, 'cancelled'); return false; }
+      if (bad === 'closed') { dropClosed(d, 'done'); return false; }
+      if (bad) { return dropFail(d, bad); }
+      if (d.wantedIn) { return dropAck(d, d.wantedIn, null); }
+      return dropWanted(d, 1);
+    });
+  }
+  // Son cevapta wanted yoksa: GET /wanted, pages_missing bosalana dek (en cok 5 kez, 2 sn arayla).
+  function dropWanted(d, n) {
+    function again(code) {
+      if (n < DROP_WANTED_TRIES) { return dropSleep(d, DROP_WANTED_GAP).then(function () { return dropLive(d) ? dropWanted(d, n + 1) : false; }); }
+      return dropFail(d, code);
+    }
+    return dropCall(d, 'GET', '/wanted', null, {}).then(function (r) {
+      if (!dropLive(d)) { return false; }
+      if (r.status === 410) { dropClosed(d, 'done'); return false; }
+      if (r.status !== 200) { return again('net'); }
+      return dropJson(r).then(function (j) {
+        if (!dropLive(d)) { return false; }
+        var miss = isArr(j.pages_missing) ? j.pages_missing.length : 0;
+        if (miss > 0 || !isArr(j.wanted)) { return again('bad_request'); }
+        return dropAck(d, j.wanted, j.received);
+      });
+    }, function () { return dropLive(d) ? again('net') : false; });
+  }
+  // Ack: wanted[] alindi. zip varsa zip_pending durum yoklamasi 0 gosterene kadar null (spec 2.1 M.drop.ready).
+  function dropAck(d, wanted, received) {
+    var got = {}, pend = {}, i;
+    if (isArr(received)) { for (i = 0; i < received.length; i++) { got[str(received[i])] = 1; } }
+    var usePend = d.again && d.pending.length > 0;
+    for (i = 0; i < d.pending.length; i++) { pend[d.pending[i]] = 1; }
+    var out = [];
+    for (i = 0; isArr(wanted) && i < wanted.length; i++) {
+      var w = wanted[i];
+      if (!isObj(w)) { continue; }
+      var fid = str(w.fid);
+      if (!DROP_FID_RE.test(fid) || got[fid] === 1 || (usePend && pend[fid] !== 1)) { continue; }
+      out.push({ fid: fid, why: tok(w.why), cap_mb: num(w.cap_mb) });
+    }
+    d.wanted = out;
+    d.put = {};
+    d.ack = true;
+    d.zipPending = (d.ing && d.ing.zip) ? null : 0;
+    trace('drop:ack:' + out.length);
+    dropPhase(d, out.length ? 'uploading' : 'ready');
+    dropPaint();
+    dropPoll('start');
+    if (out.length) { dropUpload(d); }
+    return true;
+  }
+
+  // ------------------------------------------------ istenen yukleme (spec 3.2, 10.2): caps.parallel_put akis, 3 deneme
+  function dropPar(d) {
+    var p = d.caps ? num(d.caps.parallel_put) : null;
+    return (p !== null && p >= 1) ? Math.min(4, Math.floor(p)) : 1;
+  }
+  function dropFileOf(h) {
+    if (h.f) { return Promise.resolve(h.f); }
+    return new Promise(function (resolve) {
+      var done = false;
+      var tm = setTimeout(function () { if (!done) { done = true; resolve(null); } }, T.dropPutMax);
+      function fin(f) { if (done) { return; } done = true; try { clearTimeout(tm); } catch (e) { /* yut */ } h.f = f || null; resolve(h.f); }
+      try { h.ent.file(fin, function () { fin(null); }); } catch (e2) { fin(null); }
+    });
+  }
+  // X-Drop-Sha256 istege bagli (SECIM): crypto.subtle varsa ve dosya kucukse; gecerli sha sunucunun cevabindaki.
+  function dropShaOf(f, w) {
+    var c = null;
+    try { c = W.crypto && W.crypto.subtle; } catch (e) { c = null; }
+    var sz = num(f && f.size);
+    var lim = (w.cap_mb !== null && w.cap_mb > 0) ? Math.min(DROP_SHA_MAX, w.cap_mb * 1048576) : DROP_SHA_MAX;
+    if (!c || typeof c.digest !== 'function' || !f || typeof f.arrayBuffer !== 'function' || sz === null || sz > lim) { return Promise.resolve(''); }
+    return new Promise(function (resolve) {
+      // Okuma takilirsa (bulut yer tutucu, bassiz tarayici) baslik beklenmez: DROP_SHA_WAIT sonra bos.
+      var done = false;
+      var tm = setTimeout(function () { if (!done) { done = true; resolve(''); } }, DROP_SHA_WAIT);
+      function fin(s) { if (done) { return; } done = true; try { clearTimeout(tm); } catch (e) { /* yut */ } resolve(s); }
+      try {
+        f.arrayBuffer().then(function (buf) { return c.digest('SHA-256', buf); }).then(function (hb) {
+          var u = new Uint8Array(hb), s = '';
+          for (var i = 0; i < u.length; i++) { s += (u[i] < 16 ? '0' : '') + u[i].toString(16); }
+          fin(s);
+        }, function () { fin(''); });
+      } catch (e2) { fin(''); }
+    });
+  }
+  function dropUpload(d) {
+    var q = [], miss = [], i;
+    d.upTotal = 0; d.upDone = 0;
+    for (i = 0; i < d.wanted.length; i++) {
+      var w = d.wanted[i];
+      if (d.put[w.fid] === 'ok') { continue; }
+      var h = d.ing && Object.prototype.hasOwnProperty.call(d.ing.files, w.fid) ? d.ing.files[w.fid] : null;
+      if (h) { q.push(w); if (h.it.s !== null) { d.upTotal += h.it.s; } } else { miss.push(w.fid); }
+    }
+    var k = 0;
+    function one(w, tries) {
+      var h = d.ing.files[w.fid];
+      return dropFileOf(h).then(function (f) {
+        if (!dropLive(d)) { return null; }
+        if (!f) { d.put[w.fid] = 'fail:not_readable'; dropPaint(); return null; }
+        return dropShaOf(f, w).then(function (sha) {
+          if (!dropLive(d)) { return null; }
+          var hdr = { 'Content-Type': 'application/octet-stream' };
+          if (sha) { hdr['X-Drop-Sha256'] = sha; }
+          return dropCall(d, 'PUT', '/file/' + enc(w.fid), f, hdr).then(function (r) {
+            if (!dropLive(d)) { return null; }
+            var st = r.status;
+            if (st === 200 || st === 201 || st === 409) {
+              d.put[w.fid] = 'ok';
+              if (h.it.s !== null) { d.upDone += h.it.s; }
+              dropPaint();
+              return null;
+            }
+            if (st === 410) { return dropJson(r).then(function (j) { dropClosed(d, str(j.error || j.code) === 'cancelled' ? 'cancelled' : 'done'); }); }
+            if ((st === 429 || st === 502 || st === 503 || st === 504 || st === 0) && tries < DROP_TRIES) {
+              return dropSleep(d, dropBackoff(r, tries)).then(function () { return dropLive(d) ? one(w, tries + 1) : null; });
+            }
+            return dropJson(r).then(function (j) {
+              var code = DROP_PUT_FAIL[st] || (st === 401 ? 'expired' : (st === 429 ? 'busy' : 'net'));
+              if (st === 413 && str(j.error || j.code) === 'quota') { code = 'quota'; }
+              d.put[w.fid] = 'fail:' + code;
+              dropPaint();
+            });
+          });
+        });
+      }).then(null, function () {
+        if (!dropLive(d)) { return null; }
+        if (tries < DROP_TRIES) { return dropSleep(d, T.dropRetry * Math.pow(2, tries - 1)).then(function () { return dropLive(d) ? one(w, tries + 1) : null; }); }
+        d.put[w.fid] = 'fail:net';
+        dropPaint();
+        return null;
+      });
+    }
+    function worker() {
+      if (!dropLive(d) || k >= q.length) { return Promise.resolve(); }
+      var w = q[k++];
+      d.put[w.fid] = 'busy';
+      return one(w, 1).then(worker);
+    }
+    var ws = [];
+    for (i = 0; i < Math.min(dropPar(d), q.length); i++) { ws.push(worker()); }
+    dropPaint();
+    return Promise.all(ws).then(function () {
+      if (!dropLive(d) || d.phase !== 'uploading') { return; }
+      if (miss.length) {
+        // Yenileme sonrasi tutamac yok: yalniz eksik istenenler icin Drop again to continue.
+        d.pending = miss;
+        dropPhase(d, 'needs_files');
+        dropBridge(d, 'needs_files');
+      } else {
+        dropPhase(d, 'ready');
+      }
+      dropPaint();
+      dropArm(d);
+    });
+  }
+  function dropPutCount(d, pre) {
+    var n = 0;
+    for (var k in d.put) { if (Object.prototype.hasOwnProperty.call(d.put, k) && str(d.put[k]).indexOf(pre) === 0) { n++; } }
+    return n;
+  }
+
+  // ------------------------------------------------ yoklama (spec 2.3 TEK kural, 7.3)
+  // Dogrudan GET /status her T.dropStatus; kopru os_drop_status adim gecislerinde + is varken T.dropBridgeBusy,
+  // is yokken T.dropBridgeIdle. jobs:[] VE pending:[] VE zip_pending 0 VE yukleme bitti ise ikisi de durur.
+  function dropWantPoll(d) {
+    var ph = d.phase;
+    if (!d.drop_id || (ph !== 'uploading' && ph !== 'ready' && ph !== 'needs_files')) { return false; }
+    return d.jobs.length > 0 || d.pending.length > 0 || d.zipPending !== 0 || ph === 'uploading';
+  }
+  function dropStopPoll(d) {
+    if (d.t.status) { try { clearTimeout(d.t.status); } catch (e) { /* yut */ } d.t.status = null; }
+    if (d.t.bridge) { try { clearTimeout(d.t.bridge); } catch (e2) { /* yut */ } d.t.bridge = null; }
+  }
+  function dropArm(d) {
+    if (!dropLive(d)) { return; }
+    if (!dropWantPoll(d)) { if (d.t.status || d.t.bridge) { trace('drop:poll_stop'); } dropStopPoll(d); return; }
+    if (!d.t.status && d.ticket) { d.t.status = setTimeout(function () { d.t.status = null; dropStatusNow(d); }, T.dropStatus); }
+    var bms = d.jobs.length ? T.dropBridgeBusy : T.dropBridgeIdle;
+    if (d.t.bridge && d.bridgeMs !== bms) { try { clearTimeout(d.t.bridge); } catch (e) { /* yut */ } d.t.bridge = null; }
+    if (!d.t.bridge) { d.bridgeMs = bms; d.t.bridge = setTimeout(function () { d.t.bridge = null; dropBridge(d, 'tick'); }, bms); }
+  }
+  // start (ack) / resume: bir dogrudan durum HEMEN okunur (zip_pending, jobs, pending ogrenilir); sonra tek kural.
+  function dropPoll(reason) {
+    var d = M.drop;
+    if (!d || !d.drop_id) { return; }
+    dropArm(d);
+    if ((reason === 'start' || reason === 'resume') && d.ticket) {
+      if (d.t.status) { try { clearTimeout(d.t.status); } catch (e) { /* yut */ } }
+      d.t.status = setTimeout(function () { d.t.status = null; dropStatusNow(d); }, 0);
+    }
+  }
+  function dropJobs(list) {
+    var out = [];
+    for (var i = 0; isArr(list) && i < list.length && out.length < 12; i++) {
+      var j = list[i];
+      if (!isObj(j) || !tok(j.kind)) { continue; }
+      out.push({ kind: tok(j.kind), status: tok(j.status) || 'queued', done: num(j.done), total: num(j.total), waiting: tok(j.waiting) });
+    }
+    return out;
+  }
+  // Durum govdesi (10.1 os_drop_status = 10.2 GET status; grant ayri ele alinir, saklanmaz).
+  function dropApply(d, j) {
+    if (!isObj(j)) { return; }
+    dropCounts(d, j);
+    if (isArr(j.jobs)) { d.jobs = dropJobs(j.jobs); }
+    if (isArr(j.pending)) { d.pending = dropFids(j.pending).slice(0, DROP_PENDING_MAX); }
+    var zp = num(j.zip_pending);
+    if (zp !== null) { d.zipPending = zp; } else if (!d.ack) { d.zipPending = 0; }
+    d.status = tok(j.status) || d.status;
+    if (j.expires_at) { d.expires_at = str(j.expires_at).slice(0, 40); }
+    d.retryWait = false;
+    if (d.status === 'cancelled') { dropClosed(d, 'cancelled'); return; }
+    if (d.phase === 'needs_files' && !d.pending.length && d.ack) { dropPhase(d, 'ready'); }
+    dropPaint();
+  }
+  function dropStatusNow(d) {
+    if (!dropLive(d)) { return Promise.resolve(); }
+    return dropCall(d, 'GET', '/status', null, {}).then(function (r) {
+      if (!dropLive(d)) { return null; }
+      if (r.status === 200) { return dropJson(r).then(function (j) { if (dropLive(d)) { dropApply(d, j); } }); }
+      if (r.status === 410) { dropClosed(d, 'cancelled'); }
+      return null;
+    }, function () { return null; }).then(function () { if (dropLive(d)) { dropArm(d); } });
+  }
+  // Kopru os_drop_status: yuk YALNIZ {drop_id, reason?, marks?} (bilet, grant, adres tasinmaz).
+  function dropBridge(d, reason) {
+    if (!dropLive(d) || !d.drop_id) { return Promise.resolve(false); }
+    var pay = { drop_id: d.drop_id }, mk = {}, has = false;
+    if (reason === 'needs_ticket') { pay.reason = 'needs_ticket'; }
+    for (var k in d.marks) { if (Object.prototype.hasOwnProperty.call(d.marks, k) && num(d.marks[k]) !== null) { mk[k] = d.marks[k]; has = true; } }
+    if (has) { pay.marks = mk; d.marks = {}; }
+    trace('drop:bridge');
+    return octo.request('os_drop_status', pay, { retry: false, cacheKey: 'os_drop_status|' + (++DROPX.seq) + '|' + Date.now() }).then(function (b) {
+      if (!dropLive(d)) { return false; }
+      if (str(b && b.status).toUpperCase().indexOf('TIMEOUT') >= 0) { dropRemark(d, has ? mk : null); dropArm(d); return false; }
+      var g = str(b && b.grant);
+      dropApply(d, b);
+      return (g ? dropSession(d, g, true) : Promise.resolve(false)).then(function (ok2) { if (dropLive(d)) { dropArm(d); } return ok2; });
+    }, function (err) {
+      if (!dropLive(d)) { return false; }
+      var c = str(err && err.code);
+      if (c === 'not_found' || c === 'expired') { dropForget(d); return false; }
+      dropRemark(d, has ? mk : null);
+      dropArm(d);
+      return false;
+    });
+  }
+  function dropRemark(d, mk) {
+    if (!mk) { return; }
+    for (var k in mk) { if (Object.prototype.hasOwnProperty.call(mk, k) && !Object.prototype.hasOwnProperty.call(d.marks, k)) { d.marks[k] = mk[k]; } }
+  }
+  // Olcum damgalari (spec 7.6): t1_click (Know'a giris), hire_at (yapilandirici Hire), t_b (yeni tablo bulundu).
+  function dropMark(o) {
+    var d = M.drop;
+    if (!d || !d.drop_id || !isObj(o)) { return; }
+    var any = false;
+    var keys = ['t1_click', 'hire_at', 't_b'];
+    for (var i = 0; i < keys.length; i++) { var v = num(o[keys[i]]); if (v !== null && v > 0) { d.marks[keys[i]] = Math.floor(v); any = true; } }
+    if (any) { dropBridge(d, 'step'); }
+  }
+
+  // ------------------------------------------------ Start over / Remove files (spec 3.2, 10.1): soru yok
+  function dropCancel() {
+    var d = M.drop;
+    if (!d) { return; }
+    var id = d.drop_id;
+    dropStop(d);
+    d.files = {}; d.ticket = ''; d.entries = null; d.ing = null;
+    M.drop = null;
+    ssDel(DROP_SS);
+    trace('drop:cancel');
+    if (id) { octo.request('os_drop_cancel', { drop_id: id }, { retry: false, cacheKey: 'os_drop_cancel|' + (++DROPX.seq) }).then(function () {}, function () {}); }
+    dropPaint();
+  }
+  // Harness dikisi: bellekteki oturumu kopru cagrisi olmadan birakir.
+  function dropReset() {
+    if (M.drop) { dropStop(M.drop); M.drop = null; }
+    return true;
+  }
+  // Yenileme (spec 2.1): sayfa deposundaki drop_id ile kopru os_drop_status -> grant -> /session; eksik tutamaclar
+  // icin needs_files. M.drop doluysa (Home ikinci kez acildi) yalniz from guncellenir.
+  function dropResume(where) {
+    var from = where === 'home' ? 'home' : 'data';
+    if (M.drop) { if (where === 'home') { M.drop.from = from; } dropArm(M.drop); return; }
+    var raw = ssGet(DROP_SS);
+    if (raw === null) { return; }
+    var o = null;
+    try { o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
+    if (!isObj(o) || !DROP_ID_RE.test(str(o.drop_id))) { ssDel(DROP_SS); trace('drop:ss_bad'); return; }
+    var d = dropNew(from);
+    d.drop_id = str(o.drop_id);
+    d.sheet_id = idOk(o.sheet_id) ? str(o.sheet_id) : '';
+    if (DROP_URL_RE.test(str(o.upload_url))) { d.upload_url = str(o.upload_url); }
+    d.phase = 'needs_files';
+    M.drop = d;
+    trace('drop:resume');
+    dropPaint();
+    // the ticket lived only in page memory, so a reload always asks for a fresh one (server grants only on needs_ticket/needs_files)
+    octo.request('os_drop_status', { drop_id: d.drop_id, reason: 'needs_ticket' }, { retry: false, cacheKey: 'os_drop_status|' + (++DROPX.seq) + '|' + Date.now() }).then(function (b) {
+      if (!dropLive(d)) { return null; }
+      if (str(b && b.status).toUpperCase().indexOf('TIMEOUT') >= 0) { dropStop(d); M.drop = null; dropPaint(); return null; }
+      var g = str(b && b.grant);
+      dropApply(d, b);
+      if (!dropLive(d)) { return null; }
+      if (d.pending.length) { dropPhase(d, 'needs_files'); }
+      else if (!d.jobs.length && (d.status === 'done' || d.status === 'cancelled')) { dropForget(d); return null; }
+      else { dropPhase(d, 'ready'); }
+      dropPaint();
+      return (g ? dropSession(d, g, true) : Promise.resolve(false)).then(function () { if (dropLive(d)) { dropPoll('resume'); } });
+    }, function (err) {
+      if (!dropLive(d)) { return null; }
+      var c = str(err && err.code);
+      if (c === 'not_found' || c === 'expired' || c === 'bad_request') { dropForget(d); return null; }
+      // gecici hata: kayit sonraki yuklemeye kalir, alan birakma durumunda
+      dropStop(d);
+      M.drop = null;
+      dropPaint();
+      return null;
+    });
+  }
+
+  // ------------------------------------------------ yuzey: Home Connect karti (montaj 1) ve #octo-home perdesi
+  function dropSig() {
+    var d = M.drop;
+    if (!d) { return ''; }
+    return [d.phase, d.code, d.noOrg ? 1 : 0, d.ack ? 1 : 0, d.zipPending, d.n.files, d.n.folders, d.wanted.length, dropPutCount(d, 'ok'),
+      dropPutCount(d, 'fail'), d.upDone, d.pending.length, d.caps ? d.caps.zip_mb : ''].join(':');
+  }
+  function dropNoOrg(H) {
+    var c = str(H && H.code);
+    return c === 'bad_request' || c === 'gate_bad_request' || !!(M.drop && M.drop.noOrg);
+  }
+  function dropShown(d) {
+    if (!d || d.phase === 'cancelled') { return 'idle'; }
+    return d.phase;
+  }
+  function dropText(d, ph) {
+    if (ph === 'wake') { return 'Waking up'; }
+    if (ph === 'open' || ph === 'reading' || ph === 'manifest') { return 'Reading your files'; }
+    if (ph === 'uploading') { return 'Uploading ' + fmtCount(d.wanted.length) + (d.wanted.length === 1 ? ' file' : ' files'); }
+    if (ph === 'ready') { return 'Files ready'; }
+    if (ph === 'needs_files') { return 'Drop again to continue'; }
+    if (ph === 'error') { return 'Could not finish'; }
+    return 'Drop files or folders';
+  }
+  function dropCanPick(ph) { return ph === 'idle' || ph === 'needs_files' || ph === 'ready' || ph === 'error'; }
+  // Gizli dosya girdisi amac basina TEK dugum (yeniden boyamada tasinir; acik dosya penceresinin change olayi kaybolmaz).
+  function dropInput(dir, photo, from) {
+    var key = (from === 'data' ? 'data' : 'home') + (photo ? '-photo' : (dir ? '-dir' : '-add'));
+    if (!DROPX.inp) { DROPX.inp = {}; }
+    if (DROPX.inp[key]) { return DROPX.inp[key]; }
+    var i = D.createElement('input');
+    DROPX.inp[key] = i;
+    i.type = 'file';
+    i.className = 'octo-drop-in';
+    i.tabIndex = -1;
+    i.setAttribute('aria-hidden', 'true');
+    if (photo) { i.accept = 'image/*'; i.setAttribute('capture', 'environment'); }
+    else {
+      i.multiple = true;
+      if (dir && ('webkitdirectory' in i)) { i.setAttribute('webkitdirectory', ''); }
+    }
+    i.setAttribute('data-k', photo ? 'drop-in-photo' : (dir ? 'drop-in-dir' : 'drop-in'));
+    i.addEventListener('change', function () {
+      var ents = dropFromFiles(i.files);
+      try { i.value = ''; } catch (e) { /* yut */ }
+      if (!ents.length) { return; }
+      dropStart(ents, from === 'data' ? { from: 'data', sheet_id: sheetId() } : { from: 'home' });
+    });
+    return i;
+  }
+  // Durum satirlari (yalniz sunucu sayilari; cevap gelmeden sayac satiri yok).
+  function dropLines(z, d, ph) {
+    if (ph === 'wake' || ph === 'open' || ph === 'reading' || ph === 'manifest') {
+      var wt = el('div', 'octo-drop-wait');
+      wt.setAttribute('aria-hidden', 'true');
+      z.appendChild(wt);
+    }
+    if (!d) { return; }
+    if ((ph === 'manifest' || ph === 'uploading' || ph === 'ready') && d.n.files !== null) {
+      var c = el('div', 'octo-drop-n');
+      c.setAttribute('data-k', 'drop-counts');
+      c.appendChild(el('span', '', 'Files found ' + fmtCount(d.n.files)));
+      c.appendChild(el('span', '', 'Folders ' + fmtCount(d.n.folders || 0)));
+      z.appendChild(c);
+    }
+    if (ph === 'uploading' && d.upTotal > 0) {
+      var b = el('div', 'octo-drop-n');
+      b.setAttribute('data-k', 'drop-bytes');
+      b.appendChild(el('span', '', fmtBytes(d.upDone) + ' of ' + fmtBytes(d.upTotal)));
+      z.appendChild(b);
+    }
+    var fails = dropPutCount(d, 'fail');
+    if (ph === 'ready' && fails > 0) {
+      z.appendChild(el('div', 'octo-drop-n octo-drop-fail', fmtCount(fails) + (fails === 1 ? ' file not readable' : ' files not readable')));
+    }
+    if (ph === 'needs_files') {
+      var p = d.pending.length;
+      z.appendChild(el('div', 'octo-drop-n', fmtCount(p) + (p === 1 ? ' file' : ' files')));
+    }
+  }
+  function dropDeskZone(d, ph) {
+    var z = el('div', 'octo-drop');
+    z.setAttribute('data-k', 'drop-zone');
+    z.setAttribute('data-phase', ph);
+    z.setAttribute('role', 'button');
+    z.setAttribute('tabindex', '0');
+    z.setAttribute('aria-label', 'Drop files or folders');
+    var inp = dropInput(true, false, 'home');
+    z.appendChild(inp);
+    var t = el('div', 'octo-drop-t');
+    t.appendChild(octo.icon(ph === 'error' ? 'alert' : 'folder', 18));
+    t.appendChild(el('span', '', dropText(d, ph)));
+    if (ph === 'ready') { t.appendChild(okMark()); }
+    z.appendChild(t);
+    dropLines(z, d, ph);
+    function pick(e) {
+      if (!dropCanPick(ph)) { return; }
+      var tg = e && e.target;
+      if (tg && tg !== z && typeof tg.closest === 'function' && tg.closest('button, input')) { return; }
+      try { inp.click(); } catch (x) { /* yut */ }
+    }
+    z.addEventListener('click', pick);
+    z.addEventListener('keydown', function (e) {
+      if (e && (e.key === 'Enter' || e.key === ' ')) { try { e.preventDefault(); } catch (x) { /* yut */ } pick(null); }
+    });
+    return z;
+  }
+  // Telefon (spec 2.1 Mobil): surukleme yok; Add files + Take a photo; zip tavani yalniz sunucu caps'inden.
+  function dropPhoneZone(d, ph) {
+    var z = el('div', 'octo-drop is-phone');
+    z.setAttribute('data-phase', ph);
+    if (ph !== 'idle') {
+      var t = el('div', 'octo-drop-t');
+      t.appendChild(el('span', '', dropText(d, ph)));
+      if (ph === 'ready') { t.appendChild(okMark()); }
+      z.appendChild(t);
+      dropLines(z, d, ph);
+    }
+    var bt = el('div', 'octo-drop-btns');
+    var ai = dropInput(false, false, 'home');
+    var a = withIcon(btn('is-ghost', 'Add files', 'Add files', 'drop-add'), 'plus');
+    a.addEventListener('click', function () { if (dropCanPick(ph)) { try { ai.click(); } catch (x) { /* yut */ } } });
+    var pi = dropInput(false, true, 'home');
+    var p = withIcon(btn('is-ghost', 'Take a photo', 'Take a photo', 'drop-photo'), 'image');
+    p.addEventListener('click', function () { if (dropCanPick(ph)) { try { pi.click(); } catch (x) { /* yut */ } } });
+    bt.appendChild(a); bt.appendChild(ai); bt.appendChild(p); bt.appendChild(pi);
+    z.appendChild(bt);
+    z.appendChild(el('div', 'octo-drop-hint', 'Zip your folder first'));
+    var zm = (d && d.caps) ? num(d.caps.zip_mb) : null;
+    if (zm !== null && zm > 0) {
+      var c = el('div', 'octo-drop-cap');
+      c.appendChild(el('span', '', 'Zip under '));
+      c.appendChild(el('span', 'octo-drop-capn', String(zm)));
+      c.appendChild(el('span', '', ' MB'));
+      z.appendChild(c);
+    }
+    return z;
+  }
+  // Yeniden dene: ayni girdilerle yeni os_drop_open (sunucu acik oturumu resume eder); sekil hatasinda Start over.
+  function dropRetry() {
+    var d = M.drop;
+    if (!d) { return; }
+    if (d.entries && d.code !== 'bad_request') {
+      var ents = d.entries, from = d.from, sid = d.sheet_id;
+      dropStop(d);
+      M.drop = null;
+      dropStart(ents, { from: from, sheet_id: sid });
+      return;
+    }
+    dropCancel();
+  }
+  function dropHomeZone(H) {
+    var box = el('div', 'octo-drop-box');
+    if (dropNoOrg(H)) {
+      var r = el('div', 'octo-onb-row octo-drop-noorg');
+      r.setAttribute('data-k', 'drop-noorg');
+      r.setAttribute('role', 'status');
+      r.appendChild(octo.icon('alert', 18));
+      r.appendChild(el('span', 'octo-onb-name', 'Create your company'));
+      box.appendChild(r);
+      return box;
+    }
+    var d = M.drop, ph = dropShown(d);
+    box.appendChild(isPhone() ? dropPhoneZone(d, ph) : dropDeskZone(d, ph));
+    if (ph === 'error') { box.appendChild(homeErr('Could not finish', dropRetry, 'drop-err')); }
+    if (ph !== 'idle') {
+      var acts = el('div', 'octo-drop-acts');
+      var so = btn('is-link', 'Start over', 'Start over', 'drop-reset');
+      so.setAttribute('data-k', 'drop-reset');
+      so.addEventListener('click', function () { dropCancel(); });
+      acts.appendChild(so);
+      box.appendChild(acts);
+    }
+    return box;
+  }
+  // #octo-home perdesi (Architect H:980-987, H:9569-9586 kalibi): depth sayaci, yalniz Files tasiyan surukleme.
+  function dropHomeVeil(H, n) {
+    var v = el('div', 'octo-home-veil');
+    v.setAttribute('aria-hidden', 'true');
+    v.appendChild(el('span', '', 'Drop files or folders'));
+    n.appendChild(v);
+    var depth = 0;
+    function on(x) { if (x) { v.classList.add('is-active'); } else { v.classList.remove('is-active'); } }
+    n.addEventListener('dragenter', function (e) {
+      if (!dropHasFiles(e)) { return; }
+      try { e.preventDefault(); } catch (x) { /* yut */ }
+      depth++;
+      on(true);
+    });
+    n.addEventListener('dragover', function (e) {
+      if (!dropHasFiles(e)) { return; }
+      try { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } catch (x) { /* yut */ }
+    });
+    n.addEventListener('dragleave', function () {
+      depth = Math.max(0, depth - 1);
+      if (!depth) { on(false); }
+    });
+    n.addEventListener('drop', function (e) {
+      depth = 0;
+      on(false);
+      if (!dropHasFiles(e)) { return; }
+      try { e.preventDefault(); } catch (x) { /* yut */ }
+      if (M.home !== H || dropNoOrg(H)) { return; }
+      var ents = dropFromEvent(e);
+      if (ents.length) { dropStart(ents, { from: 'home' }); }
+    });
+  }
+
+  // ------------------------------------------------ Data karti (montaj 2, spec 2.4): Drop files + depo eylemi
+  function dropKeep() {
+    var d = M.drop;
+    if (!d || !d.drop_id || d.kept || d.keepBusy) { return; }
+    d.keepBusy = true;
+    dropPaint();
+    octo.request('os_drop_keep', { drop_id: d.drop_id, mode: 'gaia' }, { retry: false, cacheKey: 'os_drop_keep|' + (++DROPX.seq) }).then(function (b) {
+      if (M.drop !== d) { return; }
+      d.keepBusy = false;
+      if (isObj(b) && b.ok !== false && str(b.status).toUpperCase().indexOf('TIMEOUT') < 0) { d.kept = true; trace('drop:keep'); }
+      dropPaint();
+    }, function () {
+      // unavailable / bad_request / quota / busy: satir degismez, hata satiri yok (Dilim 1'de retain yok).
+      if (M.drop !== d) { return; }
+      d.keepBusy = false;
+      dropPaint();
+    });
+  }
+  function dropDataRows() {
+    var box = el('div', 'octo-drop-rows');
+    var d = M.drop, ph = dropShown(d);
+    var r = el('div', 'octo-rail-item octo-drop-data');
+    // Telefon (spec 2.1 Mobil): klasor secici yok; coklu dosya girdisi (zip dahil).
+    var inp = dropInput(!isPhone(), false, 'data');
+    var b = withIcon(btn('is-ghost', 'Drop files', 'Drop files', 'drop-data'), 'file');
+    b.addEventListener('click', function () { if (dropCanPick(ph)) { try { inp.click(); } catch (e) { /* yut */ } } });
+    r.appendChild(b);
+    r.appendChild(inp);
+    if (d && d.from === 'data' && ph !== 'idle') { r.appendChild(el('span', 'octo-rail-muted octo-drop-st', dropText(d, ph))); }
+    box.appendChild(r);
+    if (d && d.drop_id && d.n.files !== null) {
+      var s = el('div', 'octo-rail-item octo-drop-stay');
+      s.setAttribute('data-k', 'drop-stay');
+      s.appendChild(el('span', 'octo-drop-stay-t', 'Files stay on your computer'));
+      s.appendChild(el('span', 'octo-drop-stay-b', fmtBytes(d.bytes)));
+      s.appendChild(el('span', 'octo-drop-stay-n', fmtCount(d.n.files) + (d.n.files === 1 ? ' file' : ' files')));
+      var k = btn('is-ghost', 'Keep files', 'Keep files', 'drop-keep');
+      if (d.kept || d.keepBusy) { k.disabled = true; }
+      k.addEventListener('click', dropKeep);
+      s.appendChild(k);
+      var x = btn('is-link', 'Remove files', 'Remove files', 'drop-remove');
+      x.addEventListener('click', function () { dropCancel(); });
+      s.appendChild(x);
+      box.appendChild(s);
+    }
+    return box;
+  }
+  var DROP_TOOLS = {
+    ingest: dropIngest, start: dropStart, cancel: dropCancel, resume: dropResume, poll: dropPoll, reset: dropReset, ready: dropReady,
+    fid: dropFid, fidSecret: dropFidSecret, sha256: dropSha256Hex, fold: dropFold, secretName: dropSecretName,
+    skipName: dropSkipName, fmtBytes: fmtBytes, fromFiles: dropFromFiles, mark: dropMark
+  };
+  // ---- drop end
+
+  // ---- jobs
+  // os7 (OCTO_DROP_SPEC 2.3, 7.4): tek ray karti "Working in the background". Kart sirasi first ile agent arasi
+  // (PROD:99-104; needs Dilim 2). Satirlar yalniz sunucu os_jobs ilerlemesinden (d.jobs); Dilim 1 yalniz Fields ve
+  // Files cizilir, Records ve Tasks (Dilim 2) atlanir. Sahte yuzde yok; dondurucu yalniz dogrudan istek ucustayken
+  // (d.busy). Is bitince satir kalkar; hic kalmayinca kart gizlenir ve First run karti (arrStart) devralir.
+  // Hata satiri: Could not finish + Retry; Retry tek kuyruk durtme eylemi os_jobs_tick {} (SECIM; attempts sunucuda).
+  var JOB_NAMES = { fields: 'Fields', files: 'Files' };
+  function dropJobsList(d) {
+    var out = [];
+    if (!d || !isArr(d.jobs)) { return out; }
+    for (var i = 0; i < d.jobs.length; i++) { if (Object.prototype.hasOwnProperty.call(JOB_NAMES, d.jobs[i].kind)) { out.push(d.jobs[i]); } }
+    return out;
+  }
+  function dropJobsVisible() { var d = M.drop; return !!(d && d.drop_id && dropJobsList(d).length > 0); }
+  // Varis karti (first) tembel kurulur ve agent'in onune girer; jobs karti her boyamada first'un hemen ALTINA alinir.
+  function jobsPlace(sec) {
+    var f = M.secs.first;
+    if (!f || !sec || f.parentNode !== sec.parentNode) { return; }
+    try {
+      if (sec.compareDocumentPosition(f) & 4) { sec.parentNode.insertBefore(sec, f.nextSibling); }
+    } catch (e) { /* yut */ }
+  }
+  function jobsRetry() {
+    var d = M.drop;
+    if (!d || d.retryWait) { return; }
+    d.retryWait = true;
+    trace('jobs:retry');
+    paintSoon('jobs');
+    octo.request('os_jobs_tick', {}, { retry: false, cacheKey: 'os_jobs_tick|' + (++DROPX.seq) }).then(function () {
+      if (M.drop === d) { dropArm(d); }
+    }, function () {
+      if (M.drop !== d) { return; }
+      d.retryWait = false;
+      paintSoon('jobs');
+    });
+  }
+  function jobsErr(d) {
+    var r = el('div', 'octo-rail-err octo-jobs-err');
+    r.setAttribute('role', 'status');
+    r.appendChild(octo.icon('alert', 16));
+    r.appendChild(el('span', 'octo-rail-err-t', 'Could not finish'));
+    var b = btn('is-link', 'Retry', 'Retry', 'jobs-retry');
+    if (d.retryWait) { b.disabled = true; }
+    b.addEventListener('click', jobsRetry);
+    r.appendChild(b);
+    return r;
+  }
+  PAINT.jobs = function (sec) {
+    var d = M.drop;
+    jobsPlace(sec);
+    var body = frame(sec, 'jobs', 'Working in the background', { busy: !!(d && d.busy > 0) });
+    var list = dropJobsList(d), live = false, err = false;
+    for (var i = 0; i < list.length; i++) {
+      var j = list[i];
+      var r = el('div', 'octo-jobs-row');
+      r.setAttribute('data-kind', j.kind);
+      r.setAttribute('data-status', j.status);
+      r.appendChild(el('span', 'octo-jobs-name', JOB_NAMES[j.kind]));
+      // Ayirac orta nokta CSS ::before ile (kaynak ASCII); sayilar ayri textContent.
+      r.appendChild(el('span', 'octo-jobs-state', j.status));
+      if (j.done !== null && j.total !== null) { r.appendChild(el('span', 'octo-jobs-n', fmtCount(j.done) + ' of ' + fmtCount(j.total))); }
+      if (j.waiting === 'session') { r.appendChild(el('span', 'octo-jobs-wait', 'Open Gaia to continue')); }
+      body.appendChild(r);
+      if (j.status === 'error' && !err) { err = true; body.appendChild(jobsErr(d)); }
+      if (j.status === 'queued' || j.status === 'running') { live = true; }
+    }
+    if (live) { body.appendChild(el('div', 'octo-jobs-keep', 'Keep this page open')); }
+  };
+  // ---- jobs end
+
   // ======================================================= teshis (?rail=debug)
   // Operator araci: yalniz ?rail=debug ile (sekme oturumu boyunca), sol altta kucuk hap; dokununca
   // noktaya iner (telefonda tabloyu kapatmaz). YALNIZ kisa belirtecler ve id'ler: kullanici icerigi,
@@ -57999,6 +59396,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     arrResolve: arrResolve,
     linksWrite: linksWrite,
     trReset: trReset,
+    dropTools: DROP_TOOLS,
     trState: function () { return { armed: TR.armed, ended: TR.ended, job: TR.job, text: TR.node ? String(TR.node.textContent || '') : '' }; },
     TABS: TABS,
     setCollapsed: setCollapsed,
@@ -58015,6 +59413,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     Object.defineProperty(api, 'tab', { get: function () { return M.tab; }, enumerable: true, configurable: true });
     // os5 Home (salt okunur): data (os_home), map, args, step; teshis ve harness icin.
     Object.defineProperty(api, 'home', { get: function () { return M.home; }, enumerable: true, configurable: true });
+    // os7 drop (salt okunur): birakma oturumu (bilet bellekte; teshis ve harness icin).
+    Object.defineProperty(api, 'drop', { get: function () { return M.drop; }, enumerable: true, configurable: true });
     Object.defineProperty(api, 'dbgState', { get: function () { return dbgState(); }, enumerable: true, configurable: true });
     Object.defineProperty(octo, '_rail', { value: api, writable: false, enumerable: false, configurable: true });
   } catch (e) { /* yut */ }
