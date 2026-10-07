@@ -50481,7 +50481,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     return c;
   }
   // Acik tablo parametresi: adres sorgusunda ?sheet=<Bubble id> (harness: W.__octoRailQuery), yoksa #bubble-options
-  // sheet_id. Sunucu henuz okumuyor (os_workspace yok sayar, baska aday yoksa not_found: ray cizilmez); zararsiz.
+  // sheet_id. Sunucu (07.10 OCTO-WS-SHEET) sheet_id'yi screen'den sonra cozer; eski sunucu yok sayar (not_found, ray yok).
   function optSheet() {
     var v = '';
     var m = /[?&]sheet=([^&#]*)/.exec(railQuery());
@@ -57789,7 +57789,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     }
     homeLand(H, id);
   }
-  // Yonlendirmeden HEMEN once: ray isareti (markerTtl) ve devir kaydi tazelenir, sonra /app/<id> + ayni sorgu.
+  // Yonlendirmeden HEMEN once: ray isareti (markerTtl) ve devir kaydi tazelenir, sonra kendi sayfasi + ayni sorgu + sheet=<id>.
   function homeLand(H, id) {
     var mk = null;
     try { mk = JSON.parse(ssGet(MARK_KEY) || 'null'); } catch (e) { mk = null; }
@@ -57804,11 +57804,24 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     paintSoon('home');
     homeGo(id);
   }
+  // 07.10 inceleme: /app/<id> sayfanin KULLANICISIDIR, tablo degil; tablo ?sheet=<id> ile acilir (optSheet okur, sunucu
+  // os_workspace sheet_id'yi cozer). Hedef = oturum kullanicisinin kendi sayfasi: Home yalniz orada acilir, yol (slug
+  // dahil, Bubble surum oneki korunur) aynen kalir; degilse [/version-x]/app/<oturum kullanicisi>. Sorgu korunur, eski
+  // sheet= atilir, sonuna sheet=<id> eklenir.
   function homeGo(id) {
     if (!idOk(id)) { return; }
-    // Bubble surum oneki (/version-test) korunur; yoksa bos.
-    var pre = (/^(\/version-[a-z0-9-]+)?\/app\//.exec(homePath()) || ['', ''])[1] || '';
-    var u = pre + '/app/' + id + railQuery();
+    var hp = homePath();
+    var m = /^(\/version-[a-z0-9-]+)?\/app\/[^\/?#]+/.exec(hp);
+    var path = (m && homeOwn()) ? m[0] : '';
+    if (!path) {
+      var me = '';
+      try { me = str(octo.page.ids().user_id).trim(); } catch (e0) { me = ''; }
+      if (!idOk(me)) { return; }
+      path = ((/^(\/version-[a-z0-9-]+)?\/app\//.exec(hp) || ['', ''])[1] || '') + '/app/' + me;
+    }
+    var qs = railQuery().replace(/^\?/, '').split('&').filter(function (kv) { return !!kv && !/^sheet=/.test(kv); });
+    qs.push('sheet=' + encodeURIComponent(id));
+    var u = path + '?' + qs.join('&');
     try {
       if (typeof W.__octoAssign === 'function') { W.__octoAssign(u); return; }
       W.location.assign(u);
@@ -57902,7 +57915,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       try { H.node.focus({ preventScroll: true }); } catch (e) { try { H.node.focus(); } catch (e2) { /* yut */ } }
     }
   }
-  // Mevcut tablolar (yalniz os_home.sheets, DB adlariyla): Open table ayni sorgu ile /app/<id>.
+  // Mevcut tablolar (yalniz os_home.sheets, DB adlariyla): Open table ayni sorgu ile kendi sayfasi + sheet=<id> (homeGo).
   function homeTables(H) {
     var sh = (H.data && H.data.sheets) || [];
     if (!sh.length) { return; }
