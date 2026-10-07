@@ -1753,6 +1753,243 @@
 #dynamic-table-wrapper .dt-cell-link + .dt-cell-link { margin-left: 10px; }
 #dynamic-table-wrapper .dt-cell-link--wa { color: #15803d; font-weight: 600; }
 #dynamic-table-wrapper .dt-cell-more { margin-left: 6px; color: var(--gx-ink-2, #475569); font-size: 12px; }
+/* GX-USERS (06.10): User cells — initials avatar + name chip. The chip takes its colours from the gx tokens only, so a
+   dark token set restyles it with no extra rule; the avatar hue is per person (gxToneIndex of the id, the pill palette's
+   deep shades, tone 7 fuchsia) and its white initials read on light and dark. 20 px tall = the pill height (36 px row). */
+#dynamic-table-wrapper .dt-users { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; vertical-align: middle; }
+#dynamic-table-wrapper .dt-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  height: 20px;
+  padding: 0 8px 0 1px;
+  border: 1px solid var(--gx-line, #e2e8f0);
+  border-radius: var(--gx-r-pill, 999px);
+  background: var(--gx-field, #f6f7f9);
+  color: var(--dt-text, #0f172a);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+#dynamic-table-wrapper .dt-user-av {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gx-primary-deep, #4f46e5);
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+}
+#dynamic-table-wrapper .dt-user-av[data-tone="1"] { background: #3730a3; }
+#dynamic-table-wrapper .dt-user-av[data-tone="2"] { background: #065f46; }
+#dynamic-table-wrapper .dt-user-av[data-tone="3"] { background: #92400e; }
+#dynamic-table-wrapper .dt-user-av[data-tone="4"] { background: #9f1239; }
+#dynamic-table-wrapper .dt-user-av[data-tone="5"] { background: #075985; }
+#dynamic-table-wrapper .dt-user-av[data-tone="6"] { background: #5b21b6; }
+#dynamic-table-wrapper .dt-user-av[data-tone="7"] { background: #a21caf; }   /* not the pill's lime: two greens side by side read as one */
+#dynamic-table-wrapper .dt-user-av[data-tone="8"] { background: #334155; }
+#dynamic-table-wrapper .dt-user-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#dynamic-table-wrapper .dt-user--unknown { background: transparent; border-style: dashed; color: var(--gx-ink-3, #94a3b8); font-weight: 400; }
+/* the avatar keeps the person's tone (review 06.10: a grey avatar made every unknown person look the same), only faded */
+#dynamic-table-wrapper .dt-user--unknown .dt-user-av { opacity: .6; }
+/* GX-PEOPLE (07.10): the collaborative layer — "You" marker, people bar (facepile + counts), "+N" list, hover card.
+   Colours from the gx tokens only (a dark token set restyles all of it); the avatar tones are the GX-USERS deep shades with
+   white initials. */
+#dynamic-table-wrapper .dt-user--me .dt-user-av { box-shadow: 0 0 0 1.5px var(--gx-surface, #ffffff), 0 0 0 3px var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-user-you {
+  flex: 0 0 auto;
+  margin-left: 1px;
+  padding: 0 5px;
+  border: 1px solid var(--gx-line, #e2e8f0);
+  border-radius: var(--gx-r-pill, 999px);
+  background: var(--gx-surface, #ffffff);
+  color: var(--gx-primary, #6366f1);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+}
+#dynamic-table-wrapper .dt-user--off .dt-user-name { color: var(--gx-ink-3, #94a3b8); }
+#dynamic-table-wrapper .dt-people {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  border-top: 1px solid var(--gx-line-soft, #eef2f7);
+  background: var(--gx-surface, #ffffff);
+  color: var(--gx-ink-2, #475569);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-people::-webkit-scrollbar { display: none; }
+#dynamic-table-wrapper .dt-people[hidden] { display: none; }
+#dynamic-table-wrapper .dt-people-col { flex: 0 1 auto; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper .dt-people-colsel {
+  flex: 0 0 auto;
+  height: 30px;
+  max-width: 200px;
+  padding: 0 6px;
+  border: 1px solid var(--gx-line, #e2e8f0);
+  border-radius: var(--gx-r-sm, 6px);
+  background: var(--gx-surface, #ffffff);
+  color: var(--gx-ink, #0f172a);
+  font: 600 12px var(--gx-font, system-ui);
+}
+#dynamic-table-wrapper .dt-people-pile { display: flex; align-items: center; flex: 0 0 auto; padding-left: 6px; }
+#dynamic-table-wrapper .dt-people-av {
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  margin-left: -6px;
+  padding: 0;
+  border: 2px solid var(--gx-surface, #ffffff);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gx-primary-deep, #4f46e5);
+  color: #fff;
+  font: 700 10.5px/1 var(--gx-font, system-ui);
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: transform var(--dt-motion, 140ms) ease;
+}
+#dynamic-table-wrapper .dt-people-av:hover { transform: translateY(-2px); z-index: 2; }
+#dynamic-table-wrapper .dt-people-av:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 2px; z-index: 3; }
+#dynamic-table-wrapper .dt-people-av.is-me { box-shadow: 0 0 0 1.5px var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-people-av.is-off { opacity: .55; }
+#dynamic-table-wrapper .dt-people-av.is-unknown { opacity: .7; }
+#dynamic-table-wrapper .dt-people-av[aria-pressed="true"] { border-color: var(--gx-primary, #6366f1); box-shadow: var(--gx-ring, 0 0 0 3px rgba(99,102,241,.12)); transform: translateY(-2px); z-index: 2; opacity: 1; }
+#dynamic-table-wrapper .dt-people-more { background: var(--gx-field, #f6f7f9); color: var(--gx-ink-2, #475569); border-color: var(--gx-surface, #ffffff); box-shadow: inset 0 0 0 1px var(--gx-line, #e2e8f0); font-weight: 600; }
+#dynamic-table-wrapper .dt-people-av[data-tone="1"], #dynamic-table-wrapper .dt-people-iav[data-tone="1"], #dynamic-table-wrapper .dt-pcard-av[data-tone="1"] { background: #3730a3; }
+#dynamic-table-wrapper .dt-people-av[data-tone="2"], #dynamic-table-wrapper .dt-people-iav[data-tone="2"], #dynamic-table-wrapper .dt-pcard-av[data-tone="2"] { background: #065f46; }
+#dynamic-table-wrapper .dt-people-av[data-tone="3"], #dynamic-table-wrapper .dt-people-iav[data-tone="3"], #dynamic-table-wrapper .dt-pcard-av[data-tone="3"] { background: #92400e; }
+#dynamic-table-wrapper .dt-people-av[data-tone="4"], #dynamic-table-wrapper .dt-people-iav[data-tone="4"], #dynamic-table-wrapper .dt-pcard-av[data-tone="4"] { background: #9f1239; }
+#dynamic-table-wrapper .dt-people-av[data-tone="5"], #dynamic-table-wrapper .dt-people-iav[data-tone="5"], #dynamic-table-wrapper .dt-pcard-av[data-tone="5"] { background: #075985; }
+#dynamic-table-wrapper .dt-people-av[data-tone="6"], #dynamic-table-wrapper .dt-people-iav[data-tone="6"], #dynamic-table-wrapper .dt-pcard-av[data-tone="6"] { background: #5b21b6; }
+#dynamic-table-wrapper .dt-people-av[data-tone="7"], #dynamic-table-wrapper .dt-people-iav[data-tone="7"], #dynamic-table-wrapper .dt-pcard-av[data-tone="7"] { background: #a21caf; }
+#dynamic-table-wrapper .dt-people-av[data-tone="8"], #dynamic-table-wrapper .dt-people-iav[data-tone="8"], #dynamic-table-wrapper .dt-pcard-av[data-tone="8"] { background: #334155; }
+#dynamic-table-wrapper .dt-people-pill {
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--gx-line, #e2e8f0);
+  border-radius: var(--gx-r-pill, 999px);
+  background: var(--gx-surface, #ffffff);
+  color: var(--gx-ink-2, #475569);
+  font: 500 12px/1 var(--gx-font, system-ui);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--dt-motion, 140ms) ease, color var(--dt-motion, 140ms) ease;
+}
+#dynamic-table-wrapper .dt-people-pill:hover { border-color: var(--gx-ink-3, #94a3b8); color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper .dt-people-pill:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 1px; }
+#dynamic-table-wrapper .dt-people-pill[aria-pressed="true"] { border-color: var(--gx-primary, #6366f1); color: var(--gx-primary, #6366f1); box-shadow: var(--gx-ring, 0 0 0 3px rgba(99,102,241,.12)); font-weight: 600; }
+#dynamic-table-wrapper .dt-people-n { margin-left: 5px; color: var(--gx-ink-3, #94a3b8); font-variant-numeric: tabular-nums; }
+#dynamic-table-wrapper .dt-people-pill[aria-pressed="true"] .dt-people-n { color: inherit; }
+#dynamic-table-wrapper .dt-people-note { flex: 0 0 auto; color: var(--gx-ink-3, #94a3b8); white-space: nowrap; }
+#dynamic-table-wrapper .dt-people-clear { flex: 0 0 auto; height: 30px; padding: 0 4px; border: 0; background: none; color: var(--gx-primary, #6366f1); font: 500 12px var(--gx-font, system-ui); text-decoration: underline; cursor: pointer; }
+#dynamic-table-wrapper .dt-people-clear:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 1px; border-radius: var(--gx-r-sm, 6px); }
+#dynamic-table-wrapper .dt-people-pop {
+  position: absolute;
+  z-index: 1000;   /* above the Handsontable clones (z-index ~100) */
+  width: 268px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--gx-line, #e2e8f0);
+  border-radius: var(--gx-r-md, 10px);
+  background: var(--gx-surface, #ffffff);
+  color: var(--gx-ink, #0f172a);
+  box-shadow: var(--gx-shadow-md, 0 8px 24px -12px rgba(15,23,42,.18));
+}
+#dynamic-table-wrapper .dt-people-h { padding: 8px 8px 4px; color: var(--gx-ink-3, #94a3b8); font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+#dynamic-table-wrapper .dt-people-empty { padding: 4px 8px 8px; color: var(--gx-ink-3, #94a3b8); font-size: 12px; }
+#dynamic-table-wrapper .dt-people-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--gx-r-sm, 6px);
+  background: none;
+  color: var(--gx-ink, #0f172a);
+  font: 13px var(--gx-font, system-ui);
+  text-align: left;
+  cursor: pointer;
+}
+#dynamic-table-wrapper .dt-people-item:hover:not([disabled]),
+#dynamic-table-wrapper .dt-people-item:focus-visible { background: var(--gx-field, #f6f7f9); outline: none; }
+#dynamic-table-wrapper .dt-people-item[aria-pressed="true"] { background: var(--gx-field, #f6f7f9); font-weight: 600; }
+#dynamic-table-wrapper .dt-people-item[disabled] { cursor: default; color: var(--gx-ink-2, #475569); }
+#dynamic-table-wrapper .dt-people-item.is-off { color: var(--gx-ink-3, #94a3b8); }
+#dynamic-table-wrapper .dt-people-iav,
+#dynamic-table-wrapper .dt-pcard-av {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--gx-primary-deep, #4f46e5);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+#dynamic-table-wrapper .dt-people-iav { width: 22px; height: 22px; font-size: 9.5px; }
+#dynamic-table-wrapper .dt-people-iname { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#dynamic-table-wrapper .dt-people-imeta { flex: 0 0 auto; color: var(--gx-ink-3, #94a3b8); font-size: 12px; font-variant-numeric: tabular-nums; }
+#dynamic-table-wrapper .dt-pcard {
+  position: absolute;
+  z-index: 1001;
+  display: flex;
+  gap: 10px;
+  min-width: 200px;
+  max-width: 290px;
+  padding: 10px 12px;
+  border: 1px solid var(--gx-line, #e2e8f0);
+  border-radius: var(--gx-r-md, 10px);
+  background: var(--gx-surface, #ffffff);
+  color: var(--gx-ink, #0f172a);
+  box-shadow: var(--gx-shadow-md, 0 8px 24px -12px rgba(15,23,42,.18));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dt-motion, 140ms) ease;
+}
+#dynamic-table-wrapper .dt-pcard.is-open { opacity: 1; }
+#dynamic-table-wrapper .dt-pcard[hidden] { display: none; }
+#dynamic-table-wrapper .dt-pcard-av { width: 32px; height: 32px; font-size: 12px; }
+#dynamic-table-wrapper .dt-pcard-body { min-width: 0; }
+#dynamic-table-wrapper .dt-pcard-name { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+#dynamic-table-wrapper .dt-pcard-role,
+#dynamic-table-wrapper .dt-pcard-rows { margin-top: 2px; color: var(--gx-ink-2, #475569); font-size: 12px; }
+@media (max-width: 480px) {
+  #dynamic-table-wrapper .dt-people-col { display: none; }
+  #dynamic-table-wrapper .dt-people-av { width: 32px; height: 32px; }
+  #dynamic-table-wrapper .dt-people-pill,
+  #dynamic-table-wrapper .dt-people-colsel,
+  #dynamic-table-wrapper .dt-people-clear { height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #dynamic-table-wrapper .dt-people-av,
+  #dynamic-table-wrapper .dt-people-pill,
+  #dynamic-table-wrapper .dt-pcard { transition: none; }
+  #dynamic-table-wrapper .dt-people-av:hover,
+  #dynamic-table-wrapper .dt-people-av[aria-pressed="true"] { transform: none; }
+}
 
 #dynamic-table-wrapper .handsontable .currentRow td,
 #dynamic-table-wrapper .handsontable td.area {
@@ -2364,6 +2601,12 @@
     fieldPop: null,               // the open New field popover
     _confirmedCols: new Map(),    // name → until (dt-col-confirmed, 600 ms)
     _fieldPrefetchFor: '', _fieldOpening: false, _menuAnchorEl: null, _menuAnchorRect: null, _fieldCfgText: null, _fieldCfgScreen: '',
+    // GX-USERS (06.10): User id → display name, memory only (never localStorage / tableConfig). Merged from two sources:
+    // the mirror answer's d.users (wins) and the config's users / user_labels; an id neither knows stays an id.
+    userLabels: new Map(),
+    _userLabelSrc: { mirror: new Map(), config: new Map() },
+    // GX-PEOPLE (07.10): the viewer's own id + former teammates + the company directory (all from mirror_users, memory only)
+    meId: '', peopleOff: new Set(), peopleAll: new Map(), people: { colId: '', idx: null, order: [], info: null },
     // Wake Agent buton durumu — bubble-table-config'ten beslenir
     wake: {
       show: true,        // config.wake_button === false → gizle
@@ -2384,8 +2627,9 @@
   // Bubble, dinamik veri BOS oldugunda sablonu {"data": ,"columns": []} olarak basiyor; bu gecerli JSON degil.
   // Onarim YALNIZ "anahtardan sonra deger yok" kalibini duzeltir (deger yerine [] koyar). Gercek bozuk / yarim JSON
   // oldugu gibi kalir ve asagidaki catch'e duser: erisim hatasi ya da eksik yanit bos basariya CEVRILMEZ.
+  // GX-USERS (06.10): + users / user_labels — an empty Search for Users can print "users": , too (read as no names)
   function parseBubbleConfig(text) {
-    const fixed = String(text).replace(/("(?:data|columns)"\s*:\s*)(?=[,}])/g, '$1[]');
+    const fixed = String(text).replace(/("(?:data|columns|users|user_labels)"\s*:\s*)(?=[,}])/g, '$1[]');
     return JSON.parse(fixed);
   }
   function getOrderedColumns() {
@@ -2830,6 +3074,7 @@
     if (k === 'date' && dtIsoText(typed)) return dtIsoText(typed);
     if (k === 'boolean' && typeof typed === 'boolean') return typed ? '✓' : '';
     if (col.type === 'dropdown') return dtDropdownTokens(col, typed).join(', ');
+    if (col.type === 'user') return dtUserText(typed);   // GX-USERS (06.10): names (an unknown id stays the id) → search matches names
     if (DT_FILE_TYPES[col.type] && (urls = gxSplitUrls(typed)).length) return urls.map(dtFileName).join(', ');
     s = dtRawText(typed);
     if (k === 'text' && typeof typed === 'string' && looksLikeDateString(typed)) return formatDateValue(typed);
@@ -2843,6 +3088,10 @@
     if (k === 'boolean' && typeof typed === 'boolean') return ['b:' + typed];
     if (col.type === 'dropdown') {
       toks = dtDropdownTokens(col, typed);
+      return toks.length ? toks.map(function (t) { return 't:' + gxFold(t); }) : [BLANK_VALUE_TOKEN];
+    }
+    if (col.type === 'user') {               // GX-USERS (06.10): one key per person (a two-person cell lists under both)
+      toks = dtUserIds(typed);
       return toks.length ? toks.map(function (t) { return 't:' + gxFold(t); }) : [BLANK_VALUE_TOKEN];
     }
     return ['s:' + gxFold(dtRawText(typed))];
@@ -2927,6 +3176,11 @@
       if (k === 'date' && dtIsoText(v)) return [0, v];
       if (k === 'boolean' && typeof v === 'boolean') return [0, v ? 1 : 0];
       if (col && col.type === 'dropdown') { var t = dtDropdownTokens(col, v); return t.length ? [1, t.join(', ')] : [2, null]; }
+      if (col && col.type === 'user') {     // GX-USERS (06.10): by name; a cell with an unknown id after the named ones (both ways)
+        var u = dtUserIds(v);
+        if (!u.length) return [2, null];
+        return [u.some(function (x) { return dtIsUserId(x) && !dtUserName(x); }) ? 1.5 : 1, u.map(dtUserShown).join(', ')];   // the text the chips show
+      }
       return [1, dtRawText(v)];
     }
     return function (a, b) {
@@ -3016,6 +3270,232 @@
     dtAppendText(td, s);
     if (s.length > 24) td.title = s;
   }
+
+  /* ---- GX-USERS (06.10): User cells show the person's NAME instead of the Bubble unique id ----
+     The names never cost a request of their own: they arrive WITH the rows (mirror answer d.users) or with the page config
+     (config.users / config.user_labels, Bubble path). Nothing here fetches, and nothing runs per cell beyond a Map lookup.
+     Source order: (1) mirror d.users, (2) config users, (3) none: the cell shows a faded "Unknown user · …<id tail>" chip
+     (the full id in the title) while search / copy / the value list keep the id itself. HOT keeps the RAW value (the id) in the cell, so
+     selection, "Open record", value-list filters sent to the mirror (ids) and every Bubble hand-off are unchanged; only the
+     renderer, the cell text (search), the sort key, the filter value list, the column conditions and the copy use names.
+     function declarations + var only (like the helper block above). */
+  var DT_USER_ID_RE = /^\d{10,16}x\d{10,24}$/;
+  var _dtLetterRe = null, _dtUserRaf = 0;
+  function dtIsUserId(s) { return DT_USER_ID_RE.test(String(s == null ? '' : s).trim()); }
+  function dtLetterRe() {                  // built at run time: an engine without \p{…} must not fail the whole script at parse time
+    if (!_dtLetterRe) { try { _dtLetterRe = new RegExp('[\\p{L}\\p{N}]', 'u'); } catch (e) { _dtLetterRe = /[A-Za-z0-9À-ɏ]/; } }
+    return _dtLetterRe;
+  }
+  function dtCleanUserName(v) {            // a name as shown: one line, trimmed (Gaia's personel-İSİM has leading spaces), ≤ 80 chars
+    var s = v;
+    if (s && typeof s === 'object' && !Array.isArray(s)) s = s.name != null ? s.name : (s.label != null ? s.label : (s.display != null ? s.display : s['personel-İSİM']));
+    if (s == null || typeof s === 'object') return '';
+    s = String(s).replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return s.length > 80 ? s.slice(0, 80) : s;
+  }
+  // {id: name} | [{id|_id|value|uid, name|label|display}] | [[id, name]] | the JSON text of either | loose "id:name, id:name"
+  // text → Map(id → name). Blank / broken input → an empty Map (never throws: a bad users key must not stop the table).
+  function dtUserMapOf(src) {
+    var out = new Map(), s, parsed, re, m, i, it;
+    function put(id, name) {
+      id = String(id == null ? '' : id).trim(); name = dtCleanUserName(name);
+      if (id && name && name !== id && out.size < 5000) out.set(id, name);
+    }
+    try {
+      if (src == null || src === '') return out;
+      if (typeof src === 'string') {
+        s = src.trim();
+        if (!s) return out;
+        if (s.charAt(0) === '{' || s.charAt(0) === '[') {
+          try { parsed = JSON.parse(s); } catch (e) { parsed = undefined; }
+          if (parsed && typeof parsed === 'object') return dtUserMapOf(parsed);
+        }
+        re = /(\d{10,16}x\d{10,24})["']?\s*[:=]\s*["']?([^,;\n"'{}]+)/g;
+        while ((m = re.exec(s))) put(m[1], m[2]);
+        return out;
+      }
+      if (Array.isArray(src)) {
+        for (i = 0; i < src.length; i++) {
+          it = src[i];
+          if (Array.isArray(it)) put(it[0], it[1]);
+          else if (it && typeof it === 'object') put(it.id != null ? it.id : (it._id != null ? it._id : (it.value != null ? it.value : it.uid)), it);
+        }
+        return out;
+      }
+      if (typeof src === 'object') Object.keys(src).forEach(function (k) { put(k, src[k]); });
+    } catch (e) {}
+    return out;
+  }
+  function dtUserLabelsRebuild() {
+    var merged = new Map(state._userLabelSrc.config);
+    state._userLabelSrc.mirror.forEach(function (n, id) { merged.set(id, n); });   // the mirror (live Gaia names) wins
+    state.userLabels = merged;
+  }
+  function dtUserRerenderSoon() {          // names that land after a paint: one HOT render on the next frame (cells keep their ids)
+    if (_dtUserRaf) return;
+    var run = function () { _dtUserRaf = 0; try { if (state.hot && !state.hot.isDestroyed) state.hot.render(); } catch (e) {} };
+    _dtUserRaf = (typeof requestAnimationFrame === 'function') ? requestAnimationFrame(run) : setTimeout(run, 16);
+  }
+  // Bubble path: config.users / config.user_labels replace the config names; a config without either key keeps what is known
+  function dtUserIngestConfig(config) {
+    try {
+      if (!config || typeof config !== 'object') return false;
+      var own = Object.prototype.hasOwnProperty;
+      if (!own.call(config, 'users') && !own.call(config, 'user_labels')) return false;
+      var m = dtUserMapOf(config.users);
+      dtUserMapOf(config.user_labels).forEach(function (n, id) { if (!m.has(id)) m.set(id, n); });
+      state._userLabelSrc.config = m;
+      dtUserLabelsRebuild();
+      return true;
+    } catch (e) { return false; }
+  }
+  // AYNA path: a mirror answer (mirror_screen page, mirror_query group_by) may carry users {id: name} for the ids it holds;
+  // merged (each page names only its own people). A change after a paint re-renders once.
+  function dtUserIngestMirror(d) {
+    try {
+      if (!d || typeof d !== 'object' || d.users == null) return false;
+      var m = dtUserMapOf(d.users), src = state._userLabelSrc.mirror, changed = false;
+      m.forEach(function (n, id) { if (src.get(id) !== n) { src.set(id, n); changed = true; } });
+      if (src.size > 5000) { src.clear(); m.forEach(function (n, id) { src.set(id, n); }); changed = true; }
+      if (changed) { dtUserLabelsRebuild(); dtUserRerenderSoon(); }
+      return changed;
+    } catch (e) { return false; }
+  }
+  function dtUserName(id) {                // the known name, or null
+    var k = String(id == null ? '' : id).trim();
+    return k ? (state.userLabels.get(k) || null) : null;
+  }
+  function dtUserLabel(id) {               // text of ONE user value: (1)(2) the name, (3) else the value itself (an id stays the id)
+    var k = String(id == null ? '' : id).trim();
+    return k ? (state.userLabels.get(k) || k) : '';
+  }
+  function dtUserListLabel(id) {           // filter value list: an unknown id reads as such, the id kept for typing / pasting
+    var k = String(id == null ? '' : id).trim(), n = k ? state.userLabels.get(k) : '';
+    return n || (dtIsUserId(k) ? 'Unknown user · ' + k : k);
+  }
+  // cell chip / sort text of ONE user value: the name; an unknown id → "Unknown user · …<last 6>" so two unknown people
+  // still read apart (review 06.10: one shared "Unknown user" hid who is who; the full id stays in the title)
+  function dtUserShown(id) {
+    var k = String(id == null ? '' : id).trim(), n = k ? state.userLabels.get(k) : '';
+    return n || (dtIsUserId(k) ? 'Unknown user · …' + k.slice(-6) : k);
+  }
+  // a User cell's value → its values: an array, Bubble's list text "id1, id2", JSON array text, or one id / text.
+  // A plain text with a comma that is not a list of ids stays ONE value (a name such as "Yılmaz, Ali").
+  function dtUserIds(v) {
+    var toks, s;
+    if (v == null) return [];
+    if (Array.isArray(v)) toks = gxTokens(v, true) || [];
+    else if (typeof v === 'object') toks = [String(v._id != null ? v._id : (v.id != null ? v.id : dtRawText(v)))];
+    else {
+      s = String(v).trim();
+      if (!s) return [];
+      toks = gxTokens(s, true) || [s];
+      if (toks.length > 1 && s.charAt(0) !== '[' && !toks.every(dtIsUserId)) toks = [s];
+    }
+    return toks.map(function (t) { return String(t == null ? '' : t).trim(); }).filter(Boolean);
+  }
+  function dtUserText(v) { return dtUserIds(v).map(dtUserLabel).join(', '); }   // copy / search / sort text
+  function dtUserInitials(name) {
+    var L = dtLetterRe(), words = String(name || '').replace(/@.*$/, '').split(/[\s._\-]+/).filter(function (w) { return L.test(w); }), a, b;
+    if (!words.length) return '?';
+    a = words[0].match(L)[0];
+    b = words.length > 1 ? words[words.length - 1].match(L)[0] : '';
+    return (a + b).toLocaleUpperCase('tr-TR');
+  }
+  // renderer: one chip per person (avatar + name). Unknown id → faded dashed "Unknown user · …<id tail>" chip in the
+  // person's own avatar tone, the full id in the title.
+  function dtRenderUsers(td, value) {
+    var ids = dtUserIds(value), wrap, tips = [];
+    if (!ids.length) return;
+    wrap = document.createElement('span');
+    wrap.className = 'dt-users';
+    ids.forEach(function (id) {
+      var name = dtUserName(id) || (dtIsUserId(id) ? '' : id);
+      var chip = document.createElement('span'), av = document.createElement('span'), nm = document.createElement('span');
+      chip.className = name ? 'dt-user' : 'dt-user dt-user--unknown';
+      chip.setAttribute('data-uid', id);   // GX-PEOPLE (07.10): the hover card reads the person from the chip
+      if (state.peopleOff && state.peopleOff.has(id)) chip.className += ' dt-user--off';   // GX-PEOPLE (07.10): a former teammate
+      av.className = 'dt-user-av';
+      av.setAttribute('aria-hidden', 'true');
+      av.setAttribute('data-tone', String(gxToneIndex(id)));   // the colour follows the person (id), not the spelling
+      av.textContent = name ? dtUserInitials(name) : '?';
+      nm.className = 'dt-user-name';
+      nm.textContent = name || dtUserShown(id);
+      if (!name) chip.title = id;
+      chip.appendChild(av);
+      chip.appendChild(nm);
+      if (state.meId && id === state.meId) {   // GX-PEOPLE (07.10): the viewer's own chips carry a ring + "You"
+        var you = document.createElement('span');
+        chip.className += ' dt-user--me';
+        you.className = 'dt-user-you';
+        you.textContent = 'You';
+        chip.appendChild(you);
+        chip.setAttribute('aria-label', (name || dtUserShown(id)) + ' (you)');
+      }
+      wrap.appendChild(chip);
+      tips.push(name || ('Unknown user (' + id + ')'));
+    });
+    td.appendChild(wrap);
+    if (ids.length === 1 && !dtUserName(ids[0]) && dtIsUserId(ids[0])) td.title = ids[0];
+    else if (ids.length > 1 || tips[0].length > 20) td.title = tips.join(', ');
+  }
+  // one panel condition on a User cell, decided on the names (and the raw ids, so a pasted id still matches) — the same
+  // blank rules as HOT's built-ins ('' is not equal to x, contains '' is true)
+  function dtUserCondPass(typed, id, term) {
+    var ids = dtUserIds(typed), n = gxFold(term), cands;
+    if (id === 'empty') return !ids.length;
+    if (id === 'not_empty') return ids.length > 0;
+    if (!n) {
+      if (id === 'eq') return !ids.length;
+      if (id === 'neq') return ids.length > 0;
+      return id !== 'not_contains';
+    }
+    cands = ids.map(dtUserLabel).concat(ids);
+    if (ids.length > 1) cands.push(ids.map(dtUserLabel).join(', '));
+    function edge(c, start) {
+      return ['tr-TR', 'en'].some(function (loc) {
+        var h = gxFold(c).toLocaleLowerCase(loc), x = n.toLocaleLowerCase(loc);
+        return start ? h.indexOf(x) === 0 : (h.length >= x.length && h.slice(h.length - x.length) === x);
+      });
+    }
+    if (id === 'eq') return cands.some(function (c) { return gxFoldEq(c, n); });
+    if (id === 'neq') return !cands.some(function (c) { return gxFoldEq(c, n); });
+    if (id === 'contains') return cands.some(function (c) { return foldMatch(c, n); });
+    if (id === 'not_contains') return !cands.some(function (c) { return foldMatch(c, n); });
+    if (id === 'begins_with') return cands.some(function (c) { return edge(c, true); });
+    if (id === 'ends_with') return cands.some(function (c) { return edge(c, false); });
+    return true;
+  }
+  // a User column's whole panel config (two conditions with and/or + the checked values) → ONE list of the matching cell
+  // values for HOT's by_value (null = nothing to filter). HOT's own text conditions would compare the raw ids.
+  function dtUserFilterList(col, config) {
+    var c1 = dtConditionActive(col, config.condition, config.valueTerm) ? config.condition : null;
+    var c2 = c1 && dtConditionActive(col, config.condition2, config.valueTerm2) ? config.condition2 : null;
+    var hasValues = Array.isArray(config.values) && config.values.length > 0, sel, seen, out;
+    if (!c1 && !hasValues) return null;
+    // 's:<id>' = a value key from before 06.10 (the whole raw text) — read as the person's key
+    sel = hasValues ? new Set(config.values.map(function (k) { k = String(k); return k.indexOf('s:') === 0 ? 't:' + k.slice(2) : k; })) : null;
+    seen = new Set(); out = [];
+    (state.displayRows || []).forEach(function (d) {
+      var v = d ? d[col.id] : undefined, ok = true, r1, r2, hv;
+      if (c1) {
+        r1 = dtUserCondPass(v, c1, config.valueTerm || '');
+        if (c2) { r2 = dtUserCondPass(v, c2, config.valueTerm2 || ''); ok = config.operator === 'or' ? (r1 || r2) : (r1 && r2); }
+        else ok = r1;
+      }
+      if (ok && sel) ok = dtValueKeys(col, v).some(function (k) { return sel.has(k); });
+      if (!ok) return;
+      hv = (v === undefined || v === null) ? '' : v;
+      if (!seen.has(hv)) { seen.add(hv); out.push(hv); }
+    });
+    return out;
+  }
+  // harness / Bubble "Run JavaScript" hook (same parsing as config.users; never fetches); labels() lists what is known
+  window.gaiaTableUsers = {
+    set: function (map) { state._userLabelSrc.config = dtUserMapOf(map); dtUserLabelsRebuild(); dtUserRerenderSoon(); return state.userLabels.size; },
+    labels: function () { var o = {}; state.userLabels.forEach(function (n, id) { o[id] = n; }); return o; }
+  };
+  /* ---- /GX-USERS ---- */
 
   const els = {
     wrapper: document.getElementById('dynamic-table-wrapper'),
@@ -3329,6 +3809,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
       if (type === 'dropdown') { dtRenderPills(td, dtDropdownTokens(c, value)); return; }   // single → pill, multi → chips
       if (DT_FILE_TYPES[type]) { dtRenderFiles(td, value); return; }
+      if (type === 'user') { dtRenderUsers(td, value); return; }   // GX-USERS (06.10): avatar + name chip(s), never the raw id
 
       const text = dtRawText(value).trim();
       if (type === 'email') {
@@ -3351,7 +3832,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (a) { td.appendChild(a); td.title = text; } else dtRenderTextValue(td, value);
         return;
       }
-      dtRenderTextValue(td, value);   // text, textarea, user, reference, time, unknown types
+      dtRenderTextValue(td, value);   // text, textarea, reference, time, unknown types (user: dtRenderUsers above, GX-USERS 06.10)
     };
   }
 
@@ -3708,7 +4189,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     file: { iconKey: 'paperclip', label: 'File' },
     image: { iconKey: 'image', label: 'Image' },
     multifile: { iconKey: 'paperclip', label: 'Multi file' },
-    user: { iconKey: 'text', label: 'User' },
+    user: { iconKey: 'person', label: 'User' },   // GX-USERS (06.10): person glyph (was 'Aa')
     reference: { iconKey: 'text', label: 'Reference' }
   };
 
@@ -3722,7 +4203,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     calendar: TYPE_SVG_OPEN + '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     clock: TYPE_SVG_OPEN + '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
     paperclip: TYPE_SVG_OPEN + '<path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3l8-8"/></svg>',
-    image: TYPE_SVG_OPEN + '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 16-5-5-9 9"/></svg>'
+    image: TYPE_SVG_OPEN + '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 16-5-5-9 9"/></svg>',
+    person: TYPE_SVG_OPEN + '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>'   // GX-USERS (06.10)
   };
 
   function normalizeColumnType(type) {
@@ -4124,7 +4606,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         });
         const typedCols = cols.map(vc => {
           const col = visibleColumns[state.hot.toPhysicalColumn(vc)];
-          return (col && !col.__uiOnly && dtKind(col) !== 'text') ? col : null;
+          return (col && !col.__uiOnly && (dtKind(col) !== 'text' || col.type === 'user')) ? col : null;   // GX-USERS (06.10): + User
         });
         if (!typedCols.some(Boolean)) return;
         rows.forEach((vr, i) => {
@@ -4133,7 +4615,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           const d = (p === null || p === undefined || p < 0) ? null : state.displayRows[p];
           const raw = d ? state.rawRows[d.__sourceIndex] : null;
           if (!raw) return;
-          typedCols.forEach((col, j) => { if (col) data[i][j] = pickValue(raw, col); });
+          // GX-USERS (06.10): a User cell copies the names ("Hilal Gül, Akif Uslu"; an unknown id stays the id)
+          typedCols.forEach((col, j) => { if (col) data[i][j] = col.type === 'user' ? dtUserText(pickValue(raw, col)) : pickValue(raw, col); });
         });
       },
       // T1: programatik seçimde (keepOutsideFocus) HOT hücreye değil, zaten odaklı dış elemente "odaklanır"
@@ -4258,6 +4741,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     syncButtonTitles();
     saveViewCarry();
     scheduleFieldPrefetch();   // mr18: mirror_screen_fields once per screen id, 1500 ms after the first paint
+    dtPeopleSoon();   // GX-PEOPLE (07.10): the people bar follows the rows / columns on screen
   }
 
   function syncCreateRowDOM() {
@@ -5068,6 +5552,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try {
       const c = parseBubbleConfig((s && s.textContent) || '{}');
       applyServerPatch(c);
+      dtUserIngestConfig(c);   // GX-USERS (06.10)
       if (aynaMode(c)) { if (!keepCache) aynaCacheDrop(aynaScreenOf(c).key); return aynaLoad(c, c.columns); }
     } catch (e) {}
     return null;
@@ -5112,8 +5597,32 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return null;
     }
     if (k === 'boolean') return conditionId === 'is_checked' ? { field: f, op: 'eq', value: 'true' } : { field: f, op: 'ne', value: 'true' };
+    if (col.type === 'user') { const uc = gxDslUserCondition(col, conditionId, term); if (uc) return uc; }   // GX-USERS (06.10)
     const top = { contains: 'contains', not_contains: 'not_contains', eq: 'eq', neq: 'ne', begins_with: 'starts', ends_with: 'ends' }[conditionId];
     return top ? { field: f, op: top, value: term == null ? '' : String(term) } : null;
+  }
+  // GX-USERS (06.10): the mirror stores a User field as ids → a text condition on a User column is decided on the KNOWN names
+  // here and sent as the ids it names. No known name matches → null: the plain text condition goes as before (an id typed
+  // into the box still matches itself).
+  // Per person `contains <id>` (negative: an AND of `not_contains <id>`), whatever col.multiple says (review 06.10): a cell
+  // may hold one id, "id1, id2" text, JSON array text or an array, and `contains` finds the person in every one of them on
+  // both mirror engines — `in` compares the whole value (misses "id1, id2"), and `has` reads the server's list column,
+  // which the Postgres engine fills only for list / multi / file fields and array values (it would miss a single-id text
+  // cell). A Bubble id (ms timestamp x random digits) is in practice never part of another id, so `contains` does not
+  // pick up a different person.
+  function gxDslUserPerson(f, ids, neg) {
+    const one = id => ({ field: f, op: neg ? 'not_contains' : 'contains', value: id });
+    if (ids.length === 1) return one(ids[0]);
+    return neg ? { and: ids.map(one) } : { or: ids.map(one) };
+  }
+  function gxDslUserCondition(col, conditionId, term) {
+    const ids = [];
+    const neg = conditionId === 'neq' || conditionId === 'not_contains';
+    const pos = { eq: 'eq', neq: 'eq', contains: 'contains', not_contains: 'contains', begins_with: 'begins_with', ends_with: 'ends_with' }[conditionId];
+    if (!pos || !String(term == null ? '' : term).trim()) return null;
+    state.userLabels.forEach((name, id) => { if (dtUserCondPass(id, pos, term)) ids.push(id); });
+    if (!ids.length) return null;
+    return gxDslUserPerson(col.id, ids, neg);
   }
   // every column's panel config → one AND list (a column's two conditions honour its and/or; a checked value list is
   // `in` — `has` per value for multi-value columns)
@@ -5145,8 +5654,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (p === 'n:') nums.push(v); else if (p === 'd:') days.push(v); else if (p === 'b:') bools.push(v === 'true'); else if (p === 't:' || p === 's:') texts.push(v); else texts.push(key);
     });
     const parts = [];
-    const multi = (colDef.type === 'dropdown' && (colDef.multiple === true || (typeof dtFilterKind === 'function' && dtFilterKind(colDef) === 'tags')));
-    if (texts.length) parts.push(multi ? { or: texts.map(v => ({ field: f, op: 'has', value: v })) } : { field: f, op: 'in', value: texts });
+    const multi = colDef.type === 'dropdown' && (colDef.multiple === true || (typeof dtFilterKind === 'function' && dtFilterKind(colDef) === 'tags'));
+    // GX-USERS (06.10): a User column's checked people go per person as `contains <id>` (see gxDslUserPerson), so a
+    // two-person cell is found under each of them whatever the column's multiple flag says
+    if (texts.length && colDef.type === 'user') parts.push(gxDslUserPerson(f, texts, false));
+    else if (texts.length) parts.push(multi ? { or: texts.map(v => ({ field: f, op: 'has', value: v })) } : { field: f, op: 'in', value: texts });
     if (nums.length) parts.push({ field: f, op: 'in', value: nums });
     if (days.length) parts.push({ or: days.map(d => ({ field: f, op: 'between', value: aynaDayBounds(d) })).filter(c => c.value) });
     if (bools.length) parts.push(bools.length > 1 ? { field: f, op: 'not_empty' } : { field: f, op: bools[0] ? 'eq' : 'ne', value: 'true' });
@@ -5162,8 +5674,17 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!aynaWindowed() || !col || !col.id || col.__uiOnly || !tableId || !state.filterDraft || state.filterDraft.columnIndex !== columnIndex) return;
       const ck = tableId + '|' + col.id; let hit = AYNA.distinct.get(ck);
       if (!hit || Date.now() - hit.at > AYNA.cacheTtlMs) {
-        const r = await aynaBridge('mirror_query', { query: { table: tableId, group_by: col.id, limit: 500 } });
-        if (!r.ok) return;
+        // GX-USERS (06.10): a group_by answer may name the people it lists; they are taken in before anyone resumes. For a
+        // User column the request is kept while it runs (AYNA.userPend), so OK pressed before it lands waits for its names
+        // (aynaUserNamesPending) instead of sending a name condition decided on a partial name list (review 06.10)
+        const pend = col.type === 'user' ? (AYNA.userPend || (AYNA.userPend = new Map())) : null;
+        let ask = pend ? pend.get(ck) : null;
+        if (!ask) {
+          ask = aynaBridge('mirror_query', { query: { table: tableId, group_by: col.id, limit: 500 } }).then(x => { if (x && x.ok) dtUserIngestMirror(x.data); return x; });
+          if (pend) { pend.set(ck, ask); const done = () => { if (pend.get(ck) === ask) pend.delete(ck); }; ask.then(done, done); }
+        }
+        const r = await ask;
+        if (!r || !r.ok) return;
         const rows = Array.isArray(r.data && r.data.rows) ? r.data.rows : [];
         hit = { at: Date.now(), values: rows.map(g => g[col.id]).filter(v => v !== undefined) };
         AYNA.distinct.set(ck, hit); if (AYNA.distinct.size > 60) { const oldest = AYNA.distinct.keys().next().value; AYNA.distinct.delete(oldest); }
@@ -5173,7 +5694,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const have = new Set(draft.allValues.map(i => i.raw)), wasAll = draft.selectedValues.size >= draft.allValues.length;
       let added = 0;
       hit.values.forEach(v => {
-        const typed = dtTypedValue(col, v), keys = dtValueKeys(col, typed), toks = col.type === 'dropdown' ? dtDropdownTokens(col, typed) : null;
+        // GX-USERS (06.10): a User column lists one item per person, labelled by name
+        const typed = dtTypedValue(col, v), keys = dtValueKeys(col, typed), toks = col.type === 'dropdown' ? dtDropdownTokens(col, typed) : (col.type === 'user' ? dtUserIds(typed) : null);
         keys.forEach((key, i) => {
           if (have.has(key)) return; have.add(key); added++;
           let label, sortKey = null, group = 2;
@@ -5181,7 +5703,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           else if (key.indexOf('n:') === 0) { label = dtNumberText(col, typed); sortKey = typed; group = 1; }
           else if (key.indexOf('d:') === 0) { label = dtIsoText(typed); sortKey = typed; group = 1; }
           else if (key.indexOf('b:') === 0) { label = typed ? 'Checked' : 'Not checked'; sortKey = typed ? 0 : 1; group = 1; }
-          else if (key.indexOf('t:') === 0 && toks) label = toks[i];
+          else if (key.indexOf('t:') === 0 && toks) label = col.type === 'user' ? dtUserListLabel(toks[i]) : toks[i];
           else label = dtRawText(typed);
           draft.allValues.push({ raw: key, label: String(label), sortKey: sortKey, group: group });
           if (wasAll) draft.selectedValues.add(key);
@@ -5192,6 +5714,23 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       draft.allValues.sort((a, b) => a.group !== b.group ? a.group - b.group : (a.group === 1 ? (a.sortKey < b.sortKey ? -1 : (a.sortKey > b.sortKey ? 1 : 0)) : coll.compare(a.label, b.label)));
       renderFilterValueList();
     } catch (e) {}
+  }
+  // GX-USERS (06.10): a promise while a User column that carries a name condition still waits for its group_by answer
+  // (the names of the whole column), else null. Without config.users the page knows only the people of the loaded pages.
+  function aynaUserNamesPending() {
+    try {
+      const pend = AYNA.userPend, tableId = AYNA.stats && AYNA.stats.table && AYNA.stats.table.id, waits = [];
+      if (!pend || !pend.size || !tableId) return null;
+      const named = { eq: 1, neq: 1, contains: 1, not_contains: 1, begins_with: 1, ends_with: 1 };
+      Object.keys(state.filterConfigs || {}).forEach(key => {
+        const config = state.filterConfigs[key], colDef = (state._mountedCols || [])[Number(key)] || getColumnAt(Number(key));
+        if (!config || !colDef || colDef.type !== 'user' || !colDef.id) return;
+        const byName = (named[config.condition] && String(config.valueTerm || '').trim()) || (named[config.condition2] && String(config.valueTerm2 || '').trim());
+        const p = byName ? pend.get(tableId + '|' + colDef.id) : null;
+        if (p) waits.push(p);
+      });
+      return waits.length ? Promise.all(waits) : null;
+    } catch (e) { return null; }
   }
   // the grid's column sort → order_by ("Field asc"); with no column sort, the due-date sort (when on) orders by its first
   // date field on the server — a page-local reorder would silently show the wrong "first" rows (review finding)
@@ -5252,6 +5791,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!r.ok) { if (r.error === 'timeout' && ctrl && ctrl.signal.aborted && seq !== AYNA.seq) return; AYNA.last = r; aynaSetStatus('error', Object.assign({ fallback: state.rawRows.length }, r)); aynaProgress(0); log('[AYNA] page error', r); return; }
       AYNA.last = null;   // mr21: a page answered after an error → the view is healthy again
       const d = r.data || {}, rows = aynaRowsOf(d);
+      dtUserIngestMirror(d);   // GX-USERS (06.10): the page's people, before it is painted
+      if (d.screen && typeof d.screen === 'object') AYNA.srvScreen = { key: AYNA.screenKey, screen: d.screen };   // GX-PEOPLE (07.10): the screen's stage / list scope
       AYNA.win.total = (typeof d.total === 'number') ? d.total : rows.length;
       if (page > aynaPages()) { AYNA.win.page = aynaPages(); return aynaRequery(); }
       aynaPaint(rows, columns, true);
@@ -5340,11 +5881,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         }
         const d = r.data || {};
         const page = aynaRowsOf(d);
+        dtUserIngestMirror(d);   // GX-USERS (06.10): names travel with the rows (+0 requests), ingested before the paint
         pages++;
         rows = rows.concat(page);
         total = (typeof d.total === 'number') ? d.total : rows.length;
         if (d.mirror) { fresh = d.mirror.fresh; preview = !!d.mirror.preview; }
         if (d.table) table = d.table;
+        if (d.screen && typeof d.screen === 'object') AYNA.srvScreen = { key: AYNA.screenKey, screen: d.screen };   // GX-PEOPLE (07.10): the screen's stage / list scope
         offset += page.length;
         // a big screen → window mode: this page IS the grid; the rest stays on the server
         if (pages === 1 && (total > AYNA.fullLoadMax || seeded)) {   // mr18: a seeded (filtered) answer stays windowed
@@ -5472,6 +6015,507 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     dslFor: function (cfgs) { const keep = state.filterConfigs; state.filterConfigs = cfgs || {}; try { return gxDslWhere(); } finally { state.filterConfigs = keep; } },   // harness: translate a given panel state
     openFilter: function (i) { try { openFilterPanel(Number(i)); return true; } catch (e) { return String(e && e.message || e); } }   // harness: open the panel for a column
   };
+  /* ---- GX-PEOPLE (07.10): the collaborative people layer on top of GX-USERS ----
+     Source: ONE read-only bridge op, mirror_users → { users: {id: name}, inactive: [ids], me: <the viewer's id> } for the
+     signed-in caller's own company (names only). Asked once per table load when a User column is on screen, in parallel
+     with the first page (never awaited by a paint), kept 10 min in window.__gxPeople (survives Bubble re-rendering the
+     element; a warm copy names the first frame). A failure is silent (chips stay "Unknown user · …tail", no "You") and is
+     asked again at most once a minute. config.users / d.users (GX-USERS) keep working; mirror_users counts as the mirror
+     source (wins over config).
+     On top of it: (a) a "You" marker on the viewer's chips (dtRenderUsers), (b) a people bar above the grid: avatars with
+     row counts for one User column, "Assigned to me", "Unassigned", "Clear" — every click goes through the EXISTING column
+     filter (state.filterConfigs + applyAllColumnFilters), so header badges, the filter panel and window mode keep working,
+     (c) a hover card (name, You / Teammate / Former teammate, rows on this screen). The table has no cell write path, so
+     there is no in-cell people picker. Every name reaches the DOM through textContent. */
+  var DT_PEOPLE_TTL = 10 * 60000, DT_PEOPLE_RETRY = 60000, DT_PEOPLE_PILE = 7;
+  var _dtPeopleAsk = null, _dtPeopleFailAt = 0, _dtPeopleTimer = 0, _dtPeopleReqs = 0, _dtPeopleCardTimer = 0, _dtPeopleCardFor = null;
+  var _dtPeopleWin = new Map();             // window mode: tableId|colId → { at, counts: Map(id → rows), blank, known, pending }
+  function dtPeopleCache() {
+    try {
+      var g = window.__gxPeople;
+      return (g && typeof g === 'object' && g.users && typeof g.users === 'object' && typeof g.at === 'number') ? g : null;
+    } catch (e) { return null; }
+  }
+  function dtPeopleIngest(p) {
+    if (!p || typeof p !== 'object') return false;
+    var me = String(p.me == null ? '' : p.me).trim(), before = state.meId, offBefore = state.peopleOff || new Set();
+    dtUserIngestMirror({ users: p.users || {} });
+    state.peopleAll = dtUserMapOf(p.users || {});
+    state.meId = dtIsUserId(me) ? me : '';
+    var off = new Set((Array.isArray(p.inactive) ? p.inactive : []).map(function (x) { return String(x == null ? '' : x).trim(); }).filter(Boolean));
+    var offSame = off.size === offBefore.size;
+    if (offSame) off.forEach(function (x) { if (!offBefore.has(x)) offSame = false; });
+    state.peopleOff = off;
+    // the grid is redrawn only when the "You" ring or the faded former teammates actually change (a config reload with the
+    // same cached people is a no-op for the cells; review 07.10)
+    if (before !== state.meId || !offSame) dtUserRerenderSoon();
+    dtPeopleSoon();
+    return true;
+  }
+  function dtPeopleHasUserCol(columns) {
+    try {
+      var cols = Array.isArray(columns) ? sanitizeColumns(columns) : (state.columns || []);
+      return cols.some(function (c) { return c && !c.__uiOnly && c.type === 'user'; });
+    } catch (e) { return false; }
+  }
+  // once per load: a warm window.__gxPeople is taken in at once (no request); a cold / stale one → one mirror_users call
+  function dtPeopleEnsure(columns) {
+    try {
+      if (!dtPeopleHasUserCol(columns)) return null;
+      var g = dtPeopleCache();
+      if (g) { dtPeopleIngest(g); if (Date.now() - g.at < DT_PEOPLE_TTL) return Promise.resolve(g); }
+      if (_dtPeopleAsk) return _dtPeopleAsk;
+      if (_dtPeopleFailAt && Date.now() - _dtPeopleFailAt < DT_PEOPLE_RETRY) return null;
+      _dtPeopleReqs++;
+      var ask = aynaBridge('mirror_users', {}, null, { timeoutMs: 12000 }).then(function (r) {
+        var d = r && r.ok ? r.data : null, p;
+        if (!d || typeof d !== 'object' || !d.users || typeof d.users !== 'object' || Array.isArray(d.users)) { _dtPeopleFailAt = Date.now(); return null; }
+        _dtPeopleFailAt = 0;
+        p = { at: Date.now(), users: d.users, me: String(d.me == null ? '' : d.me), inactive: Array.isArray(d.inactive) ? d.inactive.slice(0, 5000) : [] };
+        try { window.__gxPeople = p; } catch (e) {}
+        if (aynaAlive()) dtPeopleIngest(p);
+        return p;
+      }, function () { _dtPeopleFailAt = Date.now(); return null; });
+      _dtPeopleAsk = ask;
+      ask.then(function () { if (_dtPeopleAsk === ask) _dtPeopleAsk = null; });
+      return ask;
+    } catch (e) { return null; }
+  }
+  function dtPeopleSoon() {                 // one bar refresh shortly after a burst of changes (timer, not rAF: works in a hidden tab)
+    if (_dtPeopleTimer) return;
+    _dtPeopleTimer = setTimeout(function () { _dtPeopleTimer = 0; dtPeopleRender(); }, 30);
+  }
+  function dtPeopleUserCols() {
+    var out = [];
+    (state._mountedCols || []).forEach(function (c, i) { if (c && !c.__uiOnly && c.type === 'user' && c.id) out.push({ col: c, idx: i }); });
+    return out;
+  }
+  function dtPeopleScreenKey() {
+    try { return String((AYNA && AYNA.screenKey) || state._viewKey || 'table').slice(0, 300); } catch (e) { return 'table'; }
+  }
+  function dtPeoplePick(ucols) {
+    var want = '', hit = null;
+    if (state.people.colId) want = state.people.colId;
+    else { try { want = window.localStorage.getItem('gxPeopleCol|' + dtPeopleScreenKey()) || ''; } catch (e) { want = ''; } }
+    ucols.forEach(function (u) { if (!hit && u.col.id === want) hit = u; });
+    return hit || ucols[0];
+  }
+  function dtPeopleRemember(colId) {
+    state.people.colId = colId;
+    try { window.localStorage.setItem('gxPeopleCol|' + dtPeopleScreenKey(), colId); } catch (e) {}
+  }
+  // the screen's own row scope on its table, exactly as the server narrows mirror_screen (_gmScreenOp): a process screen =
+  // `_surec eq_strict <stage>`, a list screen = `_listeler has <list>`, any other screen = the whole table ([]). Read from the
+  // `screen` the server returned with this screen's pages (AYNA.srvScreen, keyed by AYNA.screenKey); null = not known yet /
+  // an answer without it → the bar shows no numbers rather than whole-table numbers (review 07.10)
+  function dtPeopleScope() {
+    try {
+      var s = AYNA.srvScreen;
+      if (!s || !s.screen || typeof s.screen !== 'object' || !AYNA.screenKey || s.key !== AYNA.screenKey) return null;
+      var stage = String(s.screen.stage == null ? '' : s.screen.stage).trim(), list = String(s.screen.list == null ? '' : s.screen.list).trim();
+      if (stage) return [{ field: '_surec', op: 'eq_strict', value: stage }];
+      if (list) return [{ field: '_listeler', op: 'has', value: list }];
+      return [];
+    } catch (e) { return null; }
+  }
+  // rows per person in one User column over the WHOLE screen (not the current filter); a two-person cell counts for both.
+  // Full load: the rows in memory. Window mode: the column's group_by on the mirror, narrowed to the screen's stage / list
+  // (a whole-table screen shares the filter panel's request).
+  function dtPeopleCounts(col) {
+    if (!col) return null;
+    if (typeof aynaWindowed === 'function' && aynaWindowed()) {
+      var tableId = AYNA.stats && AYNA.stats.table && AYNA.stats.table.id, scope = dtPeopleScope(), ck, hit;
+      if (!tableId) return null;
+      if (!scope) return { counts: new Map(), blank: 0, known: false, failed: true, total: AYNA.win ? AYNA.win.total : null };
+      ck = tableId + '|' + col.id + (scope.length ? '|' + JSON.stringify(scope) : '');
+      hit = _dtPeopleWin.get(ck);
+      if (!hit || (!hit.pending && Date.now() - hit.at > DT_PEOPLE_TTL)) { dtPeopleWinFetch(col, tableId, scope, ck); hit = _dtPeopleWin.get(ck); }
+      if (hit && hit.failed) return { counts: new Map(), blank: 0, known: false, failed: true, total: AYNA.win ? AYNA.win.total : null };
+      return hit && hit.counts ? { counts: hit.counts, blank: hit.blank, known: hit.known, total: AYNA.win ? AYNA.win.total : null } : null;
+    }
+    var counts = new Map(), blank = 0;
+    (state.rawRows || []).forEach(function (r) {
+      var ids = dtUserIds(dtTypedValue(col, pickValue(r, col))), seen = new Set();
+      if (!ids.length) { blank++; return; }
+      ids.forEach(function (id) { if (seen.has(id)) return; seen.add(id); counts.set(id, (counts.get(id) || 0) + 1); });
+    });
+    return { counts: counts, blank: blank, known: true, total: (state.rawRows || []).length };
+  }
+  var _dtPeopleRetryTimer = 0;
+  function dtPeopleWinFailed(ck) {        // a failed group_by: "Counts unavailable" now, asked again by one redraw after a minute
+    _dtPeopleWin.set(ck, { at: Date.now() - DT_PEOPLE_TTL + DT_PEOPLE_RETRY, counts: null, failed: true });
+    dtPeopleSoon();
+    if (!_dtPeopleRetryTimer) _dtPeopleRetryTimer = setTimeout(function () { _dtPeopleRetryTimer = 0; if (aynaAlive()) dtPeopleSoon(); }, DT_PEOPLE_RETRY + 50);
+  }
+  function dtPeopleWinFetch(col, tableId, scope, ck) {
+    var shared = !scope.length, pend = AYNA.userPend || (AYNA.userPend = new Map()), ask = shared ? pend.get(ck) : null;
+    _dtPeopleWin.delete(ck);
+    _dtPeopleWin.set(ck, { pending: true, at: Date.now(), counts: null });
+    if (_dtPeopleWin.size > 60) _dtPeopleWin.delete(_dtPeopleWin.keys().next().value);
+    if (!ask) {
+      // a whole-table screen: the same request the filter panel makes (aynaFillDistinct), one in flight per column, kept in
+      // AYNA.userPend so the panel waits for it. A stage / list screen: its own request with the screen's condition.
+      var q = { table: tableId, group_by: col.id, limit: 500 };
+      if (!shared) q.where = scope;
+      ask = aynaBridge('mirror_query', { query: q }).then(function (x) { if (x && x.ok) dtUserIngestMirror(x.data); return x; });
+      if (shared) {
+        pend.set(ck, ask);
+        var done = function () { if (pend.get(ck) === ask) pend.delete(ck); };
+        ask.then(done, done);
+      }
+    }
+    ask.then(function (r) {
+      if (!r || !r.ok) { dtPeopleWinFailed(ck); return; }
+      var rows = Array.isArray(r.data && r.data.rows) ? r.data.rows : [], counts = new Map(), blank = 0, known = true;
+      rows.forEach(function (g) {
+        if (!g || typeof g !== 'object') return;
+        var n = Number(g.count != null ? g.count : (g._count != null ? g._count : NaN)), ids = dtUserIds(g[col.id]);
+        if (!isFinite(n)) { n = 0; known = false; }
+        if (!ids.length) { blank += n; return; }
+        ids.forEach(function (id) { counts.set(id, (counts.get(id) || 0) + n); });
+      });
+      // only a whole-table answer is the filter panel's value list (a stage / list answer is a subset of the table's values);
+      // the same 60-entry cap as aynaFillDistinct
+      if (shared && !AYNA.distinct.has(ck)) {
+        AYNA.distinct.set(ck, { at: Date.now(), values: rows.map(function (g) { return g ? g[col.id] : undefined; }).filter(function (v) { return v !== undefined; }) });
+        if (AYNA.distinct.size > 60) { var oldest = AYNA.distinct.keys().next().value; AYNA.distinct.delete(oldest); }
+      }
+      _dtPeopleWin.set(ck, { at: Date.now(), counts: counts, blank: blank, known: known });
+      dtPeopleSoon();
+    }, function () { dtPeopleWinFailed(ck); });
+  }
+  // what the column filter on the bar's column is right now: none | person (one id) | unassigned | custom
+  function dtPeopleActive(idx) {
+    var c = state.filterConfigs ? state.filterConfigs[idx] : null, fcol = (state._mountedCols || [])[idx];
+    if (!c || !isFilterActive(idx)) return { kind: 'none' };
+    var c1 = fcol && dtConditionActive(fcol, c.condition, c.valueTerm) ? c.condition : 'none';
+    var c2 = fcol && dtConditionActive(fcol, c.condition2, c.valueTerm2) ? c.condition2 : 'none';
+    var vals = Array.isArray(c.values) ? c.values : [];
+    if (c1 === 'none' && c2 === 'none' && vals.length === 1 && String(vals[0]).indexOf('t:') === 0) return { kind: 'person', id: String(vals[0]).slice(2) };
+    if (c1 === 'empty' && c2 === 'none' && !vals.length) return { kind: 'unassigned' };
+    return { kind: 'custom' };
+  }
+  // a bar click → the column's existing filter (the same shape the filter panel's OK writes); the active one again → off
+  function dtPeopleFilter(idx, kind, id) {
+    var cur = dtPeopleActive(idx);
+    if (kind === 'clear' || (kind === 'person' && cur.kind === 'person' && cur.id === gxFold(id)) || (kind === 'unassigned' && cur.kind === 'unassigned')) delete state.filterConfigs[idx];
+    else if (kind === 'person') state.filterConfigs[idx] = { condition: 'none', valueTerm: '', condition2: 'none', valueTerm2: '', operator: 'and', values: ['t:' + gxFold(id)] };
+    else if (kind === 'unassigned') state.filterConfigs[idx] = { condition: 'empty', valueTerm: '', condition2: 'none', valueTerm2: '', operator: 'and', values: null };
+    else return;
+    try { if (state.filterDraft && state.filterDraft.columnIndex === idx) closeColumnMenu(); } catch (e) {}
+    dtPeopleCardHide();
+    applyAllColumnFilters();
+    dtPeopleSoon();
+  }
+  function dtPeopleRole(id) {
+    if (state.meId && id === state.meId) return 'You';
+    if (state.peopleOff.has(id)) return 'Former teammate';
+    if (dtUserName(id)) return 'Teammate';
+    return dtIsUserId(id) ? 'Unknown user · …' + String(id).slice(-6) : 'Teammate';
+  }
+  function dtPeopleNameOf(id) { return dtUserName(id) || dtUserShown(id); }
+  function dtPeopleRowsText(n) { return n === 1 ? '1 row' : (Number(n) || 0).toLocaleString('en-US') + ' rows'; }
+  function dtPeopleAv(cls, id) {
+    var b = document.createElement('span'), name = dtUserName(id);
+    b.className = cls;
+    b.setAttribute('aria-hidden', 'true');
+    b.setAttribute('data-tone', String(gxToneIndex(id)));
+    b.textContent = name ? dtUserInitials(name) : '?';
+    return b;
+  }
+  function dtPeopleResized() {
+    setTimeout(function () { try { if (state.hot && !state.hot.isDestroyed) state.hot.updateSettings({ height: getAdaptiveTableHeight() }); } catch (e) {} }, 0);
+  }
+  function dtPeopleBar() {
+    var bar = document.getElementById('dt-people-bar'), head;
+    if (bar && els.wrapper && els.wrapper.contains(bar)) return bar;
+    head = els.wrapper ? els.wrapper.querySelector('.dt-header') : null;
+    if (!head) return null;
+    bar = document.createElement('div');
+    bar.id = 'dt-people-bar';
+    bar.className = 'dt-people';
+    bar.setAttribute('role', 'group');   // ordinary Tab stops: no toolbar arrow-key contract to honour (review 07.10)
+    bar.setAttribute('aria-label', 'People');
+    bar.hidden = true;
+    head.appendChild(bar);
+    bar.addEventListener('click', function (ev) {
+      var t = ev.target && ev.target.closest ? ev.target.closest('[data-act]') : null, u = dtPeopleUserCols(), pick;
+      if (!t || !bar.contains(t) || !u.length) return;
+      ev.preventDefault();
+      pick = dtPeoplePick(u);
+      var act = t.getAttribute('data-act');
+      if (act === 'person') dtPeopleFilter(pick.idx, 'person', t.getAttribute('data-uid'));
+      else if (act === 'me' && state.meId) dtPeopleFilter(pick.idx, 'person', state.meId);
+      else if (act === 'unassigned') dtPeopleFilter(pick.idx, 'unassigned');
+      else if (act === 'clear') dtPeopleFilter(pick.idx, 'clear');
+      else if (act === 'more') dtPeoplePopToggle(t);
+    });
+    bar.addEventListener('change', function (ev) {
+      var t = ev.target;
+      if (!t || !t.classList || !t.classList.contains('dt-people-colsel')) return;
+      dtPeopleRemember(String(t.value || ''));
+      dtPeoplePopClose();
+      dtPeopleSoon();
+    });
+    return bar;
+  }
+  function dtPeopleRender() {
+    try {
+      if (!aynaAlive() || !els || !els.wrapper) return;
+      var ucols = state.hot ? dtPeopleUserCols() : [], bar = document.getElementById('dt-people-bar');
+      if (!ucols.length) { if (bar && !bar.hidden) { bar.hidden = true; dtPeoplePopClose(); dtPeopleResized(); } return; }
+      bar = dtPeopleBar();
+      if (!bar) return;
+      var pick = dtPeoplePick(ucols), col = pick.col, idx = pick.idx, info = dtPeopleCounts(col), act = dtPeopleActive(idx);
+      var focusKey = (document.activeElement && bar.contains(document.activeElement)) ? (document.activeElement.getAttribute('data-key') || '') : '';
+      var people = [], counts = info ? info.counts : new Map(), n = function (x) { return counts.get(x) || 0; };
+      counts.forEach(function (c, id) { people.push(id); });
+      people.sort(function (a, b) {
+        if (a === state.meId) return -1; if (b === state.meId) return 1;
+        return n(b) - n(a) || dtCollator().compare(dtPeopleNameOf(a), dtPeopleNameOf(b));
+      });
+      state.people.order = people; state.people.info = info; state.people.idx = idx; state.people.colId = col.id;
+      var wasHidden = bar.hidden;
+      bar.textContent = '';
+      // the column: a plain label, or a picker when the screen has more than one User column
+      if (ucols.length > 1) {
+        var sel = document.createElement('select');
+        sel.className = 'dt-people-colsel'; sel.setAttribute('aria-label', 'People column'); sel.setAttribute('data-key', 'colsel');
+        ucols.forEach(function (u) { var o = document.createElement('option'); o.value = u.col.id; o.textContent = String(u.col.header || u.col.id); if (u.col.id === col.id) o.selected = true; sel.appendChild(o); });
+        bar.appendChild(sel);
+      } else {
+        var lab = document.createElement('span');
+        lab.className = 'dt-people-col'; lab.textContent = String(col.header || col.id);
+        bar.appendChild(lab);
+      }
+      var pile = document.createElement('div');
+      pile.className = 'dt-people-pile';
+      people.slice(0, DT_PEOPLE_PILE).forEach(function (id) {
+        var b = document.createElement('button'), name = dtPeopleNameOf(id), on = act.kind === 'person' && act.id === gxFold(id);
+        b.type = 'button';
+        b.className = 'dt-people-av' + (id === state.meId ? ' is-me' : '') + (state.peopleOff.has(id) ? ' is-off' : '') + (dtUserName(id) ? '' : ' is-unknown');
+        b.setAttribute('data-act', 'person'); b.setAttribute('data-uid', id); b.setAttribute('data-key', 'p:' + id);
+        b.setAttribute('data-tone', String(gxToneIndex(id)));
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.setAttribute('aria-label', 'Show rows for ' + name + (id === state.meId ? ' (you)' : '') + (info && info.known ? ', ' + dtPeopleRowsText(n(id)) : ''));
+        b.textContent = dtUserName(id) ? dtUserInitials(dtUserName(id)) : '?';
+        pile.appendChild(b);
+      });
+      var others = info && info.known ? dtPeopleOthers(counts) : [], extra = Math.max(0, people.length - DT_PEOPLE_PILE);
+      if (extra || others.length) {
+        var more = document.createElement('button');
+        more.type = 'button'; more.className = 'dt-people-av dt-people-more';
+        more.setAttribute('data-act', 'more'); more.setAttribute('data-key', 'more');
+        more.setAttribute('aria-haspopup', 'dialog'); more.setAttribute('aria-expanded', document.getElementById('dt-people-pop') ? 'true' : 'false');
+        more.setAttribute('aria-label', 'More people' + (extra ? ', ' + extra + ' more on this screen' : ''));
+        more.textContent = extra ? '+' + extra : '+';
+        pile.appendChild(more);
+      }
+      bar.appendChild(pile);
+      if (!info || info.failed) {
+        var wait = document.createElement('span');
+        wait.className = 'dt-people-note'; wait.textContent = info ? 'Counts unavailable' : 'Counting…';
+        bar.appendChild(wait);
+      }
+      function pill(actName, label, count, on) {
+        var p = document.createElement('button'), c = document.createElement('span');
+        p.type = 'button'; p.className = 'dt-people-pill';
+        p.setAttribute('data-act', actName); p.setAttribute('data-key', actName);
+        p.setAttribute('aria-pressed', on ? 'true' : 'false');
+        p.appendChild(document.createTextNode(label));
+        if (count != null) { c.className = 'dt-people-n'; c.textContent = '· ' + Number(count).toLocaleString('en-US'); p.appendChild(c); }
+        bar.appendChild(p);
+      }
+      if (state.meId) pill('me', 'Assigned to me', info && info.known ? n(state.meId) : null, act.kind === 'person' && act.id === gxFold(state.meId));
+      pill('unassigned', 'Unassigned', info && info.known ? info.blank : null, act.kind === 'unassigned');
+      if (act.kind === 'custom') {
+        var note = document.createElement('span');
+        note.className = 'dt-people-note'; note.textContent = 'Custom filter';
+        bar.appendChild(note);
+      }
+      if (act.kind !== 'none') {
+        var clr = document.createElement('button');
+        clr.type = 'button'; clr.className = 'dt-people-clear';
+        clr.setAttribute('data-act', 'clear'); clr.setAttribute('data-key', 'clear');
+        clr.textContent = 'Clear';
+        bar.appendChild(clr);
+      }
+      bar.hidden = false;
+      if (wasHidden) dtPeopleResized();
+      if (focusKey) { var f = bar.querySelector('[data-key="' + focusKey.replace(/["\\]/g, '') + '"]'); if (f) { try { f.focus({ preventScroll: true }); } catch (e) {} } }
+      dtPeopleCardBind();
+      var pop = document.getElementById('dt-people-pop');
+      if (pop) dtPeoplePopFill(pop);
+    } catch (e) { log('[GX-PEOPLE] bar', e); }
+  }
+  // the company's people with no row in this column on this screen: the active ones first (the viewer leading), then the
+  // former teammates (dimmed, "Former teammate")
+  function dtPeopleOthers(counts) {
+    var on = [], off = [], byName = function (a, b) { return dtCollator().compare(dtPeopleNameOf(a), dtPeopleNameOf(b)); };
+    (state.peopleAll || new Map()).forEach(function (name, id) { if (!counts.has(id)) (state.peopleOff.has(id) ? off : on).push(id); });
+    on.sort(function (a, b) { if (a === state.meId) return -1; if (b === state.meId) return 1; return byName(a, b); });
+    off.sort(byName);
+    return on.concat(off);
+  }
+  // the "+N" list: everyone on this screen (with counts), then the other teammates (no rows here, not clickable)
+  function dtPeoplePopToggle(anchor) {
+    if (document.getElementById('dt-people-pop')) { dtPeoplePopClose(true); return; }
+    var pop = document.createElement('div'), wr = els.wrapper.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+    pop.id = 'dt-people-pop'; pop.className = 'dt-people-pop';
+    pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'More people');
+    pop.style.top = Math.round(ar.bottom - wr.top + 6) + 'px';
+    pop.style.left = Math.round(Math.max(8, Math.min(ar.left - wr.left, wr.width - 276))) + 'px';
+    els.wrapper.appendChild(pop);
+    dtPeoplePopFill(pop);
+    anchor.setAttribute('aria-expanded', 'true');
+    pop.addEventListener('click', function (ev) {
+      var t = ev.target && ev.target.closest ? ev.target.closest('button[data-uid]') : null;
+      if (!t || t.disabled || state.people.idx == null) return;
+      dtPeoplePopClose(true);   // a pick closes the list (focus back on "+N")
+      dtPeopleFilter(state.people.idx, 'person', t.getAttribute('data-uid'));
+    });
+    pop.addEventListener('keydown', function (ev) {
+      var items = Array.from(pop.querySelectorAll('button:not([disabled])')), i = items.indexOf(document.activeElement);
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        if (!items.length) return;
+        i = ev.key === 'ArrowDown' ? (i + 1) % items.length : (i <= 0 ? items.length - 1 : i - 1);
+        items[i].focus();
+      } else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); dtPeoplePopClose(true); }
+    });
+    setTimeout(function () { var b = pop.querySelector('button:not([disabled])'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) {} } }, 0);
+  }
+  function dtPeoplePopFill(pop) {
+    var info = state.people.info, counts = info ? info.counts : new Map(), act = state.people.idx != null ? dtPeopleActive(state.people.idx) : { kind: 'none' };
+    pop.textContent = '';
+    function head(text) { var h = document.createElement('div'); h.className = 'dt-people-h'; h.textContent = text; pop.appendChild(h); }
+    function item(id, clickable) {
+      var b = document.createElement('button'), nm = document.createElement('span'), meta = document.createElement('span');
+      b.type = 'button'; b.className = 'dt-people-item' + (state.peopleOff.has(id) ? ' is-off' : '');
+      b.setAttribute('data-uid', id);
+      if (!clickable) b.disabled = true; else b.setAttribute('aria-pressed', act.kind === 'person' && act.id === gxFold(id) ? 'true' : 'false');
+      b.appendChild(dtPeopleAv('dt-people-iav', id));
+      nm.className = 'dt-people-iname'; nm.textContent = dtPeopleNameOf(id) + (id === state.meId ? ' (you)' : '');
+      meta.className = 'dt-people-imeta';
+      meta.textContent = clickable ? (info && info.known ? dtPeopleRowsText(counts.get(id) || 0) : '') : (state.peopleOff.has(id) ? 'Former teammate' : 'No rows');
+      b.appendChild(nm); b.appendChild(meta);
+      pop.appendChild(b);
+    }
+    head('On this screen');
+    (state.people.order || []).forEach(function (id) { item(id, true); });
+    if (!(state.people.order || []).length) { var e0 = document.createElement('div'); e0.className = 'dt-people-empty'; e0.textContent = !info ? 'Counting…' : (info.known ? 'Nobody is assigned yet' : 'Counts unavailable'); pop.appendChild(e0); }
+    var others = info && info.known ? dtPeopleOthers(counts) : [];
+    if (others.length) { head('Other teammates'); others.forEach(function (id) { item(id, false); }); }
+  }
+  function dtPeoplePopClose(refocus) {
+    var pop = document.getElementById('dt-people-pop');
+    if (!pop) return;
+    pop.parentNode.removeChild(pop);
+    var more = document.querySelector('#dt-people-bar [data-act="more"]');
+    if (more) { more.setAttribute('aria-expanded', 'false'); if (refocus) { try { more.focus({ preventScroll: true }); } catch (e) {} } }
+  }
+  // the hover card: one shared element, delegated listeners (cell chips survive HOT re-renders), 300 ms open delay
+  function dtPeopleCardBind() {
+    var w = els.wrapper;
+    if (!w || w.__gxPeopleCard) return;
+    w.__gxPeopleCard = true;
+    var target = function (ev) { var t = ev.target && ev.target.closest ? ev.target.closest('.dt-user[data-uid], .dt-people-av[data-uid], .dt-people-item[data-uid]') : null; return t && w.contains(t) ? t : null; };
+    var open = function (ev) {
+      var t = target(ev);
+      if (!t || t === _dtPeopleCardFor) return;
+      clearTimeout(_dtPeopleCardTimer);
+      _dtPeopleCardTimer = setTimeout(function () { if (t.isConnected) dtPeopleCardShow(t); }, 300);
+    };
+    var leave = function (ev) {
+      var t = target(ev);
+      if (!t) return;
+      if (ev.relatedTarget && t.contains(ev.relatedTarget)) return;
+      clearTimeout(_dtPeopleCardTimer);
+      if (t === _dtPeopleCardFor) dtPeopleCardHide();
+    };
+    w.addEventListener('mouseover', open);
+    w.addEventListener('focusin', open);
+    w.addEventListener('mouseout', leave);
+    w.addEventListener('focusout', leave);
+    w.addEventListener('scroll', function () { dtPeopleCardHide(); }, true);
+    // the two document listeners are registered ONCE per page (Bubble rebuilding the element must not pile them up); they
+    // call the newest instance's handlers through window.__gxPeopleDoc (review 07.10)
+    try {
+      window.__gxPeopleDoc = {
+        key: function (ev) { if (ev.key === 'Escape') { dtPeopleCardHide(); dtPeoplePopClose(true); } },
+        down: function (ev) {
+          var pop = document.getElementById('dt-people-pop');
+          if (pop && !pop.contains(ev.target) && !(ev.target.closest && ev.target.closest('#dt-people-bar [data-act="more"]'))) dtPeoplePopClose(false);
+        }
+      };
+      if (!window.__gxPeopleDocBound) {
+        window.__gxPeopleDocBound = true;
+        document.addEventListener('keydown', function (ev) { var h = window.__gxPeopleDoc; if (h && h.key) h.key(ev); });
+        document.addEventListener('mousedown', function (ev) { var h = window.__gxPeopleDoc; if (h && h.down) h.down(ev); });
+      }
+    } catch (e) {}
+  }
+  function dtPeopleCardColOf(el) {          // the column a chip sits in (cell → HOT coords → mounted column); the bar → its column
+    try {
+      if (!el.classList.contains('dt-user')) return state.people.idx != null ? (state._mountedCols || [])[state.people.idx] : null;
+      var td = el.closest('td');
+      if (!td || !state.hot) return null;
+      var co = state.hot.getCoords(td);
+      if (!co || co.col < 0) return null;
+      var phys = typeof state.hot.toPhysicalColumn === 'function' ? state.hot.toPhysicalColumn(co.col) : co.col;
+      return (state._mountedCols || [])[phys] || null;
+    } catch (e) { return null; }
+  }
+  function dtPeopleCardShow(el) {
+    var w = els.wrapper, id = String(el.getAttribute('data-uid') || ''), card = document.getElementById('dt-person-card');
+    if (!w || !id) return;
+    if (!card || !w.contains(card)) {
+      card = document.createElement('div');
+      card.id = 'dt-person-card'; card.className = 'dt-pcard'; card.setAttribute('role', 'tooltip'); card.hidden = true;
+      w.appendChild(card);
+    }
+    var col = dtPeopleCardColOf(el), info = col && col.type === 'user' ? dtPeopleCounts(col) : null;
+    var body = document.createElement('div'), nm = document.createElement('div'), role = document.createElement('div'), rows = document.createElement('div');
+    card.textContent = '';
+    card.appendChild(dtPeopleAv('dt-pcard-av', id));
+    body.className = 'dt-pcard-body';
+    nm.className = 'dt-pcard-name'; nm.textContent = dtUserName(id) || (dtIsUserId(id) ? 'Unknown user' : id);
+    role.className = 'dt-pcard-role'; role.textContent = dtPeopleRole(id);
+    body.appendChild(nm); body.appendChild(role);
+    if (info && info.known) {
+      rows.className = 'dt-pcard-rows';
+      rows.textContent = dtPeopleRowsText(info.counts.get(id) || 0) + ' on this screen' + (col ? ' in ' + String(col.header || col.id) : '');
+      body.appendChild(rows);
+    }
+    card.appendChild(body);
+    var wr = w.getBoundingClientRect(), r = el.getBoundingClientRect();
+    card.hidden = false;
+    var cw = card.offsetWidth || 220, ch = card.offsetHeight || 64;
+    var top = r.bottom - wr.top + 6;
+    if (top + ch > wr.height && r.top - wr.top - ch - 6 > 0) top = r.top - wr.top - ch - 6;
+    card.style.top = Math.round(top) + 'px';
+    card.style.left = Math.round(Math.max(8, Math.min(r.left - wr.left, wr.width - cw - 8))) + 'px';
+    if (_dtPeopleCardFor && _dtPeopleCardFor !== el) { try { _dtPeopleCardFor.removeAttribute('aria-describedby'); } catch (e) {} }
+    _dtPeopleCardFor = el;
+    // described by the card only while the card shows THIS person (a bar button / list item; review 07.10)
+    if (el.classList.contains('dt-people-av') || el.classList.contains('dt-people-item')) el.setAttribute('aria-describedby', 'dt-person-card');
+    card.classList.add('is-open');
+  }
+  function dtPeopleCardHide() {
+    clearTimeout(_dtPeopleCardTimer);
+    if (_dtPeopleCardFor) { try { _dtPeopleCardFor.removeAttribute('aria-describedby'); } catch (e) {} }
+    _dtPeopleCardFor = null;
+    var card = document.getElementById('dt-person-card');
+    if (card) { card.classList.remove('is-open'); card.hidden = true; }
+  }
+  // harness / console hook (read-only): what the bar shows and where the names came from
+  window.gaiaTablePeople = {
+    status: function () { var g = dtPeopleCache(); return { requests: _dtPeopleReqs, inFlight: !!_dtPeopleAsk, failedAt: _dtPeopleFailAt, cachedAt: g ? g.at : 0, people: (state.peopleAll || new Map()).size, column: state.people.colId || '' }; },
+    counts: function () { var o = {}, info = state.people.info; if (info) info.counts.forEach(function (c, id) { o[id] = c; }); return { counts: o, blank: info ? info.blank : null, known: !!(info && info.known), order: (state.people.order || []).slice() }; },
+    me: function () { return state.meId || ''; },
+    refresh: function () { var p = dtPeopleEnsure(); dtPeopleSoon(); return !!p; }
+  };
+  /* ---- /GX-PEOPLE ---- */
   /* AYNA-TABLE-END */
 
   function setTableData(data, columns) {
@@ -5516,6 +6560,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try {
       const config = parseBubbleConfig(text);
       applyServerPatch(config);   // mr18: this page's confirmed field adds / hides survive Bubble's config echo (before viewKeyOf)
+      dtUserIngestConfig(config);   // GX-USERS (06.10): config.users / user_labels before any paint
+      dtPeopleEnsure(config.columns);   // GX-PEOPLE (07.10)
       // Ekran/süreç değişti (config yenilendi) → asistan bağlamını taze oku + kısa poll
       // (BUBBLE_INPUTS bu config'ten biraz sonra güncellenebilir).
       applyWakeConfig(config);
@@ -5641,6 +6687,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
       try {
         const config = parseBubbleConfig(text);
+        dtUserIngestConfig(config);   // GX-USERS (06.10): config.users / user_labels before the first paint
+        dtPeopleEnsure(config.columns);   // GX-PEOPLE (07.10): company names + the viewer's id (mirror_users, once per 10 min)
         applyWakeConfig(config); // wake butonu kolonlardan bağımsız
         // Sütunlar tanımlı ise yeterli; data yoksa/null ise boş dizi gibi davran.
         // Yeni kullanıcılarda kayıt olmayabilir — bu durumda tablo yine de başlatılmalı.
@@ -7972,7 +9020,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     state.rawRows.forEach(row => {
       const typed = dtTypedValue(column, pickValue(row, column));
       const keys = dtValueKeys(column, typed);
-      const toks = column.type === 'dropdown' ? dtDropdownTokens(column, typed) : null;
+      // GX-USERS (06.10): a User column lists one item per person, labelled by name (unknown id → "Unknown user · <id>")
+      const toks = column.type === 'dropdown' ? dtDropdownTokens(column, typed) : (column.type === 'user' ? dtUserIds(typed) : null);
       keys.forEach((key, i) => {
         if (byKey.has(key)) return;
         let label, sortKey = null, group = 2;
@@ -7980,7 +9029,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         else if (key.indexOf('n:') === 0) { label = dtNumberText(column, typed); sortKey = typed; group = 1; }
         else if (key.indexOf('d:') === 0) { label = dtIsoText(typed); sortKey = typed; group = 1; }
         else if (key.indexOf('b:') === 0) { label = typed ? 'Checked' : 'Not checked'; sortKey = typed ? 0 : 1; group = 1; }
-        else if (key.indexOf('t:') === 0 && toks) label = toks[i];
+        else if (key.indexOf('t:') === 0 && toks) label = column.type === 'user' ? dtUserListLabel(toks[i]) : toks[i];
         else label = dtRawText(typed);
         byKey.set(key, { raw: key, label: String(label), sortKey, group });
       });
@@ -8138,6 +9187,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
 
   function applyAllColumnFilters() {
+    dtPeopleSoon();   // GX-PEOPLE (07.10): the bar's pressed state follows the column filters
     if (!state.hot || typeof state.hot.getPlugin !== 'function') return;
     const filterPlugin = state.hot.getPlugin('filters');
     if (!filterPlugin) return;
@@ -8145,6 +9195,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     // Any condition left in the plugin from a small-screen view is cleared so it cannot hide rows of the page.
     if (typeof aynaWindowed === 'function' && aynaWindowed()) {
       try { filterPlugin.clearConditions(); if (state._hotFiltered) { keepOutsideFocus(() => filterPlugin.filter()); state._hotFiltered = false; } } catch (e) {}
+      // GX-USERS (06.10): a name condition on a User column becomes ids from the names known when it is sent; OK pressed
+      // while that column's value list (which names all its people) is still on its way → wait for it, then filter
+      const namesFirst = typeof aynaUserNamesPending === 'function' ? aynaUserNamesPending() : null;
+      if (namesFirst) {
+        aynaSetStatus('filtering');
+        const go = () => { if (!aynaCriteriaChanged('filters') && aynaWindowed() && AYNA.stats && AYNA.stats.windowed) aynaSetStatus('window', AYNA.stats); };
+        namesFirst.then(go, go);
+        return;
+      }
       aynaCriteriaChanged('filters');
       return;
     }
@@ -8162,6 +9221,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (vcol === null || vcol === undefined || vcol < 0) return;
         const colDef = (state._mountedCols || [])[col] || getColumnAt(col);
         if (!colDef || colDef.__uiOnly) return;
+
+        // GX-USERS (06.10): a User column filters on the NAMES — its conditions + checked values are decided in
+        // dtUserFilterList and reach HOT as ONE by_value list of the matching cell values (HOT would compare the ids)
+        if (colDef.type === 'user') {
+          const ul = dtUserFilterList(colDef, config);
+          if (ul) filterPlugin.addCondition(vcol, 'by_value', [ul], 'conjunction');
+          return;
+        }
 
         // T5.3: panel conditions → HOT built-ins on the typed cell values (gxHotCondition; null = no condition)
         const conds = [
