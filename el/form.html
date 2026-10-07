@@ -2363,6 +2363,150 @@
       max-width: none;
     }
   }
+
+  /* GX-FORM-PEOPLE (07.10): User fields = avatar + name chips and a people picker (same tones as the table's people chips).
+     Colours from the gx tokens; the picker reuses .picker-popover (a bottom sheet under 900 px, see the mobile block). */
+  #bdf-root .bdf-people { position: relative; width: 100%; min-width: 0; }
+  #bdf-root .bdf-people-face {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+    overflow: hidden;
+  }
+  #bdf-root button.bdf-people-trigger.field-input {
+    background: transparent;
+    color: var(--gx-ink, #0f172a);
+    border: none;
+    border-radius: var(--gx-r-md, 10px);
+    padding: 6px 10px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: none;
+    transform: none;
+  }
+  #bdf-root button.bdf-people-trigger.field-input:hover { background: transparent; transform: none; box-shadow: none; }
+  #bdf-root button.bdf-people-trigger.field-input:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: -2px; }
+  #bdf-root .bdf-people--ro .bdf-people-face { cursor: default; }
+  #bdf-root .bdf-people-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 1 1 auto; min-width: 0; }
+  #bdf-root .bdf-people-empty { color: var(--gx-ink-2, #475569); opacity: .75; font-weight: 500; }
+  #bdf-root .bdf-people-caret {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    margin: 0 2px 3px 4px;
+    border-right: 1.6px solid var(--gx-ink-3, #94a3b8);
+    border-bottom: 1.6px solid var(--gx-ink-3, #94a3b8);
+    transform: rotate(45deg);
+    transition: transform .12s ease;
+  }
+  #bdf-root .bdf-people.is-open .bdf-people-caret { transform: rotate(-135deg); margin-bottom: -3px; }
+  #bdf-root .bdf-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+    height: 24px;
+    padding: 0 9px 0 2px;
+    border: 1px solid var(--gx-line, #e2e8f0);
+    border-radius: var(--gx-r-pill, 999px);
+    background: var(--gx-field, #f6f7f9);
+    color: var(--gx-ink, #0f172a);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 22px;
+    box-sizing: border-box;
+  }
+  #bdf-root .bdf-user-av {
+    flex: 0 0 auto;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gx-primary-deep, #4f46e5);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  #bdf-root .bdf-user-av[data-tone="1"] { background: #3730a3; }
+  #bdf-root .bdf-user-av[data-tone="2"] { background: #065f46; }
+  #bdf-root .bdf-user-av[data-tone="3"] { background: #92400e; }
+  #bdf-root .bdf-user-av[data-tone="4"] { background: #9f1239; }
+  #bdf-root .bdf-user-av[data-tone="5"] { background: #075985; }
+  #bdf-root .bdf-user-av[data-tone="6"] { background: #5b21b6; }
+  #bdf-root .bdf-user-av[data-tone="7"] { background: #a21caf; }
+  #bdf-root .bdf-user-av[data-tone="8"] { background: #334155; }
+  #bdf-root .bdf-user-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #bdf-root .bdf-user--unknown { background: transparent; border-style: dashed; color: var(--gx-ink-3, #94a3b8); font-weight: 400; }
+  #bdf-root .bdf-user--unknown .bdf-user-av { opacity: .6; }
+  #bdf-root .bdf-user--me .bdf-user-av { box-shadow: 0 0 0 1.5px var(--gx-surface, #ffffff), 0 0 0 3px var(--gx-primary, #6366f1); }
+  #bdf-root .bdf-user--off .bdf-user-name { color: var(--gx-ink-3, #94a3b8); }
+  #bdf-root .bdf-user-tag {
+    flex: 0 0 auto;
+    padding: 0 6px;
+    border: 1px solid var(--gx-line, #e2e8f0);
+    border-radius: var(--gx-r-pill, 999px);
+    background: var(--gx-surface, #ffffff);
+    color: var(--gx-ink-2, #475569);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 15px;
+  }
+  #bdf-root .bdf-user-tag--me { color: var(--gx-primary, #6366f1); }
+  #bdf-root .bdf-user--none { background: transparent; border-style: dashed; color: var(--gx-ink-2, #475569); }
+  #bdf-root .bdf-user-av--none { background: var(--gx-line, #e2e8f0); color: var(--gx-ink-2, #475569); }
+  #bdf-root .picker-popover.bdf-people-pop {
+    left: 0;
+    right: auto;
+    width: min(340px, 100%);
+    min-width: 240px;
+    padding: 8px;
+    gap: 6px;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    max-height: 360px;
+  }
+  #bdf-root .bdf-people-pop .bdf-people-search {
+    border: 1px solid var(--gx-line, #e2e8f0);
+    background: var(--gx-surface, #ffffff);
+    height: 34px;
+    min-height: 34px;
+  }
+  #bdf-root .bdf-people-pop .bdf-people-search:focus { border-color: var(--gx-primary, #6366f1); box-shadow: var(--gx-ring, 0 0 0 3px rgba(99, 102, 241, .12)); }
+  #bdf-root .bdf-people-list { overflow-y: auto; overscroll-behavior: contain; max-height: 260px; display: grid; gap: 1px; min-height: 0; }
+  #bdf-root .bdf-people-opt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 36px;
+    padding: 4px 8px 4px 4px;
+    border-radius: var(--gx-r-sm, 6px);
+    cursor: pointer;
+    user-select: none;
+  }
+  #bdf-root .bdf-people-opt:hover,
+  #bdf-root .bdf-people-opt.is-active { background: var(--gx-field, #f6f7f9); }
+  #bdf-root .bdf-people-opt.is-active { box-shadow: inset 0 0 0 1px var(--gx-line, #e2e8f0); }
+  #bdf-root .bdf-people-opt .bdf-user { border-color: transparent; background: transparent; }
+  #bdf-root .bdf-people-opt.is-selected .bdf-user-name { font-weight: 600; }
+  #bdf-root .bdf-people-tick { flex: 0 0 auto; width: 16px; color: var(--gx-primary, #6366f1); font-weight: 700; text-align: center; }
+  #bdf-root .bdf-people-status { font-size: 12.5px; color: var(--gx-ink-2, #475569); padding: 2px 6px; }
+  #bdf-root .bdf-people-status button.bdf-people-retry { padding: 2px 8px; font-size: 12.5px; color: var(--gx-primary, #6366f1); }
+  #bdf-root .bdf-people-foot { display: flex; justify-content: flex-end; }
+  #bdf-root .bdf-people-foot button.bdf-people-done { padding: 6px 14px; }
+  /* phones (the bottom sheet): the sheet itself scrolls, so the shared swipe-down script reads the real scrollTop and a
+     drag back up the list scrolls instead of closing the sheet; the search box stays on top */
+  @media (max-width: 900px) {
+    #bdf-root .picker-popover.bdf-people-pop { overflow-y: auto; overscroll-behavior: contain; grid-template-rows: auto auto auto auto; }
+    #bdf-root .bdf-people-list { max-height: none; overflow: visible; }
+    #bdf-root .bdf-people-pop .bdf-people-search { position: sticky; top: 0; z-index: 1; }
+  }
 </style>
 <style data-bdf-edit-layout-dropdown-only>
   /* ChatGPT patch: Edit UI'da sol sekme/akordiyon yerine sadece dropdown kullan */
@@ -2481,7 +2625,8 @@
   })();
 </script>
 
-<script src="https://js.csvbox.io/script.js"></script>
+<!-- (30.09) js.csvbox.io/script.js kaldirildi: form onu hic kullanmiyor (CSVBoxImporter'a atif yok) ve sayfada ikinci
+     kopyayla "Identifier 'CSVBoxImporter' has already been declared" hatasi veriyordu. -->
 <style data-bdf-mobile-ux-v18>
   /* Minimal thin scrollbars (kept scoped) */
   #bdf-root,
@@ -6756,6 +6901,7 @@
       }
 
       function getTypeMeta(field) {
+        if (field && field.gxUser) return { iconKey: "user", label: "User" };   // GX-FORM-PEOPLE (07.10)
         const displayKey = String(field.displayType || "").toLowerCase();
         return displayTypeMetaMap[displayKey] || typeMetaMap[field.type] || { iconKey: "text", label: field.type || "text" };
       }
@@ -7795,7 +7941,8 @@
         }
         var type = ({ user: 'text', reference: 'text' })[r.type] || r.type;
         var allowMultiple = r.multiple;
-        if (r.type === 'user' && Array.isArray(options) && options.length) { type = 'dropdown'; allowMultiple = false; }
+        // GX-FORM-PEOPLE (07.10): a User field stays a text value (the user _id, same save path) drawn by the people picker;
+        // Bubble's options (if any) become the picker's choices instead of a dropdown of raw ids (canonical 'user' marks it).
         return {
           type: type, allowMultiple: allowMultiple, displayType: r.rawType || r.type, canonical: r.type, known: known,
           displayOnly: !known || _bdfIsPassThroughType(r.type), hidden: r.type === 'hidden'
@@ -7844,6 +7991,7 @@
           if (!field) return formatValueForDisplay(value);
           if (gxIsBlank(value)) return '';
           var t = field.type, p, b, n, s, opts, toLabel;
+          if (field.gxUser) return _bdfUserText(value, field);   // GX-FORM-PEOPLE (07.10): names, never raw ids
           if (t === 'integer' || t === 'decimal' || t === 'number' || t === 'currency') {
             s = _bdfFormatNumberForField(field, value);
             return s || String(value);
@@ -7961,6 +8109,477 @@
         set(value);
         return { inputEl: el, setValue: set };
       }
+      /* ---- GX-FORM-PEOPLE (07.10): a User field shows PEOPLE, never a raw Bubble user id ----
+         A User field (a customfield of type User, for example the task owner or the file owner) stores the Bubble user _id.
+         The form drew it as an editable text box holding that id. Now:
+           - every User value is an avatar + name chip; an id with no known name reads "Unknown user · …<last 6>";
+           - (MYTASKS_SPEC 1.3 / GX-F1) a User field WITHOUT Bubble choices is a read-only name display: the stored id is kept
+             and never sent back changed. A field WITH choices (column.source, ids first: field.gxUserOptions), or one opted in
+             with ui.editable / ui.picker, opens a people picker (search, "Unassigned"; former teammates are hidden from the
+             choices but still shown when already set). The picked _id goes through the SAME setFieldValue path the text box
+             used, so the stored value, the dirty check and the Bubble submit payload are unchanged (the id text);
+           - ui.readOnly / ui.locked / display-only always lock it; a value that is not a user id is never written.
+         Names: window.__gxPeople (the table's 10-minute cache, same shape {at, users, me, inactive}) or ONE read-only bridge
+         call, POST {origin}[/version-test]/api/1.1/wf/bridge {op: 'mirror_users'} → {users: {id: name}, inactive: [ids], me},
+         answered for the signed-in caller's own company only (the server never trusts the payload). A failure is quiet (the
+         chips keep "Unknown user · …tail") and is asked again at most once a minute. Every name reaches the DOM through
+         textContent. */
+      var BDF_PEOPLE_TTL = 10 * 60000, BDF_PEOPLE_RETRY = 60000;   // GX-FORM-PEOPLE (07.10)
+      var BDF_USER_ID_RE = /^\d{10,16}x[0-9a-z]{6,30}$/i;   // a Bubble unique id (digits "x" digits; wider on purpose: an id-like value never shows)
+      var _bdfPeople = { users: new Map(), off: new Set(), me: '', at: 0, ask: null, failAt: 0, failed: false, reqs: 0, views: new Map(), seq: 0 };
+      var _bdfPeopleLetterRe = null;
+      function _bdfIsUserId(s) { return BDF_USER_ID_RE.test(String(s == null ? '' : s).trim()); }
+      function _bdfPeopleCleanName(v) {   // one line, trimmed (Gaia's names may carry leading spaces), ≤ 80 chars
+        var s = v;
+        if (s && typeof s === 'object' && !Array.isArray(s)) s = s.name != null ? s.name : (s.label != null ? s.label : s.display);
+        if (s == null || typeof s === 'object') return '';
+        s = String(s).replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+        return s.length > 80 ? s.slice(0, 80) : s;
+      }
+      function _bdfPeopleReadCache() {    // the page's shared copy (the table writes it too); a same-origin parent when framed
+        var wins = [window], i, g;
+        try { if (window.parent && window.parent !== window) wins.push(window.parent); } catch (e) { }
+        for (i = 0; i < wins.length; i++) {
+          try {
+            g = wins[i].__gxPeople;
+            if (g && typeof g === 'object' && g.users && typeof g.users === 'object' && !Array.isArray(g.users) && typeof g.at === 'number') return g;
+          } catch (e) { }
+        }
+        return null;
+      }
+      function _bdfPeopleIngest(p) {
+        if (!p || typeof p !== 'object' || !p.users || typeof p.users !== 'object' || Array.isArray(p.users)) return false;
+        var m = new Map(), me = String(p.me == null ? '' : p.me).trim();
+        Object.keys(p.users).forEach(function (k) {
+          var id = String(k).trim(), n = _bdfPeopleCleanName(p.users[k]);
+          if (id && n && n !== id && m.size < 5000) m.set(id, n);
+        });
+        _bdfPeople.users = m;
+        _bdfPeople.off = new Set((Array.isArray(p.inactive) ? p.inactive : []).map(function (x) { return String(x == null ? '' : x).trim(); }).filter(Boolean));
+        _bdfPeople.me = _bdfIsUserId(me) ? me : '';
+        _bdfPeople.at = typeof p.at === 'number' ? p.at : Date.now();
+        _bdfPeople.failed = false;
+        _bdfPeopleRefreshViews();
+        return true;
+      }
+      function _bdfPeopleBridgeUrl() {
+        var loc = window.location;
+        try { if ((!loc.origin || loc.origin === 'null') && window.parent && window.parent !== window) loc = window.parent.location; } catch (e) { }
+        var vt = String(loc.pathname || '').indexOf('/version-test') > -1 ? '/version-test' : '';
+        return loc.origin + vt + '/api/1.1/wf/bridge';
+      }
+      // the same bridge call shape as the table (aynaBridge): {op, bridge_payload: JSON text}; answer → {users, inactive, me} | null
+      function _bdfPeopleFetch() {
+        var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, 12000) : null;
+        var done = function (x) { if (timer) clearTimeout(timer); return x; };
+        if (typeof fetch !== 'function') return Promise.resolve(null);
+        return fetch(_bdfPeopleBridgeUrl(), {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ op: 'mirror_users', bridge_payload: JSON.stringify({}) }), signal: ctrl ? ctrl.signal : undefined
+        }).then(function (r) {
+          return r.text().then(function (text) {
+            var j = null, g, inner = null, st, d;
+            if (!r.ok) return done(null);
+            try { j = JSON.parse(text); } catch (e) { j = null; }
+            if (!j) return done(null);
+            g = (j && j.response) ? j.response : j;
+            if (g && String(g.error_message || '').trim()) return done(null);
+            if (g && typeof g.final_json === 'string' && g.final_json.trim()) { try { inner = JSON.parse(g.final_json); } catch (e) { inner = null; } }
+            if (!inner && g && typeof g === 'object') inner = g;
+            if (!inner || typeof inner !== 'object') return done(null);
+            st = String(inner.status || '').toUpperCase();
+            if (st && st !== 'SUCCESS' && st !== 'OK') return done(null);   // ERROR / PROCESSING_TIMEOUT (cold start) = no answer
+            d = (inner.data && typeof inner.data === 'object' && !Array.isArray(inner.data)) ? inner.data : inner;
+            if (!d || !d.users || typeof d.users !== 'object' || Array.isArray(d.users)) return done(null);
+            return done(d);
+          });
+        }).catch(function () { return done(null); });
+      }
+      // once per form open: a warm shared copy is taken at once (no request); a cold / stale one → one mirror_users call
+      function _bdfPeopleEnsure(force) {
+        try {
+          var g = _bdfPeopleReadCache();
+          if (g && g.at !== _bdfPeople.at) _bdfPeopleIngest(g);
+          if (g && Date.now() - g.at < BDF_PEOPLE_TTL) return Promise.resolve(true);
+          if (_bdfPeople.ask) return _bdfPeople.ask;
+          if (!force && _bdfPeople.failAt && Date.now() - _bdfPeople.failAt < BDF_PEOPLE_RETRY) return Promise.resolve(false);
+          _bdfPeople.reqs++;
+          var ask = _bdfPeopleFetch().then(function (d) {
+            if (!d) { _bdfPeople.failAt = Date.now(); _bdfPeople.failed = true; return false; }
+            _bdfPeople.failAt = 0;
+            var p = { at: Date.now(), users: d.users, me: String(d.me == null ? '' : d.me), inactive: Array.isArray(d.inactive) ? d.inactive.slice(0, 5000) : [] };
+            try { window.__gxPeople = p; } catch (e) { }
+            _bdfPeopleIngest(p);
+            return true;
+          }, function () { _bdfPeople.failAt = Date.now(); _bdfPeople.failed = true; return false; });
+          _bdfPeople.ask = ask;
+          ask.then(function () { if (_bdfPeople.ask === ask) _bdfPeople.ask = null; _bdfPeopleRefreshViews(); });
+          _bdfPeopleRefreshViews();   // "Loading…" while the call is in flight
+          return ask;
+        } catch (e) { return Promise.resolve(false); }
+      }
+      function _bdfPeopleRefreshViews() {
+        _bdfPeople.views.forEach(function (fn) { try { fn(); } catch (e) { } });
+      }
+      // a User value → its ids: an array, Bubble's list text "id1, id2", JSON array text, or one id / text. A plain text with a
+      // comma that is not a list of ids stays ONE value (a name such as "Yılmaz, Ali").
+      function _bdfUserIds(v) {
+        var toks, s, parsed;
+        if (v == null) return [];
+        if (Array.isArray(v)) toks = v.map(function (x) { return x && typeof x === 'object' ? (x._id != null ? x._id : x.id) : x; });
+        else if (typeof v === 'object') toks = [v._id != null ? v._id : v.id];
+        else {
+          s = String(v).trim();
+          if (!s) return [];
+          parsed = null;
+          if (s.charAt(0) === '[') { try { parsed = JSON.parse(s); } catch (e) { parsed = null; } }
+          if (Array.isArray(parsed)) return _bdfUserIds(parsed);
+          toks = s.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+          if (toks.length > 1 && !toks.every(_bdfIsUserId)) toks = [s];
+        }
+        var seen = new Set();
+        return toks.map(function (t) { return String(t == null ? '' : t).trim(); }).filter(function (t) {
+          if (!t || seen.has(t)) return false;
+          seen.add(t); return true;
+        });
+      }
+      // Bubble's choices for a User field, read from the RAW column source with the id first ({_id|id|value, name|label} or a
+      // bare id). _bdfNormalizeOptions would keep the name as the value and lose the id, so it is not used here.
+      function _bdfUserOptionsFrom(source) {
+        return (Array.isArray(source) ? source : []).map(function (o) {
+          if (o && typeof o === 'object') return { value: String(o._id != null ? o._id : (o.id != null ? o.id : (o.value != null ? o.value : ''))).trim(), label: _bdfPeopleCleanName(o.name != null ? o.name : (o.label != null ? o.label : '')) };
+          return { value: String(o == null ? '' : o).trim(), label: '' };
+        }).filter(function (o) { return o.value; });
+      }
+      function _bdfUserOpts(field) {   // only the choices that are user ids
+        return (field && Array.isArray(field.gxUserOptions) ? field.gxUserOptions : []).filter(function (o) { return o && _bdfIsUserId(o.value); });
+      }
+      function _bdfUserName(id, field) {  // the known name, or ''
+        var k = String(id == null ? '' : id).trim(), n, opts, i;
+        if (!k) return '';
+        n = _bdfPeople.users.get(k);
+        if (n) return n;
+        opts = _bdfUserOpts(field);
+        for (i = 0; i < opts.length; i++) {   // Bubble may pass {id, name} choices: a label that is a name (not an id) names the id
+          if (opts[i].value === k && opts[i].label && opts[i].label !== k && !_bdfIsUserId(opts[i].label)) return opts[i].label;
+        }
+        return '';
+      }
+      function _bdfUserShown(id, field) {  // text for ONE value: the name; an unknown id never shows itself
+        var k = String(id == null ? '' : id).trim(), n = _bdfUserName(k, field);
+        if (n) return n;
+        if (!_bdfIsUserId(k)) return k;
+        if (_bdfPeople.ask && !_bdfPeople.users.size) return 'Loading…';
+        return 'Unknown user · …' + k.slice(-6);
+      }
+      function _bdfUserText(v, field) { return _bdfUserIds(v).map(function (id) { return _bdfUserShown(id, field); }).join(', '); }
+      function _bdfUserInitials(name) {
+        if (!_bdfPeopleLetterRe) { try { _bdfPeopleLetterRe = new RegExp('[\\p{L}\\p{N}]', 'u'); } catch (e) { _bdfPeopleLetterRe = /[A-Za-z0-9À-ɏ]/; } }
+        var L = _bdfPeopleLetterRe, words = String(name || '').replace(/@.*$/, '').split(/[\s._\-]+/).filter(function (w) { return L.test(w); }), a, b;
+        if (!words.length) return '?';
+        a = words[0].match(L)[0];
+        b = words.length > 1 ? words[words.length - 1].match(L)[0] : '';
+        return (a + b).toLocaleUpperCase('tr-TR');
+      }
+      function _bdfUserTone(id) { try { return String(gxToneIndex(String(id))); } catch (e) { return '1'; } }
+      function _bdfUserChip(id, field) {   // avatar + name (+ "You" / "Former"); the colour follows the person (id)
+        var name = _bdfUserName(id, field), isId = _bdfIsUserId(id);
+        var chip = document.createElement('span'), av = document.createElement('span'), nm = document.createElement('span');
+        chip.className = 'bdf-user';
+        if (!name && isId) chip.className += ' bdf-user--unknown';
+        chip.setAttribute('data-uid-tail', isId ? String(id).slice(-6) : '');
+        av.className = 'bdf-user-av';
+        av.setAttribute('aria-hidden', 'true');
+        av.setAttribute('data-tone', _bdfUserTone(id));
+        av.textContent = name ? _bdfUserInitials(name) : '?';
+        nm.className = 'bdf-user-name';
+        nm.textContent = _bdfUserShown(id, field);
+        chip.append(av, nm);
+        if (_bdfPeople.me && id === _bdfPeople.me) {
+          var you = document.createElement('span');
+          you.className = 'bdf-user-tag bdf-user-tag--me';
+          you.textContent = 'You';
+          chip.className += ' bdf-user--me';
+          chip.append(you);
+        }
+        if (_bdfPeople.off.has(id)) {
+          var off = document.createElement('span');
+          off.className = 'bdf-user-tag';
+          off.textContent = 'Former';
+          chip.className += ' bdf-user--off';
+          chip.append(off);
+        }
+        return chip;
+      }
+      // the field's choices: Bubble's options when it sent any, else the company's people; former teammates only when set
+      function _bdfUserChoices(field, selected) {
+        var opts = _bdfUserOpts(field), ids = [], seen = new Set(), me = _bdfPeople.me;
+        var add = function (id) { id = String(id == null ? '' : id).trim(); if (id && !seen.has(id)) { seen.add(id); ids.push(id); } };
+        if (opts.length) opts.forEach(function (o) { add(o.value); });
+        else _bdfPeople.users.forEach(function (n, id) { add(id); });
+        ids = ids.filter(function (id) { return !_bdfPeople.off.has(id) || selected.indexOf(id) >= 0; });
+        selected.forEach(function (id) { if (!seen.has(id)) { seen.add(id); ids.push(id); } });
+        var coll = null;
+        try { coll = new Intl.Collator('tr-TR', { sensitivity: 'base' }); } catch (e) { coll = null; }
+        return ids.map(function (id) { return { id: id, name: _bdfUserName(id, field) }; }).sort(function (a, b) {
+          if (a.id === me) return -1;
+          if (b.id === me) return 1;
+          var ao = _bdfPeople.off.has(a.id) ? 1 : 0, bo = _bdfPeople.off.has(b.id) ? 1 : 0;
+          if (ao !== bo) return ao - bo;
+          if (!a.name !== !b.name) return a.name ? -1 : 1;
+          return coll ? coll.compare(a.name || '', b.name || '') : String(a.name || '').localeCompare(String(b.name || ''));
+        });
+      }
+      var _bdfPeopleMarkRe = null;   // combining marks (U+0300..U+036F), built at run time
+      function _bdfPeopleFold(s) {
+        if (!_bdfPeopleMarkRe) _bdfPeopleMarkRe = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
+        return String(s == null ? '' : s).toLocaleLowerCase('tr-TR').normalize('NFD').replace(_bdfPeopleMarkRe, '').replace(new RegExp(String.fromCharCode(0x131), 'g'), 'i');
+      }
+      // The control. opts.editable: picker; else chips only. opts.onPick(value): the call site's setFieldValue path.
+      // Returns {inputEl, wrap, setValue}. The value written back keeps the field's own form: one id (single), or the same
+      // list form the field arrived in (an array stays an array, text stays "id1, id2").
+      function _bdfBuildUserControl(field, value, opts) {
+        opts = opts || {};
+        var seq = ++_bdfPeople.seq, key = String(field.key), editable = !!opts.editable, multi = !!field.allowMultiple;
+        var ids = _bdfUserIds(value), arrayForm = Array.isArray(value), open = false, active = -1, rows = [], term = '';
+        var held = ids.slice();   // values the field already held: the only non-id values a pick may keep
+        var wrap = document.createElement('div');
+        wrap.className = 'bdf-people' + (editable ? '' : ' bdf-people--ro');
+        wrap.setAttribute('data-gx-people', key);
+        // no hidden mirror input: the id travels in the form's state only (no raw id in a DOM attribute)
+        var face = document.createElement(editable ? 'button' : 'div');
+        face.className = 'field-input bdf-people-face' + (editable ? ' bdf-people-trigger' : '');
+        face.id = 'field-' + key;
+        face.setAttribute('aria-describedby', 'error-' + key);
+        if (!editable) face.setAttribute('role', 'group');   // a named group, so aria-label is honoured on the div
+        var chipsHost = document.createElement('span');
+        chipsHost.className = 'bdf-people-chips';
+        face.append(chipsHost);
+        var pop = null, search = null, list = null, status = null, listId = 'bdf-people-list-' + seq;
+        if (editable) {
+          face.type = 'button';
+          face.setAttribute('aria-haspopup', 'dialog');
+          face.setAttribute('aria-expanded', 'false');
+          var caret = document.createElement('span');
+          caret.className = 'bdf-people-caret';
+          caret.setAttribute('aria-hidden', 'true');
+          face.append(caret);
+          pop = document.createElement('div');
+          pop.className = 'picker-popover bdf-people-pop';
+          pop.setAttribute('role', 'dialog');
+          pop.setAttribute('aria-label', 'Choose ' + String(field.label || 'a person'));
+          search = document.createElement('input');
+          search.type = 'text';
+          search.className = 'field-input bdf-people-search';
+          search.placeholder = 'Search people';
+          search.setAttribute('aria-label', 'Search people');
+          search.setAttribute('role', 'combobox');
+          search.setAttribute('aria-autocomplete', 'list');
+          search.setAttribute('aria-controls', listId);
+          search.setAttribute('aria-expanded', 'true');
+          search.autocomplete = 'off';
+          list = document.createElement('div');
+          list.className = 'bdf-people-list';
+          list.id = listId;
+          list.setAttribute('role', 'listbox');
+          list.setAttribute('aria-label', String(field.label || 'People'));
+          if (multi) list.setAttribute('aria-multiselectable', 'true');
+          status = document.createElement('div');
+          status.className = 'bdf-people-status';
+          status.setAttribute('role', 'status');
+          pop.append(search, list, status);
+          if (multi) {
+            var foot = document.createElement('div');
+            foot.className = 'bdf-people-foot';
+            var doneBtn = document.createElement('button');
+            doneBtn.type = 'button';
+            doneBtn.className = 'secondary bdf-people-done';
+            doneBtn.textContent = 'Done';
+            doneBtn.addEventListener('click', function () { close(true); });
+            foot.append(doneBtn);
+            pop.append(foot);
+          }
+          pop.__bdfClosePopover = function () { close(false); };
+        }
+        wrap.append(face);
+        if (pop) wrap.append(pop);
+        if (opts.control && opts.control.classList) opts.control.classList.add('bdf-people-control');
+
+        function valueOut(list2) {
+          if (!multi) return list2[0] || '';
+          return arrayForm ? list2.slice() : list2.join(', ');
+        }
+        function renderFace() {
+          while (chipsHost.firstChild) chipsHost.removeChild(chipsHost.firstChild);
+          if (!ids.length) {
+            var ph = document.createElement('span');
+            ph.className = 'bdf-people-empty';
+            ph.textContent = editable ? 'Unassigned' : 'Empty';
+            chipsHost.append(ph);
+          } else ids.forEach(function (id) { chipsHost.append(_bdfUserChip(id, field)); });
+          var label = String(field.label || 'Person');
+          var said = ids.map(function (id) {   // what the chips show, including the "You" / "Former" tags
+            return _bdfUserShown(id, field) + (_bdfPeople.me && id === _bdfPeople.me ? ' (you)' : '') + (_bdfPeople.off.has(id) ? ' (former)' : '');
+          }).join(', ');
+          face.setAttribute('aria-label', label + ': ' + (ids.length ? said : (editable ? 'Unassigned' : 'Empty')));
+        }
+        function setActive(i) {
+          var items = list ? list.querySelectorAll('.bdf-people-opt') : [];
+          if (!items.length) { active = -1; if (search) search.removeAttribute('aria-activedescendant'); return; }
+          active = Math.max(0, Math.min(items.length - 1, i));
+          items.forEach(function (el, j) { el.classList.toggle('is-active', j === active); });
+          var el = items[active];
+          if (search && el) search.setAttribute('aria-activedescendant', el.id);
+          try { if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); } catch (e) { }
+        }
+        function renderList() {
+          if (!list) return;
+          while (list.firstChild) list.removeChild(list.firstChild);
+          var t = _bdfPeopleFold(term.trim()), n = 0;
+          rows = [];
+          if (!t || _bdfPeopleFold('Unassigned').indexOf(t) >= 0 || _bdfPeopleFold('Nobody').indexOf(t) >= 0) rows.push({ id: '', name: 'Unassigned' });
+          _bdfUserChoices(field, ids).forEach(function (c) {
+            var shown = c.name || _bdfUserShown(c.id, field);
+            if (t && _bdfPeopleFold(shown).indexOf(t) < 0 && !(c.id === _bdfPeople.me && 'you'.indexOf(t) === 0)) return;
+            rows.push(c);
+          });
+          rows.forEach(function (c, i) {
+            var item = document.createElement('div'), sel = c.id ? ids.indexOf(c.id) >= 0 : !ids.length;
+            item.className = 'bdf-people-opt' + (sel ? ' is-selected' : '') + (c.id ? '' : ' bdf-people-opt--none');
+            item.id = listId + '-o' + i;
+            item.setAttribute('role', 'option');
+            item.setAttribute('aria-selected', sel ? 'true' : 'false');
+            if (c.id) {
+              item.append(_bdfUserChip(c.id, field));
+              n++;
+            } else {
+              var none = document.createElement('span');
+              none.className = 'bdf-user bdf-user--none';
+              var nav = document.createElement('span');
+              nav.className = 'bdf-user-av bdf-user-av--none';
+              nav.setAttribute('aria-hidden', 'true');
+              nav.textContent = '–';
+              var nnm = document.createElement('span');
+              nnm.className = 'bdf-user-name';
+              nnm.textContent = 'Unassigned';
+              none.append(nav, nnm);
+              item.append(none);
+            }
+            var tick = document.createElement('span');
+            tick.className = 'bdf-people-tick';
+            tick.setAttribute('aria-hidden', 'true');
+            tick.textContent = sel ? '✓' : '';
+            item.append(tick);
+            item.addEventListener('mousedown', function (ev) { ev.preventDefault(); });   // keep the focus in the search box
+            item.addEventListener('click', function () { pick(c.id); });
+            list.append(item);
+          });
+          var msg = '';
+          if (_bdfPeople.ask && !_bdfPeople.users.size && !_bdfUserOpts(field).length) msg = 'Loading your team…';
+          else if (_bdfPeople.failed && !_bdfPeople.users.size && !_bdfUserOpts(field).length) msg = 'Could not load your team.';
+          else if (t && !n) msg = 'No matching people';
+          status.textContent = msg;
+          if (msg === 'Could not load your team.') {
+            var retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'ghost bdf-people-retry';
+            retry.textContent = 'Try again';
+            retry.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
+            retry.addEventListener('click', function () { _bdfPeopleEnsure(true); });
+            status.append(' ', retry);
+          }
+          status.style.display = msg ? '' : 'none';
+          setActive(active < 0 ? 0 : active);
+        }
+        function onDocDown(ev) {
+          if (!open) return;
+          var t = ev.target;
+          if (t && wrap.contains(t)) return;
+          close(false);
+        }
+        function openPop() {
+          if (!pop || open) return;
+          open = true;
+          term = '';
+          search.value = '';
+          active = -1;
+          _bdfPeopleEnsure(false);
+          renderList();
+          var i = rows.findIndex(function (c) { return c.id ? ids.indexOf(c.id) >= 0 : !ids.length; });
+          setActive(i < 0 ? 0 : i);
+          pop.classList.add('open');
+          face.setAttribute('aria-expanded', 'true');
+          wrap.classList.add('is-open');
+          document.addEventListener('mousedown', onDocDown, true);
+          document.addEventListener('touchstart', onDocDown, true);
+          try { search.focus({ preventScroll: true }); } catch (e) { try { search.focus(); } catch (e2) { } }
+        }
+        function close(focusFace) {
+          if (!pop || !open) return;
+          open = false;
+          pop.classList.remove('open');
+          face.setAttribute('aria-expanded', 'false');
+          wrap.classList.remove('is-open');
+          document.removeEventListener('mousedown', onDocDown, true);
+          document.removeEventListener('touchstart', onDocDown, true);
+          if (focusFace) { try { face.focus({ preventScroll: true }); } catch (e) { } }
+        }
+        function pick(id) {
+          var next;
+          id = String(id == null ? '' : id).trim();
+          if (id && !_bdfIsUserId(id) && held.indexOf(id) < 0) return;   // never write a name / non-id into a User field
+          if (!id) next = [];
+          else if (multi) next = ids.indexOf(id) >= 0 ? ids.filter(function (x) { return x !== id; }) : ids.concat([id]);
+          else next = [id];
+          var changed = next.join('\u0001') !== ids.join('\u0001');
+          ids = next;
+          renderFace();
+          if (multi && id) renderList(); else close(true);
+          if (changed && typeof opts.onPick === 'function') opts.onPick(valueOut(ids));
+        }
+        if (editable) {
+          face.addEventListener('click', function () { if (open) close(true); else openPop(); });
+          face.addEventListener('keydown', function (ev) {
+            if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); openPop(); }
+          });
+          search.addEventListener('input', function () { term = search.value; active = 0; renderList(); });
+          search.addEventListener('keydown', function (ev) {
+            if (ev.isComposing || ev.keyCode === 229) return;
+            if (ev.key === 'ArrowDown') { ev.preventDefault(); setActive(active + 1); }
+            else if (ev.key === 'ArrowUp') { ev.preventDefault(); setActive(active - 1); }
+            else if (ev.key === 'Home') { ev.preventDefault(); setActive(0); }
+            else if (ev.key === 'End') { ev.preventDefault(); setActive(rows.length - 1); }
+            else if (ev.key === 'Enter') { ev.preventDefault(); if (rows[active]) pick(rows[active].id); }
+            else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); close(true); }
+            else if (ev.key === 'Tab') close(false);
+          });
+        }
+        renderFace();
+        // names landed (or the call failed): redraw this field's chips / open list. Keyed by field: a re-render replaces it.
+        _bdfPeople.views.set(key, function () { renderFace(); if (open) renderList(); });
+        if (ids.some(_bdfIsUserId) || editable) _bdfPeopleEnsure(false);
+        return {
+          inputEl: face,
+          wrap: wrap,
+          setValue: function (v) {   // hydration / AI source switch: draw only, never writes
+            arrayForm = Array.isArray(v) ? true : (v == null || v === '' ? arrayForm : false);
+            ids = _bdfUserIds(v);
+            held = ids.slice();
+            if (ids.some(_bdfIsUserId)) _bdfPeopleEnsure(false);   // edit hydration lands here: a read-only field needs names too
+            renderFace();
+            if (open) renderList();
+          }
+        };
+      }
+      // MYTASKS_SPEC 1.3 / GX-F1: no choices = read-only name display; choices (ids) or ui.editable / ui.picker = picker.
+      // Column readOnly is ignored (live COLUMN_JSON sends readOnly:true for every column, F10); ui flags still lock it.
+      function _bdfUserFieldEditable(field) {
+        var ui = field && field.ui && typeof field.ui === 'object' ? field.ui : {};
+        if (!field || field.gxDisplayOnly || gxParseFlag(ui.readOnly) || gxParseFlag(ui.locked) || gxParseFlag(ui.readonly)) return false;
+        return _bdfUserOpts(field).length > 0 || gxParseFlag(ui.editable) || gxParseFlag(ui.picker);
+      }
+      /* ---- /GX-FORM-PEOPLE ---- */
       // Read-only test handle (no state is changed through it).
       window.__BDF_GX__ = {
         resolveType: gxResolveType,
@@ -7973,6 +8592,11 @@
         parseGaiaPairs: function (t) { return _bdfParseGaiaPairs(t); },
         runFlag: function (v) { return _bdfRunFlag(v); },
         testWait: function () { return BDF.__testWait ? JSON.parse(JSON.stringify(BDF.__testWait)) : null; },
+        people: function () { return { size: _bdfPeople.users.size, me: !!_bdfPeople.me, inactive: _bdfPeople.off.size, reqs: _bdfPeople.reqs, failed: _bdfPeople.failed, loading: !!_bdfPeople.ask }; },   // GX-FORM-PEOPLE (07.10): counts only, never ids
+        userText: function (fieldKey, value) {   // GX-FORM-PEOPLE (07.10)
+          var f = (state.config && Array.isArray(state.config.fields)) ? state.config.fields.find(function (x) { return x.key === fieldKey; }) : null;
+          return f && f.gxUser ? _bdfUserText(value, f) : null;
+        },
         matchOption: gxMatchOption,
         splitTokens: gxSplitTokens,
         formatValue: function (fieldKey, value) {
@@ -8024,6 +8648,7 @@
             ui: column.ui || {}
           };
           if (normalized.displayOnly) fieldItem.gxDisplayOnly = true;
+          if (normalized.canonical === 'user') { fieldItem.gxUser = true; fieldItem.gxUserOptions = _bdfUserOptionsFrom(column.source); }   // GX-FORM-PEOPLE (07.10): choices with the id first
           _bdfApplyUiProps(fieldItem, column.ui);
           acc.push(fieldItem);
           return acc;
@@ -8968,7 +9593,7 @@
           if (Object.prototype.hasOwnProperty.call(displayObj, label)) label = label + ' (' + field.key + ')';
           // F16: scalar types read as people write them (₺2.400,50 · 23.09.2026 · Yes); lists/files keep chips.
           if (['integer', 'decimal', 'number', 'currency', 'percent', 'boolean', 'date', 'datetime', 'time'].indexOf(field.type) >= 0
-              || (field.type === 'dropdown' && !field.allowMultiple)) {
+              || (field.type === 'dropdown' && !field.allowMultiple) || field.gxUser) {   // GX-FORM-PEOPLE (07.10): + User
             try { val = formatValueForField(field, val); } catch (_) { }
           }
           displayObj[label] = val;
@@ -13085,6 +13710,7 @@
           _columnOrder: Number.POSITIVE_INFINITY
         };
         if (normalized.displayOnly) editItem.gxDisplayOnly = true;
+        if (normalized.canonical === 'user') { editItem.gxUser = true; editItem.gxUserOptions = _bdfUserOptionsFrom(Array.isArray(raw.options) ? raw.options : sourceOptions); }   // GX-FORM-PEOPLE (07.10): choices with the id first
         _bdfApplyUiProps(editItem, raw.ui);
         return editItem;
       }
@@ -14206,6 +14832,21 @@
             const displayOnly = _bdfBuildDisplayOnlyInput(field, effectiveInitial);
             inputEl = displayOnly.inputEl;
             setValue = displayOnly.setValue;
+          } else if (field.gxUser) {
+            // GX-FORM-PEOPLE (07.10): a User field = avatar + name chips; editable -> people picker. The picked _id goes through
+            // setFieldValue exactly like the old text box did on input + blur, so the stored value and the save path are unchanged.
+            const peopleCtl = _bdfBuildUserControl(field, effectiveInitial, {
+              editable: _bdfUserFieldEditable(field),
+              control,
+              onPick: (value) => {
+                setFieldValue(field.key, value, field);
+                state.touched[field.key] = true;
+                updateError(control, field);
+              }
+            });
+            control.append(peopleCtl.wrap);
+            inputEl = peopleCtl.inputEl;
+            setValue = peopleCtl.setValue;
           } else if (["text", "email", "phone", "url", "password", "integer", "decimal", "currency", "percent", "number"].includes(field.type)) {
             const isNumericField = ["integer", "decimal", "currency", "percent", "number"].includes(field.type);
             // F9: Open / WhatsApp / Call / Email actions under the input (hidden while there is nothing to act on).
@@ -15562,7 +16203,7 @@
 
           if (index === 0 && config.autoFocusFirstInvalid) {
             setTimeout(() => {
-              const focusTarget = wrapper.querySelector("input, textarea, select");
+              const focusTarget = wrapper.querySelector("input:not(.bdf-people-search), textarea, select, button.bdf-people-trigger");   // GX-FORM-PEOPLE (07.10)
               if (focusTarget) focusTarget.focus();
             }, 0);
           }
@@ -16027,7 +16668,7 @@
       // Enter ile dolaşılacak alanlar: picker/conflict/uploader-host içi, gizli, tabIndex<0, checkbox/radio/file hariç.
       function bdf_getEnterNavigables(scopeEl) {
         if (!scopeEl || !scopeEl.querySelectorAll) return [];
-        return Array.from(scopeEl.querySelectorAll("input, select, textarea")).filter((el) => {
+        return Array.from(scopeEl.querySelectorAll("input, select, textarea, button.bdf-people-trigger")).filter((el) => {   // GX-FORM-PEOPLE (07.10): + people picker face
           if (el.disabled) return false;
           const type = String(el.type || "").toLowerCase();
           if (type === "hidden" || type === "checkbox" || type === "radio" || type === "file") return false;
