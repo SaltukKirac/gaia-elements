@@ -2006,6 +2006,24 @@
   border-bottom: 1px solid var(--gx-line-soft, #eef2f7) !important;
 }
 
+/* GX-REVEAL (07.10): dynamicTable.reveal(ids) marks the revealed rows for 2 s. An inset shadow (the selection
+   background is !important, an animated background would never show); reduced motion: a static outline, no fade */
+@keyframes dt-row-reveal-fade {
+  0%, 35% { box-shadow: inset 0 0 0 999px rgba(99, 102, 241, .26), inset 0 2px 0 var(--dt-primary), inset 0 -2px 0 var(--dt-primary); }
+  100% { box-shadow: inset 0 0 0 999px rgba(99, 102, 241, 0), inset 0 2px 0 rgba(99, 102, 241, 0), inset 0 -2px 0 rgba(99, 102, 241, 0); }
+}
+#dynamic-table-wrapper .handsontable td.dt-row--reveal,
+#dynamic-table-wrapper .handsontable th.dt-row--reveal {
+  animation: dt-row-reveal-fade 2s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  #dynamic-table-wrapper .handsontable td.dt-row--reveal,
+  #dynamic-table-wrapper .handsontable th.dt-row--reveal {
+    animation: none;
+    box-shadow: inset 0 2px 0 var(--dt-primary), inset 0 -2px 0 var(--dt-primary);
+  }
+}
+
 #dynamic-table-wrapper .handsontable thead th {
   position: relative;
   overflow: visible !important;
@@ -6864,6 +6882,144 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       publishSelectedUniqueIds();
     }
   }
+  // GX-REVEAL (07.10): dynamicTable.reveal(ids) -> { found: [ids], missing: [ids], hidden: [ids], count, windowed }.
+  // Selects the rows with these record ids when they are on screen now (loaded AND not hidden by the search box or a
+  // column filter), scrolls the first one into view and marks them for 2 s. It never clears a user filter or search,
+  // never loads another page (window mode) or another stage: such ids come back in `missing` (`hidden` = the subset
+  // that IS loaded but filtered out). Nothing found -> the current selection is left alone. Synchronous, never throws.
+  const DT_REVEAL_MS = 2000;   // GX-REVEAL (07.10)
+  function dtRevealSidOfVisual(vr) {   // GX-REVEAL (07.10): visual row -> source index (or -1)
+    try {
+      if (!state.hot || vr === null || vr === undefined || vr < 0) return -1;
+      const p = state.hot.toPhysicalRow(vr);
+      const d = (p === null || p === undefined || p < 0) ? null : state.displayRows[p];
+      return d && d.__sourceIndex !== undefined ? d.__sourceIndex : -1;
+    } catch (e) { return -1; }
+  }
+  function dtRevealMark(el, on) { if (el && el.classList) { if (on) el.classList.add('dt-row--reveal'); else el.classList.remove('dt-row--reveal'); } }
+  function dtRevealHooks() {   // GX-REVEAL (07.10): once per HOT instance; cells re-render (scroll, filter) keep the mark
+    const hot = state.hot;
+    if (!hot || hot.isDestroyed || state._revealHot === hot) return;
+    state._revealHot = hot;
+    const on = vr => { const r = state._reveal; return !!(r && r.rows === state.rawRows && r.sids.size && Date.now() < r.until && r.sids.has(dtRevealSidOfVisual(vr))); };
+    hot.addHook('afterRenderer', (td, vr) => dtRevealMark(td, on(vr)));
+    hot.addHook('afterGetRowHeader', (vr, th) => dtRevealMark(th, vr >= 0 && on(vr)));
+  }
+  function dtRevealClear(render) {   // GX-REVEAL (07.10)
+    const r = state._reveal;
+    if (r && r.timer) clearTimeout(r.timer);
+    state._reveal = null;
+    try { if (els.container) els.container.querySelectorAll('.dt-row--reveal').forEach(el => dtRevealMark(el, false)); } catch (e) {}
+    if (render && state.hot && !state.hot.isDestroyed) { try { state.hot.render(); } catch (e) {} }
+  }
+  function dtRevealIntoWindow(el) {   // GX-REVEAL (07.10): page-scroll step; never scrollIntoView on a grid cell
+    // a scrolling box around the table (a page group with its own scroll bar) first, instantly, then the window
+    let box = els.container && els.container.parentElement;
+    while (box && box !== document.body && box !== document.documentElement) {
+      const oy = getComputedStyle(box).overflowY;
+      if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && box.scrollHeight > box.clientHeight + 1) {
+        const b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+        if (r.top < b.top || r.bottom > b.bottom) box.scrollTop += r.top - b.top - (box.clientHeight - r.height) / 2;
+        break;
+      }
+      box = box.parentElement;
+    }
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (vh && r.height > 0 && (r.top < 0 || r.bottom > vh)) window.scrollBy({ top: r.top - (vh - r.height) / 2, behavior: (dtReducedMotion() || document.hidden) ? 'auto' : 'smooth' });   // a hidden tab never animates a smooth scroll
+  }
+  function revealRows(ids) {   // GX-REVEAL (07.10)
+    const want = [], seen = new Set();
+    (Array.isArray(ids) ? ids : (ids === undefined || ids === null || ids === '' ? [] : [ids])).forEach(x => {
+      const id = (x === undefined || x === null) ? '' : String(x).trim();
+      if (id && !seen.has(id) && want.length < 500) { seen.add(id); want.push(id); }
+    });
+    const res = { found: [], missing: [], hidden: [], count: 0, windowed: false };
+    try {
+      try { res.windowed = typeof aynaWindowed === 'function' && aynaWindowed(); } catch (e) {}
+      const hot = state.hot;
+      // stale instance (Bubble rebuilt the element), no grid yet, or a mount in flight: nothing is on screen to reveal
+      const live = !!(hot && !hot.isDestroyed && !state._mounting && els.container && document.getElementById('hot-container') === els.container);
+      if (!want.length || !live) { res.missing = want.slice(); return res; }
+      const sidById = new Map();
+      state.rawRows.forEach(raw => { const id = rowIdOf(raw); if (id && !sidById.has(id)) sidById.set(id, raw.__sourceIndex); });
+      const physBySid = new Map();
+      state.displayRows.forEach((d, p) => { if (d && d.__sourceIndex !== undefined) physBySid.set(d.__sourceIndex, p); });
+      const hits = [];   // { id, sid, vr }
+      want.forEach(id => {
+        const sid = sidById.get(id);
+        if (sid === undefined) { res.missing.push(id); return; }
+        let vr = null;
+        if (physBySid.has(sid)) { try { vr = hot.toVisualRow(physBySid.get(sid)); } catch (e) { vr = null; } }
+        if (vr === null || vr === undefined || vr < 0) { res.missing.push(id); res.hidden.push(id); return; }
+        hits.push({ id, sid, vr });
+      });
+      if (!hits.length) return res;
+      const scrollTo = vr => {
+        try { hot.scrollViewportTo({ row: vr, verticalSnap: 'top' }); } catch (e) { try { hot.scrollViewportTo(vr, 0); } catch (e2) {} }
+        try { hot.render(); } catch (e) {}   // draw the new viewport now (the scroll event would draw it a frame later)
+      };
+      // HOT's focus manager focuses the highlight cell of every range it selects; when that cell is not drawn (rows
+      // that are not next to each other: several ranges, most of them off the grid) it parks the focus on a one-off
+      // 'afterScroll' hook and takes the focus at the NEXT grid scroll, outside keepOutsideFocus, stealing it from a side
+      // panel / form field (reveal fix 07.10). So: draw the last range first, run the whole select + scroll + mark
+      // inside keepOutsideFocus, and fire those parked hooks there (modifyFocusedElement keeps the outside field).
+      const outsideAe = (() => { const a = document.activeElement; return (a && a !== document.body && a !== document.documentElement && !els.container.contains(a)) ? a : null; })();
+      const vrs = hits.map(h => h.vr).sort((a, b) => a - b);
+      let hv = vrs[vrs.length - 1];
+      while (vrs.indexOf(hv - 1) >= 0) hv -= 1;
+      let first = null;
+      keepOutsideFocus(() => {
+        scrollTo(hv);
+        // select exactly these rows (id order kept); syncHotSelectionFromState paints HOT + publishes to Bubble
+        state._carrySelectionIds = null;
+        selectSourceIndexesByIds(hits.map(h => h.id));
+        syncHotSelectionFromState();
+        const kept = new Set(state.selection);
+        hits.forEach(h => { if (kept.has(h.sid)) res.found.push(h.id); else { res.missing.push(h.id); res.hidden.push(h.id); } });
+        if (!res.found.length) return;
+        // scroll: the first id the caller named (not the top-most row)
+        first = hits.find(h => kept.has(h.sid));
+        if (first.vr !== hv) scrollTo(first.vr);
+        // mark (2 s); a repeated call restarts the fade on the new set
+        dtRevealClear(true);
+        try { void els.container.offsetWidth; } catch (e) {}
+        dtRevealHooks();
+        const sids = new Set(res.found.map(id => sidById.get(id)));
+        const mark = { sids, rows: state.rawRows, until: Date.now() + DT_REVEAL_MS, timer: null };   // rows: a reload drops the mark
+        state._reveal = mark;
+        mark.timer = setTimeout(() => { if (state._reveal === mark) dtRevealClear(true); }, DT_REVEAL_MS);
+        try { hot.render(); } catch (e) {}
+        try { hot.runHooks('afterScroll'); } catch (e) {}   // the parked focus hooks run now, while the outside field is kept
+      });
+      if (!first) return res;
+      // belt and braces: a focus HOT still moves into the grid after this call goes back to the outside field
+      if (outsideAe) {
+        const back = () => {
+          const a = document.activeElement;
+          if (!outsideAe.isConnected || a === outsideAe || !(!a || a === document.body || els.container.contains(a))) return;
+          try { if (state.hot) state.hot.unlisten(); } catch (e) {}
+          try { outsideAe.focus({ preventScroll: true }); } catch (e) {}
+        };
+        back(); setTimeout(back, 0);
+        try { requestAnimationFrame(back); } catch (e) {}
+      }
+      // the page itself: bring the row into the window when the table sits below / above the fold. Measure the MASTER
+      // cell: the frozen-column clone's cell keeps its old place until the clone syncs on the next scroll event.
+      try {
+        let td = null;
+        try { td = hot.getCell(first.vr, 0, false); } catch (e) {}
+        if (!td) td = hot.rootElement && hot.rootElement.querySelector('.ht_master');
+        if (td) dtRevealIntoWindow(td);
+      } catch (e) {}
+    } catch (e) {
+      // never throw to the caller: whatever was not confirmed is missing
+      const ok = new Set(res.found);
+      res.missing = want.filter(id => !ok.has(id));
+    }
+    res.count = res.found.length;
+    return res;
+  }
   // T1: fiziksel index'li filtre + HOT sıralaması → kolon id'si
   function captureViewById() {
     const cols = state._mountedCols || [];
@@ -9891,7 +10047,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     wakeResult,        // Bubble: dynamicTable.wakeResult(true|false, 'mesaj') — butonu serbest bırakır + toast
     wake: onWakeClick, // programatik uyandırma (modal akışıyla)
     setAssistant,      // Bubble: dynamicTable.setAssistant({assistant_id,agent_name,data_flow_rules,agent})
-    refresh: refreshAssistant  // Bubble: ekran değişti sinyali (veri taşımaz) → asistanı taze oku
+    refresh: refreshAssistant, // Bubble: ekran değişti sinyali (veri taşımaz) → asistanı taze oku
+    reveal: revealRows         // GX-REVEAL (07.10): reveal(ids) -> { found, missing, hidden, count, windowed }
   };
 
   window.setTableData = setTableData;
@@ -9916,6 +10073,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   window.wakeResult = wakeResult;
   window.setTableAssistant = setAssistant;
   window.refreshTableAssistant = refreshAssistant;
+  window.revealRows = revealRows;   // GX-REVEAL (07.10)
 
   attachActionButtons();
   updateDeleteButtonVisibility();
