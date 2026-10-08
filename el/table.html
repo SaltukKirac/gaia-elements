@@ -1818,40 +1818,37 @@
   line-height: 14px;
 }
 #dynamic-table-wrapper .dt-user--off .dt-user-name { color: var(--gx-ink-3, #94a3b8); }
+/* GX-PEOPLE-COMPACT (08.10): the people controls are ONE inline group at the start of the toolbar's right side (founder:
+   "no new heading, one line, the grid starts too far down"). No row of its own, no text label, never wraps: dtPeopleFit
+   picks the widest level that keeps the toolbar's height (data-fit 0 = 4 avatars, 1 = 2 avatars, 2 = people icon + Me /
+   Unassigned, 3 = the people icon alone, which opens the list with the quick filters). Background stays transparent so
+   the group takes the toolbar's colour. */
 #dynamic-table-wrapper .dt-people {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 6px 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  border-top: 1px solid var(--gx-line-soft, #eef2f7);
-  background: var(--gx-surface, #ffffff);
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 3px 8px 3px 4px;
+  margin-right: 2px;
+  border-right: 1px solid var(--gx-line-soft, #eef2f7);
+  background: transparent;
   color: var(--gx-ink-2, #475569);
   font-size: 12px;
+  white-space: nowrap;
 }
-#dynamic-table-wrapper .dt-people::-webkit-scrollbar { display: none; }
-#dynamic-table-wrapper .dt-people[hidden] { display: none; }
-#dynamic-table-wrapper .dt-people-col { flex: 0 1 auto; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--gx-ink, #0f172a); }
-#dynamic-table-wrapper .dt-people-colsel {
-  flex: 0 0 auto;
-  height: 30px;
-  max-width: 200px;
-  padding: 0 6px;
-  border: 1px solid var(--gx-line, #e2e8f0);
-  border-radius: var(--gx-r-sm, 6px);
-  background: var(--gx-surface, #ffffff);
-  color: var(--gx-ink, #0f172a);
-  font: 600 12px var(--gx-font, system-ui);
-}
+#dynamic-table-wrapper .dt-people[hidden],
+#dynamic-table-wrapper .dt-people [hidden] { display: none; }
+#dynamic-table-wrapper .dt-people svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 #dynamic-table-wrapper .dt-people-pile { display: flex; align-items: center; flex: 0 0 auto; padding-left: 6px; }
 #dynamic-table-wrapper .dt-people-av {
   position: relative;
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   margin-left: -6px;
   padding: 0;
   border: 2px solid var(--gx-surface, #ffffff);
@@ -1861,18 +1858,18 @@
   justify-content: center;
   background: var(--gx-primary-deep, #4f46e5);
   color: #fff;
-  font: 700 10.5px/1 var(--gx-font, system-ui);
+  font: 700 9px/1 var(--gx-font, system-ui);
   letter-spacing: 0;
   cursor: pointer;
   transition: transform var(--dt-motion, 140ms) ease;
 }
-#dynamic-table-wrapper .dt-people-av:hover { transform: translateY(-2px); z-index: 2; }
-#dynamic-table-wrapper .dt-people-av:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 2px; z-index: 3; }
+#dynamic-table-wrapper .dt-people-av:hover { transform: translateY(-1px); z-index: 2; }
+#dynamic-table-wrapper .dt-people-av:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 1px; z-index: 3; }
 #dynamic-table-wrapper .dt-people-av.is-me { box-shadow: 0 0 0 1.5px var(--gx-primary, #6366f1); }
 #dynamic-table-wrapper .dt-people-av.is-off { opacity: .55; }
 #dynamic-table-wrapper .dt-people-av.is-unknown { opacity: .7; }
-#dynamic-table-wrapper .dt-people-av[aria-pressed="true"] { border-color: var(--gx-primary, #6366f1); box-shadow: var(--gx-ring, 0 0 0 3px rgba(99,102,241,.12)); transform: translateY(-2px); z-index: 2; opacity: 1; }
-#dynamic-table-wrapper .dt-people-more { background: var(--gx-field, #f6f7f9); color: var(--gx-ink-2, #475569); border-color: var(--gx-surface, #ffffff); box-shadow: inset 0 0 0 1px var(--gx-line, #e2e8f0); font-weight: 600; }
+#dynamic-table-wrapper .dt-people-av[aria-pressed="true"] { border-color: var(--gx-primary, #6366f1); box-shadow: 0 0 0 1.5px var(--gx-primary, #6366f1); transform: translateY(-1px); z-index: 2; opacity: 1; }
+#dynamic-table-wrapper .dt-people-more { background: var(--gx-field, #f6f7f9); color: var(--gx-ink-2, #475569); border-color: var(--gx-surface, #ffffff); box-shadow: inset 0 0 0 1px var(--gx-line, #e2e8f0); font-weight: 600; font-size: 8.5px; }
 #dynamic-table-wrapper .dt-people-av[data-tone="1"], #dynamic-table-wrapper .dt-people-iav[data-tone="1"], #dynamic-table-wrapper .dt-pcard-av[data-tone="1"] { background: #3730a3; }
 #dynamic-table-wrapper .dt-people-av[data-tone="2"], #dynamic-table-wrapper .dt-people-iav[data-tone="2"], #dynamic-table-wrapper .dt-pcard-av[data-tone="2"] { background: #065f46; }
 #dynamic-table-wrapper .dt-people-av[data-tone="3"], #dynamic-table-wrapper .dt-people-iav[data-tone="3"], #dynamic-table-wrapper .dt-pcard-av[data-tone="3"] { background: #92400e; }
@@ -1881,27 +1878,91 @@
 #dynamic-table-wrapper .dt-people-av[data-tone="6"], #dynamic-table-wrapper .dt-people-iav[data-tone="6"], #dynamic-table-wrapper .dt-pcard-av[data-tone="6"] { background: #5b21b6; }
 #dynamic-table-wrapper .dt-people-av[data-tone="7"], #dynamic-table-wrapper .dt-people-iav[data-tone="7"], #dynamic-table-wrapper .dt-pcard-av[data-tone="7"] { background: #a21caf; }
 #dynamic-table-wrapper .dt-people-av[data-tone="8"], #dynamic-table-wrapper .dt-people-iav[data-tone="8"], #dynamic-table-wrapper .dt-pcard-av[data-tone="8"] { background: #334155; }
-#dynamic-table-wrapper .dt-people-pill {
+/* GX-PEOPLE-COMPACT (08.10): "Assigned to me" / "Unassigned" are icon chips (counts in the tooltip + aria-label), the
+   column picker is a caret menu (only with more than one User column), "Clear" an x shown only while the column is filtered */
+#dynamic-table-wrapper .dt-people-chip,
+#dynamic-table-wrapper .dt-people-colbtn,
+#dynamic-table-wrapper .dt-people-clear,
+#dynamic-table-wrapper .dt-people-icon {
+  position: relative;
   flex: 0 0 auto;
-  height: 30px;
-  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color var(--dt-motion, 140ms) ease, color var(--dt-motion, 140ms) ease, background-color var(--dt-motion, 140ms) ease;
+}
+#dynamic-table-wrapper .dt-people-chip {
+  width: 26px;
+  height: 26px;
   border: 1px solid var(--gx-line, #e2e8f0);
   border-radius: var(--gx-r-pill, 999px);
   background: var(--gx-surface, #ffffff);
   color: var(--gx-ink-2, #475569);
-  font: 500 12px/1 var(--gx-font, system-ui);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: border-color var(--dt-motion, 140ms) ease, color var(--dt-motion, 140ms) ease;
 }
-#dynamic-table-wrapper .dt-people-pill:hover { border-color: var(--gx-ink-3, #94a3b8); color: var(--gx-ink, #0f172a); }
-#dynamic-table-wrapper .dt-people-pill:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 1px; }
-#dynamic-table-wrapper .dt-people-pill[aria-pressed="true"] { border-color: var(--gx-primary, #6366f1); color: var(--gx-primary, #6366f1); box-shadow: var(--gx-ring, 0 0 0 3px rgba(99,102,241,.12)); font-weight: 600; }
-#dynamic-table-wrapper .dt-people-n { margin-left: 5px; color: var(--gx-ink-3, #94a3b8); font-variant-numeric: tabular-nums; }
-#dynamic-table-wrapper .dt-people-pill[aria-pressed="true"] .dt-people-n { color: inherit; }
-#dynamic-table-wrapper .dt-people-note { flex: 0 0 auto; color: var(--gx-ink-3, #94a3b8); white-space: nowrap; }
-#dynamic-table-wrapper .dt-people-clear { flex: 0 0 auto; height: 30px; padding: 0 4px; border: 0; background: none; color: var(--gx-primary, #6366f1); font: 500 12px var(--gx-font, system-ui); text-decoration: underline; cursor: pointer; }
-#dynamic-table-wrapper .dt-people-clear:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 1px; border-radius: var(--gx-r-sm, 6px); }
+#dynamic-table-wrapper .dt-people-chip svg { width: 14px; height: 14px; }
+#dynamic-table-wrapper .dt-people-chip:hover { border-color: var(--gx-ink-3, #94a3b8); color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper .dt-people-chip[aria-pressed="true"] { border-color: var(--gx-primary, #6366f1); color: var(--gx-primary, #6366f1); box-shadow: inset 0 0 0 1px var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-people-colbtn { width: 16px; height: 26px; margin-left: -2px; border: 0; border-radius: var(--gx-r-sm, 6px); background: none; color: var(--gx-ink-3, #94a3b8); }
+#dynamic-table-wrapper .dt-people-colbtn svg { width: 12px; height: 12px; stroke-width: 2.2; }
+#dynamic-table-wrapper .dt-people-colbtn:hover,
+#dynamic-table-wrapper .dt-people-colbtn[aria-expanded="true"] { color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper .dt-people-clear { width: 22px; height: 22px; border: 0; border-radius: 50%; background: none; color: var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-people-clear svg { width: 13px; height: 13px; stroke-width: 2.2; }
+#dynamic-table-wrapper .dt-people-clear:hover { color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper .dt-people-icon { width: 28px; height: 28px; border: 1px solid transparent; border-radius: var(--gx-r-md, 10px); background: none; color: var(--dt-muted, #64748b); }
+#dynamic-table-wrapper .dt-people-icon svg { width: 18px; height: 18px; stroke-width: 1.8; }
+#dynamic-table-wrapper .dt-people-icon:hover,
+#dynamic-table-wrapper .dt-people-icon[aria-expanded="true"] { border-color: var(--gx-line-soft, #eef2f7); color: var(--dt-text, #0f172a); }
+#dynamic-table-wrapper .dt-people-icon.is-on { color: var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-people-icon.is-on::after { content: ''; position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--gx-primary, #6366f1); box-shadow: 0 0 0 1.5px var(--gx-surface, #ffffff); }
+/* GX-PEOPLE-COMPACT (08.10): the filter dot on "+N" (the filtered person is not one of the avatars shown) and on the
+   toolbar's "More actions" button (level 4: the group is out of the toolbar, "People…" sits in that menu) */
+#dynamic-table-wrapper .dt-people-more.is-on { color: var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-people-more.is-on::after,
+#dynamic-table-wrapper #dt-btn-more.dt-people-dot::after { content: ''; position: absolute; top: -1px; right: -1px; width: 7px; height: 7px; border-radius: 50%; background: var(--gx-primary, #6366f1); box-shadow: 0 0 0 1.5px var(--gx-surface, #ffffff); pointer-events: none; }
+#dynamic-table-wrapper #dt-btn-more.dt-people-dot { position: relative; }
+#dynamic-table-wrapper #dt-btn-more.dt-people-dot::after { top: 4px; right: 4px; }
+#dynamic-table-wrapper .dt-toolbar-more-item[hidden] { display: none; }
+/* "Unassigned": the surface-coloured gap that sets the strike-through off the person outline */
+#dynamic-table-wrapper .dt-people-gap { stroke: var(--gx-surface, #ffffff); stroke-width: 5; }
+#dynamic-table-wrapper .dt-people-chip:focus-visible,
+#dynamic-table-wrapper .dt-people-colbtn:focus-visible,
+#dynamic-table-wrapper .dt-people-clear:focus-visible,
+#dynamic-table-wrapper .dt-people-icon:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 1px; }
+/* "Counting…" / "Counts unavailable": read by screen readers, no width in the toolbar */
+#dynamic-table-wrapper .dt-people-note { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* the fit levels (dtPeopleFit) */
+#dynamic-table-wrapper .dt-people[data-fit="1"] .dt-people-av[data-rank="2"],
+#dynamic-table-wrapper .dt-people[data-fit="1"] .dt-people-av[data-rank="3"],
+#dynamic-table-wrapper .dt-people[data-fit="2"] .dt-people-av[data-rank],
+#dynamic-table-wrapper .dt-people[data-fit="3"] .dt-people-av[data-rank],
+#dynamic-table-wrapper .dt-people[data-fit="2"] .dt-people-colbtn,
+#dynamic-table-wrapper .dt-people[data-fit="3"] .dt-people-colbtn,
+#dynamic-table-wrapper .dt-people[data-fit="3"] .dt-people-chip,
+#dynamic-table-wrapper .dt-people[data-fit="3"] .dt-people-clear { display: none; }
+#dynamic-table-wrapper .dt-people[data-fit="2"] .dt-people-pile,
+#dynamic-table-wrapper .dt-people[data-fit="3"] .dt-people-pile { padding-left: 0; }
+#dynamic-table-wrapper .dt-people[data-fit="3"] { padding: 0; margin-right: 0; border-right: 0; }
+#dynamic-table-wrapper .dt-people[data-fit="3"] :focus-visible { outline-offset: -2px; }
+@media (max-width: 768px) {
+  /* the toolbar's controls are 44 px here: the group stays inside that height (no vertical padding) */
+  #dynamic-table-wrapper .dt-people { padding: 0 6px 0 2px; }
+  #dynamic-table-wrapper .dt-people-av { width: 30px; height: 30px; font-size: 10.5px; }
+  #dynamic-table-wrapper .dt-people-chip { width: 34px; height: 34px; }
+  #dynamic-table-wrapper .dt-people-icon { width: 44px; height: 44px; }
+  #dynamic-table-wrapper .dt-people-icon svg { width: 20px; height: 20px; }
+  #dynamic-table-wrapper .dt-people-colbtn { height: 34px; width: 22px; }
+  #dynamic-table-wrapper .dt-people-clear { width: 34px; height: 34px; }
+  #dynamic-table-wrapper .dt-people :focus-visible { outline-offset: -2px; }
+}
+/* the quick filters inside the list (icon level): a round icon where a person has an avatar */
+#dynamic-table-wrapper .dt-people-qicon { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--gx-ink-2, #475569); box-shadow: inset 0 0 0 1px var(--gx-line, #e2e8f0); }
+#dynamic-table-wrapper .dt-people-qicon svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#dynamic-table-wrapper .dt-people-item[aria-pressed="true"] .dt-people-qicon,
+#dynamic-table-wrapper .dt-people-item[aria-checked="true"] .dt-people-qicon { color: var(--gx-primary, #6366f1); box-shadow: inset 0 0 0 1.5px var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-people-item[aria-checked="true"] { font-weight: 600; }
 #dynamic-table-wrapper .dt-people-pop {
   position: absolute;
   z-index: 1000;   /* above the Handsontable clones (z-index ~100) */
@@ -1976,16 +2037,11 @@
 #dynamic-table-wrapper .dt-pcard-name { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
 #dynamic-table-wrapper .dt-pcard-role,
 #dynamic-table-wrapper .dt-pcard-rows { margin-top: 2px; color: var(--gx-ink-2, #475569); font-size: 12px; }
-@media (max-width: 480px) {
-  #dynamic-table-wrapper .dt-people-col { display: none; }
-  #dynamic-table-wrapper .dt-people-av { width: 32px; height: 32px; }
-  #dynamic-table-wrapper .dt-people-pill,
-  #dynamic-table-wrapper .dt-people-colsel,
-  #dynamic-table-wrapper .dt-people-clear { height: 32px; }
-}
+/* GX-PEOPLE-COMPACT (08.10): the old phone rules for the separate bar row are gone (the group's phone sizes sit with it) */
 @media (prefers-reduced-motion: reduce) {
   #dynamic-table-wrapper .dt-people-av,
-  #dynamic-table-wrapper .dt-people-pill,
+  #dynamic-table-wrapper .dt-people-chip,
+  #dynamic-table-wrapper .dt-people-icon,
   #dynamic-table-wrapper .dt-pcard { transition: none; }
   #dynamic-table-wrapper .dt-people-av:hover,
   #dynamic-table-wrapper .dt-people-av[aria-pressed="true"] { transform: none; }
@@ -6044,8 +6100,24 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
      row counts for one User column, "Assigned to me", "Unassigned", "Clear" — every click goes through the EXISTING column
      filter (state.filterConfigs + applyAllColumnFilters), so header badges, the filter panel and window mode keep working,
      (c) a hover card (name, You / Teammate / Former teammate, rows on this screen). The table has no cell write path, so
-     there is no in-cell people picker. Every name reaches the DOM through textContent. */
-  var DT_PEOPLE_TTL = 10 * 60000, DT_PEOPLE_RETRY = 60000, DT_PEOPLE_PILE = 7;
+     there is no in-cell people picker. Every name reaches the DOM through textContent.
+     GX-PEOPLE-COMPACT (08.10): (b) is no longer a row above the grid but one inline group at the start of the toolbar's
+     right side (dtPeopleBar / dtPeopleFit): the grid starts where it started before GX-PEOPLE. */
+  var DT_PEOPLE_TTL = 10 * 60000, DT_PEOPLE_RETRY = 60000, DT_PEOPLE_PILE = 4;   // GX-PEOPLE-COMPACT (08.10): 4 avatars + "+N"
+  // GX-PEOPLE-COMPACT (08.10): avatars shown per fit level (0 = 4, 1 = 2, 2 / 3 = none: the people icon opens the list,
+  // 4 = no inline space at all: the group is out of the toolbar and "People…" in the toolbar's "More actions" menu opens
+  // the same list; review 08.10: level 3 alone still wrapped the toolbar on 360-430 px phones with Ask Assistant shown)
+  var DT_PEOPLE_FIT = [4, 2, 0, 0, -1], _dtPeopleFitTimer = 0;
+  // static icon markup (no data in it; every name still reaches the DOM through textContent)
+  var DT_PEOPLE_SVG = {
+    me: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="8" r="4"/><path d="M3 21v-1a6 6 0 0 1 6-6h3"/><path d="m15.5 18.5 2 2 4-4"/></svg>',
+    // GX-PEOPLE-COMPACT (08.10): "Unassigned" = a person struck through (the dashed outline read as a plain person at 14 px)
+    un: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/><path class="dt-people-gap" d="M3.5 3.5l17 17"/><path d="M3.5 3.5l17 17"/></svg>',
+    x: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    caret: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>',
+    col: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 4v16"/></svg>',
+    people: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-.5a6 6 0 0 1 6-6h1a6 6 0 0 1 6 6v.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 13.6a6 6 0 0 1 3 5.4v1"/></svg>'
+  };
   var _dtPeopleAsk = null, _dtPeopleFailAt = 0, _dtPeopleTimer = 0, _dtPeopleReqs = 0, _dtPeopleCardTimer = 0, _dtPeopleCardFor = null;
   var _dtPeopleWin = new Map();             // window mode: tableId|colId → { at, counts: Map(id → rows), blank, known, pending }
   function dtPeopleCache() {
@@ -6244,18 +6316,24 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtPeopleResized() {
     setTimeout(function () { try { if (state.hot && !state.hot.isDestroyed) state.hot.updateSettings({ height: getAdaptiveTableHeight() }); } catch (e) {} }, 0);
   }
+  // GX-PEOPLE-COMPACT (08.10): the group lives at the start of the toolbar's right side (was: its own row under the
+  // status line). A ResizeObserver on the toolbar and both of its sides re-fits it (window resize, search opening,
+  // selection count / delete appearing); a fit that changes nothing changes no size, so it cannot loop.
   function dtPeopleBar() {
-    var bar = document.getElementById('dt-people-bar'), head;
+    var bar = document.getElementById('dt-people-bar'), right, tb;
     if (bar && els.wrapper && els.wrapper.contains(bar)) return bar;
-    head = els.wrapper ? els.wrapper.querySelector('.dt-header') : null;
-    if (!head) return null;
+    right = els.wrapper ? els.wrapper.querySelector('.dt-toolbar-right') : null;
+    tb = right ? right.closest('.dt-toolbar') : null;
+    if (!right || !tb) return null;
     bar = document.createElement('div');
     bar.id = 'dt-people-bar';
     bar.className = 'dt-people';
     bar.setAttribute('role', 'group');   // ordinary Tab stops: no toolbar arrow-key contract to honour (review 07.10)
     bar.setAttribute('aria-label', 'People');
+    bar.setAttribute('data-fit', '0');
     bar.hidden = true;
-    head.appendChild(bar);
+    right.insertBefore(bar, right.firstChild);
+    dtPeopleMenuItem();   // GX-PEOPLE-COMPACT (08.10): level 4's way in
     bar.addEventListener('click', function (ev) {
       var t = ev.target && ev.target.closest ? ev.target.closest('[data-act]') : null, u = dtPeopleUserCols(), pick;
       if (!t || !bar.contains(t) || !u.length) return;
@@ -6266,22 +6344,123 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       else if (act === 'me' && state.meId) dtPeopleFilter(pick.idx, 'person', state.meId);
       else if (act === 'unassigned') dtPeopleFilter(pick.idx, 'unassigned');
       else if (act === 'clear') dtPeopleFilter(pick.idx, 'clear');
-      else if (act === 'more') dtPeoplePopToggle(t);
+      else if (act === 'more') dtPeoplePopToggle(t, 'people');
+      else if (act === 'cols') dtPeoplePopToggle(t, 'cols');
     });
-    bar.addEventListener('change', function (ev) {
-      var t = ev.target;
-      if (!t || !t.classList || !t.classList.contains('dt-people-colsel')) return;
-      dtPeopleRemember(String(t.value || ''));
-      dtPeoplePopClose();
-      dtPeopleSoon();
-    });
+    try {
+      if (typeof ResizeObserver === 'function') {
+        var ro = new ResizeObserver(function () {
+          if (_dtPeopleFitTimer) return;
+          _dtPeopleFitTimer = setTimeout(function () { _dtPeopleFitTimer = 0; try { if (aynaAlive() && bar.isConnected && !bar.hidden) dtPeopleFit(bar); } catch (e) {} }, 40);
+        });
+        ro.observe(tb);
+        Array.prototype.forEach.call(tb.querySelectorAll('.dt-toolbar-left, .dt-toolbar-right'), function (x) { ro.observe(x); });
+      }
+    } catch (e) {}
     return bar;
+  }
+  // GX-PEOPLE-COMPACT (08.10): "People…" in the toolbar's "More actions" menu: shown only at level 4 (the group takes no
+  // inline space), opens the same list (with the quick filters and the column choice) anchored to "More actions"
+  function dtPeopleMenuItem() {
+    var menu = els.toolbarMoreMenu, it = document.getElementById('dt-toolbar-more-people');
+    if (!menu || !els.wrapper || !els.wrapper.contains(menu)) return null;
+    if (it && menu.contains(it)) return it;
+    it = document.createElement('button');
+    it.id = 'dt-toolbar-more-people'; it.className = 'dt-toolbar-more-item'; it.type = 'button';
+    it.setAttribute('role', 'menuitem'); it.setAttribute('aria-haspopup', 'dialog');
+    it.textContent = 'People…';
+    it.hidden = true;
+    menu.insertBefore(it, menu.firstChild);
+    it.addEventListener('click', function () {
+      try { closeToolbarMoreMenu(); } catch (e) {}
+      if (els.moreButton) dtPeoplePopToggle(els.moreButton, 'people', 'tbmore');
+    });
+    return it;
+  }
+  function dtPeopleShown(el) { return !!el && el.isConnected && el.getClientRects().length > 0; }
+  // GX-PEOPLE-COMPACT (08.10): the focused control went out of sight (a fit level hid it): Clear, else the list button,
+  // else (level 4) the toolbar's "More actions"
+  function dtPeopleRefocus(bar) {
+    var to = bar ? [bar.querySelector('[data-act="clear"]'), bar.querySelector('[data-act="more"]')].filter(dtPeopleShown)[0] : null;
+    if (!to && els.moreButton && dtPeopleShown(els.moreButton)) to = els.moreButton;
+    if (to) { try { to.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  // one fit level: which avatars show, and what the list button is ("+N" next to avatars, the people icon without them)
+  function dtPeopleLevel(bar, lvl) {
+    var order = state.people.order || [], shown = Math.max(0, Math.min(order.length, DT_PEOPLE_PILE, DT_PEOPLE_FIT[lvl]));
+    var more = bar.querySelector('[data-act="more"]'), extra = order.length - shown, col = bar.__gxCol || '', act = bar.__gxAct || 'none';
+    // GX-PEOPLE-COMPACT (08.10): level 4 = the group out of the toolbar (style, not `hidden`: the render logic is unchanged)
+    var out = lvl >= 4, item = dtPeopleMenuItem();
+    bar.setAttribute('data-fit', String(lvl));
+    bar.style.display = out ? 'none' : '';
+    if (item) {
+      item.hidden = !out;
+      item.setAttribute('aria-label', 'People in ' + col + (act !== 'none' ? ', filter on' : ''));
+    }
+    if (els.moreButton) els.moreButton.classList.toggle('dt-people-dot', out && act !== 'none');
+    // GX-PEOPLE-COMPACT (08.10): the filtered person stays in sight: an avatar past the shown count swaps places with the
+    // last shown one (data-orank = its place by rows, data-rank = what the fit-level CSS hides by)
+    var on = null, onShown = false;
+    Array.prototype.forEach.call(bar.querySelectorAll('.dt-people-av[data-act="person"]'), function (a) {
+      a.setAttribute('data-rank', a.getAttribute('data-orank') || '0');
+      if (a.getAttribute('aria-pressed') === 'true') on = a;
+    });
+    if (on) {
+      var oRank = Number(on.getAttribute('data-orank')) || 0;
+      onShown = oRank < shown;
+      if (!onShown && shown > 0) {
+        var last = bar.querySelector('.dt-people-av[data-act="person"][data-orank="' + (shown - 1) + '"]');
+        if (last) { last.setAttribute('data-rank', String(oRank)); on.setAttribute('data-rank', String(shown - 1)); onShown = true; }
+      }
+    }
+    if (!more) return;
+    if (lvl < 2) {
+      // the filter dot on "+N" when the filtered person is not one of the avatars (picked from the list)
+      var dot = act === 'person' && !onShown;
+      more.className = 'dt-people-av dt-people-more' + (dot ? ' is-on' : '');
+      more.textContent = extra ? '+' + extra : '+';
+      more.setAttribute('aria-label', 'More people' + (extra ? ', ' + extra + ' more on this screen' : '') + (dot ? ', filter on' : ''));
+      more.hidden = !(extra || bar.__gxOthers || dot);
+    } else {
+      more.className = 'dt-people-icon' + (act !== 'none' ? ' is-on' : '');
+      more.innerHTML = DT_PEOPLE_SVG.people;
+      more.setAttribute('aria-label', 'People in ' + col + (order.length ? ', ' + order.length + ' on this screen' : '') + (act !== 'none' ? ', filter on' : ''));
+      more.hidden = false;
+    }
+    more.title = lvl < 2 ? '' : 'People in ' + col;
+  }
+  // the widest level that leaves the toolbar exactly as tall as it is without the group (and nothing clipped / pushed out)
+  function dtPeopleFit(bar) {
+    var tb = bar && bar.closest ? bar.closest('.dt-toolbar') : null, head = tb ? tb.closest('.dt-header') : null;
+    if (!tb || bar.hidden) return;
+    var h0 = head ? head.offsetHeight : 0, was = bar.getAttribute('data-fit'), lvl;
+    var hadFocus = !!(document.activeElement && bar.contains(document.activeElement));   // GX-PEOPLE-COMPACT (08.10)
+    bar.style.display = 'none';
+    var baseH = tb.offsetHeight, baseW = Math.max(tb.scrollWidth, tb.clientWidth);
+    bar.style.display = '';
+    // GX-PEOPLE-COMPACT (08.10): levels 0-3 are tried inline; when none keeps the toolbar's height / width, level 4 takes
+    // the group out of the toolbar (no inline space at all; "People…" in "More actions"), so the header never grows
+    var last = DT_PEOPLE_FIT.length - 1;
+    for (lvl = 0; lvl < last; lvl++) {
+      dtPeopleLevel(bar, lvl);
+      if (tb.offsetHeight <= baseH && tb.scrollWidth <= baseW + 1 && bar.scrollWidth <= bar.clientWidth + 1) break;
+    }
+    if (lvl >= last) { lvl = last; dtPeopleLevel(bar, lvl); }
+    if (hadFocus && !(document.activeElement && bar.contains(document.activeElement) && dtPeopleShown(document.activeElement))) dtPeopleRefocus(bar);
+    if (head && head.offsetHeight !== h0) dtPeopleResized();
+    if (was !== String(lvl)) { var pop = document.getElementById('dt-people-pop'); if (pop) dtPeoplePopFill(pop); }
   }
   function dtPeopleRender() {
     try {
       if (!aynaAlive() || !els || !els.wrapper) return;
       var ucols = state.hot ? dtPeopleUserCols() : [], bar = document.getElementById('dt-people-bar');
-      if (!ucols.length) { if (bar && !bar.hidden) { bar.hidden = true; dtPeoplePopClose(); dtPeopleResized(); } return; }
+      if (!ucols.length) {
+        if (bar && !bar.hidden) { bar.hidden = true; dtPeoplePopClose(); dtPeopleResized(); }
+        // GX-PEOPLE-COMPACT (08.10): no people group → no "People…" menu item, no filter dot on "More actions"
+        var mi = document.getElementById('dt-toolbar-more-people'); if (mi) mi.hidden = true;
+        if (els.moreButton) els.moreButton.classList.remove('dt-people-dot');
+        return;
+      }
       bar = dtPeopleBar();
       if (!bar) return;
       var pick = dtPeoplePick(ucols), col = pick.col, idx = pick.idx, info = dtPeopleCounts(col), act = dtPeopleActive(idx);
@@ -6294,73 +6473,78 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       });
       state.people.order = people; state.people.info = info; state.people.idx = idx; state.people.colId = col.id;
       var wasHidden = bar.hidden;
+      // GX-PEOPLE-COMPACT (08.10): one inline group, no label / column heading (the column is in the aria-label, the
+      // caret menu's tooltip and the hover card); avatars 24 px overlapping, counts in aria-labels / tooltips / the card
+      var colName = String(col.header || col.id), openPop = document.getElementById('dt-people-pop');
       bar.textContent = '';
-      // the column: a plain label, or a picker when the screen has more than one User column
-      if (ucols.length > 1) {
-        var sel = document.createElement('select');
-        sel.className = 'dt-people-colsel'; sel.setAttribute('aria-label', 'People column'); sel.setAttribute('data-key', 'colsel');
-        ucols.forEach(function (u) { var o = document.createElement('option'); o.value = u.col.id; o.textContent = String(u.col.header || u.col.id); if (u.col.id === col.id) o.selected = true; sel.appendChild(o); });
-        bar.appendChild(sel);
-      } else {
-        var lab = document.createElement('span');
-        lab.className = 'dt-people-col'; lab.textContent = String(col.header || col.id);
-        bar.appendChild(lab);
-      }
+      bar.setAttribute('aria-label', 'People in ' + colName);
+      bar.__gxCol = colName; bar.__gxAct = act.kind;
       var pile = document.createElement('div');
       pile.className = 'dt-people-pile';
-      people.slice(0, DT_PEOPLE_PILE).forEach(function (id) {
+      people.slice(0, DT_PEOPLE_PILE).forEach(function (id, rank) {
         var b = document.createElement('button'), name = dtPeopleNameOf(id), on = act.kind === 'person' && act.id === gxFold(id);
         b.type = 'button';
         b.className = 'dt-people-av' + (id === state.meId ? ' is-me' : '') + (state.peopleOff.has(id) ? ' is-off' : '') + (dtUserName(id) ? '' : ' is-unknown');
         b.setAttribute('data-act', 'person'); b.setAttribute('data-uid', id); b.setAttribute('data-key', 'p:' + id);
+        b.setAttribute('data-rank', String(rank)); b.setAttribute('data-orank', String(rank));   // GX-PEOPLE-COMPACT (08.10): orank = place by rows
         b.setAttribute('data-tone', String(gxToneIndex(id)));
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
         b.setAttribute('aria-label', 'Show rows for ' + name + (id === state.meId ? ' (you)' : '') + (info && info.known ? ', ' + dtPeopleRowsText(n(id)) : ''));
         b.textContent = dtUserName(id) ? dtUserInitials(dtUserName(id)) : '?';
         pile.appendChild(b);
       });
-      var others = info && info.known ? dtPeopleOthers(counts) : [], extra = Math.max(0, people.length - DT_PEOPLE_PILE);
-      if (extra || others.length) {
-        var more = document.createElement('button');
-        more.type = 'button'; more.className = 'dt-people-av dt-people-more';
-        more.setAttribute('data-act', 'more'); more.setAttribute('data-key', 'more');
-        more.setAttribute('aria-haspopup', 'dialog'); more.setAttribute('aria-expanded', document.getElementById('dt-people-pop') ? 'true' : 'false');
-        more.setAttribute('aria-label', 'More people' + (extra ? ', ' + extra + ' more on this screen' : ''));
-        more.textContent = extra ? '+' + extra : '+';
-        pile.appendChild(more);
-      }
+      var others = info && info.known ? dtPeopleOthers(counts) : [];
+      bar.__gxOthers = others.length;
+      // the list button: "+N" next to the avatars, the people icon when the avatars do not fit (dtPeopleLevel)
+      var more = document.createElement('button');
+      more.type = 'button'; more.className = 'dt-people-av dt-people-more';
+      more.setAttribute('data-act', 'more'); more.setAttribute('data-key', 'more');
+      more.setAttribute('aria-haspopup', 'dialog'); more.setAttribute('aria-expanded', openPop && openPop.__gxKind === 'people' ? 'true' : 'false');
+      pile.appendChild(more);
       bar.appendChild(pile);
+      // the column picker: a caret menu, only when the screen has more than one User column
+      if (ucols.length > 1) {
+        var cb = document.createElement('button');
+        cb.type = 'button'; cb.className = 'dt-people-colbtn';
+        cb.setAttribute('data-act', 'cols'); cb.setAttribute('data-key', 'cols');
+        cb.setAttribute('aria-haspopup', 'menu'); cb.setAttribute('aria-expanded', openPop && openPop.__gxKind === 'cols' ? 'true' : 'false');
+        cb.setAttribute('aria-label', 'People column: ' + colName);
+        cb.title = 'People column: ' + colName;
+        cb.innerHTML = DT_PEOPLE_SVG.caret;
+        bar.appendChild(cb);
+      }
       if (!info || info.failed) {
         var wait = document.createElement('span');
         wait.className = 'dt-people-note'; wait.textContent = info ? 'Counts unavailable' : 'Counting…';
         bar.appendChild(wait);
       }
-      function pill(actName, label, count, on) {
-        var p = document.createElement('button'), c = document.createElement('span');
-        p.type = 'button'; p.className = 'dt-people-pill';
+      function chip(actName, label, count, on, svg) {
+        var p = document.createElement('button'), num = count != null ? Number(count) : null;
+        p.type = 'button'; p.className = 'dt-people-chip';
         p.setAttribute('data-act', actName); p.setAttribute('data-key', actName);
         p.setAttribute('aria-pressed', on ? 'true' : 'false');
-        p.appendChild(document.createTextNode(label));
-        if (count != null) { c.className = 'dt-people-n'; c.textContent = '· ' + Number(count).toLocaleString('en-US'); p.appendChild(c); }
+        p.setAttribute('aria-label', label + (num != null ? ', ' + dtPeopleRowsText(num) : ''));
+        p.title = label + (num != null ? ' · ' + num.toLocaleString('en-US') : '');
+        p.innerHTML = svg;
         bar.appendChild(p);
       }
-      if (state.meId) pill('me', 'Assigned to me', info && info.known ? n(state.meId) : null, act.kind === 'person' && act.id === gxFold(state.meId));
-      pill('unassigned', 'Unassigned', info && info.known ? info.blank : null, act.kind === 'unassigned');
-      if (act.kind === 'custom') {
-        var note = document.createElement('span');
-        note.className = 'dt-people-note'; note.textContent = 'Custom filter';
-        bar.appendChild(note);
-      }
+      if (state.meId) chip('me', 'Assigned to me', info && info.known ? n(state.meId) : null, act.kind === 'person' && act.id === gxFold(state.meId), DT_PEOPLE_SVG.me);
+      chip('unassigned', 'Unassigned', info && info.known ? info.blank : null, act.kind === 'unassigned', DT_PEOPLE_SVG.un);
+      // "Clear" only while the column is filtered ("Custom filter" left the bar: the column's filter panel shows it)
       if (act.kind !== 'none') {
         var clr = document.createElement('button');
         clr.type = 'button'; clr.className = 'dt-people-clear';
         clr.setAttribute('data-act', 'clear'); clr.setAttribute('data-key', 'clear');
-        clr.textContent = 'Clear';
+        clr.setAttribute('aria-label', 'Clear the ' + colName + ' filter');
+        clr.title = 'Clear the ' + colName + ' filter';
+        clr.innerHTML = DT_PEOPLE_SVG.x;
         bar.appendChild(clr);
       }
       bar.hidden = false;
+      dtPeopleFit(bar);
       if (wasHidden) dtPeopleResized();
-      if (focusKey) { var f = bar.querySelector('[data-key="' + focusKey.replace(/["\\]/g, '') + '"]'); if (f) { try { f.focus({ preventScroll: true }); } catch (e) {} } }
+      // GX-PEOPLE-COMPACT (08.10): back on the same control when it is still in sight, else Clear / the list button / "More actions"
+      if (focusKey) { var f = bar.querySelector('[data-key="' + focusKey.replace(/["\\]/g, '') + '"]'); if (f && dtPeopleShown(f)) { try { f.focus({ preventScroll: true }); } catch (e) {} } else dtPeopleRefocus(bar); }
       dtPeopleCardBind();
       var pop = document.getElementById('dt-people-pop');
       if (pop) dtPeoplePopFill(pop);
@@ -6376,21 +6560,42 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return on.concat(off);
   }
   // the "+N" list: everyone on this screen (with counts), then the other teammates (no rows here, not clickable)
-  function dtPeoplePopToggle(anchor) {
-    if (document.getElementById('dt-people-pop')) { dtPeoplePopClose(true); return; }
+  // GX-PEOPLE-COMPACT (08.10): one popover for two lists: 'people' (the "+N" / people icon list; at the icon level it
+  // also carries Assigned to me / Unassigned / Clear and the column choice) and 'cols' (the caret menu: the User columns)
+  // GX-PEOPLE-COMPACT (08.10): anchorKind 'tbmore' = opened from "People…" in the toolbar's "More actions" menu (level 4)
+  function dtPeoplePopToggle(anchor, kind, anchorKind) {
+    kind = kind === 'cols' ? 'cols' : 'people';
+    var open = document.getElementById('dt-people-pop');
+    if (open) { var sameKind = open.__gxKind === kind; dtPeoplePopClose(sameKind); if (sameKind) return; }
     var pop = document.createElement('div'), wr = els.wrapper.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
     pop.id = 'dt-people-pop'; pop.className = 'dt-people-pop';
-    pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'More people');
+    pop.__gxKind = kind; pop.__gxAnchor = anchorKind === 'tbmore' ? 'tbmore' : (anchor.getAttribute('data-act') || 'more');
+    pop.setAttribute('role', kind === 'cols' ? 'menu' : 'dialog'); pop.setAttribute('aria-label', kind === 'cols' ? 'People column' : 'More people');
     pop.style.top = Math.round(ar.bottom - wr.top + 6) + 'px';
     pop.style.left = Math.round(Math.max(8, Math.min(ar.left - wr.left, wr.width - 276))) + 'px';
     els.wrapper.appendChild(pop);
     dtPeoplePopFill(pop);
-    anchor.setAttribute('aria-expanded', 'true');
+    if (pop.__gxAnchor !== 'tbmore') anchor.setAttribute('aria-expanded', 'true');   // "More actions" keeps its own menu's state
     pop.addEventListener('click', function (ev) {
-      var t = ev.target && ev.target.closest ? ev.target.closest('button[data-uid]') : null;
-      if (!t || t.disabled || state.people.idx == null) return;
+      var t = ev.target && ev.target.closest ? ev.target.closest('button') : null, idx = state.people.idx;
+      if (!t || !pop.contains(t) || t.disabled) return;
+      if (t.hasAttribute('data-col')) {   // a column: remembered per screen, the group redraws with its counts
+        dtPeoplePopClose(true);
+        dtPeopleRemember(String(t.getAttribute('data-col') || ''));
+        dtPeopleSoon();
+        return;
+      }
+      if (idx == null) return;
+      var q = t.getAttribute('data-qact');
+      if (q) {
+        dtPeoplePopClose(true);
+        if (q === 'me' && state.meId) dtPeopleFilter(idx, 'person', state.meId);
+        else if (q === 'unassigned' || q === 'clear') dtPeopleFilter(idx, q);
+        return;
+      }
+      if (!t.hasAttribute('data-uid')) return;
       dtPeoplePopClose(true);   // a pick closes the list (focus back on "+N")
-      dtPeopleFilter(state.people.idx, 'person', t.getAttribute('data-uid'));
+      dtPeopleFilter(idx, 'person', t.getAttribute('data-uid'));
     });
     pop.addEventListener('keydown', function (ev) {
       var items = Array.from(pop.querySelectorAll('button:not([disabled])')), i = items.indexOf(document.activeElement);
@@ -6399,14 +6604,45 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (!items.length) return;
         i = ev.key === 'ArrowDown' ? (i + 1) % items.length : (i <= 0 ? items.length - 1 : i - 1);
         items[i].focus();
+      } else if (ev.key === 'Home' || ev.key === 'End') {   // GX-PEOPLE-COMPACT (08.10)
+        ev.preventDefault();
+        if (items.length) items[ev.key === 'Home' ? 0 : items.length - 1].focus();
       } else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); dtPeoplePopClose(true); }
+      // GX-PEOPLE-COMPACT (08.10): Tab closes it; focus goes back to the button that opened it and Tab moves on from there
+      else if (ev.key === 'Tab') dtPeoplePopClose(true);
     });
-    setTimeout(function () { var b = pop.querySelector('button:not([disabled])'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) {} } }, 0);
+    setTimeout(function () { var b = pop.querySelector('button[aria-checked="true"]') || pop.querySelector('button:not([disabled])'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) {} } }, 0);
   }
   function dtPeoplePopFill(pop) {
     var info = state.people.info, counts = info ? info.counts : new Map(), act = state.people.idx != null ? dtPeopleActive(state.people.idx) : { kind: 'none' };
+    var bar = document.getElementById('dt-people-bar'), lvl = bar ? Number(bar.getAttribute('data-fit')) || 0 : 0, ucols = dtPeopleUserCols();
     pop.textContent = '';
     function head(text) { var h = document.createElement('div'); h.className = 'dt-people-h'; h.textContent = text; pop.appendChild(h); }
+    // GX-PEOPLE-COMPACT (08.10): a row with a round icon (quick filter / column) instead of an avatar
+    function row(svg, label, meta, attr, val, on, radio) {
+      var b = document.createElement('button'), ic = document.createElement('span'), nm = document.createElement('span'), mt = document.createElement('span');
+      b.type = 'button'; b.className = 'dt-people-item dt-people-qitem';
+      b.setAttribute(attr, val);
+      if (radio) { b.setAttribute('role', 'menuitemradio'); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
+      else b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      ic.className = 'dt-people-qicon'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = svg;
+      nm.className = 'dt-people-iname'; nm.textContent = label;
+      mt.className = 'dt-people-imeta'; mt.textContent = meta || '';
+      b.appendChild(ic); b.appendChild(nm); b.appendChild(mt);
+      pop.appendChild(b);
+    }
+    function colRows(radio) {
+      ucols.forEach(function (u) { row(DT_PEOPLE_SVG.col, String(u.col.header || u.col.id), '', 'data-col', u.col.id, u.idx === state.people.idx, radio); });
+    }
+    // GX-PEOPLE-COMPACT (08.10): a role="menu" holds menu items only: no heading (the menu's aria-label says "People column")
+    if (pop.__gxKind === 'cols') { colRows(true); return; }
+    if (lvl >= 3) {   // the icon alone: the quick filters live here
+      head('Filter');
+      if (state.meId) row(DT_PEOPLE_SVG.me, 'Assigned to me', info && info.known ? dtPeopleRowsText(counts.get(state.meId) || 0) : '', 'data-qact', 'me', act.kind === 'person' && act.id === gxFold(state.meId));
+      row(DT_PEOPLE_SVG.un, 'Unassigned', info && info.known ? dtPeopleRowsText(info.blank) : '', 'data-qact', 'unassigned', act.kind === 'unassigned');
+      if (act.kind !== 'none') row(DT_PEOPLE_SVG.x, 'Clear filter', '', 'data-qact', 'clear', false);
+    }
+    if (lvl >= 2 && ucols.length > 1) { head('Column'); colRows(false); }   // the caret is hidden from level 2 on
     function item(id, clickable) {
       var b = document.createElement('button'), nm = document.createElement('span'), meta = document.createElement('span');
       b.type = 'button'; b.className = 'dt-people-item' + (state.peopleOff.has(id) ? ' is-off' : '');
@@ -6429,8 +6665,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     var pop = document.getElementById('dt-people-pop');
     if (!pop) return;
     pop.parentNode.removeChild(pop);
-    var more = document.querySelector('#dt-people-bar [data-act="more"]');
-    if (more) { more.setAttribute('aria-expanded', 'false'); if (refocus) { try { more.focus({ preventScroll: true }); } catch (e) {} } }
+    // GX-PEOPLE-COMPACT (08.10): focus goes back to the button that opened it ("+N" / people icon, or the caret; "More
+    // actions" for level 4); one a fit level hid meanwhile → Clear / the list button / "More actions"
+    var tbm = pop.__gxAnchor === 'tbmore';
+    var more = tbm ? null : document.querySelector('#dt-people-bar [data-act="' + (pop.__gxAnchor === 'cols' ? 'cols' : 'more') + '"]');
+    if (more) more.setAttribute('aria-expanded', 'false');
+    if (refocus) {
+      if (tbm && els.moreButton && dtPeopleShown(els.moreButton)) { try { els.moreButton.focus({ preventScroll: true }); } catch (e) {} }
+      else if (more && dtPeopleShown(more)) { try { more.focus({ preventScroll: true }); } catch (e) {} }
+      else dtPeopleRefocus(document.getElementById('dt-people-bar'));
+    }
   }
   // the hover card: one shared element, delegated listeners (cell chips survive HOT re-renders), 300 ms open delay
   function dtPeopleCardBind() {
@@ -6463,13 +6707,22 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         key: function (ev) { if (ev.key === 'Escape') { dtPeopleCardHide(); dtPeoplePopClose(true); } },
         down: function (ev) {
           var pop = document.getElementById('dt-people-pop');
-          if (pop && !pop.contains(ev.target) && !(ev.target.closest && ev.target.closest('#dt-people-bar [data-act="more"]'))) dtPeoplePopClose(false);
+          if (pop && !pop.contains(ev.target) && !(ev.target.closest && ev.target.closest('#dt-people-bar [data-act="more"], #dt-people-bar [data-act="cols"]'))) dtPeoplePopClose(false);   // GX-PEOPLE-COMPACT (08.10): + the caret
+        },
+        // GX-PEOPLE-COMPACT (08.10): a window resize re-fits the group too (the ResizeObserver is the main path)
+        fit: function () {
+          if (_dtPeopleFitTimer) return;
+          _dtPeopleFitTimer = setTimeout(function () { _dtPeopleFitTimer = 0; try { var b = document.getElementById('dt-people-bar'); if (aynaAlive() && b && !b.hidden && els.wrapper && els.wrapper.contains(b)) dtPeopleFit(b); } catch (e) {} }, 40);
         }
       };
       if (!window.__gxPeopleDocBound) {
         window.__gxPeopleDocBound = true;
         document.addEventListener('keydown', function (ev) { var h = window.__gxPeopleDoc; if (h && h.key) h.key(ev); });
         document.addEventListener('mousedown', function (ev) { var h = window.__gxPeopleDoc; if (h && h.down) h.down(ev); });
+      }
+      if (!window.__gxPeopleFitBound) {
+        window.__gxPeopleFitBound = true;
+        window.addEventListener('resize', function () { var h = window.__gxPeopleDoc; if (h && h.fit) h.fit(); });
       }
     } catch (e) {}
   }
@@ -6531,7 +6784,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     status: function () { var g = dtPeopleCache(); return { requests: _dtPeopleReqs, inFlight: !!_dtPeopleAsk, failedAt: _dtPeopleFailAt, cachedAt: g ? g.at : 0, people: (state.peopleAll || new Map()).size, column: state.people.colId || '' }; },
     counts: function () { var o = {}, info = state.people.info; if (info) info.counts.forEach(function (c, id) { o[id] = c; }); return { counts: o, blank: info ? info.blank : null, known: !!(info && info.known), order: (state.people.order || []).slice() }; },
     me: function () { return state.meId || ''; },
-    refresh: function () { var p = dtPeopleEnsure(); dtPeopleSoon(); return !!p; }
+    refresh: function () { var p = dtPeopleEnsure(); dtPeopleSoon(); return !!p; },
+    // GX-PEOPLE-COMPACT (08.10): re-fit now (what the ResizeObserver does; headless runs have no frames for it) → the level
+    fit: function () { var b = document.getElementById('dt-people-bar'); if (b && !b.hidden && els.wrapper && els.wrapper.contains(b)) dtPeopleFit(b); return b && !b.hidden ? Number(b.getAttribute('data-fit')) : -1; }
   };
   /* ---- /GX-PEOPLE ---- */
   /* AYNA-TABLE-END */
