@@ -1587,6 +1587,37 @@
   }
 }
 
+/* GX-FILL (12.10): "Fill on portal" — always visible on a row that has a claim package; dim when the extension is missing */
+#dynamic-table-wrapper .dt-row-fill {
+  height: 24px;
+  margin-right: 4px;
+  padding: 0 9px;
+  border: 1px solid var(--gx-primary, #6366f1);
+  border-radius: 999px;
+  background: var(--gx-surface, #fff);
+  color: var(--gx-primary, #6366f1);
+  font: 600 12px/22px var(--gx-font, system-ui, sans-serif);
+  cursor: pointer;
+  vertical-align: middle;
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease;
+}
+#dynamic-table-wrapper .dt-row-fill:hover,
+#dynamic-table-wrapper .dt-row-fill:focus-visible {
+  background: var(--gx-primary, #6366f1);
+  color: #fff;
+}
+#dynamic-table-wrapper .dt-row-fill.is-off {
+  border-color: var(--gx-line, #e2e8f0);
+  color: var(--gx-ink-3, #94a3b8);
+  background: transparent;
+  cursor: help;
+}
+#dynamic-table-wrapper .dt-row-fill.is-busy {
+  opacity: .6;
+  cursor: progress;
+}
+
 /* ── Yatay kaydırma (25.09) ──────────────────────────────────────────────────
    İlk kolon sabit (JS fixedColumnsStart) → kaydırılınca kenarında gölge; sağda devamı varken solma + ok;
    satırı aç düğmesi satır başlığında (hover / mobilde hep), satır vurgusu klonlar arası (.dt-row-hover);
@@ -3743,11 +3774,144 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return sanitized;
   }
 
+  /* GX-FILL-BEGIN (12.10) */
+  // GX-FILL (12.10, NOD x GAIA): "Fill on portal" — a record's encrypted claim package (a field value "octo1." / "octo2." + base64url,
+  // written by nod-hat\nod-claim-hat.ps1 into the "Claim" field) goes to the Gaia Bridge extension with one click; it is never
+  // shown, copied or searched. Contract with the extension (gad_sync → GAD_CLAIM_PAKET), both sides must keep it:
+  //   window event "gaiaBridgeClaimPaket", detail = JSON string {requestId, paket, degistir?}
+  //   answer "gaiaBridgeClaimPaketResult", detail = JSON string {requestId, ok, error?, soru?, mevcut?, dosya?, gaiaNotu?}
+  //   the extension marks the page with <html data-gaia-bridge>.
+  // Masking: normalizeRow swaps every such value for "Ready ✓" and keeps the package in memory by row id, so cells, copy,
+  // search, tooltips, filter value lists and the people bar only ever see the badge. A row offers the action when it carries a
+  // package, or its "Durum" is "Claim Hazır", or (no Durum on the row) the table has a "Claim" field; the package is then
+  // fetched on click with mirror_get (the collaborator wall applies: an expert only ever gets their own record).
+  const DT_PAKET_BADGE = 'Ready ✓';
+  const dtPaket = new Map();   // row id → package (memory only, never in the DOM or a log)
+  let _dtFillGate = null;
+  function dtIsPaket(v) { return typeof v === 'string' && v.length > 6 && v.charCodeAt(0) === 111 && /^octo[12]\./.test(v); }
+  function dtMaskPaket(v) { return dtIsPaket(v) ? DT_PAKET_BADGE : v; }
+  function dtPaketIngest(row) {   // a row's own copy: masked in place, the package kept by row id
+    let found = '';
+    for (const k in row) { if (k !== '__sourceIndex' && dtIsPaket(row[k])) { if (!found) found = row[k]; row[k] = DT_PAKET_BADGE; } }
+    if (!found) return;
+    const id = rowIdOf(row);
+    if (!id) return;
+    dtPaket.delete(id); dtPaket.set(id, found);
+    if (dtPaket.size > 500) dtPaket.delete(dtPaket.keys().next().value);
+  }
+  function dtRowDurum(row) {   // the row's "Durum" text, or null when the row has no such field
+    if (!row) return null;
+    for (const k in row) { if (k !== '__sourceIndex' && dtNormKey(k) === 'durum') { const v = row[k]; return v === null || v === undefined ? '' : String(v); } }
+    return null;
+  }
+  function dtTableHasClaimField() {
+    try {
+      if (dtPaket.size) return true;
+      if (state.columns.some(c => c && !c.__uiOnly && dtNormKey(c.id) === 'claim')) return true;
+      const m = state.fieldOps && state.fieldOps.meta;
+      const has = l => (Array.isArray(l) ? l : []).some(e => e && e.name && dtNormKey(e.name) === 'claim');
+      return !!(m && (has(m.fields) || has(m.hidden)));
+    } catch (e) { return false; }
+  }
+  // 'ready' (a package, or Durum = Claim Hazır) · 'check' (nothing on the row says; the table has a Claim field) · '' (no action)
+  function dtFillState(row) {
+    if (!row) return '';
+    const id = rowIdOf(row);
+    if (id && dtPaket.has(id)) return 'ready';
+    const d = dtRowDurum(row);
+    if (d !== null) return dtNormKey(d) === 'claimhazir' ? 'ready' : '';
+    return dtTableHasClaimField() ? 'check' : '';
+  }
+  function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
+  function dtFillButtonHtml(st) {
+    if (!st) return '';
+    const on = dtBridgeInstalled();
+    const tip = on ? 'Fill on portal' : 'Install the Gaia Bridge extension';
+    return `<button class="dt-row-fill${on ? '' : ' is-off'}" type="button" aria-label="${tip}" title="${tip}" aria-disabled="${on ? 'false' : 'true'}">Fill</button>`;
+  }
+  // the gate can turn on after the first paint (the screen's field list arrives ~1.5 s later): repaint once when it changes
+  function dtFillRefresh() {
+    try {
+      const g = dtTableHasClaimField();
+      if (g === _dtFillGate) return;
+      _dtFillGate = g;
+      if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render());
+    } catch (e) {}
+  }
+  // the package of one row: memory first, else mirror_get (walled per viewer on the server)
+  async function dtFillPaketOf(row) {
+    const id = rowIdOf(row);
+    if (!id) return { error: 'This record has no id.' };
+    if (dtPaket.has(id)) return { paket: dtPaket.get(id) };
+    const r = await aynaBridge('mirror_get', { id: id }, null, { timeoutMs: 20000 });
+    if (!r || !r.ok) return { error: (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : 'Could not load the claim. Try again.' };
+    const rows = (r.data && Array.isArray(r.data.rows)) ? r.data.rows : [];
+    const rec = rows.find(x => x && String(x._id) === id) || rows[0];
+    if (!rec) return { error: 'No claim is ready for this record yet.' };
+    let paket = '';
+    for (const k in rec) { if (dtIsPaket(rec[k]) && (!paket || dtNormKey(k) === 'claim')) paket = rec[k]; }
+    if (!paket) return { error: 'No claim is ready for this record yet.' };
+    dtPaket.set(id, paket);
+    return { paket: paket };
+  }
+  // one request to the extension; resolves with its answer or {error} after 20 s
+  function dtFillSend(paket, degistir) {
+    return new Promise(resolve => {
+      const requestId = 'fill_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+      let timer = null;
+      const onResult = ev => {
+        let d = null;
+        try { d = typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail; } catch (e) { d = null; }
+        if (!d || d.requestId !== requestId) return;
+        window.removeEventListener('gaiaBridgeClaimPaketResult', onResult);
+        clearTimeout(timer);
+        resolve(d);
+      };
+      window.addEventListener('gaiaBridgeClaimPaketResult', onResult);
+      timer = setTimeout(() => { window.removeEventListener('gaiaBridgeClaimPaketResult', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 20000);
+      const detail = { requestId: requestId, paket: paket };
+      if (degistir) detail.degistir = true;
+      window.dispatchEvent(new CustomEvent('gaiaBridgeClaimPaket', { detail: JSON.stringify(detail) }));
+    });
+  }
+  async function dtFillOnPortal(row, btn) {
+    if (!dtBridgeInstalled()) { showWakeToast('Install the Gaia Bridge extension', 'error'); return; }
+    if (btn && btn.classList.contains('is-busy')) return;
+    if (btn) { btn.classList.add('is-busy'); btn.setAttribute('aria-busy', 'true'); }
+    try {
+      const p = await dtFillPaketOf(row);
+      if (!p.paket) { showWakeToast(p.error || 'No claim is ready for this record yet.', 'error'); return; }
+      let res = await dtFillSend(p.paket, false);
+      if (res && !res.ok && res.soru === 'degistir') {
+        const yes = await new Promise(resolve => {
+          let done = false, watch = null;
+          const finish = v => { if (done) return; done = true; if (watch) clearInterval(watch); resolve(v); };
+          const modal = openWakeModal('Replace the prepared case?', '<p class="dt-fill-q"></p>', [
+            { label: 'Cancel', onClick: () => { closeWakeModal(); finish(false); } },
+            { label: 'Replace', primary: true, onClick: () => { closeWakeModal(); finish(true); } }
+          ]);
+          if (!modal) { finish(false); return; }
+          try { const q = modal.querySelector('.dt-fill-q'); if (q) q.textContent = 'Replace the case prepared for ' + (res.mevcut ? String(res.mevcut) : 'another file') + '?'; } catch (e) {}
+          watch = setInterval(() => { if (!modal.isConnected) finish(false); }, 300);   // Escape / backdrop close the modal without a button
+        });
+        if (!yes) return;
+        res = await dtFillSend(p.paket, true);
+      }
+      if (res && res.ok) showWakeToast('Ready: switch to the portal tab and press Fill this page' + (res.gaiaNotu ? '. ' + String(res.gaiaNotu) : ''), 'success');
+      else showWakeToast((res && res.error) ? String(res.error) : 'The extension could not take this claim.', 'error');
+    } finally {
+      if (btn) { btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy'); }
+    }
+  }
+  /* GX-FILL-END */
+
   function normalizeRow(row, index) {
     if (row && typeof row === 'object' && !Array.isArray(row)) {
-      return Object.assign({ __sourceIndex: index }, row);
+      const out = Object.assign({ __sourceIndex: index }, row);
+      dtPaketIngest(out);   // GX-FILL: a claim package never reaches a cell
+      return out;
     }
-    return { __sourceIndex: index, value: row };
+    return { __sourceIndex: index, value: dtMaskPaket(row) };
   }
 
   const _pvRowKeys = new WeakMap();   // row object → its keys normalized once (see pickValue)
@@ -4078,6 +4242,23 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!els.container || els.container.dataset.doubleClickAttached === 'true') return;
     els.container.addEventListener('dblclick', handleDoubleClick);
     els.container.addEventListener('click', handleCellLinkClick, true);
+    // GX-FILL: "Fill on portal" (the package goes to the extension; the row is not opened, and the press does not select it)
+    els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null; if (b) event.stopPropagation(); }, true);
+    els.container.addEventListener('click', event => {
+      const btn = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null;
+      if (!btn || !state.hot) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const td = btn.closest('td');
+      if (!td) return;
+      try {
+        const coords = state.hot.getCoords(td);
+        if (!coords || typeof coords.row !== 'number' || coords.row < 0) return;
+        const p = state.hot.toPhysicalRow(coords.row), dr = state.displayRows[p];
+        const raw = dr ? state.rawRows[dr.__sourceIndex] : null;
+        if (raw) dtFillOnPortal(raw, btn);
+      } catch (e) {}
+    }, true);
     // "Open record" düğmesi (satır sonu + satır başlığı): çift tıkla aynı yol
     els.container.addEventListener('click', event => {
       const btn = event.target && event.target.closest ? event.target.closest('.dt-row-open') : null;
@@ -4569,8 +4750,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
             data: UI_ACTIONS_COL_ID,
             readOnly: true,
             width: col.width,
-            renderer: (instance, td) => {
-              td.innerHTML = `<button class="dt-row-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
+            renderer: (instance, td, visualRow) => {
+              // GX-FILL: "Fill on portal" before "Open record" on a row with a claim package (or one that may have it)
+              let fill = '';
+              try { const p = instance.toPhysicalRow(visualRow), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; fill = dtFillButtonHtml(dtFillState(raw)); } catch (e) { fill = ''; }
+              td.innerHTML = fill + `<button class="dt-row-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
             }
           };
         }
@@ -5761,7 +5945,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const r = await ask;
         if (!r || !r.ok) return;
         const rows = Array.isArray(r.data && r.data.rows) ? r.data.rows : [];
-        hit = { at: Date.now(), values: rows.map(g => g[col.id]).filter(v => v !== undefined) };
+        hit = { at: Date.now(), values: rows.map(g => dtMaskPaket(g[col.id])).filter(v => v !== undefined) };   // GX-FILL: a claim package never reaches the value list
         AYNA.distinct.set(ck, hit); if (AYNA.distinct.size > 60) { const oldest = AYNA.distinct.keys().next().value; AYNA.distinct.delete(oldest); }
       }
       const draft = state.filterDraft;
@@ -8628,7 +8812,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const p = aynaBridge('mirror_screen_fields', { screen_id: sid }, null, { timeoutMs: DT_FIELD_LIMITS.read_timeout_ms }).then(r => {
       if (fo.inflight === p) fo.inflight = null;
       if (r && r.ok && r.data && r.data.screen && typeof r.data.screen === 'object') {
-        if (state.fieldOps === fo) { fo.meta = r.data; fo.at = Date.now(); fo.ready = r.data.screen.can_edit === true; }
+        if (state.fieldOps === fo) { fo.meta = r.data; fo.at = Date.now(); fo.ready = r.data.screen.can_edit === true; dtFillRefresh(); }   // GX-FILL: a Claim field may turn the action on
         return { ok: true, meta: r.data };
       }
       if (state.fieldOps === fo) fo.ready = false;
