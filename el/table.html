@@ -5477,7 +5477,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // this table instance is the live one (Bubble re-renders the element; a stale instance must go quiet)
   function aynaAlive() { try { const c = document.getElementById('hot-container'); return !els || !els.container || c === els.container; } catch (e) { return true; } }
   // a non-mirror write (rows from Bubble, or columns removed) cancels any waiting / in-flight mirror load
-  function aynaCancel() { AYNA.seq++; AYNA.cacheGen++; AYNA.loading = false; AYNA.stats = null; AYNA.last = null; AYNA.screenKey = ''; AYNA.cfg = null; AYNA.win = null; AYNA.critKey = ''; AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.pageCache.clear(); AYNA.distinct.clear(); aynaSetStatus(''); aynaProgress(0); aynaPager(); }
+  function aynaCancel() { AYNA.seq++; AYNA.cacheGen++; AYNA.loading = false; AYNA.stats = null; AYNA.last = null; AYNA.screenKey = ''; AYNA.cfg = null; AYNA.win = null; AYNA.critKey = ''; AYNA.criteria = { where: null, text: '', order_by: '' }; AYNA.pageCache.clear(); AYNA.distinct.clear(); aynaLiveStop(); aynaSetStatus(''); aynaProgress(0); aynaPager(); }   // AYNA-LIVE: no probes on Bubble rows
   // the screen id can land after the config and changes when the founder switches screens (observer → here)
   function aynaRescreen() {
     try {
@@ -5634,6 +5634,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function aynaScrolled() { try { const w = els && els.container ? els.container.querySelector('.wtHolder') : null; return !!(w && w.scrollTop > 0); } catch (e) { return false; } }
   function aynaSameRows(a, b) { try { if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false; for (let i = 0; i < a.length; i++) { if (a[i] !== b[i] && JSON.stringify(a[i]) !== JSON.stringify(b[i])) return false; } return true; } catch (e) { return false; } }
   function aynaPaint(rows, columns, first) {
+    AYNA.painted = rows;   // AYNA-LIVE: what the grid shows, compared with a refreshed answer
     const c = els && els.container;
     if (first || !c) { if (first) setTableData(rows, columns); else refreshTable(rows); aynaHookHot(); return; }
     try { c.style.transition = 'opacity .18s ease'; c.style.opacity = '0.72'; } catch (e) {}
@@ -5975,6 +5976,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           aynaSetStatus('window', AYNA.stats); aynaPager(); aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
           log('[AYNA] windowed', AYNA.stats);
           setTimeout(() => { if (seq === AYNA.seq && aynaWindowed()) aynaFetchPage(scr, 2).catch(() => {}); }, 300);
+          aynaLiveLoaded(true, page, seeded ? null : total);   // AYNA-LIVE (a filtered first page does not tell the screen's count)
           return;
         }
         if (pages === 1 && AYNA.win) { AYNA.win = null; aynaPager(); }   // mr17: the cached visit was windowed, the screen is small now → loaded whole
@@ -5992,6 +5994,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       aynaSetStatus('ready', AYNA.stats); aynaPager();
       aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
       log('[AYNA] loaded', AYNA.stats);
+      aynaLiveLoaded(false, rows, total);   // AYNA-LIVE
     } finally { if (seq === AYNA.seq) { AYNA.loading = false; aynaBannerRefresh(); } }   // mr21: the grid was painted while loading (banner held) → decide it now
   }
   // status line under the toolbar (small, non-blocking); the empty-state stays untouched
@@ -6015,8 +6018,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       else if (kind === 'sorting') el.textContent = 'Sorting…';
       else if (kind === 'waiting') el.textContent = 'Waiting for the screen id…';
       else if (kind === 'waking') el.textContent = 'The Gaia server is waking up · retrying (' + n(info.attempt) + '/' + n(info.max) + ')…';   // mr21
-      else if (kind === 'window') { const from = (info.page - 1) * info.size + 1, to = Math.min(info.total, info.page * info.size); el.textContent = (info.total ? 'Rows ' + n(from) + '–' + n(to) + ' of ' + n(info.total) : 'No rows') + ' · mirror' + (AYNA.criteria.where || AYNA.criteria.text ? ' · filtered' : '') + (AYNA.criteria.order_by ? ' · sorted by ' + AYNA.criteria.order_by : '') + (info.fresh === false ? ' (syncing)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms'; }
-      else if (kind === 'ready') el.textContent = n(info.total || 0) + ' rows · mirror' + (info.fresh === false ? ' (syncing, may be a minute old)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms';
+      else if (kind === 'window') { const from = (info.page - 1) * info.size + 1, to = Math.min(info.total, info.page * info.size); el.textContent = (info.total ? 'Rows ' + n(from) + '–' + n(to) + ' of ' + n(info.total) : 'No rows') + ' · mirror' + (AYNA.criteria.where || AYNA.criteria.text ? ' · filtered' : '') + (AYNA.criteria.order_by ? ' · sorted by ' + AYNA.criteria.order_by : '') + (info.fresh === false ? ' (syncing)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms' + aynaLiveTag(); }
+      else if (kind === 'ready') el.textContent = n(info.total || 0) + ' rows · mirror' + (info.fresh === false ? ' (syncing, may be a minute old)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms' + aynaLiveTag();
       else if (kind === 'error') {
         el.textContent = 'Mirror unavailable: ' + (info && info.message ? info.message : '') + (info && info.fallback ? ' (showing the ' + n(info.fallback) + ' rows already loaded)' : ' (no rows loaded)') + ' ';
         // mr21: one tap to ask again (the server has usually woken up by now)
@@ -6069,6 +6072,255 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       bar.style.opacity = pct > 0 && pct < 100 ? '0.9' : (pct >= 100 ? '0.5' : '0');
     } catch (e) {}
   }
+  /* AYNA-LIVE-BEGIN (12.10) */
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GAIA AYNA LIVE (12.10): rows written elsewhere show up without reloading the table or the page.
+  // Why: before the mirror (24.09) Bubble re-rendered its whole list into #bubble-table-config on every change, so the
+  // table followed the data by itself; a mirror screen was loaded once and never asked again (founder, 12.10: "new data
+  // does not load without refreshing the table or the page").
+  // How: a probe asks the mirror for the screen's signature, row count + newest _modified (mirror_screen limit 1, order
+  // _modified desc, system fields only: one call, one row). Only a changed signature fetches rows, and silently: the grid
+  // is refreshed in place (search, filters, sort, selection, scroll and the page in window mode stay; soft fade, never
+  // emptied, no "Loading rows"); a small screen is fetched whole, a windowed one only the page in view.
+  // When (every probe is one Bubble bridge call = workload units, so it is paced):
+  //   · every config.mirror_live seconds (default 30; false / "off" / 0 = off) while the tab is visible and the page was
+  //     used in the last 5 minutes; idle → every 5 minutes; hidden tab → never (coming back → one probe at once)
+  //   · after the viewer's own Bubble actions (New record, Edit, Save, Delete, Import, Start, wake the assistant): every 8 s
+  //     for at most 2 minutes, ending 10 s after the first change seen
+  //   · after Bubble calls reloadFromConfig() ("the data changed"): re-checks 4, 12 and 30 s after the reload (the first
+  //     page answers before the server's background table delta lands, mr16)
+  // Freshness: active probes ask the server for a table delta (fresh: true: Bubble UI writes reach the mirror within
+  // seconds and show at the next probe); idle probes read the mirror as it is (no Bubble Data API call; the mirror's own
+  // delta runs every 90 s). A probe waits while the viewer is mid-action (column menu, filter panel, modal, field popover,
+  // a press, typing); a failed probe backs off (x2 up to 5 min). Bubble rows (config.data) never probe: Bubble keeps them live.
+  // ═══════════════════════════════════════════════════════════════════════════
+  const AYNA_LIVE = { defMs: 30000, minMs: 5000, idleAfterMs: 5 * 60000, idleMs: 5 * 60000, backGapMs: 10000, boostMs: 8000, boostForMs: 120000, boostTailMs: 10000,
+                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], maxBackoffMs: 5 * 60000 };
+  AYNA.live = { timer: null, at: 0, base: null, dirty: null, busy: false, checks: 0, changes: 0, errors: 0, input: Date.now(), keyAt: 0, downAt: 0,
+                boostUntil: 0, queue: [], signalAt: 0, wantFresh: false, retrySoon: false, bound: false, last: '', changedAt: 0 };
+  AYNA.painted = null;   // the rows of the last aynaPaint (what the grid shows), compared with a refreshed answer
+  function aynaLiveMs() {
+    const c = AYNA.cfg; if (!c) return 0;
+    const v = c.mirror_live;
+    if (v === undefined || v === null || v === '' || v === true || v === 'true') return AYNA_LIVE.defMs;
+    if (v === false || v === 'false' || v === 'off') return 0;
+    const s = Number(v);
+    if (!isFinite(s)) return AYNA_LIVE.defMs;
+    return s > 0 ? Math.max(AYNA_LIVE.minMs, Math.round(s * 1000)) : 0;
+  }
+  function aynaLiveOn() { return !!(AYNA.live && AYNA.cfg && aynaAlive() && aynaLiveMs() > 0); }
+  function aynaLiveHidden() { try { return document.visibilityState === 'hidden'; } catch (e) { return false; } }
+  function aynaLiveIdle() { return Date.now() - AYNA.live.input > AYNA_LIVE.idleAfterMs; }
+  function aynaLiveTag() { try { return aynaLiveOn() ? ' · live' : ''; } catch (e) { return ''; } }
+  function aynaLiveTime(v) { const t = Date.parse(String(v || '')); return isFinite(t) ? t : 0; }
+  function aynaLiveMaxMod(rows) { let m = 0; for (let i = 0; i < rows.length; i++) { const t = aynaLiveTime(rows[i] && rows[i]._modified); if (t > m) m = t; } return m; }
+  function aynaLivePainted() { return Array.isArray(AYNA.painted) ? AYNA.painted : state.rawRows.map(r => { const o = Object.assign({}, r); delete o.__sourceIndex; return o; }); }
+  // the live repaint: same soft fade as aynaPaint, on timers instead of animation frames (a frame may never come in a
+  // throttled / headless page, and the rows must not wait for one: AYNA.painted already says they are on screen)
+  function aynaLivePaint(rows, columns) {
+    AYNA.painted = rows;
+    const c = els && els.container;
+    try { if (c) { c.style.transition = 'opacity .18s ease'; c.style.opacity = '0.72'; } } catch (e) {}
+    setTimeout(() => {
+      try { refreshTable(rows); aynaHookHot(); }
+      finally { setTimeout(() => { try { if (c) c.style.opacity = '1'; } catch (e) {} }, 30); }
+    }, 16);
+  }
+  // a non-mirror write / a cancelled mirror: no probes, nothing remembered
+  function aynaLiveStop() {
+    const L = AYNA.live; if (!L) return;
+    if (L.timer) { clearTimeout(L.timer); L.timer = null; }
+    L.base = null; L.dirty = null; L.queue = []; L.boostUntil = 0; L.wantFresh = false; L.retrySoon = false; AYNA.painted = null;
+  }
+  // (re)schedules the next probe: a queued re-check first, else the boost / active / idle cadence (x2 per failed probe)
+  function aynaLiveArm(ms, why) {
+    const L = AYNA.live; if (!L) return;
+    if (L.timer) { clearTimeout(L.timer); L.timer = null; }
+    if (!aynaLiveOn() || aynaLiveHidden()) return;   // hidden: coming back re-arms (visibilitychange / focus)
+    const now = Date.now(), w = why || 'timer';
+    let wait = (typeof ms === 'number') ? ms : (now < L.boostUntil ? AYNA_LIVE.boostMs : (aynaLiveIdle() ? Math.max(AYNA_LIVE.idleMs, aynaLiveMs()) : aynaLiveMs()));
+    if (typeof ms !== 'number' && L.errors) wait = Math.min(AYNA_LIVE.maxBackoffMs, wait * Math.pow(2, Math.min(L.errors, 4)));
+    if (L.queue.length) wait = Math.min(wait, L.queue[0] - now);
+    L.timer = setTimeout(() => { L.timer = null; aynaLiveTick(w); }, Math.max(250, wait));
+  }
+  // the viewer is in the middle of something a repaint would disturb → the probe waits a few seconds
+  function aynaLiveUserBusy() {
+    try {
+      const L = AYNA.live, now = Date.now();
+      if (state._mounting || state.fieldPop || state.filterDraft || state.ddModalDraft) return true;
+      if (state.pendingFields && state.pendingFields.size) return true;   // mr18: a field write in flight
+      if (state.activeHeaderColumn !== null && state.activeHeaderColumn !== undefined) return true;   // a column menu is open
+      if (L.downAt && now - L.downAt < 10000) return true;   // a press / drag (selection, column move, resize)
+      const ae = document.activeElement, wr = els && els.wrapper;
+      if (ae && wr && wr.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && now - L.keyAt < 2500) return true;   // typing in the table's boxes
+      if (aynaWindowed() && els.search && els.search.value.trim().length === 1) return true;   // one character is "not a search yet": applySearch would not remount
+    } catch (e) {}
+    return false;
+  }
+  // the screen's signature: row count + the newest _modified (and its row id, for window mode's first look)
+  async function aynaLiveProbe(scr, fresh) {
+    const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, fresh: !!fresh, shape: 'columnar', fields: ['_id'], query: { limit: 1, offset: 0, order_by: '_modified desc' } }, null, { timeoutMs: AYNA_LIVE.timeoutMs });
+    if (!r.ok || !aynaIsPage(r.data)) return null;
+    const d = r.data, top = aynaRowsOf(d)[0] || null;
+    return { total: (typeof d.total === 'number') ? d.total : (top ? 1 : 0), mod: top ? aynaLiveTime(top._modified) : 0, id: top ? String(top._id || '') : '' };
+  }
+  // window mode before the first probe (the page alone does not tell the screen's newest _modified): the newest row is on
+  // this page with another _modified → it changed
+  function aynaLiveTopMoved(p) {
+    if (!p.id) return false;
+    const rows = aynaLivePainted();
+    for (let i = 0; i < rows.length; i++) { const r = rows[i]; if (r && String(r._id || '') === p.id) return aynaLiveTime(r._modified) !== p.mod; }
+    return false;
+  }
+  // a small screen: all its rows again (same pages as aynaLoad), repainted in place only when they differ
+  async function aynaLiveRefreshFull(seq0, scr) {
+    const t0 = Date.now(), cfg = AYNA.cfg;
+    let rows = [], offset = 0, total = 0, d = null;
+    while (offset < AYNA.maxRows) {
+      const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: offset === 0 ? AYNA.windowSize : AYNA.pageSize, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined }, null, { timeoutMs: AYNA.timeoutMs });
+      if (seq0 !== AYNA.seq || !aynaAlive() || AYNA.cfg !== cfg) return { gone: true };
+      if (!r.ok || !aynaIsPage(r.data)) return { error: true };
+      d = r.data;
+      const page = aynaRowsOf(d);
+      dtUserIngestMirror(d);   // GX-USERS: names travel with the rows
+      rows = rows.concat(page); offset += page.length;
+      total = (typeof d.total === 'number') ? d.total : rows.length;
+      if (total > AYNA.fullLoadMax) return { grew: true };   // it became a big screen → the normal load decides (window mode)
+      if (!page.length || offset >= total) break;
+    }
+    const changed = !aynaSameRows(aynaLivePainted(), rows);
+    if (changed) aynaLivePaint(rows, cfg.columns);
+    AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now() });
+    if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }
+    AYNA.stats = Object.assign({}, AYNA.stats, { rows: rows.length, total: total, ms: Date.now() - t0, fresh: (d && d.mirror) ? d.mirror.fresh : AYNA.stats.fresh, cached: false });
+    aynaSetStatus('ready', AYNA.stats);
+    return { changed: changed, rows: rows, total: total };
+  }
+  // a windowed screen: the page in view again with the current criteria; every cached page is dropped (it may be old)
+  async function aynaLiveRefreshWindow(seq0, scr) {
+    const t0 = Date.now(), cfg = AYNA.cfg, page = AYNA.win.page, size = AYNA.win.size, crit = AYNA.critKey;
+    const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined, query: aynaQueryFor(page) }, null, { timeoutMs: AYNA.timeoutMs });
+    if (seq0 !== AYNA.seq || !aynaAlive() || AYNA.cfg !== cfg || !aynaWindowed() || AYNA.win.page !== page || AYNA.win.size !== size || AYNA.critKey !== crit) return { gone: true };
+    if (!r.ok || !aynaIsPage(r.data)) return { error: true };
+    const d = r.data, rows = aynaRowsOf(d);
+    dtUserIngestMirror(d);
+    const total = (typeof d.total === 'number') ? d.total : rows.length;
+    AYNA.cacheGen++; AYNA.pageCache.clear(); AYNA.distinct.clear();
+    AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + size + '|' + page, { data: d, at: Date.now() });
+    AYNA.win.total = total;
+    if (page > aynaPages()) { AYNA.win.page = aynaPages(); aynaRequery(); return { changed: true, total: total }; }   // rows went away: the last page that still exists
+    const changed = !aynaSameRows(aynaLivePainted(), rows);
+    if (changed) aynaLivePaint(rows, cfg.columns);
+    if (page === 1 && !AYNA.criteria.where && !AYNA.criteria.text && !AYNA.criteria.order_by) AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now(), windowed: true, total: total });
+    AYNA.stats = Object.assign({}, AYNA.stats, { rows: rows.length, total: total, page: page, pages: aynaPages(), size: size, ms: Date.now() - t0, fresh: d.mirror ? d.mirror.fresh : AYNA.stats.fresh, cached: false });
+    aynaSetStatus('window', AYNA.stats); aynaPager();
+    if (page < aynaPages()) setTimeout(() => { if (seq0 === AYNA.seq && aynaWindowed()) aynaFetchPage(scr, page + 1).catch(() => {}); }, 300);
+    return { changed: changed, total: total };
+  }
+  async function aynaLiveTick(why) {
+    const L = AYNA.live;
+    if (!L || !aynaLiveOn() || aynaLiveHidden()) return;
+    const now = Date.now();
+    let due = false;
+    while (L.queue.length && L.queue[0] <= now + 50) { L.queue.shift(); due = true; }
+    if (due || why !== 'timer' || now < L.boostUntil || !aynaLiveIdle()) L.wantFresh = true;
+    if (AYNA.last || !AYNA.stats || !AYNA.screenKey) { aynaLiveArm(); return; }   // no healthy load to compare with (an error keeps its "Try again")
+    if (L.busy || AYNA.loading || aynaLiveUserBusy()) { aynaLiveArm(AYNA_LIVE.retryMs, why); return; }
+    const seq0 = AYNA.seq, key0 = AYNA.screenKey, cfg0 = AYNA.cfg, scr = aynaScreenOf(cfg0);
+    if (scr.key !== key0) { aynaLiveArm(); return; }   // the screen id moved: aynaRescreen loads the new screen
+    const fresh = L.wantFresh; L.wantFresh = false;
+    L.busy = true; L.at = now; L.last = why + (fresh ? ' · fresh' : '');
+    try {
+      let p = null;
+      if (L.dirty && L.dirty.key === key0) { p = L.dirty.p; L.dirty = null; }   // a change seen earlier, held while the viewer was busy
+      else {
+        L.checks++;
+        p = await aynaLiveProbe(scr, fresh);
+        if (seq0 !== AYNA.seq || key0 !== AYNA.screenKey || cfg0 !== AYNA.cfg || !aynaAlive()) return;   // a newer load / page / search took over
+        if (!p) { L.errors++; return; }
+        L.errors = 0;
+        const b = (L.base && L.base.key === key0) ? L.base : null;
+        const moved = !!b && ((b.total !== null && p.total !== b.total) || (b.mod === null ? aynaLiveTopMoved(p) : p.mod !== b.mod));
+        if (!moved) { L.base = { key: key0, total: p.total, mod: p.mod }; return; }
+      }
+      if (aynaLiveUserBusy()) { L.dirty = { key: key0, p: p }; L.retrySoon = true; return; }   // the rows wait for the viewer (no second probe)
+      const res = aynaWindowed() ? await aynaLiveRefreshWindow(seq0, scr) : await aynaLiveRefreshFull(seq0, scr);
+      if (res.gone) return;
+      if (res.error) { L.errors++; L.dirty = { key: key0, p: p }; return; }
+      if (res.grew) { aynaReloadPatched(true); return; }
+      L.changes++; L.changedAt = Date.now();
+      L.base = { key: key0, total: res.rows ? res.total : p.total, mod: res.rows ? aynaLiveMaxMod(res.rows) : p.mod };
+      if (Date.now() < L.boostUntil) L.boostUntil = Math.min(L.boostUntil, Date.now() + AYNA_LIVE.boostTailMs);   // the write landed: the boost ends shortly
+      log('[AYNA] live ' + why + ': ' + (res.changed ? 'rows updated' : 'same rows') + ' (' + p.total + ')');
+    } catch (e) {
+      L.errors++;
+    } finally {
+      L.busy = false;
+      const soon = L.retrySoon; L.retrySoon = false;
+      aynaLiveArm(soon ? AYNA_LIVE.retryMs : undefined, soon ? why : undefined);
+    }
+  }
+  // a load finished (aynaLoad: the whole small screen, or page 1 of a windowed one): the signature it painted, the
+  // re-checks it owes (Bubble's "the data changed"), the timer. total null = unknown (a filtered first page)
+  function aynaLiveLoaded(windowed, rows, total) {
+    const L = AYNA.live; if (!L) return;
+    aynaLiveBind();
+    L.dirty = null; L.errors = 0;
+    L.base = { key: AYNA.screenKey, total: (typeof total === 'number') ? total : null, mod: windowed ? null : aynaLiveMaxMod(rows || []) };
+    const now = Date.now();
+    L.queue = L.queue.filter(t => t > now);
+    if (L.signalAt && now - L.signalAt < 60000) { L.signalAt = 0; AYNA_LIVE.signalAfterMs.forEach(ms => L.queue.push(now + ms)); L.queue.sort((a, b) => a - b); }
+    aynaLiveArm();
+  }
+  // Bubble's reloadFromConfig() = "the data changed": the reload's answer may not hold the write yet → re-checks follow it
+  function aynaLiveSignal() { if (AYNA.live) AYNA.live.signalAt = Date.now(); }
+  // the viewer started a Bubble write from the table (or woke the assistant): probe every 8 s until the change shows
+  function aynaLiveBoost(why) {
+    try {
+      const L = AYNA.live; if (!L || !aynaLiveOn()) return;
+      L.boostUntil = Date.now() + AYNA_LIVE.boostForMs; L.input = Date.now();
+      if (!L.busy) aynaLiveArm(AYNA_LIVE.boostMs, why || 'boost');
+    } catch (e) {}
+  }
+  // visibility / focus / input: one set of document listeners per page (Bubble re-renders the element); the newest table
+  // instance answers through window.__gxLiveDoc, a stale one stays quiet
+  function aynaLiveBind() {
+    const L = AYNA.live; if (!L || L.bound) return;
+    L.bound = true;
+    window.__gxLiveDoc = {
+      vis: function () {
+        if (!aynaAlive()) return;
+        if (aynaLiveHidden()) { if (L.timer) { clearTimeout(L.timer); L.timer = null; } return; }
+        L.input = Date.now();
+        if (Date.now() - L.at > AYNA_LIVE.backGapMs) aynaLiveArm(400, 'back');
+        else if (!L.timer && !L.busy) aynaLiveArm();
+      },
+      input: function (kind) {
+        if (!aynaAlive()) return;
+        const now = Date.now(), wasIdle = now - L.input > AYNA_LIVE.idleAfterMs;
+        L.input = now;
+        if (kind === 'key') L.keyAt = now;
+        else if (kind === 'down') L.downAt = now;
+        else if (kind === 'up') L.downAt = 0;
+        if (wasIdle && !L.busy && now - L.at > aynaLiveMs()) aynaLiveArm(400, 'back');   // back from idle on a view older than one period
+      }
+    };
+    if (window.__gxLiveDocBound) return;
+    window.__gxLiveDocBound = true;
+    const call = (fn, arg) => { try { const h = window.__gxLiveDoc; if (h && h[fn]) h[fn](arg); } catch (e) {} };
+    const opt = { capture: true, passive: true };
+    let moved = 0;
+    document.addEventListener('visibilitychange', () => call('vis'));
+    window.addEventListener('focus', () => call('vis'));
+    document.addEventListener('keydown', () => call('input', 'key'), true);
+    document.addEventListener('pointerdown', () => call('input', 'down'), opt);
+    document.addEventListener('pointerup', () => call('input', 'up'), opt);
+    document.addEventListener('pointercancel', () => call('input', 'up'), opt);
+    document.addEventListener('wheel', () => call('input', 'wheel'), opt);
+    document.addEventListener('touchstart', () => call('input', 'touch'), opt);
+    document.addEventListener('mousemove', () => { const n = Date.now(); if (n - moved > 5000) { moved = n; call('input', 'move'); } }, opt);
+  }
+  /* AYNA-LIVE-END */
   window.gaiaTableMirror = {
     // mr18: both re-read the page config WITH this page's own confirmed field changes (applyServerPatch)
     reload: function () { return aynaReloadPatched(false); },
@@ -6082,6 +6334,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         cacheGen: AYNA.cacheGen, fields: AYNA.fields.slice(), critKey: AYNA.critKey, possible: fieldOpsPossible() };
     },
     status: function () { return { loading: AYNA.loading, last: AYNA.last, stats: AYNA.stats, cached: AYNA.cache.size, windowed: aynaWindowed(), criteria: AYNA.criteria, page: AYNA.win ? AYNA.win.page : null }; },
+    // AYNA-LIVE (12.10): read-only status + a probe now / a boost (harness, console)
+    live: {
+      status: function () { const L = AYNA.live, now = Date.now(); return { on: aynaLiveOn(), everyMs: aynaLiveMs(), hidden: aynaLiveHidden(), idle: aynaLiveIdle(), busy: L.busy, armed: !!L.timer, checks: L.checks, changes: L.changes, errors: L.errors, base: L.base ? { total: L.base.total, mod: L.base.mod } : null, dirty: !!L.dirty, queue: L.queue.map(t => t - now), boostMs: Math.max(0, L.boostUntil - now), last: L.last }; },
+      check: function () { aynaLiveArm(0, 'manual'); return true; },
+      boost: function () { aynaLiveBoost('manual'); return true; }
+    },
     mode: function () { const s = document.getElementById('bubble-table-config'); try { return aynaMode(parseBubbleConfig((s && s.textContent) || '{}')); } catch (e) { return false; } },
     page: function (n) { aynaGoPage(n); }, pageSize: function (s) { aynaSetPageSize(s); },
     search: function (term) { try { if (els && els.search) els.search.value = String(term || ''); } catch (e) {} return aynaCriteriaChanged('search', term); },   // the box is the source of truth (a re-mount re-reads it)
@@ -6823,7 +7081,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   // Bubble'dan çağrılır: #bubble-table-config elementini yeniden okuyup tabloyu günceller.
   // Veri değiştiğinde (kayıt ekleme/silme) Bubble workflow'undan bu fonksiyonu çağırın.
-  function reloadFromConfig() { reloadConfigCore(false); }
+  function reloadFromConfig() { aynaLiveSignal(); reloadConfigCore(false); }   // AYNA-LIVE: re-checks follow the reload
   // echo = the observer saw the config TEXT change (Bubble re-rendered it); a direct reloadFromConfig() call from a Bubble
   // workflow ("the data changed") always reloads
   function reloadConfigCore(echo) {
@@ -7355,6 +7613,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     warnIfSelectionWithoutIds(ids);
     if (typeof window.bubble_fn_start === 'function') {
       window.bubble_fn_start(ids);
+      aynaLiveBoost('start');   // AYNA-LIVE
     }
     return ids;
   }
@@ -7364,6 +7623,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     warnIfSelectionWithoutIds(ids);
     if (typeof window.bubble_fn_edit === 'function') {
       window.bubble_fn_edit(ids);
+      aynaLiveBoost('edit');   // AYNA-LIVE
     }
     return ids;
   }
@@ -7372,6 +7632,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const ids = getSelectedUniqueIds();
     if (typeof window.bubble_fn_save === 'function') {
       window.bubble_fn_save(ids);
+      aynaLiveBoost('save');   // AYNA-LIVE
     }
     return ids;
   }
@@ -7382,6 +7643,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     publishSelectedUniqueIds();
     if (typeof window.bubble_fn_delete === 'function') {
       window.bubble_fn_delete(ids);
+      aynaLiveBoost('delete');   // AYNA-LIVE
     }
     return ids;
   }
@@ -7389,12 +7651,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function create() {
     if (typeof window.bubble_fn_create === 'function') {
       window.bubble_fn_create();
+      aynaLiveBoost('create');   // AYNA-LIVE
     }
   }
 
   function importData() {
     if (typeof window.bubble_fn_import === 'function') {
       window.bubble_fn_import();
+      aynaLiveBoost('import');   // AYNA-LIVE
     }
   }
 
@@ -7948,6 +8212,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (w.resetTimer) clearTimeout(w.resetTimer);
     w.resetTimer = setTimeout(() => wakeResult(true, 'No confirmation yet. Check the run log.'), 45000);
     showWakeToast('Asking ' + agentDisplayName() + ' to run…');
+    aynaLiveBoost('wake');   // AYNA-LIVE: the assistant's writes reach the mirror within seconds
 
     // Sonuç callback'i (her köprü yolunda ortak) — onTriggerResponse 'wake_agent' bunu çağırır
     window._wakeAgentCallback = function (res) {
@@ -8014,6 +8279,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     w.waking = false;
     updateWakeButtonUI();
     if (message) showWakeToast(message, success === false ? 'error' : 'success');
+    if (success !== false) aynaLiveBoost('wake-result');   // AYNA-LIVE
   }
 
   // Süreçte asistan yoksa: GAD/builder'ı aç (öncelik: sayfadaki Architect; sonra Bubble fn).
