@@ -5905,7 +5905,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     AYNA.fullLoadMax = Math.max(0, Number(config.mirror_full_max)) || 600; AYNA.windowSize = Math.max(50, Math.min(2000, Number(config.mirror_page) || 200));
     aynaPager();
     const t0 = Date.now();
-    let rows = [], offset = 0, total = null, pages = 0, fresh = null, table = null, preview = false, painted = false, fromCache = false, lastPaint = 0, paintedRows = -1;
+    let rows = [], offset = 0, total = null, pages = 0, fresh = null, table = null, preview = false, painted = false, fromCache = false, lastPaint = 0, paintedRows = -1, freshS;   // AYNA-LIVE: undefined = the answer said nothing (an older server)
     try {
       if (!scr.any) {   // wait for the screen id: config screen_id / list_id / stage_id, #bubble-options, plugin globals
         setTableData([], columns);
@@ -5960,7 +5960,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         pages++;
         rows = rows.concat(page);
         total = (typeof d.total === 'number') ? d.total : rows.length;
-        if (d.mirror) { fresh = d.mirror.fresh; preview = !!d.mirror.preview; }
+        if (d.mirror) { fresh = d.mirror.fresh; preview = !!d.mirror.preview; if (pages === 1 && d.mirror.freshness_s !== undefined) freshS = d.mirror.freshness_s; }   // AYNA-LIVE: the first answer says whether the server started a table delta
         if (d.table) table = d.table;
         if (d.screen && typeof d.screen === 'object') AYNA.srvScreen = { key: AYNA.screenKey, screen: d.screen };   // GX-PEOPLE (07.10): the screen's stage / list scope
         offset += page.length;
@@ -5976,7 +5976,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           aynaSetStatus('window', AYNA.stats); aynaPager(); aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
           log('[AYNA] windowed', AYNA.stats);
           setTimeout(() => { if (seq === AYNA.seq && aynaWindowed()) aynaFetchPage(scr, 2).catch(() => {}); }, 300);
-          aynaLiveLoaded(true, page, seeded ? null : total);   // AYNA-LIVE (a filtered first page does not tell the screen's count)
+          aynaLiveLoaded(true, page, seeded ? null : total, freshS);   // AYNA-LIVE (a filtered first page does not tell the screen's count)
           return;
         }
         if (pages === 1 && AYNA.win) { AYNA.win = null; aynaPager(); }   // mr17: the cached visit was windowed, the screen is small now → loaded whole
@@ -5994,7 +5994,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       aynaSetStatus('ready', AYNA.stats); aynaPager();
       aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
       log('[AYNA] loaded', AYNA.stats);
-      aynaLiveLoaded(false, rows, total);   // AYNA-LIVE
+      aynaLiveLoaded(false, rows, total, freshS);   // AYNA-LIVE
     } finally { if (seq === AYNA.seq) { AYNA.loading = false; aynaBannerRefresh(); } }   // mr21: the grid was painted while loading (banner held) → decide it now
   }
   // status line under the toolbar (small, non-blocking); the empty-state stays untouched
@@ -6095,7 +6095,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // a press, typing); a failed probe backs off (x2 up to 5 min). Bubble rows (config.data) never probe: Bubble keeps them live.
   // ═══════════════════════════════════════════════════════════════════════════
   const AYNA_LIVE = { defMs: 30000, minMs: 5000, idleAfterMs: 5 * 60000, idleMs: 5 * 60000, backGapMs: 10000, boostMs: 8000, boostForMs: 120000, boostTailMs: 10000,
-                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], maxBackoffMs: 5 * 60000 };
+                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000 };
   AYNA.live = { timer: null, at: 0, base: null, dirty: null, busy: false, checks: 0, changes: 0, errors: 0, input: Date.now(), keyAt: 0, downAt: 0,
                 boostUntil: 0, queue: [], signalAt: 0, wantFresh: false, retrySoon: false, bound: false, last: '', changedAt: 0 };
   AYNA.painted = null;   // the rows of the last aynaPaint (what the grid shows), compared with a refreshed answer
@@ -6261,15 +6261,20 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
   }
   // a load finished (aynaLoad: the whole small screen, or page 1 of a windowed one): the signature it painted, the
-  // re-checks it owes (Bubble's "the data changed"), the timer. total null = unknown (a filtered first page)
-  function aynaLiveLoaded(windowed, rows, total) {
+  // re-checks it owes (Bubble's "the data changed"), the timer. total null = unknown (a filtered first page).
+  // freshS = the first answer's mirror.freshness_s: over 20 s (or unknown) the server started a table delta in the background
+  // (mr16) that this answer could not wait for → one re-check 4 s later. Case (founder 12.10): a record created on the YeniKayıt
+  // screen, back on the list 15 s later → the list said 0 until the next period; now it shows within ~4 s.
+  function aynaLiveLoaded(windowed, rows, total, freshS) {
     const L = AYNA.live; if (!L) return;
     aynaLiveBind();
     L.dirty = null; L.errors = 0;
     L.base = { key: AYNA.screenKey, total: (typeof total === 'number') ? total : null, mod: windowed ? null : aynaLiveMaxMod(rows || []) };
     const now = Date.now();
     L.queue = L.queue.filter(t => t > now);
-    if (L.signalAt && now - L.signalAt < 60000) { L.signalAt = 0; AYNA_LIVE.signalAfterMs.forEach(ms => L.queue.push(now + ms)); L.queue.sort((a, b) => a - b); }
+    if (L.signalAt && now - L.signalAt < 60000) { L.signalAt = 0; AYNA_LIVE.signalAfterMs.forEach(ms => L.queue.push(now + ms)); }
+    else if (freshS === null || (typeof freshS === 'number' && freshS > 20)) L.queue.push(now + AYNA_LIVE.afterLoadMs);   // null = no delta yet (cold); absent = say nothing
+    L.queue.sort((a, b) => a - b);
     aynaLiveArm();
   }
   // Bubble's reloadFromConfig() = "the data changed": the reload's answer may not hold the write yet → re-checks follow it
