@@ -3789,10 +3789,20 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   const dtPaket = new Map();   // row id → package (memory only, never in the DOM or a log)
   let _dtFillGate = null;
   function dtIsPaket(v) { return typeof v === 'string' && v.length > 6 && v.charCodeAt(0) === 111 && /^octo[12]\./.test(v); }
-  function dtMaskPaket(v) { return dtIsPaket(v) ? DT_PAKET_BADGE : v; }
+  // GX-CIHAZ (12.10): a "Cihaz Anahtarları" value (browser public key lines "octo-cihaz1.…") shows as a count, never the lines
+  function dtCihazBadge(v) {
+    if (typeof v !== 'string' || v.indexOf('octo-cihaz1.') < 0) return null;
+    const n = v.split(/\r?\n/).filter(s => /^\s*octo-cihaz1\./.test(s)).length;
+    return n ? (n + (n === 1 ? ' browser' : ' browsers')) : null;
+  }
+  function dtMaskPaket(v) { if (dtIsPaket(v)) return DT_PAKET_BADGE; const c = dtCihazBadge(v); return c === null ? v : c; }
   function dtPaketIngest(row) {   // a row's own copy: masked in place, the package kept by row id
     let found = '';
-    for (const k in row) { if (k !== '__sourceIndex' && dtIsPaket(row[k])) { if (!found) found = row[k]; row[k] = DT_PAKET_BADGE; } }
+    for (const k in row) {
+      if (k === '__sourceIndex') continue;
+      if (dtIsPaket(row[k])) { if (!found) found = row[k]; row[k] = DT_PAKET_BADGE; continue; }
+      const c = dtCihazBadge(row[k]); if (c !== null) row[k] = c;   // GX-CIHAZ
+    }
     if (!found) return;
     const id = rowIdOf(row);
     if (!id) return;
@@ -3813,21 +3823,68 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return !!(m && (has(m.fields) || has(m.hidden)));
     } catch (e) { return false; }
   }
-  // 'ready' (a package, or Durum = Claim Hazır) · 'check' (nothing on the row says; the table has a Claim field) · '' (no action)
+  // 'ready' (a package, or Durum = Claim Hazır) · 'register' (Durum = Cihaz Bekleniyor: no browser of this expert is listed
+  // yet, GX-CIHAZ) · 'check' (nothing on the row says; the table has a Claim field) · '' (no action)
   function dtFillState(row) {
     if (!row) return '';
     const id = rowIdOf(row);
     if (id && dtPaket.has(id)) return 'ready';
     const d = dtRowDurum(row);
-    if (d !== null) return dtNormKey(d) === 'claimhazir' ? 'ready' : '';
+    if (d !== null) { const k = dtNormKey(d); return k === 'claimhazir' ? 'ready' : (k === 'cihazbekleniyor' ? 'register' : ''); }
     return dtTableHasClaimField() ? 'check' : '';
   }
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
   function dtFillButtonHtml(st) {
     if (!st) return '';
-    const on = dtBridgeInstalled();
-    const tip = on ? 'Fill on portal' : 'Install the Gaia Bridge extension';
-    return `<button class="dt-row-fill${on ? '' : ' is-off'}" type="button" aria-label="${tip}" title="${tip}" aria-disabled="${on ? 'false' : 'true'}">Fill</button>`;
+    const on = dtBridgeInstalled(), reg = st === 'register';
+    const tip = on ? (reg ? 'Register this browser' : 'Fill on portal') : 'Install the Gaia Bridge extension';
+    return `<button class="dt-row-fill${reg ? ' dt-row-reg' : ''}${on ? '' : ' is-off'}" type="button" aria-label="${tip}" title="${tip}" aria-disabled="${on ? 'false' : 'true'}">${reg ? 'Register' : 'Fill'}</button>`;
+  }
+  // GX-CIHAZ (12.10): "Register this browser". The extension makes / keeps this browser's key pair and hands only the public line
+  // (window event "gaiaBridgeCihaz" {requestId} → "gaiaBridgeCihazResult" {requestId, ok, kid, satir, ad, error?}); the server op
+  // mirror_cihaz_kaydet appends it to the caller's OWN expert row (it picks the row; nothing here names one). The line never
+  // reaches the DOM or a log.
+  function dtCihazAsk() {
+    return new Promise(resolve => {
+      const requestId = 'cihaz_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+      let timer = null;
+      const onResult = ev => {
+        let d = null;
+        try { d = typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail; } catch (e) { d = null; }
+        if (!d || d.requestId !== requestId) return;
+        window.removeEventListener('gaiaBridgeCihazResult', onResult);
+        clearTimeout(timer);
+        resolve(d);
+      };
+      window.addEventListener('gaiaBridgeCihazResult', onResult);
+      timer = setTimeout(() => { window.removeEventListener('gaiaBridgeCihazResult', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 20000);
+      window.dispatchEvent(new CustomEvent('gaiaBridgeCihaz', { detail: JSON.stringify({ requestId: requestId }) }));
+    });
+  }
+  async function dtRegisterBrowser(btn) {
+    if (!dtBridgeInstalled()) { showWakeToast('Install the Gaia Bridge extension', 'error'); return; }
+    if (btn && btn.classList.contains('is-busy')) return;
+    if (btn) { btn.classList.add('is-busy'); btn.setAttribute('aria-busy', 'true'); }
+    try {
+      const k = await dtCihazAsk();
+      if (!k || !k.ok || typeof k.satir !== 'string' || !k.satir) { showWakeToast((k && k.error) ? String(k.error) : 'The extension could not prepare this browser.', 'error'); return; }
+      const payload = { satir: k.satir }; if (k.kid) payload.kid = String(k.kid);
+      const r = await aynaBridge('mirror_cihaz_kaydet', payload, null, { timeoutMs: 30000 });
+      if (r && r.ok && r.data && r.data.operation === 'exists') { showWakeToast('This browser is already registered', 'success'); return; }
+      if (r && r.ok) { showWakeToast('Browser registered' + (k.ad ? ' (' + String(k.ad) + ')' : '') + '. Your claim will be ready in about 5 minutes.', 'success'); return; }   // the 30 s live check shows Claim Hazır when the line re-encrypts
+      showWakeToast((r && r.message) ? String(r.message) : 'Could not register this browser. Try again.', 'error');
+    } finally {
+      if (btn) { btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy'); }
+    }
+  }
+  // a Fill answer that says the claim is not encrypted for this browser → offer to register it
+  function dtFillNeedsRegister(res) { const e = String((res && res.error) || ''); return /şifrelenmemiş|sifrelenmemis|not encrypted for this browser/i.test(e); }
+  function dtOfferRegister(res) {
+    const modal = openWakeModal('Register this browser?', '<p class="dt-fill-q"></p>', [
+      { label: 'Cancel', onClick: () => closeWakeModal() },
+      { label: 'Register this browser', primary: true, onClick: () => { closeWakeModal(); dtRegisterBrowser(null); } }
+    ]);
+    try { const q = modal && modal.querySelector('.dt-fill-q'); if (q) q.textContent = 'This claim is not encrypted for this browser yet. Register it, and the claim will be ready in about 5 minutes.' + (res && res.error ? ' (' + String(res.error) + ')' : ''); } catch (e) {}
   }
   // the gate can turn on after the first paint (the screen's field list arrives ~1.5 s later): repaint once when it changes
   function dtFillRefresh() {
@@ -3898,6 +3955,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         res = await dtFillSend(p.paket, true);
       }
       if (res && res.ok) showWakeToast('Ready: switch to the portal tab and press Fill this page' + (res.gaiaNotu ? '. ' + String(res.gaiaNotu) : ''), 'success');
+      else if (dtFillNeedsRegister(res)) dtOfferRegister(res);   // GX-CIHAZ: the package is not for this browser yet
       else showWakeToast((res && res.error) ? String(res.error) : 'The extension could not take this claim.', 'error');
     } finally {
       if (btn) { btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy'); }
@@ -4256,7 +4314,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (!coords || typeof coords.row !== 'number' || coords.row < 0) return;
         const p = state.hot.toPhysicalRow(coords.row), dr = state.displayRows[p];
         const raw = dr ? state.rawRows[dr.__sourceIndex] : null;
-        if (raw) dtFillOnPortal(raw, btn);
+        if (btn.classList.contains('dt-row-reg')) dtRegisterBrowser(btn);   // GX-CIHAZ: the server picks the caller's own expert row
+        else if (raw) dtFillOnPortal(raw, btn);
       } catch (e) {}
     }, true);
     // "Open record" düğmesi (satır sonu + satır başlığı): çift tıkla aynı yol
@@ -5819,10 +5878,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function aynaSameRows(a, b) { try { if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false; for (let i = 0; i < a.length; i++) { if (a[i] !== b[i] && JSON.stringify(a[i]) !== JSON.stringify(b[i])) return false; } return true; } catch (e) { return false; } }
   function aynaPaint(rows, columns, first) {
     AYNA.painted = rows;   // AYNA-LIVE: what the grid shows, compared with a refreshed answer
+    const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // AYNA-LIVE: a deferred paint never lands over a newer one
     const c = els && els.container;
     if (first || !c) { if (first) setTableData(rows, columns); else refreshTable(rows); aynaHookHot(); return; }
     try { c.style.transition = 'opacity .18s ease'; c.style.opacity = '0.72'; } catch (e) {}
-    requestAnimationFrame(() => { refreshTable(rows); aynaHookHot(); requestAnimationFrame(() => { try { c.style.opacity = '1'; } catch (e) {} }); });
+    requestAnimationFrame(() => {
+      if (gen !== AYNA.paintGen) { try { c.style.opacity = '1'; } catch (e) {} return; }   // a newer paint came first (its rows win)
+      refreshTable(rows); aynaHookHot(); requestAnimationFrame(() => { try { c.style.opacity = '1'; } catch (e) {} });
+    });
   }
   // ── window mode: the filter panel / column sort / search box → mirror query ──
   // a local calendar day ("YYYY-MM-DD…") → its two UTC instants; the mirror compares instants, and stored values are either
@@ -6303,9 +6366,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // throttled / headless page, and the rows must not wait for one: AYNA.painted already says they are on screen)
   function aynaLivePaint(rows, columns) {
     AYNA.painted = rows;
+    const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // shared with aynaPaint: the newest paint wins
     const c = els && els.container;
     try { if (c) { c.style.transition = 'opacity .18s ease'; c.style.opacity = '0.72'; } } catch (e) {}
     setTimeout(() => {
+      if (gen !== AYNA.paintGen) { try { if (c) c.style.opacity = '1'; } catch (e) {} return; }
       try { refreshTable(rows); aynaHookHot(); }
       finally { setTimeout(() => { try { if (c) c.style.opacity = '1'; } catch (e) {} }, 30); }
     }, 16);
