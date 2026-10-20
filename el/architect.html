@@ -302,39 +302,8 @@
   }
 ]</script>
 
-<!-- ═══ UX-1 CONCIERGE — anlık karşılama kabuğu (Sprint UX-A, 2026-07-03) ═══
-     Saf HTML+CSS: büyük boot script'inden BAĞIMSIZ boyanır (algılanan hız).
-     Hiçbir tıklamayı bloklamaz (pointer-events:none). Çözümleme JS'te:
-     _gaiaConciergeResolve — modül görünürse hızlı söner (chat'in kendi
-     karşılaması hikayeyi devralır), görünmezse "Your workspace is ready."
-     deyip söner. CSS emniyeti (JS hiç boot etmezse): 12sn'de "still loading"
-     satırı belirir, 26sn'de kabuk kendi kendine tamamen söner — takılamaz. -->
-<style id="gaia-concierge-css">
-  #gaia-concierge{position:fixed;inset:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;animation:gaiaConIn .45s ease .1s forwards,gaiaConOut 1s ease 26s forwards;}
-  #gaia-concierge.gaia-con-bye{transition:opacity .45s ease;opacity:0 !important;animation:none;}
-  .gaia-con-card{display:flex;align-items:flex-start;gap:12px;max-width:340px;margin:0 16px;padding:16px 18px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 16px 48px rgba(15,23,42,.16);font-family:Inter,system-ui,-apple-system,sans-serif;}
-  .gaia-con-av{width:34px;height:34px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;}
-  .gaia-con-av img{width:20px;height:20px;}
-  .gaia-con-title{font-size:13.5px;font-weight:700;color:#0f172a;line-height:1.35;}
-  #gaia-concierge-status{font-size:12.5px;color:#64748b;margin-top:3px;line-height:1.45;}
-  .gaia-con-dots{display:inline-flex;gap:3px;margin-left:2px;}
-  .gaia-con-dots i{width:4px;height:4px;border-radius:50%;background:#94a3b8;animation:gaiaConDot 1.2s infinite;}
-  .gaia-con-dots i:nth-child(2){animation-delay:.2s}.gaia-con-dots i:nth-child(3){animation-delay:.4s}
-  #gaia-concierge-slow{font-size:11.5px;color:#94a3b8;margin-top:6px;opacity:0;animation:gaiaConIn .4s ease 12s forwards;}
-  @keyframes gaiaConIn{to{opacity:1}}
-  @keyframes gaiaConOut{to{opacity:0}}
-  @keyframes gaiaConDot{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
-</style>
-<div id="gaia-concierge" aria-hidden="true">
-  <div class="gaia-con-card">
-    <span class="gaia-con-av"><img src="https://3eb5781fa49387b730714ea4e6de8465.cdn.bubble.io/f1742318156805x991050965988186500/gaia%20light.svg" alt=""/></span>
-    <div>
-      <div class="gaia-con-title">Hi — I'm your AI Architect.</div>
-      <div id="gaia-concierge-status">Getting your workspace ready<span class="gaia-con-dots"><i></i><i></i><i></i></span></div>
-      <div id="gaia-concierge-slow">Still loading — one moment.</div>
-    </div>
-  </div>
-</div>
+<!-- UX-1 CONCIERGE kaldirildi (kurucu 20.10.2026: acilista "Hi, I am your AI Architect" penceresi istenmiyor).
+     _gaiaConciergeResolve kabuk yokken no-op kalir. -->
 
 <style>
   /* GAIA Automation Drawer Global Styles */
