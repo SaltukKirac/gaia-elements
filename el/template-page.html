@@ -81,6 +81,40 @@
   .stitle{font-size:clamp(27px,3.8vw,38px);font-weight:700;letter-spacing:-.018em;text-align:center;margin-bottom:48px;line-height:1.14}
 
   /* how it works */
+  /* 20.10 AITHIA product page (prototype hybrid): Ask Aithia example, three packages, how it starts. --gx-* tokens,
+     one accent, ax- prefix so nothing leaks into the rest of the page. */
+  .ax-eyebrow{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+  .ax-tagline{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gx-primary,#6366f1)}
+  .ax-mark{display:inline-flex;align-items:flex-end;gap:3px;width:22px;height:22px;vertical-align:middle}
+  .ax-mark i{display:block;width:6px;border-radius:2px;background:var(--gx-primary,#6366f1)}
+  .ax-mark i:nth-child(1){height:9px;opacity:.55}.ax-mark i:nth-child(2){height:15px;opacity:.8}.ax-mark i:nth-child(3){height:22px}
+  .ax-ask{max-width:640px;margin:0 auto;background:#fff;border:1px solid var(--gx-line,#e2e8f0);border-radius:var(--gx-r-lg,16px);box-shadow:var(--gx-shadow-md);padding:20px 20px 16px;text-align:left}
+  .ax-ask-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;font-size:14px;font-weight:600;color:var(--gx-ink,#0f172a)}
+  .ax-ask-top span:last-child{font-size:12px;font-weight:600;color:var(--gx-ink-2,#475569)}
+  .ax-q{margin-left:auto;max-width:85%;width:fit-content;background:var(--gx-bg,#f8fafc);border:1px solid var(--gx-line-soft,#eef2f7);border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:15px;color:var(--gx-ink,#0f172a)}
+  .ax-a{margin-top:14px}
+  .ax-a-h{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--gx-ink,#0f172a)}
+  .ax-a-h .ax-mark{width:16px;height:16px;gap:2px}.ax-a-h .ax-mark i{width:4px}.ax-a-h .ax-mark i:nth-child(1){height:7px}.ax-a-h .ax-mark i:nth-child(2){height:11px}.ax-a-h .ax-mark i:nth-child(3){height:16px}
+  .ax-a p{margin:6px 0 10px;font-size:15px;line-height:1.5;color:var(--gx-ink,#0f172a)}
+  .ax-src{border:1px solid var(--gx-line,#e2e8f0);border-radius:var(--gx-r-md,10px);padding:10px 12px;font-size:13px;line-height:1.4}
+  .ax-src b{display:block;font-size:14px;color:var(--gx-ink,#0f172a)}.ax-src span{color:var(--gx-ink-2,#475569)}
+  .ax-ask-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--gx-ink-2,#475569)}
+  .ax-pill{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;background:var(--gx-primary,#6366f1);color:#fff;font-size:13px;font-weight:600}
+  .ax-pks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:980px;margin:0 auto}
+  .ax-pk{display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid var(--gx-line,#e2e8f0);border-radius:var(--gx-r-lg,16px);padding:22px 20px;text-align:left;min-width:0}
+  .ax-pk.is-rec{border:1.5px solid var(--gx-primary,#6366f1);box-shadow:var(--gx-shadow-md)}
+  .ax-pk-n{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:21px;font-weight:700;color:var(--gx-ink,#0f172a)}
+  .ax-pk-b{font-size:12px;font-weight:700;color:var(--gx-primary,#6366f1);border:1px solid var(--gx-primary,#6366f1);border-radius:999px;padding:1px 9px}
+  .ax-pk-d{font-size:16px;line-height:1.45;color:var(--gx-ink-2,#475569);min-height:46px}
+  .ax-pk ul{list-style:none;margin:4px 0 8px;padding:0;display:flex;flex-direction:column;gap:8px;flex:1 1 auto}
+  .ax-pk li{position:relative;padding-left:22px;font-size:15px;line-height:1.4;color:var(--gx-ink,#0f172a)}
+  .ax-pk li:before{content:"";position:absolute;left:2px;top:6px;width:10px;height:6px;border-left:2px solid var(--gx-primary,#6366f1);border-bottom:2px solid var(--gx-primary,#6366f1);transform:rotate(-45deg)}
+  .ax-pk .btn{width:100%;min-height:46px;justify-content:center}
+  .ax-pk .btn-ghost{background:#fff;color:var(--gx-primary,#6366f1);border:1px solid var(--gx-primary,#6366f1)}
+  .ax-pk .btn-ghost:hover{background:var(--gx-bg,#f8fafc);text-decoration:none}
+  .ax-pk-foot{max-width:640px;margin:22px auto 0;text-align:center;font-size:15px;color:var(--gx-ink-2,#475569)}
+  .ax-pk-foot b{color:var(--gx-ink,#0f172a)}
+  @media(max-width:860px){.ax-pks{grid-template-columns:1fr;max-width:460px}.ax-pk-d{min-height:0}}
   .steps{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
   .step{display:flex;gap:20px;align-items:flex-start}
   .step .num{flex-shrink:0;width:38px;height:38px;border-radius:50%;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center}
@@ -2942,7 +2976,9 @@ html #gxRail.gxr3 .gx3-burger{display:none}
     // 14.09 A3b: flagship eyebrow = badge only. "FLAGSHIP PRODUCT · General" told the visitor nothing; the
     // category VALUE is a founders' positioning call (Q1) and still feeds tags, facets and analytics.
     var eyebrow=fs
-      ? '<span class="fship-badge">'+L.flagshipTag+'</span>'
+      ? (/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||'')
+          ? '<span class="ax-eyebrow"><span class="ax-mark" aria-hidden="true"><i></i><i></i><i></i></span><span class="ax-tagline">The AI that remembers.</span></span>'
+          : '<span class="fship-badge">'+L.flagshipTag+'</span>')
       :esc(t.category||L.assistantFallback)+(t.is_featured?' · <span class="feat">'+L.featured+'</span>':'');
     var html=
       '<section class="hero"><div class="container">'
@@ -2954,9 +2990,48 @@ html #gxRail.gxr3 .gx3-burger{display:none}
       // same intent to setup; see_pricing matches a[href^="/pricing"] for that reason.
       // 20.10 (AITHIA-PAYWALL): the AITHIA mail cards (inbox-chief-of-staff*) price on /aithia, not the Gaia /pricing;
       // under /version-test the link stays under /version-test (a relative /pricing jumped to the live site).
-      + '<div class="cta-row"><button class="btn btn-primary" id="useBtn">'+ctaLabel+'</button><a class="btn-link" data-gx-pricing="1" href="'+(/^\/version-test(\/|$)/.test(location.pathname)?'/version-test':'')+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?'/aithia':'/pricing')+(fs&&_gxCurSlug?'?from='+encodeURIComponent(_gxCurSlug):'')+'">'+L.seePricing+'</a></div>'
+      + '<div class="cta-row"><button class="btn btn-primary" id="useBtn">'+ctaLabel+'</button><a class="btn-link" data-gx-pricing="1" href="'+(/^\/version-test(\/|$)/.test(location.pathname)?'/version-test':'')+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?'/aithia':'/pricing')+(fs&&_gxCurSlug?'?from='+encodeURIComponent(_gxCurSlug):'')+'"'+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?' data-ax-packages="1"':'')+'>'+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?'See the packages':L.seePricing)+'</a></div>'
       + (fs&&fs.act.headline?'<div class="meta"><span class="tag instant">'+esc(fs.act.headline)+'</span></div>':(tags?'<div class="meta">'+tags+'</div>':''))
       + '</div></section>';
+    // 20.10 AITHIA product page (the prototype's story in the page's tokens): Ask Aithia example, the three packages
+    // (each starts the same setup; the choice is remembered for the packages window), and how it starts. Copy is the
+    // AITHIA brief's fixed strings; no price is typed here (prices come from Paddle in the packages window).
+    var aithia=!!(fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''));
+    if(aithia){
+      var MK='<span class="ax-mark" aria-hidden="true"><i></i><i></i><i></i></span>';
+      html+='<section class="band"><div class="container">'
+        + '<h2 class="stitle">Ask Aithia about any thread</h2>'
+        + '<div class="ax-ask" aria-label="Example">'
+        +   '<div class="ax-ask-top"><span>Ask Aithia</span><span>Example</span></div>'
+        +   '<div class="ax-q">What happened to the offer we sent last week?</div>'
+        +   '<div class="ax-a"><div class="ax-a-h">'+MK+'Aithia found it.</div>'
+        +     '<p>The offer went out on Sep 18. No reply shows in this thread so far.</p>'
+        +     '<div class="ax-src"><b>Offer for the Review desk</b><span>desk@example.com, 6 days ago</span></div></div>'
+        +   '<div class="ax-ask-foot"><span class="ax-pill">Prepare draft</span><span>Draft only. Sending stays your click.</span></div>'
+        + '</div></div></section>';
+      var PK=[
+        {k:'focus',n:'Focus',d:'Know what needs your attention.',cta:'Start with Focus',f:['Sorts and labels what needs you','Ask Aithia across your mail','Short summaries of long threads','Replies from your company knowledge']},
+        {k:'compose',n:'Compose',d:'Your next reply, ready to review.',cta:'Choose Compose',rec:true,f:['Everything in Focus','Reply drafts in your tone','Edit tone and language','Drafts only, you send']},
+        {k:'coordinate',n:'Coordinate',d:'Keep every next step in view.',cta:'Choose Coordinate',f:['Everything in Compose','Tracks replies you are waiting for','Follow-up drafts on time','Tasks, calendar and CRM records']}
+      ];
+      html+='<section id="aithia-packages"><div class="container">'
+        + '<h2 class="stitle">Choose how much Aithia does</h2>'
+        + '<div class="ax-pks">'+PK.map(function(p){
+            return '<div class="ax-pk'+(p.rec?' is-rec':'')+'" data-plan="'+p.k+'">'
+              + '<div class="ax-pk-n">AITHIA '+p.n+(p.rec?'<span class="ax-pk-b">Recommended</span>':'')+'</div>'
+              + '<div class="ax-pk-d">'+p.d+'</div>'
+              + '<ul>'+p.f.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>'
+              + '<button type="button" class="btn '+(p.rec?'btn-primary':'btn-ghost')+' ax-pk-cta" data-plan="'+p.k+'">'+p.cta+'</button>'
+              + '</div>';
+          }).join('')+'</div>'
+        + '<p class="ax-pk-foot"><b>One subscription. No per-email or per-flow charges.</b><br>Try it on your own mail first. You choose the package before it starts working.</p>'
+        + '</div></section>';
+      html+='<section class="band"><div class="container"><h2 class="stitle">How it starts</h2><div class="steps">'
+        + ['Connect your mailbox: Gmail, Outlook or business email.','See it work on your own mail. Nothing is sent or changed.','Choose a package and start. Aithia prepares, you decide.']
+          .map(function(s,i){return '<div class="step"><div class="num">'+(i+1)+'</div><div class="stx">'+s+'</div></div>';}).join('')
+        + '</div></div></section>';
+      bi=1;   // the next section of the page starts white, then alternates again
+    }
     if(t.full_desc) html+='<section'+B()+'><div class="container narrow"><p class="lead'+(String(t.full_desc).length>340?' long':'')+'">'+esc(t.full_desc)+'</p></div></section>';
     // 14.09 G5-2: "Who this is for" as scenario cards, flagship only, right under the pitch and ABOVE
     // activation, so a small agency owner recognises themselves before being asked for anything. The
@@ -3058,6 +3133,17 @@ html #gxRail.gxr3 .gx3-burger{display:none}
       gxTrack('template_view',{template_name:t.name||'',template_slug:_slug,category:t.category||'',is_featured:!!t.is_featured,ready_to_use:!!(t.source_assistant_id||fs),flagship:!!fs});
     })();
     }
+    var axl=root.querySelector('a[data-ax-packages]');
+    if(axl)axl.addEventListener('click',function(e){var tg=document.getElementById('aithia-packages');if(!tg)return;e.preventDefault();try{tg.scrollIntoView({behavior:'smooth',block:'start'});}catch(_e){tg.scrollIntoView();}gxTrack('see_pricing',{surface:'aithia_hero'});});
+    // 20.10 AITHIA packages: each package starts the same setup; the choice rides to the packages window
+    Array.prototype.forEach.call(root.querySelectorAll('.ax-pk-cta'),function(b){
+      b.addEventListener('click',function(){
+        var plan=b.getAttribute('data-plan')||'compose';
+        try{sessionStorage.setItem('gx_aithia_plan',plan);localStorage.setItem('gx_aithia_plan',plan);}catch(e){}
+        gxTrack('use_template',{template_name:t.name||'',template_slug:t.Slug||t.slug||'',category:t.category||'',ready_to_use:true,flagship:true,cta:'aithia_package_'+plan});
+        fsGo(t,'aithia_package');
+      });
+    });
     document.getElementById('useBtn').onclick=function(){
       // analytics — the money event: intent to use this assistant. Mark as a Key Event in GA4.
       gxTrack('use_template',{template_name:t.name||'',template_slug:t.Slug||t.slug||'',category:t.category||'',ready_to_use:!!(t.source_assistant_id||fs),flagship:!!fs,cta:'hero'});

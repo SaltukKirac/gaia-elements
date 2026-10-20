@@ -484,6 +484,8 @@
 
   /* ---- state ---- */
   var S={plan:'compose',qty:1,period:'month',paddle:'idle',opening:false,pendingOpen:false,loaded:false,done:false,msg:null,force:null};
+  /* 20.10: the package chosen on the product page (template page AITHIA packages) is preselected */
+  try{var pre=sessionStorage.getItem('gx_aithia_plan')||localStorage.getItem('gx_aithia_plan');if(pre&&PLANS[pre])S.plan=pre;}catch(e){}
   /* cache, inflight and failed are keyed per plan|period|qty; a failed key is not requested again until Try again */
   var cache={},inflight={},failed={},inited=false,openTimer=null,pendTimer=null,pollTimer=null,failTimer=null;
 
