@@ -1,16 +1,16 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "dev",
-    "rev":  44,
-    "updated":  "2026-10-20T10:54:57Z",
+    "rev":  45,
+    "updated":  "2026-10-20T11:31:25Z",
     "elements":  {
                      "aithia-pricing":  {
-                                            "commit":  "d5d1414513a6d0c9fa8fef7154bd08b95b746d1b",
+                                            "commit":  "3a76772ce3b6df13e075d1b5807fa30878c045ef",
                                             "path":  "el/aithia-pricing.html",
-                                            "blob":  "af7dba59123e4846639bdecd2584fd053478c8af",
-                                            "bytes":  58691,
+                                            "blob":  "f5bee04b4a0d8b53a11877b0a60d3e0294510e33",
+                                            "bytes":  58929,
                                             "title":  "AITHIA pricing page (public, /aithia)",
-                                            "updated":  "2026-10-20T10:54:57Z"
+                                            "updated":  "2026-10-20T11:31:25Z"
                                         },
                      "architect":  {
                                        "commit":  "d5d1414513a6d0c9fa8fef7154bd08b95b746d1b",
@@ -63,12 +63,12 @@
                                    "updated":  "2026-10-12T17:36:21Z"
                                },
                      "template-page":  {
-                                           "commit":  "aa9bb60b0c2636ea2727171c468e30eb444f6581",
+                                           "commit":  "3a76772ce3b6df13e075d1b5807fa30878c045ef",
                                            "path":  "el/template-page.html",
-                                           "blob":  "660ef4698e1b12bd849097f5c6ef5685342f3c91",
-                                           "bytes":  274376,
+                                           "blob":  "eeedb38c4a8bcea839e834909bf60d89353d65f8",
+                                           "bytes":  283424,
                                            "title":  "Template detail page (public, /template/\u003cslug\u003e)",
-                                           "updated":  "2026-10-20T09:21:53Z"
+                                           "updated":  "2026-10-20T11:31:25Z"
                                        },
                      "templates-button":  {
                                               "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
