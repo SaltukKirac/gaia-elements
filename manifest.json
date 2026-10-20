@@ -1,24 +1,24 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "dev",
-    "rev":  43,
-    "updated":  "2026-10-20T10:26:42Z",
+    "rev":  44,
+    "updated":  "2026-10-20T10:54:57Z",
     "elements":  {
                      "aithia-pricing":  {
-                                            "commit":  "208fe51b2434b0f84cbb4cb023905a32b2ab41dc",
+                                            "commit":  "d5d1414513a6d0c9fa8fef7154bd08b95b746d1b",
                                             "path":  "el/aithia-pricing.html",
-                                            "blob":  "604b988168afa786dc85e260244e90270e4cb4de",
-                                            "bytes":  57716,
+                                            "blob":  "af7dba59123e4846639bdecd2584fd053478c8af",
+                                            "bytes":  58691,
                                             "title":  "AITHIA pricing page (public, /aithia)",
-                                            "updated":  "2026-10-20T10:26:42Z"
+                                            "updated":  "2026-10-20T10:54:57Z"
                                         },
                      "architect":  {
-                                       "commit":  "208fe51b2434b0f84cbb4cb023905a32b2ab41dc",
+                                       "commit":  "d5d1414513a6d0c9fa8fef7154bd08b95b746d1b",
                                        "path":  "el/architect.html",
-                                       "blob":  "d2b63b925a0f2757ff35fc543665dba6675b8633",
-                                       "bytes":  3591864,
+                                       "blob":  "496300df4c6bac19113e03765eea46260983f5dc",
+                                       "bytes":  3592878,
                                        "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-10-20T10:26:42Z"
+                                       "updated":  "2026-10-20T10:54:57Z"
                                    },
                      "form":  {
                                   "commit":  "9df438953f0f057028f83a37c85805f8f7121993",
