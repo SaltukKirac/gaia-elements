@@ -3825,12 +3825,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // 'ready' (a package, or Durum = Claim Hazır) · 'register' (Durum = Cihaz Bekleniyor: no browser of this expert is listed
   // yet, GX-CIHAZ) · 'check' (nothing on the row says; the table has a Claim field) · '' (no action)
+  // GX-FILL-KAYIT (20.10): another Durum value no longer hides the action on a table with a Claim field — the record path builds the
+  // claim from the record itself, so a record in any stage can be sent (the extension refuses one with nothing to fill).
   function dtFillState(row) {
     if (!row) return '';
     const id = rowIdOf(row);
     if (id && dtPaket.has(id)) return 'ready';
     const d = dtRowDurum(row);
-    if (d !== null) { const k = dtNormKey(d); return k === 'claimhazir' ? 'ready' : (k === 'cihazbekleniyor' ? 'register' : ''); }
+    if (d !== null) { const k = dtNormKey(d); if (k === 'claimhazir') return 'ready'; if (k === 'cihazbekleniyor') return 'register'; }
     return dtTableHasClaimField() ? 'check' : '';
   }
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
@@ -3895,40 +3897,43 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render());
     } catch (e) {}
   }
-  // the package of one row: memory first, else mirror_get (walled per viewer on the server)
+  // what one row sends: its package (memory first, else in the record), else the record itself (GX-FILL-KAYIT) — mirror_get is walled
+  // per viewer on the server (an expert only ever gets their own record); files:true adds _files (the record's documents by field)
   async function dtFillPaketOf(row) {
     const id = rowIdOf(row);
     if (!id) return { error: 'This record has no id.' };
     if (dtPaket.has(id)) return { paket: dtPaket.get(id) };
-    const r = await aynaBridge('mirror_get', { id: id }, null, { timeoutMs: 20000 });
+    const r = await aynaBridge('mirror_get', { id: id, files: true }, null, { timeoutMs: 20000 });
     if (!r || !r.ok) return { error: (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : 'Could not load the claim. Try again.' };
     const rows = (r.data && Array.isArray(r.data.rows)) ? r.data.rows : [];
     const rec = rows.find(x => x && String(x._id) === id) || rows[0];
-    if (!rec) return { error: 'No claim is ready for this record yet.' };
+    if (!rec) return { error: 'This record could not be loaded. Try again.' };
     let paket = '';
     for (const k in rec) { if (dtIsPaket(rec[k]) && (!paket || dtNormKey(k) === 'claim')) paket = rec[k]; }
-    if (!paket) return { error: 'No claim is ready for this record yet.' };
-    dtPaket.set(id, paket);
-    return { paket: paket };
+    if (paket) { dtPaket.set(id, paket); return { paket: paket }; }
+    return { kayit: rec };   // GX-FILL-KAYIT (20.10): no package → the extension builds the claim from the record (gaiaBridgeKayit)
   }
-  // one request to the extension; resolves with its answer or {error} after 20 s
-  function dtFillSend(paket, degistir) {
+  // GX-FILL-KAYIT: an extension that knows the record path marks the page with <html data-gaia-bridge-kayit>
+  function dtBridgeKayitOk() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridgeKayit); } catch (e) { return false; } }
+  // one request to the extension; resolves with its answer or {error} after 20 s. src = {paket} (gaiaBridgeClaimPaket) or {kayit} (gaiaBridgeKayit)
+  function dtFillSend(src, degistir) {
+    const ev = src && src.kayit ? 'gaiaBridgeKayit' : 'gaiaBridgeClaimPaket';
     return new Promise(resolve => {
       const requestId = 'fill_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
       let timer = null;
-      const onResult = ev => {
+      const onResult = e => {
         let d = null;
-        try { d = typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail; } catch (e) { d = null; }
+        try { d = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail; } catch (x) { d = null; }
         if (!d || d.requestId !== requestId) return;
-        window.removeEventListener('gaiaBridgeClaimPaketResult', onResult);
+        window.removeEventListener(ev + 'Result', onResult);
         clearTimeout(timer);
         resolve(d);
       };
-      window.addEventListener('gaiaBridgeClaimPaketResult', onResult);
-      timer = setTimeout(() => { window.removeEventListener('gaiaBridgeClaimPaketResult', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 20000);
-      const detail = { requestId: requestId, paket: paket };
+      window.addEventListener(ev + 'Result', onResult);
+      timer = setTimeout(() => { window.removeEventListener(ev + 'Result', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 20000);
+      const detail = src && src.kayit ? { requestId: requestId, kayit: src.kayit } : { requestId: requestId, paket: src && src.paket };
       if (degistir) detail.degistir = true;
-      window.dispatchEvent(new CustomEvent('gaiaBridgeClaimPaket', { detail: JSON.stringify(detail) }));
+      window.dispatchEvent(new CustomEvent(ev, { detail: JSON.stringify(detail) }));
     });
   }
   async function dtFillOnPortal(row, btn) {
@@ -3937,8 +3942,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (btn) { btn.classList.add('is-busy'); btn.setAttribute('aria-busy', 'true'); }
     try {
       const p = await dtFillPaketOf(row);
-      if (!p.paket) { showWakeToast(p.error || 'No claim is ready for this record yet.', 'error'); return; }
-      let res = await dtFillSend(p.paket, false);
+      if (!p.paket && !p.kayit) { showWakeToast(p.error || 'No claim is ready for this record yet.', 'error'); return; }
+      if (p.kayit && !dtBridgeKayitOk()) { showWakeToast('Update the Gaia Bridge extension to fill from this record (chrome://extensions → Update).', 'error'); return; }
+      let res = await dtFillSend(p, false);
       if (res && !res.ok && res.soru === 'degistir') {
         const yes = await new Promise(resolve => {
           let done = false, watch = null;
@@ -3952,7 +3958,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           watch = setInterval(() => { if (!modal.isConnected) finish(false); }, 300);   // Escape / backdrop close the modal without a button
         });
         if (!yes) return;
-        res = await dtFillSend(p.paket, true);
+        res = await dtFillSend(p, true);
       }
       if (res && res.ok) showWakeToast('Ready: switch to the portal tab and press Fill this page' + (res.gaiaNotu ? '. ' + String(res.gaiaNotu) : ''), 'success');
       else if (dtFillNeedsRegister(res)) dtOfferRegister(res);   // GX-CIHAZ: the package is not for this browser yet
