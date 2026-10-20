@@ -45476,6 +45476,72 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 .octo-tabs-mail-send { flex: 0 0 44px; width: 44px; min-height: 44px; height: 44px; padding: 0; border-radius: var(--octo-r9); }
 .octo-tabs-mail-form[aria-busy="true"] .octo-tabs-mail-send { background: var(--octo-line-2); color: var(--octo-ink-3); box-shadow: none; }
 .octo-tabs-mail-status { min-height: 16px; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+/* os8p (20.10): AITHIA prototype hybrid. The prototype's structure (mark, tagline, suggested questions, package card,
+   composer card with the trust line) in the shell's own tokens: one accent, slate ink, no forbidden property. */
+.octo-tabs-mail-mark { flex: 0 0 auto; display: inline-flex; align-items: flex-end; gap: 2px; width: 16px; height: 16px; }
+.octo-tabs-mail-mark > i { display: block; width: 4px; border-radius: 2px; background: var(--octo-accent); }
+.octo-tabs-mail-mark > i:nth-child(1) { height: 7px; opacity: .55; }
+.octo-tabs-mail-mark > i:nth-child(2) { height: 11px; opacity: .8; }
+.octo-tabs-mail-mark > i:nth-child(3) { height: 16px; }
+.octo-tabs-mail-mark.is-lg { width: 44px; height: 44px; gap: 5px; padding: 10px; box-sizing: content-box; border-radius: var(--octo-r3); background: var(--octo-bg); box-shadow: inset 0 0 0 1px var(--octo-line); }
+.octo-tabs-mail-mark.is-lg > i { width: 11px; border-radius: 4px; }
+.octo-tabs-mail-mark.is-lg > i:nth-child(1) { height: 18px; }
+.octo-tabs-mail-mark.is-lg > i:nth-child(2) { height: 30px; }
+.octo-tabs-mail-mark.is-lg > i:nth-child(3) { height: 44px; }
+.octo-tabs-mail-hi { gap: 8px; padding: 28px 16px 12px; }
+.octo-tabs-mail-tag { margin: 6px 0 0; color: var(--octo-accent); font: 700 11px/16px var(--octo-font); letter-spacing: .08em; text-transform: uppercase; }
+.octo-tabs-mail-hi .octo-tabs-empty-t { color: var(--octo-ink); font: 700 22px/28px var(--octo-font); letter-spacing: -.01em; }
+.octo-tabs-mail-hi-d { max-width: 360px; color: var(--octo-ink-2); font: 400 14px/20px var(--octo-font); }
+.octo-tabs-mail-sugg { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 440px; margin: 14px 0 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-sg {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px 12px;
+  border: 0; border-radius: var(--octo-r2); background: var(--octo-surface); box-shadow: inset 0 0 0 1px var(--octo-line);
+  color: var(--octo-ink); font: 500 14px/20px var(--octo-font); text-align: left; cursor: pointer;
+  transition: box-shadow var(--octo-t1) var(--octo-spring), background-color var(--octo-t1) var(--octo-spring);
+}
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-sg:hover { background: var(--octo-bg); box-shadow: inset 0 0 0 1px var(--octo-accent); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-sg:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-sg[disabled] { opacity: .55; cursor: default; }
+.octo-tabs-mail-sg > svg { flex: 0 0 auto; color: var(--octo-ink-3); }
+.octo-tabs-mail-sg-i { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--octo-r1); background: var(--octo-bg); color: var(--octo-accent); }
+.octo-tabs-mail-sg-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.octo-tabs-mail-headrow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.octo-tabs-mail-pk { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 440px; margin: 4px 0 12px; }
+.octo-tabs-mail-pk-h { color: var(--octo-ink); font: 700 16px/22px var(--octo-font); }
+.octo-tabs-mail-pk-r { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--octo-r2); background: var(--octo-surface); box-shadow: inset 0 0 0 1px var(--octo-line); }
+.octo-tabs-mail-pk-r.is-rec { box-shadow: inset 0 0 0 1.5px var(--octo-accent); }
+.octo-tabs-mail-pk-n { display: flex; align-items: center; gap: 8px; color: var(--octo-ink); font: 700 14px/20px var(--octo-font); }
+.octo-tabs-mail-pk-b { color: var(--octo-accent); }
+.octo-tabs-mail-pk-d { color: var(--octo-ink-2); font: 400 13px/18px var(--octo-font); }
+.octo-tabs-mail-pk-f { color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-row { padding: 6px 6px 6px 4px; border-radius: var(--octo-r3); background: var(--octo-surface); box-shadow: inset 0 0 0 1px var(--octo-line), var(--octo-sh-s); }
+.octo-tabs-mail-row:focus-within { box-shadow: inset 0 0 0 1.5px var(--octo-accent), 0 0 0 3px rgba(99, 102, 241, .14); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-row .octo-tabs-mail-ask,
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-row .octo-tabs-mail-ask:focus { background: transparent; box-shadow: none; resize: none; }
+.octo-tabs-mail-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.octo-tabs-mail-foot > .octo-tabs-mail-status { flex: 1 1 auto; min-width: 0; }
+.octo-tabs-mail-trust { flex: 0 0 auto; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+/* os8n: Waiting for a reply (Coordinate follow-ups) above the thread; Track reply beside Prepare draft. Same token set, no forbidden property. */
+.octo-tabs-mail-fu { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px 16px 10px; border-bottom: 1px solid var(--octo-hair); background: var(--octo-bg); }
+.octo-tabs-mail-fu-head { display: flex; align-items: center; gap: 6px; color: var(--octo-ink-2); font: 600 12px/16px var(--octo-font); }
+.octo-tabs-mail-fu-t { flex: 1 1 auto; min-width: 0; }
+.octo-tabs-mail-fu > .octo-rail-muted { font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-fu > .octo-rail-err { padding: 0; }
+.octo-tabs-mail-fu-list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.octo-tabs-mail-fu-row { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 10px; border-radius: var(--octo-r9); background: var(--octo-surface); box-shadow: inset 0 0 0 1px var(--octo-line); }
+.octo-tabs-mail-fu-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.octo-tabs-mail-fu-s { color: var(--octo-ink); font: 600 13px/18px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.octo-tabs-mail-fu-m { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-fu-m > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.octo-tabs-mail-fu-pill { flex: 0 0 auto; }
+.octo-tabs-mail-fu-pill.is-replied { color: var(--octo-ok); box-shadow: inset 0 0 0 1px rgba(21, 128, 61, .35); }
+.octo-tabs-mail-fu-acts { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-fu-acts .octo-rail-btn { min-height: 44px; height: 44px; min-width: 44px; padding: 0 10px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-fu-acts .octo-rail-btn.is-link { padding: 0 8px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-acts .octo-rail-btn.is-ghost { min-height: 44px; height: 44px; }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-mail-fu { padding: 10px 16px 8px; }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-mail-fu-row { flex-wrap: wrap; }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-mail-fu-acts { flex: 1 0 100%; justify-content: flex-end; }
 .octo-tabs-panel[data-phone="1"] .octo-tabs-mail-thread { padding: 12px 16px 8px; }
 .octo-tabs-panel[data-phone="1"] .octo-tabs-mail-bubble { max-width: 92%; }
 .octo-tabs-panel[data-phone="1"] .octo-tabs-mail-prov { max-width: 30%; }
@@ -46970,7 +47036,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-10-19.os8m';
+  var VERSION = 'octo 2026-10-20.os8p';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -60288,7 +60354,13 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
      and its role=status line survive repaints.
      os8m.2: only a mail connect arms the fresh re-poll; an unread status before OAuth takes the first auth_required /
      no_mailbox answer as its baseline; auth / plan verdicts keep Try again for a ready re-read; os_mail_result
-     not_found drops the conversation and context; the allowed:false lock label follows the server reason. */
+     not_found drops the conversation and context; the allowed:false lock label follows the server reason.
+     os8n (second slice, 19.10 evening): entering a ready tab with no turns in memory reads os_mail_history {sheet_id}
+     (the newest conversation on this workspace, next_cursor followed page by page, bounded) so a page refresh keeps the
+     thread (SAPMA 2 closed); on an active Coordinate package the "Waiting for a reply" list (os_mail_followups op list)
+     sits above the thread with Snooze / Close, and a proposed follow-up draft carries Track reply (op track with the
+     action id; the server reads the thread and validates). History and follow-up rows are mail text: octo.request only,
+     {retry:false}, never octo.live. */
   var MAIL_KEY = 'octo_mail';
   var MAIL_TEXT_MAX = 2000;
   // Shared id rule (SERVER_CONTRACT 34): message, thread, conversation, request, action and choice ids.
@@ -60307,6 +60379,10 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   var MAIL_PKG_ORDER = ['focus', 'compose', 'coordinate'];
   var MAIL_ACT_TYPES = { draft_followup: 1, draft_reply: 1 };
   var MAIL_CITES_MAX = 10, MAIL_ACTS_MAX = 3, MAIL_CHOICES_MAX = 6, MAIL_ACT_CHECKS = 10;
+  // os8n: history pages followed on entry (at most), follow-up rows drawn (at most), the cursor rule (SERVER_CONTRACT 34.6).
+  var MAIL_HIST_PAGES = 10, MAIL_FU_MAX = 10;
+  var MAIL_CURSOR_RE = /^[A-Za-z0-9_:-]{1,80}$/;
+  var MAIL_FU_STATES = { waiting_for_reply: 1, replied: 1, snoozed: 1 };
 
   function mailRead() {
     var q = railQuery();
@@ -60329,7 +60405,10 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       req: null, pend: null, stage: '', err: '', retry: null,   // request in flight, parked request, stage, error, retry
       acts: {}, gen: 0, ver: 0, timer: null, stick: false, choice: '',
       fresh: null, ftimer: null,                       // bounded fresh:true status re-poll after OAuth
-      ui: null                                         // composer nodes kept across repaints (live region)
+      ui: null,                                        // composer nodes kept across repaints (live region)
+      hist: { st: '', n: 0, h: 0, err: '' },           // os8n history read: '' | loading | done | error, pages, generation
+      fu: { rows: [], on: null, busy: false, err: '', at: 0, seq: 0, checked: '' },   // os8n follow-up list (Coordinate)
+      track: {}                                        // os8n Track reply state per proposed action id
     };
   }
   function mailT() { return tvOf('mail'); }
@@ -60471,6 +60550,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     };
     t.serr = '';
     if (s === 'ready' && t.pend && M.tab === 'mail') { mailResume(t); }
+    // os8n: a status that answers ready while the tab is open reads the history (once) and the follow-up list (when stale).
+    if (s === 'ready' && M.tab === 'mail') { mailHistLoad(t); mailFuLoad(t, false); }
     return mailStatusSig(t) !== was;
   }
   // Entering the tab: status is re-read when stale (a failed read waits for Try again); a request parked by
@@ -60479,6 +60560,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     var t = mailT();
     if (!t.serr || t.st) { mailStatus(false); }
     if (t.pend && mailReady()) { mailResume(t); }
+    // os8n: no turns in memory (page refresh, workspace change) -> the newest conversation; the follow-up list when stale.
+    if (mailReady()) { mailHistLoad(t); mailFuLoad(t, false); }
     t.stick = true;
     mailDirty(t);
   }
@@ -60507,6 +60590,272 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     r.n = 0;
     t.req = r; t.err = ''; t.retry = null;
     mailPoll(t, 0);
+  }
+
+  // ------------------------------------------------ history (os_mail_history, os8n)
+  // Entering a ready tab with no turns in memory asks the server for the newest conversation on this workspace
+  // ({sheet_id} only) and follows next_cursor page by page (at most MAIL_HIST_PAGES); the turns are rebuilt only from
+  // validated ids and strings (mailAnswer's citation rule). The composer stays usable meanwhile: an ask that starts
+  // first owns the thread and the late history answer is dropped. Leaving the tab drops a page in flight (the next entry
+  // reads again); an old server (bad_request / unavailable) or a vanished conversation shows nothing and never retries.
+  function mailHistLoad(t) {
+    var sid = sheetId();
+    if (!idOk(sid) || !mailOk() || !mailReady()) { return; }
+    if (t.hist.st !== '' || t.msgs.length || t.req || t.conv) { return; }
+    mailHistPage(t, sid, '', '');
+  }
+  function mailHistPage(t, sid, conv, cursor) {
+    var h = t.hist;
+    h.st = 'loading'; h.err = ''; h.h++;
+    var hg = h.h, g = M.gen, tg = t.gen;
+    var p = { sheet_id: sid };
+    if (conv) { p.conversation_id = conv; }
+    if (cursor) { p.cursor = cursor; }
+    M.seq++;
+    mailDirty(t);
+    octo.request('os_mail_history', p, { retry: false, cacheKey: 'os_mail_history|' + sid + '|' + conv + '|' + cursor + '|' + M.seq }).then(function (d) {
+      if (g !== M.gen || tg !== t.gen || hg !== h.h) { if (h.st === 'loading') { h.st = ''; } return; }
+      mailHistData(t, sid, d, conv);
+    }, function (err) {
+      if (g !== M.gen || tg !== t.gen || hg !== h.h) { if (h.st === 'loading') { h.st = ''; } return; }
+      var code = str(err && err.code) || 'provider_error';
+      if (code === 'bad_request' || code === 'unavailable' || code === 'not_found') { h.st = 'done'; mailDirty(t); return; }
+      h.st = 'error'; h.err = code;
+      mailDirty(t);
+    });
+  }
+  function mailHistData(t, sid, d, conv) {
+    var h = t.hist;
+    d = isObj(d) ? d : {};
+    // An ask that started meanwhile owns the thread; a first page that finds turns already drawn is late too.
+    if (t.req || (t.conv && t.conv !== conv) || (!conv && t.msgs.length)) { h.st = 'done'; mailDirty(t); return; }
+    var cv = str(d.conversation_id);
+    if (!MAIL_ID_RE.test(cv) || (conv && cv !== conv)) { h.st = 'done'; mailDirty(t); return; }
+    var list = isArr(d.messages) ? d.messages : [];
+    for (var i = 0; i < list.length; i++) {
+      var m = mailHistTurn(list[i]);
+      if (m) { t.msgs.push(m); }
+    }
+    t.conv = cv;
+    h.n++;
+    var next = str(d.next_cursor);
+    if (next && MAIL_CURSOR_RE.test(next) && h.n < MAIL_HIST_PAGES) { mailHistPage(t, sid, cv, next); return; }
+    h.st = 'done';
+    t.stick = true;
+    mailDirty(t);
+  }
+  // One stored message as a turn: a user bubble, or an Aithia answer with its stored citations (no proposals, no choices).
+  function mailHistTurn(m) {
+    if (!isObj(m)) { return null; }
+    var text = str(m.text).replace(/\r\n?/g, '\n').trim().slice(0, MAIL_TEXT_MAX);
+    if (str(m.role) !== 'aithia') {
+      if (!text) { return null; }
+      return { role: 'user', text: text, ctx: '', cmid: str(m.client_message_id), at: str(m.created_at) };
+    }
+    var a = mailAnswer({ answer: text, citations: m.citations, found: true, checked_at: str(m.created_at) }, false);
+    a.at = str(m.created_at);
+    return a;
+  }
+  function mailHistRetry() {
+    var t = mailT();
+    if (t.hist.st !== 'error') { return; }
+    t.hist.st = '';
+    mailHistLoad(t);
+  }
+
+  // ------------------------------------------------ follow-ups (os_mail_followups, os8n, Coordinate only)
+  // "Waiting for a reply": the server's rows for the threads the person is waiting on (SERVER_CONTRACT 34.7), read on
+  // entry and after a change, at most once a minute unless forced, only on an active Coordinate package. Subjects and
+  // addresses are mail text: octo.request with {retry:false}, never octo.live. Snooze and Close replace the row from
+  // the answer; Track reply on a proposed follow-up draft starts a row (op track with the action id, the server reads
+  // the thread and validates). An old server (bad_request / unavailable) hides the section for this entry.
+  function mailFuOn(t) { return !!(t.st && t.st.state === 'ready' && t.st.plan && t.st.plan.active && t.st.plan.pkg === 'coordinate'); }
+  // The section shows once the server said enabled, while the first read is in flight, or when that read failed (Try again).
+  function mailFuShow(t) { return mailFuOn(t) && (t.fu.on === true || (t.fu.on === null && (t.fu.busy || !!t.fu.err))); }
+  function mailFuLoad(t, force) {
+    var sid = sheetId();
+    var f = t.fu;
+    if (!idOk(sid) || !mailOk() || !mailFuOn(t) || f.busy) { return; }
+    if (!force && f.at && (now() - f.at) < T.stale) { return; }
+    mailFuCall(t, { sheet_id: sid, op: 'list' });
+  }
+  function mailFuCall(t, p) {
+    var f = t.fu;
+    f.busy = true; f.err = ''; f.seq++;
+    var fs = f.seq, g = M.gen, tg = t.gen;
+    M.seq++;
+    mailDirty(t);
+    octo.request('os_mail_followups', p, { retry: false, cacheKey: 'os_mail_followups|' + p.op + '|' + M.seq }).then(function (d) {
+      if (g !== M.gen || tg !== t.gen || fs !== f.seq) { f.busy = false; return; }
+      f.busy = false;
+      mailFuData(t, d, p.op);
+    }, function (err) {
+      if (g !== M.gen || tg !== t.gen || fs !== f.seq) { f.busy = false; return; }
+      f.busy = false;
+      f.at = now();
+      var code = str(err && err.code) || 'provider_error';
+      if (code === 'bad_request' || code === 'unavailable') { f.on = false; mailDirty(t); return; }
+      f.err = code;
+      mailDirty(t);
+    });
+  }
+  // One row, built only from validated ids and strings; unknown states are dropped.
+  function mailFuRow(r) {
+    if (!isObj(r) || !MAIL_ID_RE.test(str(r.id)) || !MAIL_FU_STATES[str(r.state)]) { return null; }
+    return { id: str(r.id), tid: MAIL_ID_RE.test(str(r.thread_id)) ? str(r.thread_id) : '', state: str(r.state), subject: str(r.subject).slice(0, 160),
+      who: str(r.waiting_on_name).slice(0, 120) || str(r.waiting_on).slice(0, 160), due_at: str(r.due_at), due: r.due === true, replied_at: str(r.replied_at),
+      url: MAIL_URL_RE.test(str(r.source_url)) ? str(r.source_url) : '' };
+  }
+  var MAIL_FU_RANK = { waiting_for_reply: 0, replied: 1, snoozed: 2 };
+  function mailFuData(t, d, op) {
+    var f = t.fu;
+    d = isObj(d) ? d : {};
+    f.at = now();
+    if (op === 'list') {
+      f.on = d.enabled === true;
+      var rows = [], list = isArr(d.followups) ? d.followups : [];
+      for (var i = 0; i < list.length && rows.length < MAIL_FU_MAX; i++) { var r = mailFuRow(list[i]); if (r) { rows.push(r); } }
+      f.rows = rows;
+      f.checked = str(d.checked_at);
+    } else if (isObj(d.followup)) {
+      // snooze / close / track: the answered row replaces its old self (a closed one leaves); state order is kept
+      var one = mailFuRow(d.followup), id = str(d.followup.id), keep = [];
+      for (var j = 0; j < f.rows.length; j++) { if (f.rows[j].id !== id) { keep.push(f.rows[j]); } }
+      if (one) { keep.push(one); }
+      keep.sort(function (a, b) { return (MAIL_FU_RANK[a.state] || 0) - (MAIL_FU_RANK[b.state] || 0); });
+      f.rows = keep;
+    }
+    mailDirty(t);
+  }
+  function mailFuAct(r, op) {
+    var t = mailT();
+    var sid = sheetId();
+    if (!idOk(sid) || t.fu.busy || !mailFuOn(t)) { return; }
+    mailFuCall(t, { sheet_id: sid, op: op, followup_id: r.id });
+  }
+  function mailTrack(a) {
+    var t = mailT();
+    var sid = sheetId();
+    var k = t.track[a.id] || (t.track[a.id] = { st: '', reason: '' });
+    if (!idOk(sid) || k.st === 'busy' || k.st === 'tracked' || k.st === 'replied' || !mailFuOn(t)) { return; }
+    k.st = 'busy'; k.reason = '';
+    mailDirty(t);
+    var g = M.gen, tg = t.gen;
+    M.seq++;
+    octo.request('os_mail_followups', { sheet_id: sid, op: 'track', action_id: a.id }, { retry: false, cacheKey: 'os_mail_followups|track|' + a.id + '|' + M.seq }).then(function (d) {
+      if (g !== M.gen || tg !== t.gen) { k.st = ''; return; }
+      d = isObj(d) ? d : {};
+      if (d.ok === true && d.tracked === true) { k.st = 'tracked'; mailFuData(t, d, 'track'); mailFuLoad(t, true); }
+      else if (d.ok === true && str(d.state) === 'replied') { k.st = 'replied'; }
+      else { k.st = 'failed'; k.reason = str(d.reason).slice(0, 40) || 'provider_error'; }
+      mailDirty(t);
+    }, function (err) {
+      if (g !== M.gen || tg !== t.gen) { k.st = ''; return; }
+      k.st = 'failed'; k.reason = str(err && err.code) || 'provider_error';
+      mailDirty(t);
+    });
+  }
+  // Short reason line under a refused Track reply (K14); the retryable ones get Try again.
+  var MAIL_TRACK_RETRY = { source_unavailable: 1, provider_error: 1, timeout: 1, unavailable: 1, rate_limited: 1, busy: 1 };
+  function mailTrackWhy(reason) {
+    if (reason === 'plan_required') { return 'Not in your plan'; }
+    if (reason === 'expired') { return 'Expired'; }
+    if (reason === 'no_outbound') { return 'Nothing sent yet'; }
+    if (reason === 'mailbox_changed') { return 'Mailbox changed'; }
+    if (reason === 'auth_required' || reason === 'not_connected') { return 'Mailbox not connected'; }
+    if (MAIL_TRACK_RETRY[reason]) { return 'Could not read thread'; }
+    return 'Not available';
+  }
+  function mailFuEl(t) {
+    var f = t.fu;
+    var box = el('section', 'octo-tabs-mail-fu');
+    box.setAttribute('aria-label', 'Waiting for a reply');
+    box.setAttribute('data-n', String(f.rows.length));
+    var head = el('div', 'octo-tabs-mail-fu-head');
+    head.appendChild(octo.icon('bell', 16));
+    head.appendChild(el('span', 'octo-tabs-mail-fu-t', 'Waiting for a reply'));
+    if (f.busy) { head.appendChild(spin()); }
+    box.appendChild(head);
+    if (f.err && !f.rows.length) {
+      box.appendChild(muted('Could not load list'));
+      var er = errRow(function () { mailFuLoad(t, true); });
+      er.setAttribute('data-k', 'mail-fu');
+      box.appendChild(er);
+      return box;
+    }
+    if (!f.rows.length) { box.appendChild(muted(f.on === null ? 'Checking' : 'Nothing waiting')); return box; }
+    var list = el('div', 'octo-tabs-mail-fu-list');
+    list.setAttribute('role', 'list');
+    for (var i = 0; i < f.rows.length; i++) { list.appendChild(mailFuRowEl(t, f.rows[i])); }
+    box.appendChild(list);
+    return box;
+  }
+  function mailFuRowEl(t, r) {
+    var row = el('div', 'octo-tabs-mail-fu-row');
+    row.setAttribute('role', 'listitem');
+    row.setAttribute('data-fid', r.id);
+    row.setAttribute('data-state', r.state);
+    if (r.tid) { row.setAttribute('data-tid', r.tid); }
+    var main = el('div', 'octo-tabs-mail-fu-main');
+    main.appendChild(el('div', 'octo-tabs-mail-fu-s', r.subject || 'Email'));
+    // Each piece is its own node (data and fixed text never share one string).
+    var ml = el('div', 'octo-tabs-mail-fu-m');
+    ml.appendChild(el('span', '', r.who || 'Email'));
+    // A wait past its date carries the Due now pill alone (no second time text).
+    var when = (r.state === 'waiting_for_reply' && r.due) ? '' : mailFuWhen(r);
+    if (when) { ml.appendChild(el('span', '', when)); }
+    if (r.state === 'replied') { ml.appendChild(el('span', 'octo-rail-pill octo-tabs-mail-fu-pill is-replied', 'Replied')); }
+    else if (r.state === 'snoozed') { ml.appendChild(el('span', 'octo-rail-pill octo-tabs-mail-fu-pill', 'Snoozed')); }
+    else if (r.due) { ml.appendChild(el('span', 'octo-rail-pill is-warn octo-tabs-mail-fu-pill', 'Due now')); }
+    main.appendChild(ml);
+    row.appendChild(main);
+    var acts = el('div', 'octo-tabs-mail-fu-acts');
+    if (r.url) {
+      var a = el('a', 'octo-rail-btn is-link');
+      a.href = r.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.setAttribute('data-act', 'mail-fu-open');
+      a.setAttribute('aria-label', 'Open email');
+      a.title = 'Open email';
+      a.appendChild(octo.icon('external', 16));
+      acts.appendChild(a);
+    }
+    if (r.state === 'waiting_for_reply') {
+      var sb = btn('is-ghost', 'Snooze', 'Snooze', 'mail-fu-snooze');
+      sb.setAttribute('data-fid', r.id);
+      sb.disabled = !!t.fu.busy;
+      sb.addEventListener('click', function () { mailFuAct(r, 'snooze'); });
+      acts.appendChild(sb);
+    }
+    var cl = r.state === 'replied' ? 'Done' : 'Close';
+    var cb = btn('is-ghost', cl, cl, 'mail-fu-close');
+    cb.setAttribute('data-fid', r.id);
+    cb.disabled = !!t.fu.busy;
+    cb.addEventListener('click', function () { mailFuAct(r, 'close'); });
+    acts.appendChild(cb);
+    row.appendChild(acts);
+    return row;
+  }
+  // The time line of a row: Due in 2d / Due now, Until in 1d (snoozed), Replied 1h ago (answered); absolute past 7 days.
+  function mailFuWhen(r) {
+    if (r.state === 'replied') { var rr = rel(r.replied_at); return rr ? 'Replied ' + rr : ''; }
+    var d = mailFuIn(r.due_at);
+    if (!d) { return ''; }
+    return (r.state === 'snoozed' ? 'Until ' : 'Due ') + d;
+  }
+  function mailFuIn(v) {
+    var ts = Date.parse(str(v));
+    if (!isFinite(ts)) { return ''; }
+    var d = ts - now();
+    if (d <= 0) { return 'now'; }
+    var m = Math.floor(d / 60000);
+    if (m < 60) { return 'in ' + m + 'm'; }
+    var h = Math.floor(m / 60);
+    if (h < 24) { return 'in ' + h + 'h'; }
+    var dd = Math.floor(h / 24);
+    if (dd < 7) { return 'in ' + dd + 'd'; }
+    return fmtDay(ts, false);
   }
 
   // ------------------------------------------------ ask + poll (os_mail_ask, os_mail_result)
@@ -60880,6 +61229,21 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
           box.appendChild(cr);
         }
       } else if (state === 'plan_required') {
+        // os8p: the package card of the prototype, fixed copy only (KAYNAK_AITHIA lines cut to the shell's 5 word rule;
+        // no price typed into the markup).
+        var pk = el('div', 'octo-tabs-mail-pk');
+        pk.appendChild(el('div', 'octo-tabs-mail-pk-h', 'Choose an AITHIA package'));
+        var PK = [['Focus', 'Know what needs attention.', ''], ['Compose', 'Replies ready to review.', 'Recommended'], ['Coordinate', 'Every next step in view.', '']];
+        for (var pi = 0; pi < PK.length; pi++) {
+          var pr = el('div', 'octo-tabs-mail-pk-r' + (PK[pi][2] ? ' is-rec' : ''));
+          var pn = el('div', 'octo-tabs-mail-pk-n', PK[pi][0]);
+          if (PK[pi][2]) { pn.appendChild(el('span', 'octo-rail-pill octo-tabs-mail-pk-b', PK[pi][2])); }
+          pr.appendChild(pn);
+          pr.appendChild(el('div', 'octo-tabs-mail-pk-d', PK[pi][1]));
+          pk.appendChild(pr);
+        }
+        pk.appendChild(el('div', 'octo-tabs-mail-pk-f', 'One subscription, no per-email fees.'));
+        box.appendChild(pk);
         var row = el('div', 'octo-rail-connect');
         var pb = withIcon(btn('is-primary', 'Choose a package', 'Choose a package', 'mail-plan'), 'external');
         pb.addEventListener('click', mailOpenPlan);
@@ -60900,7 +61264,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     });
   }
   function mailStatusText(t) {
-    if (!t.req) { return ''; }
+    if (!t.req) { return t.hist.st === 'loading' ? 'Loading conversation' : ''; }
     return t.stage === 'answer' ? 'Writing the answer' : 'Searching your mailbox';
   }
   function mailStageAttr(t) { return t.req ? (t.stage || 'search') : (t.msgs.length ? 'ready' : 'empty'); }
@@ -60921,6 +61285,11 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
         var log = mailThreadEl(t);
         ui.box.replaceChild(log, ui.log);
         ui.log = log;
+        // os8n: the follow-up section is rebuilt in place too (above the thread), added or removed as the flag moves.
+        var fuNew = mailFuShow(t) ? mailFuEl(t) : null;
+        if (ui.fu && ui.fu.parentNode === ui.box) { if (fuNew) { ui.box.replaceChild(fuNew, ui.fu); } else { ui.box.removeChild(ui.fu); } }
+        else if (fuNew) { ui.box.insertBefore(fuNew, log); }
+        ui.fu = fuNew;
         mailComposerSync(t);
         if (t.stick) { body.scrollTop = body.scrollHeight; t.stick = false; }
         else { body.scrollTop = keep; }
@@ -60933,10 +61302,12 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       if (label) { barAdd(el('span', 'octo-tabs-mail-prov', label)); }
       var box = el('div', 'octo-tabs-mail');
       box.setAttribute('data-stage', mailStageAttr(t));
+      var fuEl = mailFuShow(t) ? mailFuEl(t) : null;
+      if (fuEl) { box.appendChild(fuEl); }
       var log = mailThreadEl(t);
       box.appendChild(log);
       box.appendChild(mailComposer(t));
-      t.ui.box = box; t.ui.log = log; t.ui.label = label;
+      t.ui.box = box; t.ui.log = log; t.ui.fu = fuEl; t.ui.label = label;
       body.appendChild(box);
       if (t.stick) { body.scrollTop = body.scrollHeight; t.stick = false; }
       else { body.scrollTop = keep; }
@@ -60946,7 +61317,14 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     var log = el('div', 'octo-tabs-mail-thread');
     log.setAttribute('role', 'log');
     log.setAttribute('aria-label', 'Conversation');
-    if (!t.msgs.length) { log.appendChild(emptyBox('chat', 'Ask about your emails')); }
+    if (!t.msgs.length) { log.appendChild(mailWelcomeEl(t)); }
+    // os8n: a failed history read on an empty thread: one muted line and its own Try again (reads again).
+    if (!t.msgs.length && t.hist.st === 'error') {
+      log.appendChild(muted('Could not load history'));
+      var hr = errRow(mailHistRetry);
+      hr.setAttribute('data-k', 'mail-hist');
+      log.appendChild(hr);
+    }
     for (var i = 0; i < t.msgs.length; i++) { log.appendChild(mailTurnEl(t, t.msgs[i], i === t.msgs.length - 1)); }
     // A failed ask, a FAILED verdict or a spent poll budget: one muted line and Try again; the user turn stays.
     if (t.err && !t.req) {
@@ -60954,6 +61332,48 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       log.appendChild(errRow(mailRetry));
     }
     return log;
+  }
+  // os8p (20.10, AITHIA prototype hybrid): the AITHIA mark (three rising bars, the prototype's brand mark) in the
+  // shell's own accent; decorative, aria-hidden.
+  function mailMark(cls) {
+    var mk = el('span', 'octo-tabs-mail-mark' + (cls ? ' ' + cls : ''));
+    mk.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < 3; i++) { mk.appendChild(el('i', '')); }
+    return mk;
+  }
+  // Empty thread: the prototype's welcome (mark, tagline, three suggested questions that ask at once). The node keeps
+  // the octo-tabs-empty / -t pair the rest of the shell and the harness read.
+  var MAIL_SUGGEST = [
+    ['bell', 'What needs my reply today?'],
+    ['doc', 'Summarize this week in email'],
+    ['people', 'Who is waiting on me?']
+  ];
+  function mailWelcomeEl(t) {
+    var b = el('div', 'octo-tabs-empty octo-tabs-mail-hi');
+    b.appendChild(mailMark('is-lg'));
+    b.appendChild(el('div', 'octo-tabs-mail-tag', 'The AI that remembers.'));
+    b.appendChild(el('div', 'octo-tabs-empty-t', 'Ask about your emails'));
+    var g = el('div', 'octo-tabs-mail-sugg');
+    g.setAttribute('role', 'group');
+    g.setAttribute('aria-label', 'Suggested questions');
+    for (var i = 0; i < MAIL_SUGGEST.length; i++) {
+      (function (q) {
+        var sb = D.createElement('button');
+        sb.type = 'button';
+        sb.className = 'octo-tabs-mail-sg';
+        sb.setAttribute('data-act', 'mail-suggest');
+        var ic = el('span', 'octo-tabs-mail-sg-i');
+        ic.appendChild(octo.icon(q[0], 16));
+        sb.appendChild(ic);
+        sb.appendChild(el('span', 'octo-tabs-mail-sg-t', q[1]));
+        sb.appendChild(octo.icon('chevron-right', 16));
+        sb.disabled = !!t.req || t.hist.st === 'loading';
+        sb.addEventListener('click', function () { if (t.req) { return; } t.draft = q[1]; mailSend(null); });
+        g.appendChild(sb);
+      })(MAIL_SUGGEST[i]);
+    }
+    b.appendChild(g);
+    return b;
   }
   function mailTurnEl(t, m, lastOne) {
     var turn = el('div', 'octo-tabs-mail-turn is-' + (m.role === 'user' ? 'user' : 'aithia'));
@@ -60968,7 +61388,12 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       return turn;
     }
     // Head line only with at least one verified source (client rule, KAYNAK_AITHIA page 5).
-    if (m.cites.length >= 1) { turn.appendChild(el('div', 'octo-tabs-mail-head', 'Aithia found it.')); }
+    if (m.cites.length >= 1) {
+      var hd = el('div', 'octo-tabs-mail-headrow');
+      hd.appendChild(mailMark(''));
+      hd.appendChild(el('div', 'octo-tabs-mail-head', 'Aithia found it.'));
+      turn.appendChild(hd);
+    }
     if (m.text) { turn.appendChild(el('div', 'octo-tabs-mail-answer', m.text)); }
     if (m.cites.length) {
       var cl = el('div', 'octo-tabs-mail-cites');
@@ -61094,7 +61519,33 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     }
     b.addEventListener('click', function () { mailDraft(a); });
     wrap.appendChild(b);
+    // os8n: a proposed follow-up draft on an active Coordinate package also offers Track reply (os_mail_followups op track).
+    var trackWhy = '';
+    if (a.type === 'draft_followup' && mailFuOn(t)) {
+      var k = t.track[a.id] || null;
+      var ks = k ? k.st : '';
+      var tb = btn('is-ghost', 'Track reply', null, 'mail-track');
+      tb.setAttribute('data-aid', a.id);
+      if (ks === 'busy') { tb.appendChild(spin()); tb.appendChild(el('span', '', 'Tracking')); tb.disabled = true; }
+      else if (ks === 'tracked') { tb.appendChild(octo.icon('check', 16)); tb.appendChild(el('span', '', 'Tracking')); tb.disabled = true; tb.title = 'Tracking'; tb.setAttribute('aria-label', 'Tracking'); }
+      else if (ks === 'replied') { tb.appendChild(octo.icon('check', 16)); tb.appendChild(el('span', '', 'Already replied')); tb.disabled = true; tb.title = 'Already replied'; tb.setAttribute('aria-label', 'Already replied'); }
+      else if (ks === 'failed') {
+        trackWhy = mailTrackWhy(k.reason);
+        var again = !!MAIL_TRACK_RETRY[k.reason];
+        tb.appendChild(octo.icon(again ? 'alert' : 'bell', 16));
+        tb.appendChild(el('span', '', again ? 'Try again' : 'Track reply'));
+        if (!again) { tb.disabled = true; tb.setAttribute('aria-disabled', 'true'); tb.title = trackWhy; tb.setAttribute('aria-label', trackWhy); }
+      } else {
+        tb.appendChild(octo.icon('bell', 16));
+        tb.appendChild(el('span', '', 'Track reply'));
+        var texp = Date.parse(a.expires_at);
+        if (isFinite(texp) && texp < now()) { tb.disabled = true; tb.title = 'Expired'; tb.setAttribute('aria-label', 'Expired'); }
+      }
+      tb.addEventListener('click', function () { mailTrack(a); });
+      wrap.appendChild(tb);
+    }
     wrap.appendChild(muted('Draft only. You send.'));
+    if (trackWhy) { wrap.appendChild(muted(trackWhy)); }
     return wrap;
   }
   // Lock label (os8m.2). The server's allowed:false names its reason: plan_required -> the package that carries the
@@ -61192,8 +61643,12 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     var stl = el('div', 'octo-tabs-mail-status', mailStatusText(t));
     stl.setAttribute('role', 'status');
     stl.setAttribute('aria-live', 'polite');
-    f.appendChild(stl);
-    t.ui = { form: f, ta: ta, sb: sb, stl: stl, row: row, ctx: cx, ctxMid: t.ctx ? t.ctx.mid : '', busy: !!t.req, grow: grow, box: null, log: null, label: '' };
+    // os8p: the trust line of the prototype's composer, beside the live status (which stays its own node)
+    var foot = el('div', 'octo-tabs-mail-foot');
+    foot.appendChild(stl);
+    foot.appendChild(el('div', 'octo-tabs-mail-trust', 'Draft only. You send.'));
+    f.appendChild(foot);
+    t.ui = { form: f, ta: ta, sb: sb, stl: stl, row: row, ctx: cx, ctxMid: t.ctx ? t.ctx.mid : '', busy: !!t.req, grow: grow, box: null, log: null, fu: null, label: '' };
     batch(grow);
     return f;
   }
