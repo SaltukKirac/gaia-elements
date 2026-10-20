@@ -521,9 +521,13 @@
   }catch(e){}
 
   /* The one mode that decides what the basket shows and whether checkout may open. */
+  /* 20.10 (a5): Bubble's test version with no Paddle sandbox ids yet: inside the app (gxAithiaTestGrant) a test
+     purchase grants the package on the server, no money, never a live plan */
+  function testBuy(){return CFG.env==='sandbox'&&EMBED&&typeof W.gxAithiaTestGrant==='function'&&(!token()||!priceId(S.plan,S.period));}
   function mode(){
     if(S.force)return S.force;
     if(S.done)return 'success';
+    if(testBuy())return S.opening?'opening':'testbuy';
     if(!token()||!priceId(S.plan,S.period))return 'setup';
     if(!online())return 'offline';
     if(S.paddle==='failed')return 'script_failed';
@@ -567,28 +571,30 @@
 
     if(entry&&m!=='setup'&&m!=='loading'&&m!=='preview_failed'){el.amount.textContent=entry.total;el.per.textContent=perTxt;}
     else{el.amount.textContent='';el.per.textContent='';}
-    if(m==='setup')el.live.textContent='Pricing is being set up';
+    if(m==='testbuy')el.live.textContent='Test version. No payment is taken.';
+    else if(m==='setup')el.live.textContent='Pricing is being set up';
     else if(m==='loading')el.live.textContent='Loading prices';
     else if(m==='preview_failed')el.live.textContent='Prices could not be loaded';
     else if(entry)el.live.textContent=totalLine(entry);
     else el.live.textContent='';
 
     /* preview_failed keeps the CTA on: the checkout shows the price itself */
-    var canOpen=(m==='ready'||m==='preview_failed');
+    var canOpen=(m==='ready'||m==='preview_failed'||m==='testbuy');
     el.buy.disabled=!canOpen;
-    el.buy.textContent=m==='opening'?'Opening checkout...':PLANS[S.plan].cta;
+    el.buy.textContent=m==='opening'?(testBuy()?'Activating...':'Opening checkout...'):(m==='testbuy'?'Complete a test purchase':PLANS[S.plan].cta);
     if(m==='opening')el.buy.setAttribute('aria-busy','true');else el.buy.removeAttribute('aria-busy');
 
     for(p in PLANS){
       var on=(p===S.plan),cardPrice=cache[key(p,S.period,1)],idOk=!!priceId(p,S.period)&&!!token();
       cards[p].classList.toggle('is-on',on);
       if(radios[p].checked!==on)radios[p].checked=on;
-      ctas[p].disabled=!canOpen||!idOk;
+      ctas[p].disabled=!canOpen||(!idOk&&m!=='testbuy');
       ctas[p].textContent=(on&&m==='opening')?'Opening checkout...':PLANS[p].cta;
       if(on&&m==='opening')ctas[p].setAttribute('aria-busy','true');else ctas[p].removeAttribute('aria-busy');
       var pe=priceEls[p];
       while(pe.firstChild)pe.removeChild(pe.firstChild);
-      if(!idOk||m==='setup'){pe.textContent='Pricing is being set up';}
+      if(m==='testbuy'){pe.textContent='Test version';}
+      else if(!idOk||m==='setup'){pe.textContent='Pricing is being set up';}
       else if(cardPrice&&cardPrice.unit){var b=D.createElement('b');b.textContent=cardPrice.unit;pe.appendChild(b);pe.appendChild(D.createTextNode(perTxt+' per mailbox'));}
       else if(failed[key(p,S.period,1)]){pe.textContent='Prices could not be loaded';}
       else{pe.textContent='Loading prices';}
@@ -723,6 +729,15 @@
   function releasePending(){S.pendingOpen=false;if(pendTimer){clearTimeout(pendTimer);pendTimer=null;}}
   function openCheckout(){
     if(S.opening||S.done)return;
+    if(testBuy()){
+      S.opening=true;S.msg=null;render();
+      W.gxAithiaTestGrant(S.plan).then(function(ok){
+        S.opening=false;
+        if(ok){S.done=true;writePaid();render();try{el.success.focus();}catch(e){}}
+        else{S.msg='error';render();}
+      },function(){S.opening=false;S.msg='error';render();});
+      return;
+    }
     if(!online()){render();return;}
     var m=mode();
     if(m==='loading'){

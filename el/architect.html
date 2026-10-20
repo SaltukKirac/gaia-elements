@@ -30068,7 +30068,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           if (typeof window._gadTrigRequest !== 'function') { resolve(null); return; }
           var done = false;
           try {
-            window._gadTrigRequest('os_mail_status', {}, function(res){
+            window._gadTrigRequest('aithia_setup_status', {}, function(res){
               if (done) return; done = true;
               var d = (res && res.data && typeof res.data === 'object') ? res.data : (res || {});
               resolve(d && d.billing && d.billing.sirket ? d.billing : null);
@@ -30076,6 +30076,23 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           } catch(e){ if (!done) { done = true; resolve(null); } }
         });
       }
+      // a5: the version-test purchase (no money): the server writes a test package for this workspace; resolves true / false
+      window.gxAithiaTestGrant = function(plan){
+        return new Promise(function(resolve){
+          if (typeof window._gadTrigRequest !== 'function') { resolve(false); return; }
+          var done = false;
+          try {
+            window._gadTrigRequest('aithia_test_grant', { plan: String(plan || '') }, function(res){
+              if (done) return; done = true;
+              var d = (res && res.data && typeof res.data === 'object') ? res.data : (res || {});
+              var st = String((res && res.status) || d.status || '').toUpperCase();
+              var ok = st === 'SUCCESS' && !d.error_code && d.plan && d.plan.package === plan;
+              log('test grant', plan, ok ? 'ok' : ('failed ' + (d.error_code || st)));
+              resolve(!!ok);
+            }, 20000);
+          } catch(e){ if (!done) { done = true; resolve(false); } }
+        });
+      };
       window.gxAithiaPricing = function(opts){
         opts = opts || {};
         css();
@@ -30162,7 +30179,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var done = false;
         function fin(r){ if (done) return; done = true; resolve(r); }
         try {
-          window._gadTrigRequest('os_mail_status', fresh ? { fresh: true } : {}, function(res){
+          window._gadTrigRequest('aithia_setup_status', fresh ? { fresh: true } : {}, function(res){
             var d = (res && res.data && typeof res.data === 'object') ? res.data : (res || {});
             var st = String((res && res.status) || d.status || '').toUpperCase();
             var code = String(d.error_code || (res && res.error_code) || '');
