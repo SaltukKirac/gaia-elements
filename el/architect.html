@@ -47133,6 +47133,541 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   #octo-root.octo-phone .octo-ws[data-sheet="1"] .octo-ws-rail { animation: none; }
 }
 
+/* ==========================================================================
+   app-wsbar.css  -  OCTO WORKSPACE CUBUGU (os9a v2). Sahip: CLIENT. OCTO_WSBAR_SPEC.
+   Kurallar YALNIZ kabugun kendi kokleri (#octo-wsbar, #octo-wsb-*) ve test kipi oznitelikleri
+   (html[data-octo-ws], [data-octo-ws-gutter]) altinda. Belirtecler her kokte yeniden bildirilir.
+
+   SERT KISIT: #octo-rail-row ve .octo-rail-cell tablonun atalaridir; burada onlara HICBIR kural yok.
+   Pano (#octo-wsb-board) tablonun KARDESIDIR: kartlarda ve hayalette transform / opacity serbest.
+   ========================================================================== */
+
+/* ------------------------------------------------ Bubble menusu ve bari (test kipi)
+   Yalniz CSS (visibility): dugumler DOM'da ve cizili kalir (RG hucreleri olculur, vekil tiklama calisir;
+   DESK display:none yerine bilincli SAPMA). Kimlik henuz yazilmadiysa Bubble sinifi da yakalar. */
+html[data-octo-ws="1"]:not([data-octo-ws-classic="1"]) #sideMenu,
+html[data-octo-ws="1"]:not([data-octo-ws-classic="1"]) .baUfaHw,
+html[data-octo-ws="1"]:not([data-octo-ws-classic="1"]) #stagebar,
+html[data-octo-ws="1"]:not([data-octo-ws-classic="1"]) .baUfaHaM {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+/* Menunun 'transition: all'u gizlemeyi geciktirmesin (yanip sonme). */
+html[data-octo-ws="1"] #sideMenu, html[data-octo-ws="1"] .baUfaHw,
+html[data-octo-ws="1"] #stagebar, html[data-octo-ws="1"] .baUfaHaM { transition: none !important; }
+/* Bubble'in "menuyu ac" dugmesi (Button N, Group os icinde) kipte olu kalirdi. */
+html[data-octo-ws="1"] .baVczaM { visibility: hidden !important; pointer-events: none !important; }
+html[data-octo-ws="1"] [data-octo-ws-gutter="1"] { margin-left: 0 !important; }
+/* Classic menu: Bubble menusu sol kenarda cekmece (kendi z'si 1504), bar altta; menuyu kapatan ok gizli
+   (kapatilirsa Done sonrasi gorunmez kalirdi). */
+html[data-octo-ws-classic="1"] #sideMenu, html[data-octo-ws-classic="1"] .baUfaHw { box-shadow: 12px 0 40px rgba(15, 23, 42, .18) !important; }
+html[data-octo-ws-classic="1"] .baVaPed0 { display: none !important; }
+/* Rayin Menu dugmesi kipte yok: Classic menu onun yerini alir. */
+html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
+
+#octo-wsbar,
+#octo-wsb-pop,
+#octo-wsb-board,
+#octo-wsb-toast {
+  --octo-accent: #6366f1;
+  --octo-accent-soft: rgba(99, 102, 241, .10);
+  --octo-grad: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --octo-ink: #0f172a;
+  --octo-ink-2: #475569;
+  --octo-ink-3: #94a3b8;
+  --octo-ink-3t: #64748b;
+  --octo-line: #e2e8f0;
+  --octo-line-2: #eef2f7;
+  --octo-bg: #f8fafc;
+  --octo-surface: #ffffff;
+  --octo-field: #f6f7f9;
+  --octo-hair: rgba(15, 23, 42, .08);
+  --octo-warn: #b45309;
+  --octo-r1: 6px;
+  --octo-r2: 10px;
+  --octo-r3: 12px;
+  --octo-r9: 999px;
+  --octo-sh-s: 0 1px 2px rgba(15, 23, 42, .06);
+  --octo-sh-m: 0 6px 18px rgba(15, 23, 42, .10);
+  --octo-sh-l: 0 16px 40px rgba(49, 46, 129, .16);
+  --octo-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+  color: var(--octo-ink);
+  font: 400 13px/18px var(--octo-font);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+#octo-wsbar *, #octo-wsbar *::before, #octo-wsbar *::after,
+#octo-wsb-pop *, #octo-wsb-pop *::before, #octo-wsb-pop *::after,
+#octo-wsb-board *, #octo-wsb-board *::before, #octo-wsb-board *::after,
+#octo-wsb-toast *, #octo-wsb-toast *::before, #octo-wsb-toast *::after { box-sizing: border-box; }
+#octo-wsbar button, #octo-wsb-pop button, #octo-wsb-board button, #octo-wsb-toast button {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+#octo-wsbar button:focus-visible, #octo-wsb-pop button:focus-visible, #octo-wsb-board button:focus-visible,
+#octo-wsb-toast button:focus-visible, #octo-wsb-pop input:focus-visible, #octo-wsb-board:focus-visible {
+  outline: 2px solid var(--octo-accent);
+  outline-offset: 2px;
+}
+#octo-wsbar[hidden], #octo-wsb-pop[hidden], #octo-wsb-toast[hidden], #octo-wsb-scrim[hidden], #octo-wsbar [hidden] { display: none !important; }
+
+/* ---------------------------------------------------------------- cubuk
+   Ust kenara asili pil (uzak masaustu baglanti cubugu). Tablonun atasi DEGIL. */
+#octo-wsbar {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  z-index: 1450;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 52px;
+  max-width: min(880px, calc(100vw - 32px));
+  padding: 4px 6px;
+  background: var(--octo-surface);
+  border: 1px solid var(--octo-line);
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+  box-shadow: var(--octo-sh-l);
+  white-space: nowrap;
+  transition: transform 220ms cubic-bezier(.22, 1, .36, 1);
+}
+#octo-wsbar[data-classic="1"] { z-index: 1501; max-width: min(880px, calc(100vw - 312px)); }
+/* Igne (auto-hide; yalniz fare ve hover olan aygitlarda): ignesizken 6 px tutamak kalir. */
+#octo-wsbar[data-pinned="0"][data-peek="0"] { transform: translateY(-46px); }
+#octo-wsbar[data-pinned="0"]::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 36px;
+  height: 3px;
+  margin-left: -18px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-line);
+}
+#octo-wsbar .octo-wsb-sep { flex: 0 0 1px; width: 1px; height: 24px; margin: 0 4px; background: var(--octo-line); }
+
+#octo-wsbar .octo-wsb-ws {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 10px 0 4px;
+  border: 0;
+  border-radius: var(--octo-r3);
+  background: transparent;
+  cursor: pointer;
+}
+#octo-wsbar .octo-wsb-ws:not([data-act]) { cursor: default; }
+#octo-wsbar .octo-wsb-ws[data-act]:hover, #octo-wsbar .octo-wsb-ws[aria-expanded="true"] { background: var(--octo-field); }
+#octo-wsbar .octo-wsb-ico {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--octo-grad);
+  color: #fff;
+}
+#octo-wsbar .octo-wsb-lab { display: inline-flex; flex-direction: column; min-width: 0; line-height: 1; }
+#octo-wsbar .octo-wsb-eyebrow { font: 600 10px/12px var(--octo-font); letter-spacing: .08em; text-transform: uppercase; color: var(--octo-ink-3t); }
+#octo-wsbar .octo-wsb-name {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 600 14px/18px var(--octo-font);
+  color: var(--octo-ink);
+}
+#octo-wsbar .octo-wsb-chev { flex: 0 0 auto; color: var(--octo-ink-3t); }
+
+#octo-wsbar .octo-wsb-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  max-width: 220px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--octo-r9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 600 12px/16px var(--octo-font);
+}
+#octo-wsbar .octo-wsb-chip.is-as { margin-left: 4px; background: rgba(180, 83, 9, .10); color: var(--octo-warn); cursor: pointer; }
+#octo-wsbar .octo-wsb-chip.is-as:not([data-act]) { cursor: default; }
+#octo-wsbar .octo-wsb-chip.is-warn { background: rgba(180, 83, 9, .10); color: var(--octo-warn); }
+
+#octo-wsbar .octo-wsb-views { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 2px; min-width: 0; overflow: hidden; }
+#octo-wsbar .octo-wsb-views > * { flex: 0 0 auto; }
+#octo-wsbar .octo-wsb-view,
+#octo-wsbar .octo-wsb-stage,
+#octo-wsbar .octo-wsb-more,
+#octo-wsbar .octo-wsb-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  max-width: 220px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--octo-r3);
+  background: transparent;
+  color: var(--octo-ink-2);
+  font-weight: 500;
+  cursor: pointer;
+}
+#octo-wsbar .octo-wsb-vlab, #octo-wsbar .octo-wsb-crumb { min-width: 0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+#octo-wsbar .octo-wsb-view:hover, #octo-wsbar .octo-wsb-stage:hover, #octo-wsbar .octo-wsb-more:hover { background: var(--octo-field); color: var(--octo-ink); }
+#octo-wsbar .octo-wsb-view[aria-current="page"] { background: var(--octo-accent-soft); color: var(--octo-accent); font-weight: 600; }
+#octo-wsbar .octo-wsb-n {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-field);
+  color: var(--octo-ink-2);
+  font: 600 11px/18px var(--octo-font);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#octo-wsbar .octo-wsb-view[aria-current="page"] .octo-wsb-n { background: #fff; color: var(--octo-accent); }
+/* Zoom icinde: [Processes] [<] [<surec> v] [>]  (Processes = geri cik; oklar Bubble sirasinda komsu surec). */
+#octo-wsbar .octo-wsb-view[data-crumb="1"] { padding-right: 10px; }
+#octo-wsbar .octo-wsb-stage { background: var(--octo-accent-soft); color: var(--octo-ink); font-weight: 600; }
+#octo-wsbar .octo-wsb-stage:hover, #octo-wsbar .octo-wsb-stage[aria-expanded="true"] { background: rgba(99, 102, 241, .16); }
+#octo-wsbar .octo-wsb-stage .octo-wsb-n { background: #fff; }
+#octo-wsbar .octo-wsb-step,
+#octo-wsbar .octo-wsb-add,
+#octo-wsbar .octo-wsb-pin,
+#octo-wsbar .octo-wsb-menu {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--octo-r3);
+  background: transparent;
+  color: var(--octo-ink-2);
+  cursor: pointer;
+}
+#octo-wsbar .octo-wsb-step:disabled { color: var(--octo-ink-3); cursor: default; }
+#octo-wsbar .octo-wsb-step:not(:disabled):hover, #octo-wsbar .octo-wsb-add:hover, #octo-wsbar .octo-wsb-pin:hover, #octo-wsbar .octo-wsb-menu:hover,
+#octo-wsbar .octo-wsb-menu[aria-expanded="true"] { background: var(--octo-field); color: var(--octo-ink); }
+#octo-wsbar .octo-wsb-pin[aria-pressed="true"] { color: var(--octo-accent); }
+#octo-wsbar .octo-wsb-more { padding: 0 10px; font-variant-numeric: tabular-nums; }
+#octo-wsbar .octo-wsb-done { background: var(--octo-accent); color: #fff; font-weight: 600; }
+#octo-wsbar .octo-wsb-done:hover { background: #4f46e5; }
+
+/* ---------------------------------------------------------------- menuler */
+#octo-wsb-pop {
+  position: fixed;
+  z-index: 1451;
+  min-width: 248px;
+  max-width: 360px;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 6px;
+  background: var(--octo-surface);
+  border: 1px solid var(--octo-line);
+  border-radius: 14px;
+  box-shadow: var(--octo-sh-l);
+}
+#octo-wsb-pop .octo-wsb-find {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin: 0 0 6px;
+  padding: 0 12px;
+  border: 1px solid var(--octo-line);
+  border-radius: var(--octo-r2);
+  background: var(--octo-field);
+  color: var(--octo-ink);
+  font: 400 16px/20px var(--octo-font);
+}
+#octo-wsb-pop .octo-wsb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--octo-r2);
+  background: transparent;
+  color: var(--octo-ink);
+  text-align: left;
+  cursor: pointer;
+}
+#octo-wsb-pop .octo-wsb-item > svg { flex: 0 0 auto; color: var(--octo-ink-3t); }
+#octo-wsb-pop .octo-wsb-item:hover, #octo-wsb-pop .octo-wsb-item:focus { background: var(--octo-field); outline: none; }
+#octo-wsb-pop .octo-wsb-item:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: -2px; }
+#octo-wsb-pop .octo-wsb-item[aria-checked="true"],
+#octo-wsb-pop .octo-wsb-item[aria-current] { color: var(--octo-accent); font-weight: 600; }
+#octo-wsb-pop .octo-wsb-item[aria-checked="true"] > svg, #octo-wsb-pop .octo-wsb-item[aria-current] > svg { color: var(--octo-accent); }
+#octo-wsb-pop .octo-wsb-item[data-armed="1"] { background: rgba(180, 83, 9, .08); color: var(--octo-warn); font-weight: 600; }
+#octo-wsb-pop .octo-wsb-ilab { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#octo-wsb-pop .octo-wsb-check { margin-left: auto; }
+#octo-wsb-pop .octo-wsb-n {
+  flex: 0 0 auto;
+  min-width: 24px;
+  padding: 0 7px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-field);
+  color: var(--octo-ink-2);
+  font: 600 12px/22px var(--octo-font);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#octo-wsb-pop .octo-wsb-ord {
+  flex: 0 0 22px;
+  height: 22px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-field);
+  color: var(--octo-ink-2);
+  font: 600 11px/22px var(--octo-font);
+  text-align: center;
+}
+#octo-wsb-pop .octo-wsb-div { height: 1px; margin: 6px 4px; background: var(--octo-line); }
+#octo-wsb-pop .octo-wsb-none { padding: 12px 10px; color: var(--octo-ink-3t); }
+#octo-wsb-pop .octo-wsb-mhead { padding: 8px 10px 2px; color: var(--octo-ink-3t); font: 600 11px/16px var(--octo-font); letter-spacing: .06em; text-transform: uppercase; }
+#octo-wsb-pop .octo-wsb-flows { padding: 6px 10px 6px; }
+#octo-wsb-pop .octo-wsb-fnum { font: 600 14px/20px var(--octo-font); font-variant-numeric: tabular-nums; }
+#octo-wsb-pop .octo-wsb-fsub { color: var(--octo-ink-3t); font-size: 12px; }
+
+/* ---------------------------------------------------------------- pano
+   .octo-rail-cell cocugu (tablonun kardesi): seridin altindan hucrenin dibine; rayin paneli (245) ustte. */
+#octo-wsb-board {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 244;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 24px 32px;
+  background: var(--octo-bg);
+}
+#octo-wsb-board[hidden] { display: none !important; }
+#octo-wsb-board .octo-wsb-bhead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 -24px 14px;
+  padding: 18px 24px 10px;
+  background: var(--octo-bg);
+}
+#octo-wsb-board .octo-wsb-btw { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+#octo-wsb-board .octo-wsb-btitle { margin: 0; font: 700 20px/26px var(--octo-font); color: var(--octo-ink); letter-spacing: -.01em; }
+#octo-wsb-board .octo-wsb-bacts { display: flex; gap: 8px; flex-wrap: wrap; }
+#octo-wsb-board .octo-wsb-bbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--octo-line);
+  border-radius: var(--octo-r3);
+  background: var(--octo-surface);
+  color: var(--octo-ink);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--octo-sh-s);
+}
+#octo-wsb-board .octo-wsb-bbtn:hover { border-color: rgba(99, 102, 241, .45); color: var(--octo-accent); }
+
+#octo-wsb-board .octo-wsb-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#octo-wsb-board .octo-wsb-cell { position: relative; min-width: 0; transition: opacity 180ms ease; }
+#octo-wsb-board[data-zooming="1"] .octo-wsb-cell { opacity: .35; }
+#octo-wsb-board .octo-wsb-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 136px;
+  padding: 14px 16px;
+  border: 1px solid var(--octo-line);
+  border-radius: 16px;
+  background: var(--octo-surface);
+  box-shadow: var(--octo-sh-s);
+  text-align: left;
+  cursor: zoom-in;
+  transform-origin: 50% 50%;
+  transition: transform 180ms cubic-bezier(.22, 1, .36, 1), box-shadow 180ms ease, border-color 180ms ease;
+}
+#octo-wsb-board .octo-wsb-card:hover,
+#octo-wsb-board .octo-wsb-card:focus-visible {
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(99, 102, 241, .45);
+  box-shadow: var(--octo-sh-l);
+}
+/* Pinch ile yaklasma: olcek tekerlekten gelir (gecis yok, parmagi izler). */
+#octo-wsb-board .octo-wsb-card[data-approach="1"] { transition: none; border-color: var(--octo-accent); box-shadow: var(--octo-sh-l); }
+#octo-wsb-board .octo-wsb-card[aria-current="true"] { border-color: rgba(99, 102, 241, .55); box-shadow: inset 4px 0 0 var(--octo-accent), var(--octo-sh-s); }
+/* Create (YeniKayit) asamasi: kayit acma kutusu, tabloya zoom degil. */
+#octo-wsb-board .octo-wsb-card[data-kind="create"] { cursor: pointer; border-style: dashed; background: linear-gradient(180deg, #fff, #f8f9ff); }
+#octo-wsb-board .octo-wsb-ctop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#octo-wsb-board .octo-wsb-ord {
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-field);
+  color: var(--octo-ink-2);
+  font: 700 12px/26px var(--octo-font);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#octo-wsb-board .octo-wsb-card[aria-current="true"] .octo-wsb-ord { background: var(--octo-accent); color: #fff; }
+#octo-wsb-board .octo-wsb-hint {
+  padding: 2px 8px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-accent-soft);
+  color: var(--octo-accent);
+  font: 600 11px/18px var(--octo-font);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+#octo-wsb-board .octo-wsb-card:hover .octo-wsb-hint,
+#octo-wsb-board .octo-wsb-card:focus-visible .octo-wsb-hint,
+#octo-wsb-board .octo-wsb-card[data-approach="1"] .octo-wsb-hint { opacity: 1; }
+#octo-wsb-board .octo-wsb-cname {
+  display: -webkit-box;
+  margin-top: 12px;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font: 600 15px/20px var(--octo-font);
+  color: var(--octo-ink);
+  word-break: break-word;
+}
+#octo-wsb-board .octo-wsb-card[aria-current="true"] .octo-wsb-cname { font-weight: 700; }
+#octo-wsb-board .octo-wsb-tipi { margin-top: 2px; color: var(--octo-ink-3t); font-size: 12px; }
+#octo-wsb-board .octo-wsb-cfoot { display: flex; align-items: baseline; gap: 6px; margin-top: auto; }
+#octo-wsb-board .octo-wsb-count { font: 700 28px/32px var(--octo-font); color: var(--octo-ink); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+#octo-wsb-board .octo-wsb-unit { color: var(--octo-ink-3t); font-size: 12px; }
+#octo-wsb-board .octo-wsb-cplus { margin-left: auto; align-self: center; color: var(--octo-accent); }
+
+/* Iskelet (yalniz bar henuz cizilmediyse). */
+#octo-wsb-board .octo-wsb-skel {
+  height: 136px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  /* Ilk 300 ms gorunmez (hizli cevapta iskelet yanip sonmez), sonra parlama. */
+  animation: octo-wsb-in 0s linear 300ms both, octo-wsb-shimmer 1.2s linear infinite;
+}
+@keyframes octo-wsb-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes octo-wsb-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+#octo-wsb-board .octo-wsb-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 48px auto 0;
+  max-width: 420px;
+  color: var(--octo-ink-3t);
+  text-align: center;
+}
+#octo-wsb-board .octo-wsb-stitle { font: 600 15px/20px var(--octo-font); color: var(--octo-ink); }
+#octo-wsb-board .octo-wsb-srow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* Hayalet: karttan tablonun yerine buyur (transform-origin sol ust: dx/dy + olcek hesabi buna gore). */
+#octo-wsb-board .octo-wsb-ghost {
+  position: absolute;
+  z-index: 4;
+  overflow: hidden;
+  border: 1px solid var(--octo-line);
+  border-radius: 14px;
+  background: var(--octo-surface);
+  box-shadow: var(--octo-sh-l);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+#octo-wsb-board .octo-wsb-gbar {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--octo-line);
+  background: var(--octo-field);
+}
+#octo-wsb-board .octo-wsb-gname { font: 700 14px/18px var(--octo-font); color: var(--octo-ink); }
+#octo-wsb-board .octo-wsb-grow { height: 36px; margin: 0 16px; border-bottom: 1px solid var(--octo-line-2); }
+
+/* ---------------------------------------------------------------- bildirim, scrim, ses */
+#octo-wsb-toast {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  z-index: 1452;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--octo-r3);
+  background: #0f172a;
+  color: #fff;
+  box-shadow: var(--octo-sh-l);
+  transform: translateX(-50%);
+}
+#octo-wsb-toast .octo-wsb-ttext { padding-right: 6px; }
+#octo-wsb-toast .octo-wsb-tbtn {
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--octo-r2);
+  background: rgba(255, 255, 255, .14);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Classic scrim: yalniz cekmecenin sagi; cubugun (1450) ALTINDA, Bubble menusunun (1504) altinda. */
+#octo-wsb-scrim { position: fixed; top: 0; right: 0; bottom: 0; left: 280px; z-index: 1449; background: rgba(15, 23, 42, .12); }
+.octo-wsb-live {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #octo-wsbar, #octo-wsb-board .octo-wsb-card, #octo-wsb-board .octo-wsb-cell, #octo-wsb-board .octo-wsb-hint { transition: none; }
+  #octo-wsb-board .octo-wsb-card:hover, #octo-wsb-board .octo-wsb-card:focus-visible { transform: none; }
+  #octo-wsb-board .octo-wsb-skel { animation: none; opacity: 1; }
+}
+
 </style>
 <script id="octo-shell-script">
 /* file: octo-core.js */
@@ -47170,7 +47705,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-10-20.os8p';
+  var VERSION = 'octo 2026-10-20.os9a';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -47889,7 +48424,10 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     'arrow-up': 'M12 19V5|M6 11l6-6 6 6',
     'external': 'M14 4h6v6|M20 4l-9 9|M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
     // os3t2: Bubble sol menusunu gizle / getir (serit basi).
-    'sidebar': 'M5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4z|M9.5 4v16'
+    'sidebar': 'M5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4z|M9.5 4v16',
+    // os9a (OCTO_WSBAR_SPEC): Workspace cubugu acilir menu oku ve liste (gorunum) glifi.
+    'chevron-down': 'M5 9l7 7 7-7',
+    'list': 'M9 6h11|M9 12h11|M9 18h11|M4.5 6h.01|M4.5 12h.01|M4.5 18h.01'
   };
 
   // ------------------------------------------------------------ sayfa kimligi
@@ -51310,6 +51848,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       if (M.parts.panel && M.parts.panel.contains(n)) { return true; }
       var r = rootEl();
       if (r && r.contains(n)) { return true; }
+      // os9a (OCTO_WSBAR_SPEC 7): Workspace cubugu, menusu ve bildirimi govdenin cocugu; boyamalari tik sayilmaz.
+      if (octo._wsbar && typeof octo._wsbar.own === 'function' && octo._wsbar.own(n)) { return true; }
     } catch (e) { /* yut */ }
     return false;
   }
@@ -52012,7 +52552,10 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     if (M.sideTimer) { return; }
     M.sideTimer = setTimeout(function () { M.sideTimer = null; sideAuto(); }, ms);
   }
+  // os9a (OCTO_WSBAR_SPEC 4, SAPMA): Workspace cubugu test kipinde Bubble menusunu kendisi (CSS) gizler; ray susar.
+  function wsActive() { try { return !!(octo._wsbar && typeof octo._wsbar.active === 'function' && octo._wsbar.active()); } catch (e) { return false; } }
   function sideAuto() {
+    if (wsActive()) { if (M.side) { sideRestore(); } return; }
     if (!M.mounted || M.phone || M.sideNo) { return; }
     if (M.side && isConn(M.side)) { sideApply(); return; }
     M.side = null;
@@ -52040,7 +52583,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   }
   function sideApply() {
     var s = M.side;
-    if (!s || !isConn(s)) { return; }
+    if (!s || !isConn(s) || wsActive()) { return; }
     var open = !!M.sideUser;
     if (open === M.sideOpen && (s.getAttribute(SIDE_ATTR) === 'hide') === !open) { return; }
     if (open) { s.removeAttribute(SIDE_ATTR); } else { s.setAttribute(SIDE_ATTR, 'hide'); }
@@ -52049,6 +52592,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     fireResize();
   }
   function sideToggle() {
+    if (wsActive()) { return; }
     if (M.side && !isConn(M.side)) { M.side = null; M.sideTries = 0; sideAuto(); }
     if (!M.side) { return; }
     M.sideUser = !M.sideOpen;
@@ -64681,6 +65225,2256 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       writable: false, enumerable: false, configurable: true
     });
   } catch (e) { /* yut */ }
+})();
+
+/* file: app-wsbar.js */
+/* ==========================================================================
+   app-wsbar.js  -  OCTO WORKSPACE CUBUGU (os9a v2). Sahip: CLIENT. OCTO_WSBAR_SPEC.
+
+   Test kipi (?ws=1, sekme oturumu boyunca; ?ws=0 kapatir), yalniz masaustu (>= 900 px, DESK 1.4 #4):
+   Bubble'in sol menusu (#sideMenu) ve alt surec bari (#stagebar) YALNIZ CSS ile gizlenir (visibility;
+   dugumler cizili kalir, vekil tiklama calisir, DESK K1), 280 px sol bosluk sifirlanir. Yerlerine:
+   - ust ortada uzak masaustu cubugu gibi asili Workspace cubugu (tablo secici, gorunumler, surec gezgini,
+     menu, igne),
+   - tablonun yerinde surec kartlari panosu (Processes): sayfa acilisinda ve her tablo degisiminde
+     varsayilan; karta tiklamak / Enter / trackpad pinch ile yaklasmak o surece "zoom" yapar.
+
+   Bubble'da SIFIR degisiklik: her gezinme Bubble'in KENDI is akisiyla (gizli ogeye vekil tiklama). Kip
+   Bubble'in kendi kiplerine yol verir (Edit Workspace, misafir, Automations sayfasi, tablo yok, < 900 px):
+   o anda her sey geri alinir, Bubble menusu gorunur. Eslenmeyen islevler Classic menu ile erisilebilir.
+
+   SERT KISIT: tablonun atalarina (satir, hucre) hicbir stil yazilmaz; pano tablonun KARDESIDIR
+   (.octo-rail-cell cocugu, z 244, rayin panelinin 245 altinda). Tablo hic tasinmaz, gizlenmez.
+   Ray (app-rail.js) iki kanca tasir: ownNode kabuk dugumlerini tanir; sol menu gizleyicisi kipte susar.
+
+   Veri YALNIZ Bubble DOM'undan (adlar, Bubble'in kendi sayaclari) ve rayin baglamindan / os_workspace
+   cevabindan (surec adlari, tipi); sunucu istegi YOK. Tum uzak metin textContent. Kod yorumlari Turkce,
+   UI metni Ingilizce, em/en dash yok.
+
+   Harness dikisleri: window.__octoWsQuery (location.search yerine), window.__OCTO_WS_OFF, octo._wsbar.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var octo = window.octo;
+  if (!octo || !octo.bus || typeof octo.icon !== 'function') { return; }
+  if (octo._wsbar) { return; }
+
+  var D = document;
+  var W = window;
+  var FLAG_KEY = 'octo_ws';
+  var PIN_KEY = 'wsb.pinned';
+  var BAR_ID = 'octo-wsbar';
+  var POP_ID = 'octo-wsb-pop';
+  var BOARD_ID = 'octo-wsb-board';
+  var TOAST_ID = 'octo-wsb-toast';
+  var SCRIM_ID = 'octo-wsb-scrim';
+  var LIVE_ID = 'octo-wsb-live';
+  var A_ON = 'data-octo-ws';
+  var A_CLASSIC = 'data-octo-ws-classic';
+  var A_GUTTER = 'data-octo-ws-gutter';
+  var TABLE_ID = 'dynamic-table-wrapper';
+  var MIN_W = 900;
+
+  // Zamanlar (ms). Harness T_DEFAULT'u okur, hizlandirmak icin T'yi degistirir.
+  var T = {
+    tick: 250, settle: 400, zoomMs: 280, fadeMs: 120, inMs: 180, settleMs: 350, zoomWait: 4000, barWait: 3000,
+    pageStep: 350, toast: 4000, hideDelay: 600, wheelIdle: 220, poll: 100,
+    dropGrace: 1500, bootGrace: 4000, variantWait: 600, ours: 1500, reopenEvery: 5000, gfWait: 3000,
+    blankConfirm: 5000, blankWait: 8000, rescanAfter: 60000, bootTries: 120
+  };
+  var T_DEFAULT = {};
+  (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
+
+  // Bubble element id -> DOM sinifi: her buyuk harften once 'a' (bUfIf -> baUfaIf). Kaynak: SM1_EK_HAM.txt,
+  // SM2_CANLI_DOM.md ve 20.10 version-test misafir DOM'u (#sideMenu baUfaHw, #stagebar baUfaHaM dogrulandi).
+  function bc(id) { return '.' + String(id).replace(/([A-Z])/g, 'a$1'); }
+  var SEL = {
+    side: '#sideMenu, ' + bc('bUfHw'),
+    bar: '#stagebar, ' + bc('bUfHM'),
+    sheetRow: bc('bUfIf'),    // Group stage digertablolarinner (tiklanir: WF bUfgN, SA = tablonun Arama ekrani)
+    sheetName: bc('bUfIl'),   // Text tablo adi (title ozniteligi tam ad)
+    sheetMark: bc('bUwsl'),   // Shape A: yalniz secili tabloda gorunur
+    listRow: bc('bUfJE'),     // Group stage liste inner view (tiklanir: WF bUgEa, SA = liste ekrani)
+    listName: bc('bUfJF'),
+    listMark: bc('bUxCr'),    // Shape B: yalniz secili listede gorunur
+    listCount: bc('bUxTw'),   // Text AZ: Bubble'in liste sayaci
+    addList: bc('bUfJX'),     // + Add list (Editor + secili tablo)
+    addTable: bc('bVPgm0'),   // + Add Table (Editor; WF bUgDf CreateSheet: ONAYSIZ hemen tablo yazar)
+    templates: bc('bWAyR'),   // Browse AI templates karti (Editor; icinde a)
+    gear: bc('bWHgF0'),       // ayar dislisi: GroupFocus kullanici menu (bUwqD)
+    userMenu: bc('bUwqD'),    // GroupFocus kullanici menu (sayfa kokunde, disliye yapisik)
+    company: bc('bUfII'),     // Text D: sirket adi
+    person: bc('bUfIJ'),      // SearchBox set page user (Editor / Agency'de etkin)
+    guest: bc('bWAxa'),       // Input G 'Name': yalniz misafirde gorunur
+    closeIcon: bc('bVPed0'),  // Icon W: menuyu kapat (acik = false)
+    reopen: bc('bVczM'),      // Button N: Bubble'in menuyu yeniden acan dugmesi (Group os icinde)
+    editMarks: [bc('bWDmW'), bc('bUfJK'), bc('bUfIr'), bc('bUxGn')],   // Edit Workspace kipinin ogeleri
+    cell: bc('bUfHX'),        // Group is-surecleri-inner.rg (tiklanir: WF bVSLU0, SA = surec ekrani)
+    cellName: bc('bUmlV'),    // Text O
+    cellCount: bc('bUxUb'),   // Text EZ: Bubble'in surec sayaci (SA = hucre iken beyaz yazi, mavi zemin)
+    prev: bc('bUwnB'),        // Icon ZZ (onceki sayfa; sayfa 1 degilken gorunur)
+    next: bc('bWDdp'),        // Icon RZZ (sonraki sayfa; surec sayisi > 5 iken HEP gorunur, son sayfada da)
+    more: bc('bWCKq'),        // Dropdown "More" (InputChanged: WF bWCKw; yalniz deger degisince)
+    addStage: bc('bUfHq'),    // + Add stage (Editor)
+    os: bc('bUfFa')           // Group os: margin-left 280 px sabit bosluk
+  };
+  // Tablonun acik katmanlari (acikken cubuk etkisiz, pano acilmaz; tablev2 CSS 322-1997).
+  var TABLE_LAYERS = '.dt-toolbar-more-menu.is-open, .dt-column-menu.is-open, .dt-filter-panel.is-open, .dt-sort-panel.is-open, ' +
+    '.dt-dd-backdrop.is-open, .dt-menu-backdrop.is-open, .dt-wake-backdrop, .dt-field-pop, .dt-people-pop';
+
+  // ------------------------------------------------------------------ durum
+  var S = {
+    armed: false, flag: false, mounted: false, variant: '', bootAt: 0, bootTries: 0,
+    mo: null, mo2: null, mo2Roots: [], moTimer: null, frameT: null, frameR: null, dirty: false,
+    listeners: [], timers: {},
+    bar: null, pop: null, board: null, toast: null, scrim: null, live: null, ghost: null,
+    cellRef: null, cellAt: 0, stripRef: null,
+    view: null, zoom: null, menu: '', menuAnchor: null, classic: false, pinned: true, peek: false,
+    snap: null, sig: '', sheetSig: '', ctxKey: '', ours: 0, touched: false,
+    cur: null, counts: {}, names: {}, memoSig: {}, page: 0, scan: null, scannedAt: {},
+    noBarSince: 0, noProc: {}, chromeErr: '', reopenAt: 0, reopenTries: 0, dropAt: 0,
+    waiters: [], wheel: null, barWheel: null, gfSeen: false, blankAt: 0, findQ: '',
+    lastErr: '', trace: [], covered: ''
+  };
+
+  // ------------------------------------------------------------- yardimcilar
+  function str(v) { return (v == null) ? '' : String(v); }
+  function clean(v) { return str(v).replace(/\s+/g, ' ').trim().slice(0, 120); }
+  function el(tag, cls, t) { var n = D.createElement(tag); if (cls) { n.className = cls; } if (t != null) { n.textContent = String(t); } return n; }
+  function btn(cls, act, label) {
+    var b = D.createElement('button');
+    b.type = 'button';
+    if (cls) { b.className = cls; }
+    if (act) { b.setAttribute('data-act', act); }
+    if (label) { b.setAttribute('aria-label', label); b.title = label; }
+    return b;
+  }
+  function clear(n) { if (!n) { return; } while (n.firstChild) { n.removeChild(n.firstChild); } }
+  function isConn(n) { try { return !!n && (n.isConnected === true || D.documentElement.contains(n)); } catch (e) { return false; } }
+  function rm(n) { try { if (n && n.parentNode) { n.parentNode.removeChild(n); } } catch (e) { /* yut */ } }
+  function now() { try { return W.performance.now(); } catch (e) { return Date.now(); } }
+  function trace(ev) { S.trace.push(ev); if (S.trace.length > 40) { S.trace.shift(); } }
+  function ssGet(k) { try { return W.sessionStorage.getItem(k); } catch (e) { return null; } }
+  function ssSet(k, v) { try { W.sessionStorage.setItem(k, v); } catch (e) { /* yut */ } }
+  function ssDel(k) { try { W.sessionStorage.removeItem(k); } catch (e) { /* yut */ } }
+  function noMo() { try { return octo.noMotion() === true; } catch (e) { return false; } }
+  function wide() { var w = W.innerWidth || (D.documentElement && D.documentElement.clientWidth) || 1280; return w >= MIN_W; }
+  function hoverOk() { try { return !W.matchMedia || W.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { return true; } }
+  function fireResize() {
+    try { W.dispatchEvent(new Event('resize')); } catch (e) {
+      try { var ev = D.createEvent('Event'); ev.initEvent('resize', false, false); W.dispatchEvent(ev); } catch (e2) { /* yut */ }
+    }
+  }
+  function listen(target, type, fn, opts) {
+    try { target.addEventListener(type, fn, opts || false); S.listeners.push([target, type, fn, opts || false]); } catch (e) { /* yut */ }
+  }
+  function unlistenAll() {
+    for (var i = 0; i < S.listeners.length; i++) {
+      var l = S.listeners[i];
+      try { l[0].removeEventListener(l[1], l[2], l[3]); } catch (e) { /* yut */ }
+    }
+    S.listeners = [];
+  }
+  function later(name, fn, ms) {
+    if (S.timers[name]) { try { clearTimeout(S.timers[name]); } catch (e) { /* yut */ } }
+    S.timers[name] = setTimeout(function () { S.timers[name] = null; fn(); }, ms || 0);
+  }
+  function cancel(name) { if (S.timers[name]) { try { clearTimeout(S.timers[name]); } catch (e) { /* yut */ } S.timers[name] = null; } }
+  function stopTimers() { for (var k in S.timers) { if (Object.prototype.hasOwnProperty.call(S.timers, k)) { cancel(k); } } }
+  function upTo(n, test, stop) {
+    for (var x = n; x && x !== stop && x.nodeType === 1; x = x.parentNode) { if (test(x)) { return x; } }
+    return null;
+  }
+  function hasCls(n, c) { return !!(n && n.classList && n.classList.contains(c)); }
+  function editable(n) {
+    if (!n || n.nodeType !== 1) { return false; }
+    var t = n.tagName;
+    return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || n.isContentEditable === true;
+  }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms || 0); }); }
+  function anim(n, frames, ms, easing) {
+    if (!n || typeof n.animate !== 'function' || noMo()) { return Promise.resolve(null); }
+    return new Promise(function (resolve) {
+      var a = null;
+      try { a = n.animate(frames, { duration: ms, easing: easing || 'cubic-bezier(.22,1,.36,1)', fill: 'both' }); } catch (e) { resolve(null); return; }
+      var done = false;
+      function fin() { if (done) { return; } done = true; resolve(a); }
+      try { a.onfinish = fin; a.oncancel = fin; } catch (e2) { /* yut */ }
+      setTimeout(fin, ms + 80);   // arka plan sekmesinde animasyon durursa
+    });
+  }
+  function cancelAnim(a) { try { if (a && typeof a.cancel === 'function') { a.cancel(); } } catch (e) { /* yut */ } }
+  function fmtNum(t) { var d = str(t).replace(/[^\d]/g, ''); if (!d) { return ''; } var v = parseInt(d, 10); try { return v.toLocaleString('en-US'); } catch (e) { return String(v); } }
+
+  // ----------------------------------------------------------------- bayrak
+  function wsQuery() {
+    if (typeof W.__octoWsQuery === 'string') { return W.__octoWsQuery; }
+    try { return String((W.location && W.location.search) || ''); } catch (e) { return ''; }
+  }
+  // ?ws=1|on kipi sekme oturumu boyunca acar (Bubble ChangePage sorguyu dusurur), ?ws=0|off kapatir.
+  function readFlag() {
+    var m = /[?&]ws=(1|on|0|off)(?=&|#|$)/i.exec(wsQuery());
+    if (m) {
+      var v = m[1].toLowerCase();
+      if (v === '1' || v === 'on') { ssSet(FLAG_KEY, '1'); } else { ssDel(FLAG_KEY); }
+    }
+    return ssGet(FLAG_KEY) === '1';
+  }
+
+  // ------------------------------------------------------------------- ray
+  function rail() { return octo._rail || null; }
+  function railM() { var r = rail(); return r ? r.M : null; }
+  function railArmed() { var M = railM(); return !!(M && M.armed && !M.yielded); }
+  function railCell() {
+    var M = railM();
+    if (!(M && M.mounted && !M.pending && M.variant === 'a' && M.cell && isConn(M.cell))) { return null; }
+    return M.cell;
+  }
+  function wrapperEl() { var M = railM(); return (M && M.wrapper && isConn(M.wrapper)) ? M.wrapper : D.getElementById(TABLE_ID); }
+  function ctx() {
+    var r = rail();
+    try { return r && typeof r.readCtx === 'function' ? (r.readCtx() || { key: '' }) : { key: '' }; } catch (e) { return { key: '' }; }
+  }
+  function railData() { var M = railM(); return (M && M.data && M.data.sheet) ? M.data : null; }
+  function railStages() { var d = railData(); return (d && Object.prototype.toString.call(d.stages) === '[object Array]') ? d.stages : []; }
+  function railTab() { var r = rail(); try { return r ? r.tab : 'table'; } catch (e) { return 'table'; } }
+  function railSheet() { var M = railM(); return !!(M && M.sheet); }
+  // Bar eylemleri once rayin Table sekmesine doner (panel acikken pano panelin altinda kalirdi).
+  function ensureTableTab() {
+    var r = rail();
+    try { if (r && r.tab !== 'table' && typeof r.selectTab === 'function') { r.selectTab('table'); } } catch (e) { /* yut */ }
+  }
+
+  // ----------------------------------------------------------- Bubble okuma
+  // "Gorunur" = Bubble gizlememis (display zinciri). Kabugun kendi visibility gizlemesi sayilmaz.
+  function shown(n, stop) {
+    if (!n) { return false; }
+    for (var x = n; x && x.nodeType === 1 && x !== stop && x !== D.body && x !== D.documentElement; x = x.parentNode) {
+      var cs = null;
+      try { cs = W.getComputedStyle(x); } catch (e) { cs = null; }
+      if (cs && cs.display === 'none') { return false; }
+    }
+    return true;
+  }
+  function q1(sel, scope) { try { return (scope || D).querySelector(sel); } catch (e) { return null; } }
+  function sideRoot() { return q1(SEL.side); }
+  function barRoot() { return q1(SEL.bar); }
+  function textOf(n) {
+    if (!n) { return ''; }
+    var t = clean(n.textContent);
+    var ti = clean(n.getAttribute && n.getAttribute('title'));
+    if (!ti) { var c = n.querySelector && n.querySelector('[title]'); ti = c ? clean(c.getAttribute('title')) : ''; }
+    return ti && ti.length >= t.length ? ti : t;
+  }
+  function numOf(n) {
+    var t = clean(n && n.textContent);
+    if (!/\d/.test(t)) { return null; }
+    var v = parseInt(t.replace(/[^\d]/g, ''), 10);
+    return isFinite(v) ? v : null;
+  }
+  // Bubble kosulu (SA = hucre): Text EZ beyaz yazi, mavi zemin rgb(10, 99, 255), kalin.
+  function picked(n) {
+    if (!n) { return false; }
+    var cs = null;
+    try { cs = W.getComputedStyle(n); } catch (e) { cs = null; }
+    if (!cs) { return false; }
+    if (/rgba?\(\s*255\s*,\s*255\s*,\s*255/.test(cs.color || '')) { return true; }
+    if (/rgba?\(\s*10\s*,\s*99\s*,\s*255/.test(cs.backgroundColor || '')) { return true; }
+    return false;
+  }
+  function groupItem(n, stop) { return upTo(n, function (x) { return hasCls(x, 'group-item'); }, stop); }
+  function anyShown(sels, scope) {
+    for (var i = 0; i < sels.length; i++) {
+      var all = null;
+      try { all = (scope || D).querySelectorAll(sels[i]); } catch (e) { all = null; }
+      for (var j = 0; all && j < all.length; j++) { if (shown(all[j], null)) { return true; } }
+    }
+    return false;
+  }
+  function editMode() {
+    var side = sideRoot(), bar = barRoot();
+    return (side && anyShown(SEL.editMarks, side)) || (bar && anyShown(SEL.editMarks, bar)) || false;
+  }
+  function guest() { var side = sideRoot(); var g = side ? q1(SEL.guest, side) : null; return !!g && shown(g, null); }
+  function tableLayer() {
+    var all = null;
+    try { all = D.querySelectorAll(TABLE_LAYERS); } catch (e) { all = null; }
+    for (var i = 0; all && i < all.length; i++) {
+      if (all[i].hasAttribute && all[i].hasAttribute('hidden')) { continue; }
+      if (shown(all[i], null)) { return true; }
+    }
+    return false;
+  }
+  function tableVisible() {
+    var w = wrapperEl();
+    if (!w || !isConn(w)) { return false; }
+    var r = null;
+    try { r = w.getBoundingClientRect(); } catch (e) { r = null; }
+    return !!r && r.width > 0 && r.height > 0 && shown(w, null);
+  }
+
+  function snapshot() {
+    var side = sideRoot();
+    var bar = barRoot();
+    var s = {
+      side: !!side, sideShown: !!side && shown(side, null), bar: false, sheets: [], sheet: -1, lists: [], list: -1, listsHidden: true,
+      cells: [], cell: -1, more: null, moreOpts: [], moreSel: -1, prev: null, next: null,
+      can: { addTable: null, addList: null, addStage: null, templates: null, gear: null, person: null },
+      flows: null, company: '', person: ''
+    };
+    if (side) {
+      var rows = side.querySelectorAll(SEL.sheetRow);
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var name = textOf(r.querySelector(SEL.sheetName));
+        if (!name) { continue; }
+        var mk = r.querySelector(SEL.sheetMark);
+        var selected = !!mk && shown(mk, r);
+        if (!mk) {
+          var nn = r.querySelector(SEL.sheetName);
+          try { selected = !!nn && Number(W.getComputedStyle(nn).fontWeight) >= 600; } catch (e) { selected = false; }
+        }
+        s.sheets.push({ name: name, node: r, item: groupItem(r, side), selected: selected });
+        if (selected && s.sheet < 0) { s.sheet = s.sheets.length - 1; }
+      }
+      var cur = s.sheet >= 0 ? s.sheets[s.sheet] : null;
+      if (cur && cur.item) {
+        var lrg = q1('#liste', cur.item) || q1(bc('bUfIn'), cur.item);
+        s.listsHidden = !lrg || !shown(lrg, side);
+        var lrows = cur.item.querySelectorAll(SEL.listRow);
+        for (var j = 0; j < lrows.length; j++) {
+          var lr = lrows[j];
+          if (!shown(lr, side)) { continue; }
+          var li = groupItem(lr, cur.item);
+          var ln = textOf(lr.querySelector(SEL.listName));
+          if (!ln) { continue; }
+          var lm = lr.querySelector(SEL.listMark);
+          var lsel = !!lm && shown(lm, lr);
+          var lc = li ? li.querySelector(SEL.listCount) : null;
+          s.lists.push({ name: ln, node: lr, count: (lc && shown(lc, li)) ? numOf(lc) : null, selected: lsel });
+          if (lsel && s.list < 0) { s.list = s.lists.length - 1; }
+        }
+        var al = cur.item.querySelector(SEL.addList);
+        if (al && shown(al, side)) { s.can.addList = al; }
+      }
+      var at = side.querySelector(SEL.addTable);
+      if (at && shown(at, side)) { s.can.addTable = at; }
+      var tp = side.querySelector(SEL.templates);
+      if (tp && shown(tp, side)) { s.can.templates = tp.querySelector('a') || tp; }
+      var g = side.querySelector(SEL.gear);
+      if (g && shown(g, side)) { s.can.gear = g; }
+      var ps = side.querySelector(SEL.person);
+      var pin = ps ? (ps.querySelector('input.tt-input') || ps.querySelector('input')) : null;
+      if (pin && shown(ps, side)) {
+        s.person = clean(pin.value);
+        if (!pin.disabled) { s.can.person = pin; }
+      }
+      s.company = textOf(side.querySelector(SEL.company));
+      var fn = D.getElementById('fcw-num'), ft = D.getElementById('fcw-total'), fd = D.getElementById('fcw-date');
+      var fw = D.getElementById('fcw-wrap');
+      // Bubble kredi kutusunu gizlediyse (plan yok: '0', 'of 0') satir cizilmez.
+      if (fn && ft && !(fw && fw.hidden) && shown(fn, null) && /\d/.test(fn.textContent || '')) {
+        s.flows = { num: fmtNum(fn.textContent), total: fmtNum(ft.textContent), date: fd ? clean(fd.textContent) : '' };
+      }
+    }
+    if (bar && shown(bar, null)) {
+      s.bar = true;
+      var cells = bar.querySelectorAll(SEL.cell);
+      for (var k = 0; k < cells.length; k++) {
+        var c = cells[k];
+        if (!shown(c, bar)) { continue; }
+        // Bos hucre (sabit 1x5 RG'nin veri tasimayan hucresi) atlanir; sayaci sirketin tum kayitlarini sayardi.
+        var cn = textOf(c.querySelector(SEL.cellName));
+        if (!cn) { continue; }
+        var cc = c.querySelector(SEL.cellCount);
+        var csel = picked(cc);
+        s.cells.push({ name: cn, node: c, count: cc ? numOf(cc) : null, selected: csel });
+        if (csel && s.cell < 0) { s.cell = s.cells.length - 1; }
+      }
+      // More: barin kendi secicisi; hucre icindeki telefon secicisi (Dropdown X) DEGIL.
+      var mo = q1('select' + SEL.more, bar) || q1(SEL.more + ' select', bar);
+      if (mo && shown(mo, bar)) {
+        s.more = mo;
+        s.moreSel = mo.selectedIndex;
+        for (var o = 0; o < mo.options.length; o++) {
+          var op = mo.options[o];
+          var ot = clean(op.textContent || op.label);
+          if (op.disabled || (o === 0 && (op.value === '' || /^more$/i.test(ot)))) { continue; }
+          s.moreOpts.push({ name: ot, index: o });
+        }
+      }
+      var pv = bar.querySelector(SEL.prev), nx = bar.querySelector(SEL.next);
+      s.prev = (pv && shown(pv, bar)) ? pv : null;
+      s.next = (nx && shown(nx, bar)) ? nx : null;
+      var as = bar.querySelector(SEL.addStage);
+      if (as && shown(as, bar)) { s.can.addStage = as; }
+    }
+    return s;
+  }
+  function sheetName(s) {
+    s = s || S.snap;
+    if (s && s.sheet >= 0) { return s.sheets[s.sheet].name; }
+    var d = railData();
+    return d ? clean(d.sheet.name) : '';
+  }
+  function sheetKey(s) { s = s || S.snap; var n = sheetName(s); return n ? (n + '#' + (s && s.sheet >= 0 ? s.sheet : -1)) : ''; }
+  // os_workspace cevabi yeni tabloya gec gelir: yalniz acik tabloya aitse kullanilir (aksi halde eski tablonun surecleri).
+  function railFresh(s) { var d = railData(); return !!d && clean(d.sheet.name) === sheetName(s || S.snap); }
+
+  // -------------------------------------------------------------- surec modeli
+  // Sira = More secenekleri (Bubble RG listesi; sayfa sinirsiz), yoksa gorunur hucreler. Ad: hucreden ogrenilen
+  // (S.names), yoksa secenek metni. Sayac: Bubble hucresinden (gorunur sayfa ya da tarama), bilinmeyen null.
+  function pageOf(s) {
+    if (!s || !s.bar) { return 0; }
+    if (!s.prev) { return 1; }
+    return S.page > 1 ? S.page : 0;
+  }
+  // Ogrenilen ad / sayac bellegi, Bubble'in canli More listesi ya da sayfa kullanicisi (View as) degisince silinir:
+  // eski adlar canli listenin onune gecmesin.
+  function memoCheck(s) {
+    if (!s || !s.moreOpts.length) { return; }   // More yoksa sayfalar arasi konum ogrenimi kalmali
+    var k = sheetKey(s);
+    if (!k) { return; }
+    var pu = '';
+    try { pu = str(octo.page.pageUser()); } catch (e) { pu = ''; }
+    var sig = pu + '|' + s.moreOpts.map(function (o) { return o.name; }).join('|');
+    if (S.memoSig[k] === sig) { return; }
+    if (S.memoSig[k] != null) { delete S.names[k]; delete S.counts[k]; delete S.scannedAt[k]; S.cur = null; trace('memo:reset'); }
+    S.memoSig[k] = sig;
+  }
+  function memo(map, s) { memoCheck(s); var k = sheetKey(s); if (!k) { return {}; } if (!map[k]) { map[k] = {}; } return map[k]; }
+  // Gorunur hucreleri sira indeksine esler; ad + sayac bellege yazilir.
+  function alignCells(s) {
+    var out = [];
+    if (!s.bar || !s.cells.length) { return out; }
+    var total = s.moreOpts.length;
+    var names = memo(S.names, s), counts = memo(S.counts, s);
+    var used = {};
+    var matched = 0;
+    if (total) {
+      for (var i = 0; i < s.cells.length; i++) {
+        var c = s.cells[i], hit = -1;
+        for (var k = 0; k < total; k++) {
+          if (used[k]) { continue; }
+          var nm = names[k] || s.moreOpts[k].name;
+          if (nm === c.name) { hit = k; break; }
+        }
+        out.push(hit);
+        if (hit >= 0) { used[hit] = 1; matched++; }
+      }
+    }
+    // Secenek metni hucre adindan farkliysa (Bubble gosterim alani): bilinen sayfada konuma gore.
+    if (!matched) {
+      var p = pageOf(s);
+      out = [];
+      for (var j = 0; j < s.cells.length; j++) { out.push(p ? (p - 1) * 5 + j : (total ? -1 : j)); }
+    }
+    for (var m = 0; m < out.length; m++) {
+      var ix = out[m];
+      if (ix < 0) { continue; }
+      names[ix] = s.cells[m].name;
+      if (s.cells[m].count != null) { counts[ix] = s.cells[m].count; }
+    }
+    return out;
+  }
+  function stageModel(s) {
+    s = s || S.snap;
+    if (!s || !s.bar) { return []; }
+    var total = Math.max(s.moreOpts.length, s.cells.length);
+    var names = memo(S.names, s), counts = memo(S.counts, s);
+    var align = alignCells(s);
+    var cellAt = {};
+    for (var a = 0; a < align.length; a++) { if (align[a] >= 0) { cellAt[align[a]] = s.cells[a]; } }
+    var rs = railFresh(s) ? railStages() : [];
+    var known = {};
+    for (var r = 0; r < rs.length; r++) { known[clean(rs[r].name)] = rs[r]; }
+    var cur = curStage(s);
+    var out = [];
+    for (var i = 0; i < total; i++) {
+      var name = names[i] || (s.moreOpts[i] ? s.moreOpts[i].name : (s.cells[i] ? s.cells[i].name : ''));
+      if (!name) { continue; }
+      var cell = cellAt[i] || null;
+      var count = (cell && cell.count != null) ? cell.count : (counts[i] != null ? counts[i] : null);
+      var rec = known[name] || null;
+      // os_workspace surecleri 'olustur' (Create / YeniKayit) asamasini icermez: listede olmayan hucre Create'tir.
+      var create = !!(rs.length && !rec);
+      out.push({
+        idx: i, ord: i + 1, name: name, count: count, cell: cell ? cell.node : null,
+        current: !!cur && cur.idx === i, create: create, tipi: rec ? str(rec.tipi) : (create ? 'create' : ''), id: rec ? str(rec.id) : ''
+      });
+    }
+    return out;
+  }
+  // Su anki surec: baglamdaki stage_id -> os_workspace adi; yoksa kabugun son basarili vekili; yoksa Bubble gostergesi.
+  function curStage(s) {
+    s = s || S.snap;
+    var c = ctx();
+    if (!c.stage_id) { return null; }
+    var total = s ? Math.max(s.moreOpts.length, s.cells.length) : 0;
+    var names = s ? memo(S.names, s) : {};
+    function idxOf(name) {
+      for (var i = 0; i < total; i++) { var nm = names[i] || (s.moreOpts[i] ? s.moreOpts[i].name : (s.cells[i] ? s.cells[i].name : '')); if (nm === name) { return i; } }
+      return -1;
+    }
+    if (S.cur && S.cur.stageId === c.stage_id && S.cur.idx >= 0) { return { name: S.cur.name, idx: S.cur.idx }; }
+    var rs = railFresh(s) ? railStages() : [];
+    for (var r = 0; r < rs.length; r++) { if (str(rs[r].id) === c.stage_id) { var n = clean(rs[r].name); return { name: n, idx: idxOf(n) }; } }
+    if (s && s.cell >= 0) {
+      var al = alignCells(s);
+      return { name: s.cells[s.cell].name, idx: al[s.cell] >= 0 ? al[s.cell] : idxOf(s.cells[s.cell].name) };
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------ vekil
+  function pxClick(n, tag) {
+    if (!n) { return false; }
+    try { n.click(); S.ours = now(); trace('px:' + (tag || 'click')); return true; } catch (e) { return false; }
+  }
+  function pxSelect(sel, index) {
+    if (!sel) { return false; }
+    try {
+      sel.selectedIndex = index;
+      var ev;
+      try { ev = new Event('change', { bubbles: true }); } catch (e1) { ev = D.createEvent('Event'); ev.initEvent('change', true, false); }
+      sel.dispatchEvent(ev);
+      S.ours = now();
+      trace('px:more');
+      return true;
+    } catch (e) { return false; }
+  }
+  // Tarama ve sayfa gezinmesi Bubble'in sayfa okunu tiklar (SA degismez).
+  function pageStep(dir) {
+    var s = snapshot();
+    var n = dir > 0 ? s.next : s.prev;
+    if (!n) { return Promise.resolve(false); }
+    var sig = s.cells.map(function (c) { return c.name; }).join('|');
+    try { n.click(); } catch (e) { return Promise.resolve(false); }
+    trace('page:' + (dir > 0 ? '+' : '-'));
+    return wait(T.pageStep).then(function () {
+      var s2 = snapshot();
+      var moved = s2.cells.map(function (c) { return c.name; }).join('|') !== sig;
+      if (moved) { S.page = dir > 0 ? Math.max(2, (S.page || 1) + 1) : Math.max(1, (S.page || 2) - 1); }
+      if (!s2.prev) { S.page = 1; }
+      S.snap = s2;
+      alignCells(s2);
+      return moved;
+    });
+  }
+  function toFirstPage(max) {
+    var s = snapshot();
+    if (!s.prev || max <= 0) { if (!s.prev) { S.page = 1; } return Promise.resolve(true); }
+    return pageStep(-1).then(function (moved) { return moved ? toFirstPage(max - 1) : true; });
+  }
+  function pagesOf(s) { return Math.max(1, Math.ceil(Math.max(s.moreOpts.length, s.cells.length) / 5)); }
+  // Hedef surec: gorunur hucre; degilse More (yalniz deger degisecekse); degilse sayfayi gezip hucre.
+  function pxStage(st) {
+    abortScan();
+    var s = snapshot();
+    S.snap = s;
+    var al = alignCells(s);
+    for (var i = 0; i < al.length; i++) { if (al[i] === st.idx) { return Promise.resolve(pxClick(s.cells[i].node, 'cell') ? 'cell' : ''); } }
+    if (s.more && s.moreOpts[st.idx] && s.moreSel !== s.moreOpts[st.idx].index) {
+      return Promise.resolve(pxSelect(s.more, s.moreOpts[st.idx].index) ? 'more' : '');
+    }
+    var pages = pagesOf(s);
+    var want = Math.floor(st.idx / 5) + 1;
+    return toFirstPage(pages + 1).then(function () {
+      var steps = want - 1;
+      function fwd() {
+        if (steps <= 0) { return Promise.resolve(true); }
+        steps--;
+        return pageStep(1).then(function (moved) { return moved ? fwd() : false; });
+      }
+      return fwd();
+    }).then(function () {
+      var s2 = snapshot();
+      var a2 = alignCells(s2);
+      for (var j = 0; j < a2.length; j++) { if (a2[j] === st.idx || (a2[j] < 0 && s2.cells[j].name === st.name)) { return pxClick(s2.cells[j].node, 'cell') ? 'page' : ''; } }
+      return '';
+    });
+  }
+
+  // Bekleme: tik her turda waiters'i dener; zaman asiminda false.
+  function waitFor(test, ms) {
+    return new Promise(function (resolve) {
+      var w = { test: test, resolve: resolve, until: now() + ms };
+      S.waiters.push(w);
+      checkWaiters();
+      if (S.waiters.indexOf(w) >= 0) { later('waitPoll', pollWaiters, T.poll); }
+    });
+  }
+  function pollWaiters() {
+    if (!S.waiters.length) { return; }
+    tick();
+    checkWaiters();
+    if (S.waiters.length) { later('waitPoll', pollWaiters, T.poll); }
+  }
+  function checkWaiters() {
+    var keep = [];
+    for (var i = 0; i < S.waiters.length; i++) {
+      var w = S.waiters[i], ok = false;
+      try { ok = !!w.test(); } catch (e) { ok = false; }
+      if (ok) { w.resolve(true); } else if (now() >= w.until) { w.resolve(false); } else { keep.push(w); }
+    }
+    S.waiters = keep;
+  }
+  function dropWaiters() { var w = S.waiters; S.waiters = []; for (var i = 0; i < w.length; i++) { try { w[i].resolve(false); } catch (e) { /* yut */ } } }
+
+  // --------------------------------------------------------------- gizleme
+  function root() { return D.documentElement; }
+  function chromeOn() {
+    root().setAttribute(A_ON, '1');
+    // Rayin geometrik sol menu gizleyicisi kipte susar; biraktigi oznitelik silinir (display:none 'gorunur' kuralini bozardi).
+    sweepSide();
+    if (gutterApply()) { fireResize(); }
+  }
+  function sweepSide() {
+    var all = null;
+    try { all = D.querySelectorAll('[data-octo-side]'); } catch (e) { all = null; }
+    for (var i = 0; all && i < all.length; i++) { try { all[i].removeAttribute('data-octo-side'); } catch (e1) { /* yut */ } }
+  }
+  // 280 px sabit bosluk: once Group os (.baUfaFa, canlida dogrulandi); yoksa tablonun atalarindan sol boslugu
+  // menu genisligine (+-12 px) esit olan ilki. Bir kez isaretlenir; yalniz geri almada silinir.
+  function gutterApply() {
+    var have = q1('[' + A_GUTTER + ']');
+    if (have && isConn(have)) { return false; }
+    var hit = q1(SEL.os);
+    if (!hit) {
+      var side = sideRoot();
+      var sw = 280;
+      try { sw = side ? (side.getBoundingClientRect().width || 280) : 280; } catch (e) { sw = 280; }
+      var start = wrapperEl();
+      for (var x = start ? start.parentNode : null, hop = 0; x && x.nodeType === 1 && x !== D.body && hop < 40; x = x.parentNode, hop++) {
+        var ml = 0;
+        try { ml = parseFloat(W.getComputedStyle(x).marginLeft) || 0; } catch (e2) { ml = 0; }
+        if (Math.abs(ml - sw) <= 12) { hit = x; break; }
+      }
+    }
+    if (!hit) { return false; }
+    hit.setAttribute(A_GUTTER, '1');
+    trace('gutter');
+    return true;
+  }
+  function chromeOff() {
+    var r = root();
+    var had = r.hasAttribute(A_ON) || r.hasAttribute(A_CLASSIC);
+    r.removeAttribute(A_ON);
+    r.removeAttribute(A_CLASSIC);
+    var all = null;
+    try { all = D.querySelectorAll('[' + A_GUTTER + ']'); } catch (e) { all = null; }
+    for (var i = 0; all && i < all.length; i++) { try { all[i].removeAttribute(A_GUTTER); } catch (e1) { /* yut */ } had = true; }
+    S.classic = false;
+    return had;
+  }
+  function classic(on) {
+    on = !!on;
+    if (!S.mounted || S.chromeErr) { return false; }
+    if (on === S.classic) { return true; }
+    S.classic = on;
+    closeMenu(false);
+    if (on) { root().setAttribute(A_CLASSIC, '1'); abortScan(); } else { root().removeAttribute(A_CLASSIC); }
+    if (S.scrim) { S.scrim.hidden = !on; }
+    say(on ? 'Classic menu' : 'Classic menu closed');
+    trace('classic:' + (on ? 1 : 0));
+    S.sig = '';
+    paintSoon();
+    return true;
+  }
+  // Bubble'in kendi "menu kapali" durumu (acik = false): Button N ile Bubble'in is akisi menuyu yeniden acar.
+  function reopenSide() {
+    var t = now();
+    if (t - S.reopenAt < T.reopenEvery) { return false; }
+    S.reopenAt = t;
+    var n = q1(SEL.reopen);
+    // Yalniz Bubble gosteriyorsa (kipin CSS'i onu visibility ile gizler, display zinciri bozulmaz).
+    if (!n || !shown(n, null)) { return false; }
+    S.reopenTries++;
+    trace('reopen');
+    try { n.click(); return true; } catch (e) { return false; }
+  }
+
+  // ------------------------------------------------------------------ cubuk
+  function buildBar() {
+    var b = el('nav', 'octo-wsb');
+    b.id = BAR_ID;
+    b.setAttribute('aria-label', 'Workspaces');
+    b.addEventListener('pointerdown', onBarDown, true);
+    b.addEventListener('click', onBarClick);
+    b.addEventListener('keydown', onBarKey);
+    b.addEventListener('mouseenter', function () { peek(true); });
+    b.addEventListener('mouseleave', function () { later('peek', function () { peek(false); }, T.hideDelay); });
+    b.addEventListener('focusin', function () { peek(true); });
+    b.addEventListener('focusout', function () { later('peek', function () { peek(false); }, T.hideDelay); });
+    b.addEventListener('wheel', onPinchOut, { passive: false });
+    return b;
+  }
+  function peek(on) {
+    if (on) { cancel('peek'); }
+    if (!on) {
+      if (S.menu) { return; }
+      try { if (S.bar && S.bar.contains(D.activeElement)) { return; } } catch (e) { /* yut */ }
+    }
+    if (S.peek === on) { return; }
+    S.peek = on;
+    if (S.bar) { S.bar.setAttribute('data-peek', on ? '1' : '0'); }
+  }
+  function boardOk() { return !!S.board && !S.noProc[sheetKey()]; }
+  function boardOpen() { return !!S.board && !S.board.hidden; }
+  function viewKind() {
+    if (railTab() !== 'table' || railSheet()) { return 'panel'; }
+    if (boardOpen() && !S.zoom) { return 'board'; }
+    var c = ctx();
+    if (c.list_id) { return 'list'; }
+    if (c.stage_id) { return 'stage'; }
+    return 'all';
+  }
+  function curListName(s) { s = s || S.snap; return (s && s.list >= 0) ? s.lists[s.list].name : ''; }
+  function viewingAs() {
+    try {
+      var pu = octo.page.pageUser(), ids = octo.page.ids();
+      var cu = ids ? str(ids.user_id) : '';
+      return !!(pu && cu && pu !== cu);
+    } catch (e) { return false; }
+  }
+
+  function paintBar() {
+    var b = S.bar;
+    if (!b) { return; }
+    var s = S.snap || snapshot();
+    var kind = viewKind();
+    var noProc = !!S.noProc[sheetKey(s)];
+    var focusKey = focusedKey(b);
+    clear(b);
+    b.setAttribute('data-pinned', (S.pinned || !hoverOk()) ? '1' : '0');
+    b.setAttribute('data-peek', S.peek ? '1' : '0');
+    b.setAttribute('data-classic', S.classic ? '1' : '0');
+
+    // Workspace secici
+    var ws = btn('octo-wsb-ws', S.chromeErr ? '' : 'ws-menu');
+    if (!S.chromeErr) {
+      ws.setAttribute('aria-haspopup', 'menu');
+      ws.setAttribute('aria-expanded', S.menu === 'ws' ? 'true' : 'false');
+    }
+    ws.setAttribute('data-key', 'ws');
+    var ico = el('span', 'octo-wsb-ico');
+    ico.appendChild(octo.icon('grid', 16));
+    ws.appendChild(ico);
+    var lab = el('span', 'octo-wsb-lab');
+    lab.appendChild(el('span', 'octo-wsb-eyebrow', 'Workspace'));
+    lab.appendChild(el('span', 'octo-wsb-name', sheetName(s) || 'Workspace'));
+    ws.appendChild(lab);
+    if (!S.chromeErr) { ws.appendChild(octo.icon('chevron-down', 16, { className: 'octo-wsb-chev' })); }
+    b.appendChild(ws);
+
+    if (S.chromeErr) {
+      // Bubble menusu gizli / yok (editorde kaldirilmis): kabuk hicbir seyi gizlemez, yalniz durumu soyler.
+      b.appendChild(el('span', 'octo-wsb-sep'));
+      var ce = el('span', 'octo-wsb-chip is-warn', 'Menu hidden in Bubble');
+      ce.setAttribute('role', 'status');
+      b.appendChild(ce);
+      placeBar();
+      return;
+    }
+    if (viewingAs()) {
+      var va = btn('octo-wsb-chip is-as', s.can.person ? 'view-as' : '');
+      va.setAttribute('data-key', 'as');
+      va.appendChild(octo.icon('people', 14));
+      va.appendChild(el('span', '', s.person ? ('Viewing as ' + s.person) : 'Viewing as someone'));
+      b.appendChild(va);
+    }
+    b.appendChild(el('span', 'octo-wsb-sep'));
+
+    var g = el('div', 'octo-wsb-views');
+    g.setAttribute('role', 'group');
+    g.setAttribute('aria-label', 'Views');
+    if (!noProc) {
+      var pb = btn('octo-wsb-view', 'view');
+      pb.setAttribute('data-view', 'board');
+      pb.setAttribute('data-key', 'v:board');
+      if (kind === 'board' || kind === 'stage') { pb.setAttribute('aria-current', 'page'); }
+      pb.appendChild(octo.icon('grid', 16));
+      pb.appendChild(el('span', 'octo-wsb-vlab', 'Processes'));
+      if (kind === 'stage') { pb.setAttribute('data-crumb', '1'); pb.setAttribute('aria-label', 'Processes, zoom out'); }
+      g.appendChild(pb);
+    }
+    if (kind === 'stage' && !noProc) {
+      var st = stageModel(s);
+      var cur = curStage(s);
+      var at = cur ? cur.idx : -1;
+      var pv = btn('octo-wsb-step', 'stage-prev', 'Previous process');
+      pv.setAttribute('data-key', 'sprev');
+      pv.appendChild(octo.icon('chevron-left', 16));
+      if (at <= 0) { pv.disabled = true; }
+      g.appendChild(pv);
+      var sb = btn('octo-wsb-stage', 'stage-menu');
+      sb.setAttribute('aria-haspopup', 'menu');
+      sb.setAttribute('aria-expanded', S.menu === 'stages' ? 'true' : 'false');
+      sb.setAttribute('data-key', 'stage');
+      sb.appendChild(el('span', 'octo-wsb-crumb', cur ? cur.name : 'Process'));
+      var cc = (at >= 0 && st[at] && st[at].count != null) ? st[at].count : null;
+      if (cc != null) { sb.appendChild(el('span', 'octo-wsb-n', String(cc))); }
+      sb.appendChild(octo.icon('chevron-down', 14, { className: 'octo-wsb-chev' }));
+      g.appendChild(sb);
+      var nx = btn('octo-wsb-step', 'stage-next', 'Next process');
+      nx.setAttribute('data-key', 'snext');
+      nx.appendChild(octo.icon('chevron-right', 16));
+      if (at < 0 || at >= st.length - 1) { nx.disabled = true; }
+      g.appendChild(nx);
+    }
+    var ab = btn('octo-wsb-view', 'view');
+    ab.setAttribute('data-view', 'all');
+    ab.setAttribute('data-key', 'v:all');
+    if (kind === 'all') { ab.setAttribute('aria-current', 'page'); }
+    ab.appendChild(octo.icon('table', 16));
+    ab.appendChild(el('span', 'octo-wsb-vlab', 'All records'));
+    g.appendChild(ab);
+    for (var i = 0; i < s.lists.length; i++) {
+      var L = s.lists[i];
+      var lb = btn('octo-wsb-view', 'view');
+      lb.setAttribute('data-view', 'list');
+      lb.setAttribute('data-idx', String(i));
+      lb.setAttribute('data-name', L.name);
+      lb.setAttribute('data-key', 'v:l:' + i);
+      lb.setAttribute('aria-label', L.name + (L.count != null ? (', ' + L.count + (L.count === 1 ? ' record' : ' records')) : ''));
+      lb.title = L.name;
+      if (kind === 'list' && s.list === i) { lb.setAttribute('aria-current', 'page'); }
+      lb.appendChild(octo.icon('list', 16));
+      lb.appendChild(el('span', 'octo-wsb-vlab', L.name));
+      if (L.count != null) { lb.appendChild(el('span', 'octo-wsb-n', String(L.count))); }
+      g.appendChild(lb);
+    }
+    var mb = btn('octo-wsb-more', 'views-menu', 'More views');
+    mb.setAttribute('aria-haspopup', 'menu');
+    mb.setAttribute('aria-expanded', S.menu === 'views' ? 'true' : 'false');
+    mb.setAttribute('data-key', 'vmore');
+    mb.hidden = true;
+    g.appendChild(mb);
+    if (s.can.addList) {
+      var nl = btn('octo-wsb-add', 'add-list', 'New list');
+      nl.setAttribute('data-key', 'addlist');
+      nl.appendChild(octo.icon('plus', 16));
+      g.appendChild(nl);
+    }
+    b.appendChild(g);
+    b.appendChild(el('span', 'octo-wsb-sep'));
+    if (S.classic) {
+      var dn = btn('octo-wsb-done', 'classic-off');
+      dn.setAttribute('data-key', 'done');
+      dn.appendChild(el('span', '', 'Done'));
+      b.appendChild(dn);
+    }
+    if (hoverOk() && !S.classic) {
+      var pin = btn('octo-wsb-pin', 'pin', 'Pin bar');
+      pin.setAttribute('aria-pressed', S.pinned ? 'true' : 'false');
+      pin.setAttribute('data-key', 'pin');
+      pin.appendChild(octo.icon('pin', 16));
+      b.appendChild(pin);
+    }
+    var mn = btn('octo-wsb-menu', 'menu', 'Menu');
+    mn.setAttribute('aria-haspopup', 'menu');
+    mn.setAttribute('aria-expanded', S.menu === 'menu' ? 'true' : 'false');
+    mn.setAttribute('data-key', 'menu');
+    mn.appendChild(octo.icon('apps', 18));
+    b.appendChild(mn);
+    fitViews(g, mb);
+    placeBar();
+    restoreFocus(b, focusKey);
+  }
+  // Olculen sigdirma (rayin fitTabs'i gibi): tasan listeler "+N" menusune.
+  function fitViews(g, more) {
+    if (!g || !S.bar) { return; }
+    var lists = Array.prototype.slice.call(g.querySelectorAll('[data-view="list"]'));
+    var hidden = 0;
+    var guard = 0;
+    // Gorunum grubu kendi genisligine sigmiyorsa (cubugun en buyuk genisligi CSS'te) sondan gizlenir; secili liste en son.
+    while (g.scrollWidth > g.clientWidth + 1 && guard < 40) {
+      guard++;
+      var victim = null;
+      for (var i = lists.length - 1; i >= 0; i--) { if (!lists[i].hidden && !lists[i].getAttribute('aria-current')) { victim = lists[i]; break; } }
+      if (!victim) { for (var j = lists.length - 1; j >= 0; j--) { if (!lists[j].hidden) { victim = lists[j]; break; } } }
+      if (!victim) { break; }
+      victim.hidden = true;
+      hidden++;
+      more.hidden = false;
+      clear(more);
+      more.appendChild(el('span', '', '+' + hidden));
+    }
+  }
+  // Yatay ortalama margin hesabiyla (cubuk tablonun atasi degil; transform yalniz auto-hide kaymasinda).
+  function placeBar() {
+    var b = S.bar;
+    if (!b) { return; }
+    var w = b.offsetWidth || 0;
+    // Classic acikken Bubble menusu (280 px cekmece) solu kaplar: cubuk kalan alanin ortasina.
+    b.style.left = S.classic ? 'calc(50% + 140px)' : '50%';
+    b.style.marginLeft = (-Math.round(w / 2)) + 'px';
+  }
+  function focusedKey(scope) {
+    try {
+      var a = D.activeElement;
+      if (a && scope && scope.contains(a)) { var k = a.getAttribute('data-key'); return k || ''; }
+    } catch (e) { /* yut */ }
+    return '';
+  }
+  function restoreFocus(scope, key) {
+    if (!key || !scope) { return; }
+    var n = null;
+    try { n = scope.querySelector('[data-key="' + key.replace(/"/g, '') + '"]'); } catch (e) { n = null; }
+    if (n && !n.disabled && !n.hidden) { try { n.focus({ preventScroll: true }); } catch (e1) { try { n.focus(); } catch (e2) { /* yut */ } } }
+  }
+
+  // Tablonun bir katmani (menu, panel, modal) ya da rayin telefon sayfasi acikken cubuk etkisiz.
+  // Tablonun acik katmani: tik cubukta islem yapmaz ama YAYILIR (tablev2'nin "disari tik" dinleyicileri katmani kapatir).
+  // Rayin telefon sayfasi: tik tamamen durdurulur.
+  function onBarDown(e) {
+    S.inertTap = tableLayer();
+    if (S.inertTap) { trace('bar:inert'); return; }
+    if (railSheet()) { try { e.preventDefault(); e.stopPropagation(); } catch (x) { /* yut */ } trace('bar:inert'); }
+  }
+  function onBarClick(e) {
+    var inert = S.inertTap || tableLayer();
+    S.inertTap = false;
+    if (inert) { return; }
+    if (railSheet()) { try { e.preventDefault(); e.stopPropagation(); } catch (x) { /* yut */ } return; }
+    var t = upTo(e.target, function (x) { return x.hasAttribute && x.hasAttribute('data-act'); }, S.bar);
+    if (!t || t.disabled) { return; }
+    var a = t.getAttribute('data-act');
+    var kb = e.detail === 0;
+    if (a === 'ws-menu') { toggleMenu('ws', t); return; }
+    if (a === 'views-menu') { toggleMenu('views', t); return; }
+    if (a === 'stage-menu') { toggleMenu('stages', t); return; }
+    if (a === 'menu') { toggleMenu('menu', t); return; }
+    if (a === 'pin') { setPinned(!S.pinned); return; }
+    if (a === 'add-list') { proxyAdd('addList'); return; }
+    if (a === 'classic-off') { classic(false); return; }
+    if (a === 'view-as') { viewAs(); return; }
+    if (a === 'stage-prev' || a === 'stage-next') { stepStage(a === 'stage-next' ? 1 : -1, kb); return; }
+    if (a === 'view') {
+      ensureTableTab();
+      var v = t.getAttribute('data-view');
+      if (v === 'board') { openBoard(kb); return; }
+      if (v === 'all') { openView('all'); return; }
+      if (v === 'list') { openView('list', t.getAttribute('data-name'), Number(t.getAttribute('data-idx'))); return; }
+    }
+  }
+  function onBarKey(e) {
+    var k = e && e.key;
+    if (k === 'ArrowDown') {
+      var t = upTo(e.target, function (x) { return x.hasAttribute && x.getAttribute('aria-haspopup') === 'menu'; }, S.bar);
+      // Menu zaten aciksa yeniden tiklanmaz (kapanirdi); odak menuye girer.
+      if (t) { e.preventDefault(); e.stopPropagation(); if (t.getAttribute('aria-expanded') !== 'true') { t.click(); } focusFirstItem(); }
+      return;
+    }
+    if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'Home' && k !== 'End') { return; }
+    var list = [];
+    var all = S.bar.querySelectorAll('button');
+    for (var i = 0; i < all.length; i++) { if (!all[i].disabled && all[i].getClientRects().length) { list.push(all[i]); } }
+    var at = list.indexOf(D.activeElement);
+    if (at < 0) { return; }
+    e.preventDefault();
+    e.stopPropagation();
+    // Elle etkinlestirme: oklar yalniz odagi gezdirir (Bubble gezinmesi Enter / Space ile).
+    var to = k === 'Home' ? 0 : (k === 'End' ? list.length - 1 : (at + (k === 'ArrowRight' ? 1 : -1) + list.length) % list.length);
+    try { list[to].focus(); } catch (e2) { /* yut */ }
+  }
+  function setPinned(on) {
+    S.pinned = !!on;
+    try { octo.state.set(PIN_KEY, S.pinned); } catch (e) { /* yut */ }
+    if (!S.pinned) { S.peek = false; }
+    S.sig = '';
+    paintSoon();
+  }
+  // Pinch-out (trackpad) cubugun ya da rayin seridinin ustunde: zoom icinden panoya. Tablo izgarasinda ASLA.
+  function pinchDelta(e) {
+    if (!e || !e.ctrlKey || e.deltaMode !== 0) { return 0; }
+    var d = e.deltaY || 0;
+    return Math.abs(d) < 50 ? d : 0;
+  }
+  function onPinchOut(e) {
+    var d = pinchDelta(e);
+    if (!d || viewKind() !== 'stage' || !boardOk() || tableLayer() || railSheet()) { return; }
+    e.preventDefault();
+    var w = S.barWheel || (S.barWheel = { acc: 0 });
+    w.acc = Math.max(0, w.acc + d);
+    later('barWheel', function () { S.barWheel = null; }, T.wheelIdle);
+    if (w.acc > 100) { S.barWheel = null; zoomOut(false); }
+  }
+
+  // ------------------------------------------------------------------ menu
+  function toggleMenu(kind, anchor) {
+    if (S.menu === kind) { closeMenu(true); return; }
+    openMenu(kind, anchor);
+  }
+  function openMenu(kind, anchor) {
+    if (!S.mounted || !S.pop || S.chromeErr) { return false; }
+    closeMenu(false);
+    S.menu = kind;
+    S.findQ = '';
+    S.blankAt = 0;
+    var actOf = { ws: 'ws-menu', stages: 'stage-menu', views: 'views-menu', menu: 'menu' };
+    S.menuAnchor = anchor || q1('[data-act="' + actOf[kind] + '"]', S.bar) || q1('[data-view="board"]', S.bar) || null;
+    S.pop.setAttribute('data-kind', kind);
+    S.pop.hidden = false;
+    // Menu Bubble'i acilista taze okur (kredi, roller, listeler gozlemciye dusmeyen degisikliklerle).
+    S.snap = snapshot();
+    if (kind === 'ws') { loadAllSheets(); }
+    paintMenu();
+    paintBar();
+    peek(true);
+    try { D.addEventListener('mousedown', onDocDown, true); } catch (e) { /* yut */ }
+    trace('menu:' + kind);
+    return true;
+  }
+  function closeMenu(focusBack) {
+    if (!S.menu) { return; }
+    var a = S.menuAnchor;
+    S.menu = '';
+    S.menuAnchor = null;
+    if (S.pop) { S.pop.hidden = true; clear(S.pop); S.pop.removeAttribute('data-kind'); }
+    try { D.removeEventListener('mousedown', onDocDown, true); } catch (e) { /* yut */ }
+    if (S.bar) { paintBar(); }
+    if (focusBack && a && S.bar) { restoreFocus(S.bar, a.getAttribute && a.getAttribute('data-key')); }
+  }
+  function onDocDown(e) {
+    var t = e && e.target;
+    if (S.pop && S.pop.contains(t)) { return; }
+    if (S.bar && S.bar.contains(t)) { return; }
+    closeMenu(false);
+  }
+  // Tablo listesi RG'si kaydirdikca yukleyebilir: gizli menu sona kaydirilir (stil degil), sayi sabitlenince geri.
+  function loadAllSheets() {
+    var side = sideRoot();
+    if (!side || side.scrollHeight <= side.clientHeight + 2) { return; }
+    var top = side.scrollTop;
+    var n0 = side.querySelectorAll(SEL.sheetRow).length;
+    try { side.scrollTop = side.scrollHeight; } catch (e) { return; }
+    later('sheetsLoad', function () {
+      var n1 = side.querySelectorAll(SEL.sheetRow).length;
+      try { side.scrollTop = top; } catch (e2) { /* yut */ }
+      if (n1 !== n0) { S.snap = snapshot(); if (S.menu === 'ws') { paintMenu(); } }
+    }, T.pageStep);
+  }
+  function item(label, act, icon, extra) {
+    var b = btn('octo-wsb-item', act);
+    b.setAttribute('role', 'menuitem');
+    b.setAttribute('tabindex', '-1');
+    if (icon) { b.appendChild(octo.icon(icon, 16)); }
+    b.appendChild(el('span', 'octo-wsb-ilab', label));
+    if (extra) {
+      for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) { b.setAttribute(k, String(extra[k])); } }
+    }
+    return b;
+  }
+  function paintMenu() {
+    var p = S.pop;
+    if (!p || !S.menu) { return; }
+    var s = S.snap || snapshot();
+    var fk = focusedKey(p);
+    clear(p);
+    var kind = S.menu;
+    var list = el('div', 'octo-wsb-list');
+    list.setAttribute('role', 'menu');
+    var as = viewingAs();
+    if (kind === 'ws') {
+      p.setAttribute('role', 'dialog');
+      p.setAttribute('aria-label', 'Workspaces');
+      list.setAttribute('aria-label', 'Workspaces');
+      if (s.sheets.length > 7) {
+        var f = D.createElement('input');
+        f.type = 'search';
+        f.className = 'octo-wsb-find';
+        f.placeholder = 'Find workspace';
+        f.setAttribute('aria-label', 'Find workspace');
+        f.setAttribute('data-key', 'find');
+        f.value = S.findQ;
+        f.addEventListener('input', function () { S.findQ = f.value; paintMenu(); });
+        p.appendChild(f);
+      }
+      var lq = S.findQ.toLowerCase();
+      var any = false;
+      for (var i = 0; i < s.sheets.length; i++) {
+        var sh = s.sheets[i];
+        if (lq && sh.name.toLowerCase().indexOf(lq) < 0) { continue; }
+        any = true;
+        var it = item(sh.name, 'sheet', 'folder', { 'data-idx': i, 'data-name': sh.name, 'data-key': 'sh:' + i });
+        it.setAttribute('role', 'menuitemradio');
+        it.setAttribute('aria-checked', sh.selected ? 'true' : 'false');
+        if (sh.selected) { it.appendChild(octo.icon('check', 16, { className: 'octo-wsb-check' })); }
+        list.appendChild(it);
+      }
+      if (!any) { list.appendChild(el('div', 'octo-wsb-none', 'No match')); }
+      var know = typeof W.gaiaKnowBusiness === 'function';
+      var adds = s.can.addTable && !as;
+      if (adds || s.can.templates) { list.appendChild(el('div', 'octo-wsb-div')); }
+      if (adds && know) { list.appendChild(item('New workspace', 'know', 'plus', { 'data-key': 'know' })); }
+      if (adds) {
+        var arm = S.blankAt && (now() - S.blankAt) < T.blankConfirm;
+        var bl = item(arm ? 'Create blank workspace?' : 'Blank workspace', 'add-table', know ? 'table' : 'plus', { 'data-key': 'addtable' });
+        if (arm) { bl.setAttribute('data-armed', '1'); }
+        list.appendChild(bl);
+      }
+      if (s.can.templates) { list.appendChild(item('Browse AI templates', 'templates', 'apps', { 'data-key': 'tpl' })); }
+    } else if (kind === 'views') {
+      p.setAttribute('role', 'presentation');
+      list.setAttribute('aria-label', 'Views');
+      var vk = viewKind();
+      var hid = {};
+      if (S.bar) { var hs = S.bar.querySelectorAll('[data-view="list"][hidden]'); for (var h = 0; h < hs.length; h++) { hid[hs[h].getAttribute('data-idx')] = 1; } }
+      for (var j = 0; j < s.lists.length; j++) {
+        if (!hid[String(j)]) { continue; }
+        var L = s.lists[j];
+        var li = item(L.name, 'list', 'list', { 'data-idx': j, 'data-name': L.name, 'data-key': 'vl:' + j });
+        if (L.count != null) { li.appendChild(el('span', 'octo-wsb-n', String(L.count))); }
+        if (vk === 'list' && s.list === j) { li.setAttribute('aria-current', 'page'); }
+        list.appendChild(li);
+      }
+    } else if (kind === 'stages') {
+      p.setAttribute('role', 'presentation');
+      list.setAttribute('aria-label', 'Processes');
+      var st = stageModel(s);
+      for (var k = 0; k < st.length; k++) {
+        var x = st[k];
+        var si = item(x.name, 'stage', '', { 'data-idx': k, 'data-name': x.name, 'data-key': 'st:' + k });
+        si.setAttribute('role', 'menuitemradio');
+        si.setAttribute('aria-checked', x.current ? 'true' : 'false');
+        si.insertBefore(el('span', 'octo-wsb-ord', String(x.ord)), si.firstChild);
+        if (x.count != null) { si.appendChild(el('span', 'octo-wsb-n', String(x.count))); }
+        list.appendChild(si);
+      }
+      if (!st.length) { list.appendChild(el('div', 'octo-wsb-none', 'No processes yet')); }
+      if (s.can.addStage) { list.appendChild(el('div', 'octo-wsb-div')); list.appendChild(item('Add process', 'add-stage', 'plus', { 'data-key': 'addstage' })); }
+    } else if (kind === 'menu') {
+      p.setAttribute('role', 'presentation');
+      list.setAttribute('aria-label', 'Menu');
+      if (s.company) { p.appendChild(el('div', 'octo-wsb-mhead', s.company)); }
+      if (s.flows && s.flows.num && s.flows.total) {
+        var fl = el('div', 'octo-wsb-flows');
+        fl.appendChild(el('div', 'octo-wsb-fnum', s.flows.num + ' of ' + s.flows.total + ' flows left'));
+        if (s.flows.date) { fl.appendChild(el('div', 'octo-wsb-fsub', 'Renews ' + s.flows.date)); }
+        p.appendChild(fl);
+        p.appendChild(el('div', 'octo-wsb-div'));
+      }
+      if (s.can.templates) { list.appendChild(item('Browse AI templates', 'templates', 'apps', { 'data-key': 'tpl' })); }
+      if (s.can.person) { list.appendChild(item('View as', 'view-as', 'people', { 'data-key': 'viewas' })); }
+      if (s.can.gear) { list.appendChild(item('Account menu', 'account', 'people', { 'data-key': 'acct' })); }
+      var cl = item('Classic menu', 'classic', 'sidebar', { 'data-key': 'classic' });
+      cl.setAttribute('role', 'menuitemcheckbox');
+      cl.setAttribute('aria-checked', S.classic ? 'true' : 'false');
+      list.appendChild(cl);
+    }
+    p.appendChild(list);
+    placeMenu();
+    restoreFocus(p, fk);
+  }
+  function placeMenu() {
+    var p = S.pop, a = S.menuAnchor;
+    if (!p || p.hidden) { return; }
+    var br = S.bar ? S.bar.getBoundingClientRect() : { bottom: 52, left: 0 };
+    var vw = D.documentElement.clientWidth || W.innerWidth || 1280;
+    p.style.top = Math.round(br.bottom + 6) + 'px';
+    // Cubuk yeniden boyandiysa capa kopuktur: ayni data-key ile yeniden bulunur.
+    if (a && !isConn(a) && S.bar) {
+      var ak = a.getAttribute && a.getAttribute('data-key');
+      var an = ak ? q1('[data-key="' + ak.replace(/"/g, '') + '"]', S.bar) : null;
+      if (an) { S.menuAnchor = a = an; }
+    }
+    var ar = (a && isConn(a) && !a.hidden) ? a.getBoundingClientRect() : br;
+    var w = p.offsetWidth || 300;
+    var left = Math.round(ar.left);
+    if (left + w > vw - 16) { left = Math.max(16, vw - 16 - w); }
+    p.style.left = left + 'px';
+  }
+  function focusFirstItem() {
+    if (!S.pop) { return; }
+    var f = S.pop.querySelector('.octo-wsb-find') || S.pop.querySelector('.octo-wsb-item');
+    if (f) { try { f.focus(); } catch (e) { /* yut */ } }
+  }
+  function onPopKey(e) {
+    var k = e && e.key;
+    if (k === 'Escape' || k === 'Esc') { e.preventDefault(); e.stopPropagation(); closeMenu(true); return; }
+    if (k !== 'ArrowDown' && k !== 'ArrowUp' && k !== 'Home' && k !== 'End') { if (k === 'Enter' || k === ' ') { e.stopPropagation(); } return; }
+    var items = [];
+    var all = S.pop.querySelectorAll('.octo-wsb-find, .octo-wsb-item');
+    for (var i = 0; i < all.length; i++) { items.push(all[i]); }
+    if (!items.length) { return; }
+    e.preventDefault();
+    e.stopPropagation();
+    var at = items.indexOf(D.activeElement);
+    var to = k === 'Home' ? 0 : (k === 'End' ? items.length - 1 : (at + (k === 'ArrowDown' ? 1 : -1) + items.length) % items.length);
+    try { items[to].focus(); } catch (e2) { /* yut */ }
+  }
+  function onPopClick(e) {
+    var t = upTo(e.target, function (x) { return hasCls(x, 'octo-wsb-item'); }, S.pop);
+    if (!t) { return; }
+    var a = t.getAttribute('data-act');
+    var idx = Number(t.getAttribute('data-idx'));
+    var name = t.getAttribute('data-name') || '';
+    var kb = e.detail === 0;
+    if (a === 'add-table') {
+      // Bubble'in '+ Add Table'i onaysiz hemen tablo yazar: iki adim.
+      if (!S.blankAt || (now() - S.blankAt) >= T.blankConfirm) { S.blankAt = now(); paintMenu(); restoreFocus(S.pop, 'addtable'); return; }
+      S.blankAt = 0;
+      closeMenu(false);
+      blankWorkspace();
+      return;
+    }
+    if (a === 'sheet') { closeMenu(true); openSheet(name, idx); return; }
+    if (a === 'list') { closeMenu(true); ensureTableTab(); openView('list', name, idx); return; }
+    if (a === 'stage') { closeMenu(true); ensureTableTab(); zoomIn(idx, { kb: kb }); return; }
+    if (a === 'add-stage') { closeMenu(false); proxyAdd('addStage'); return; }
+    if (a === 'know') { closeMenu(false); know(); return; }
+    if (a === 'templates') { closeMenu(false); templates(); return; }
+    if (a === 'account') { closeMenu(false); account(); return; }
+    if (a === 'view-as') { closeMenu(false); viewAs(); return; }
+    if (a === 'classic') { closeMenu(false); classic(!S.classic); return; }
+  }
+
+  // ---------------------------------------------------------------- eylemler
+  function proxyAdd(kind) {
+    var s = snapshot();
+    var n = s.can[kind];
+    if (!n) { toast('Could not open', true); return false; }
+    // Bubble acilir penceresi (z 2002) kabugun ustunde acilir; pano yerinde kalir.
+    return pxClick(n, 'add:' + kind);
+  }
+  function templates() {
+    var s = snapshot();
+    var n = s.can.templates;
+    if (!n) { toast('Could not open', true); return false; }
+    if (n.tagName === 'A') { return pxClick(n, 'templates'); }
+    // Kart Bubble'da gorunur ama baglantisiz: Architect'in kendi acicisi (rol esligi korunur: kart yalniz Editor'de).
+    try { if (typeof W._gadBrowseTemplates === 'function') { W._gadBrowseTemplates(); return true; } } catch (e) { /* yut */ }
+    return pxClick(n, 'templates');
+  }
+  function know() {
+    try { if (typeof W.gaiaKnowBusiness === 'function') { W.gaiaKnowBusiness(); trace('know'); return true; } } catch (e) { /* yut */ }
+    toast('Could not open', true);
+    return false;
+  }
+  // Bos tablo: Bubble CreateSheet ('New Table'); yeni satir gorulunce acilir, adlandirma Classic menude.
+  function blankWorkspace() {
+    var s = snapshot();
+    if (!s.can.addTable) { toast('Could not open', true); return Promise.resolve(false); }
+    var n0 = s.sheets.length;
+    var names0 = {};
+    for (var i = 0; i < s.sheets.length; i++) { names0[s.sheets[i].name + '#' + i] = 1; }
+    pxClick(s.can.addTable, 'add:table');
+    return waitFor(function () { return snapshot().sheets.length > n0; }, T.blankWait).then(function (ok) {
+      if (!ok) { toast('Could not open', true); return false; }
+      var s2 = snapshot();
+      var pick = s2.sheets.length - 1;
+      for (var j = 0; j < s2.sheets.length; j++) { if (!names0[s2.sheets[j].name + '#' + j]) { pick = j; break; } }
+      return openSheet(s2.sheets[pick].name, pick).then(function (r) { toast('Rename in Classic menu', true); return r; });
+    });
+  }
+  // Bubble kullanici menusu (GroupFocus) disliye yapisik: once Classic (disli gorunur), sonra tik; menu kapaninca Classic kapanir.
+  function account() {
+    var s = snapshot();
+    if (!s.can.gear) { toast('Could not open', true); return false; }
+    classic(true);
+    S.gfSeen = false;
+    later('gear', function () {
+      var s2 = snapshot();
+      if (s2.can.gear) { pxClick(s2.can.gear, 'gear'); }
+      S.gfAt = now();
+      gfWatch();
+    }, 60);
+    return true;
+  }
+  // Menu gorulunce kapanmasi izlenir; T.gfWait icinde hic acilmadiysa izleme biter (Classic acik kalir, kullanici kapatir).
+  function gfWatch() {
+    if (!S.classic) { return; }
+    var gf = q1(SEL.userMenu);
+    var open = !!gf && shown(gf, null);
+    if (open) { S.gfSeen = true; }
+    if (S.gfSeen && !open) { classic(false); return; }
+    if (!S.gfSeen && now() - (S.gfAt || 0) > T.gfWait) { return; }
+    later('gfWatch', gfWatch, 200);
+  }
+  // Personel ekranina gecis (Bubble'in arama kutusu, Editor / Agency): Classic acilir, kutu odaklanir.
+  function viewAs() {
+    var s = snapshot();
+    var inp = s.can.person;
+    if (!inp) { toast('Could not open', true); return false; }
+    classic(true);
+    later('viewAs', function () { try { inp.focus(); if (typeof inp.select === 'function') { inp.select(); } } catch (e) { /* yut */ } }, 60);
+    return true;
+  }
+  function newRecord() {
+    var go = function () {
+      try {
+        if (W.dynamicTable && typeof W.dynamicTable.create === 'function') { W.dynamicTable.create(); return true; }
+        if (typeof W.bubble_fn_create === 'function') { W.bubble_fn_create(); return true; }
+      } catch (e) { /* yut */ }
+      toast('Could not open', true);
+      return false;
+    };
+    ensureTableTab();
+    return hideBoard(true).then(go);
+  }
+  function openSheet(name, idx) {
+    var s = snapshot();
+    var sh = null;
+    if (typeof idx === 'number' && s.sheets[idx] && (!name || s.sheets[idx].name === name)) { sh = s.sheets[idx]; }
+    if (!sh) { for (var i = 0; i < s.sheets.length; i++) { if (s.sheets[i].name === name) { sh = s.sheets[i]; break; } } }
+    if (!sh) { toast('Could not open', true); return Promise.resolve(false); }
+    ensureTableTab();
+    // Secili tablo yeniden secilmez (Bubble'da degisiklik olmaz, Creator'da kayit formu acilirdi): yalniz pano.
+    if (sh.selected) { return openBoard(false); }
+    abortScan();
+    var k0 = sheetKey(s);
+    // Gorunum basarida (tablo degisimi dali / showBoard) 'board' olur; basarisizlikta eski gorunum kalir.
+    if (!pxClick(sh.node, 'sheet')) { toast('Could not open', true); return Promise.resolve(false); }
+    return waitFor(function () { var k = sheetKey(S.snap); return !!k && k !== k0; }, T.zoomWait).then(function (ok) {
+      if (!ok) { toast('Could not open', true); return false; }
+      say(sheetName() + ' opened');
+      return showBoard(false).then(function () { return true; });
+    });
+  }
+  function openView(kind, name, idx) {
+    var s = snapshot();
+    var c = ctx();
+    var node = null;
+    // Zaten acik gorunume vekil tiklanmaz (Bubble'da anahtar degismezdi): yalniz pano kapanir.
+    if (kind === 'all') {
+      if (c.key && !c.list_id && !c.stage_id) { return hideBoard(true).then(function () { return true; }); }
+      node = s.sheet >= 0 ? s.sheets[s.sheet].node : null;
+    } else if (kind === 'list') {
+      var L = (typeof idx === 'number' && s.lists[idx] && s.lists[idx].name === name) ? s.lists[idx] : null;
+      if (!L) { for (var i = 0; i < s.lists.length; i++) { if (s.lists[i].name === name) { L = s.lists[i]; break; } } }
+      if (L && L.selected && c.list_id) { return hideBoard(true).then(function () { return true; }); }
+      node = L ? L.node : null;
+    }
+    if (!node) { toast('Could not open', true); return Promise.resolve(false); }
+    abortScan();
+    var k0 = c.key;
+    if (!pxClick(node, kind)) { toast('Could not open', true); return Promise.resolve(false); }
+    return waitFor(function () { return ctx().key !== k0; }, T.zoomWait).then(function (ok) {
+      if (!ok) { toast('Could not open', true); return false; }
+      return hideBoard(true).then(function () { say((kind === 'all' ? 'All records' : name) + ' opened'); return true; });
+    });
+  }
+
+  // ------------------------------------------------------------------ pano
+  function buildBoard() {
+    var b = el('section', 'octo-wsb-board');
+    b.id = BOARD_ID;
+    b.setAttribute('aria-label', 'Processes');
+    b.setAttribute('tabindex', '-1');
+    b.hidden = true;
+    b.addEventListener('click', onBoardClick);
+    b.addEventListener('keydown', onBoardKey);
+    b.addEventListener('wheel', onBoardWheel, { passive: false });
+    return b;
+  }
+  // Pano yalniz rayin Varyant A hucresi oturduktan (T.variantWait) sonra kurulur; hucre degisirse tasinir.
+  function ensureBoard() {
+    var cell = railCell();
+    if (!cell) {
+      if (S.board) { detachBoard(); }
+      S.cellRef = null;
+      return false;
+    }
+    if (cell !== S.cellRef) { S.cellRef = cell; S.cellAt = now(); later('cellWait', tick, T.variantWait + 20); }
+    if (now() - S.cellAt < T.variantWait) { return false; }
+    if (S.noProc[sheetKey()]) { if (S.board) { detachBoard(); } return false; }
+    if (S.board && S.board.parentNode === cell) { return true; }
+    if (!S.board) { S.board = buildBoard(); }
+    var M = railM();
+    var panel = M && M.parts && M.parts.panel && M.parts.panel.parentNode === cell ? M.parts.panel : null;
+    if (panel) { cell.insertBefore(S.board, panel); } else { cell.appendChild(S.board); }
+    // Pano acikken Tab ortulu tablonun dugmelerine dusmesin: hucreye yalniz yakalayan focusin dinleyicisi (stil degil).
+    if (S.focusCell !== cell) {
+      if (S.focusCell) { try { S.focusCell.removeEventListener('focusin', onCellFocusIn, true); } catch (e0) { /* yut */ } }
+      try { cell.addEventListener('focusin', onCellFocusIn, true); } catch (e1) { /* yut */ }
+      S.focusCell = cell;
+    }
+    // Pinch-out rayin seridinde de (tablonun atasi degil; dinleyici, stil degil).
+    var strip = cell.querySelector('.octo-tabs');
+    if (strip && strip !== S.stripRef) {
+      if (S.stripRef) { try { S.stripRef.removeEventListener('wheel', onPinchOut, { passive: false }); } catch (e) { /* yut */ } }
+      try { strip.addEventListener('wheel', onPinchOut, { passive: false }); } catch (e2) { /* yut */ }
+      S.stripRef = strip;
+    }
+    // Ilk kurulumda gorunum: sayfa acilisindan T.bootGrace icinde ve kullanici tabloya dokunmadiysa pano.
+    if (S.view == null) { S.view = (now() - S.bootAt <= T.bootGrace && !S.touched) ? 'board' : 'table'; trace('view:' + S.view); }
+    S.board.hidden = S.view !== 'board';
+    S.sig = '';
+    trace('board:attach');
+    return true;
+  }
+  function onCellFocusIn(e) {
+    var b = S.board, w = wrapperEl(), t = e && e.target;
+    if (!b || b.hidden || S.zoom || !w || !t || !w.contains(t)) { return; }
+    var from = e.relatedTarget;
+    var M = railM();
+    var tb = (M && M.parts && M.parts.tabBtns) ? M.parts.tabBtns[railTab()] : null;
+    // Shift+Tab panodan cikiyorsa rayin seridine; aksi halde panoya.
+    var to = (from && b.contains(from) && tb) ? tb : (b.querySelector('.octo-wsb-bbtn, .octo-wsb-card') || b);
+    try { to.focus({ preventScroll: true }); } catch (x) { /* yut */ }
+  }
+  function detachBoard() {
+    if (S.focusCell) { try { S.focusCell.removeEventListener('focusin', onCellFocusIn, true); } catch (e0) { /* yut */ } S.focusCell = null; }
+    if (S.stripRef) { try { S.stripRef.removeEventListener('wheel', onPinchOut, { passive: false }); } catch (e) { /* yut */ } S.stripRef = null; }
+    rmGhost();
+    rm(S.board);
+    S.board = null;
+    trace('board:detach');
+  }
+  function boardTop() {
+    var cell = railCell();
+    var st = cell ? cell.querySelector('.octo-tabs') : null;
+    if (!st || !isConn(st)) { return 44; }
+    return Math.max(0, Math.round(st.offsetTop + st.offsetHeight));
+  }
+  function paintBoard() {
+    var b = S.board;
+    if (!b) { return; }
+    b.style.top = boardTop() + 'px';
+    if (b.hidden || S.zoom) { return; }
+    var s = S.snap || snapshot();
+    var fk = focusedKey(b);
+    clear(b);
+    var head = el('header', 'octo-wsb-bhead');
+    var tw = el('div', 'octo-wsb-btw');
+    tw.appendChild(el('h2', 'octo-wsb-btitle', 'Processes'));
+    head.appendChild(tw);
+    var acts = el('div', 'octo-wsb-bacts');
+    var ab = btn('octo-wsb-bbtn', 'all');
+    ab.setAttribute('data-key', 'b:all');
+    ab.appendChild(octo.icon('table', 16));
+    ab.appendChild(el('span', '', 'All records'));
+    acts.appendChild(ab);
+    var canNew = (!!(W.dynamicTable && typeof W.dynamicTable.create === 'function') || typeof W.bubble_fn_create === 'function') && !viewingAs();
+    if (canNew) {
+      var nr = btn('octo-wsb-bbtn', 'new-record');
+      nr.setAttribute('data-key', 'b:new');
+      nr.appendChild(octo.icon('plus', 16));
+      nr.appendChild(el('span', '', 'New record'));
+      acts.appendChild(nr);
+    }
+    if (s.can.addStage) {
+      var as = btn('octo-wsb-bbtn', 'add-stage');
+      as.setAttribute('data-key', 'b:add');
+      as.appendChild(octo.icon('plus', 16));
+      as.appendChild(el('span', '', 'Add process'));
+      acts.appendChild(as);
+    }
+    head.appendChild(acts);
+    b.appendChild(head);
+
+    if (!s.bar) {
+      if (!S.noBarSince) { S.noBarSince = now(); }
+      if (now() - S.noBarSince < T.barWait) {
+        later('barWait', function () { S.sig = ''; tick(); }, T.barWait + 20);
+        var sk = el('ol', 'octo-wsb-cards');
+        sk.setAttribute('aria-busy', 'true');
+        for (var q = 0; q < 3; q++) { var sl = el('li', 'octo-wsb-cell'); sl.appendChild(el('div', 'octo-wsb-skel')); sk.appendChild(sl); }
+        b.appendChild(sk);
+      } else {
+        b.appendChild(stateBox('Processes unavailable', true));
+      }
+      restoreFocus(b, fk);
+      return;
+    }
+    var st = stageModel(s);
+    if (!st.length) {
+      b.appendChild(stateBox('No processes yet', false));
+      restoreFocus(b, fk);
+      return;
+    }
+    var ol = el('ol', 'octo-wsb-cards');
+    for (var k = 0; k < st.length; k++) {
+      var x = st[k];
+      var li = el('li', 'octo-wsb-cell');
+      var c = btn('octo-wsb-card', 'zoom');
+      c.setAttribute('data-idx', String(k));
+      c.setAttribute('data-name', x.name);
+      c.setAttribute('data-key', 'c:' + k);
+      if (x.create) { c.setAttribute('data-kind', 'create'); }
+      c.setAttribute('aria-label', x.name + (x.count != null ? (', ' + x.count + (x.count === 1 ? ' record' : ' records')) : ''));
+      if (x.current) { c.setAttribute('aria-current', 'true'); }
+      var top = el('span', 'octo-wsb-ctop');
+      top.appendChild(el('span', 'octo-wsb-ord', String(x.ord)));
+      var table = !x.tipi || /^table$/i.test(x.tipi);
+      top.appendChild(el('span', 'octo-wsb-hint', (x.create || !table) ? 'Open' : 'Zoom in'));
+      c.appendChild(top);
+      var nm = el('span', 'octo-wsb-cname', x.name);
+      c.appendChild(nm);
+      if (x.tipi && !x.create && !table) { c.appendChild(el('span', 'octo-wsb-tipi', x.tipi)); }
+      var foot = el('span', 'octo-wsb-cfoot');
+      if (x.count != null) {
+        foot.appendChild(el('span', 'octo-wsb-count', String(x.count)));
+        foot.appendChild(el('span', 'octo-wsb-unit', x.count === 1 ? 'record' : 'records'));
+      }
+      if (x.create) { foot.appendChild(octo.icon('plus', 18, { className: 'octo-wsb-cplus' })); }
+      c.appendChild(foot);
+      li.appendChild(c);
+      ol.appendChild(li);
+    }
+    b.appendChild(ol);
+    restoreFocus(b, fk);
+  }
+  function stateBox(title, withClassic) {
+    var box = el('div', 'octo-wsb-state');
+    box.appendChild(octo.icon('grid', 28));
+    box.appendChild(el('div', 'octo-wsb-stitle', title));
+    var row = el('div', 'octo-wsb-srow');
+    if (S.snap && S.snap.can.addStage) {
+      var a = btn('octo-wsb-bbtn', 'add-stage');
+      a.appendChild(octo.icon('plus', 16));
+      a.appendChild(el('span', '', 'Add process'));
+      row.appendChild(a);
+    }
+    var all = btn('octo-wsb-bbtn', 'all');
+    all.appendChild(octo.icon('table', 16));
+    all.appendChild(el('span', '', 'All records'));
+    row.appendChild(all);
+    if (withClassic) {
+      var cl = btn('octo-wsb-bbtn', 'classic');
+      cl.appendChild(octo.icon('sidebar', 16));
+      cl.appendChild(el('span', '', 'Classic menu'));
+      row.appendChild(cl);
+    }
+    box.appendChild(row);
+    return box;
+  }
+  function onBoardClick(e) {
+    var t = upTo(e.target, function (x) { return x.hasAttribute && x.hasAttribute('data-act'); }, S.board);
+    if (!t) { return; }
+    var a = t.getAttribute('data-act');
+    // detail 0 = klavye (Enter / Space): odak zoom sonunda cubuga; fare tiklamasinda odak birakilir.
+    var kb = e.detail === 0;
+    if (a === 'zoom') { zoomIn(Number(t.getAttribute('data-idx')), { kb: kb }); return; }
+    if (a === 'all') { openView('all'); return; }
+    if (a === 'add-stage') { proxyAdd('addStage'); return; }
+    if (a === 'classic') { classic(true); return; }
+    if (a === 'new-record') { newRecord(); return; }
+  }
+  function onBoardKey(e) {
+    var k = e && e.key;
+    if (k === 'Enter' || k === ' ' || k === 'Spacebar') { e.stopPropagation(); return; }
+    if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') { return; }
+    var cards = Array.prototype.slice.call(S.board.querySelectorAll('.octo-wsb-card'));
+    var at = cards.indexOf(D.activeElement);
+    if (at < 0) { return; }
+    e.preventDefault();
+    e.stopPropagation();
+    var cols = 1;
+    if (cards.length > 1) {
+      var t0 = cards[0].getBoundingClientRect().top;
+      cols = 0;
+      for (var j = 0; j < cards.length; j++) { if (Math.abs(cards[j].getBoundingClientRect().top - t0) < 2) { cols++; } }
+      cols = Math.max(1, cols);
+    }
+    var step = (k === 'ArrowLeft') ? -1 : (k === 'ArrowRight' ? 1 : (k === 'ArrowUp' ? -cols : cols));
+    var to = Math.max(0, Math.min(cards.length - 1, at + step));
+    try { cards[to].focus(); } catch (e2) { /* yut */ }
+  }
+  // Yaklasma: yalniz trackpad pinch (ctrl + kucuk piksel deltasi) ve yalniz bir kartin ustunde. Fare tekerlegi ile
+  // ctrl (sayfa yakinlastirma, dusuk gorus) tarayiciya kalir.
+  function onBoardWheel(e) {
+    var d = pinchDelta(e);
+    if (!d || S.zoom) { return; }
+    var cellLi = upTo(e.target, function (x) { return hasCls(x, 'octo-wsb-cell'); }, S.board);
+    var card = cellLi ? cellLi.querySelector('.octo-wsb-card') : null;
+    if (!card) { return; }
+    e.preventDefault();
+    var w = S.wheel;
+    if (!w || w.card !== card) {
+      if (w && w.card) { w.card.style.transform = ''; w.card.removeAttribute('data-approach'); }
+      w = S.wheel = { card: card, acc: 0 };
+    }
+    w.acc = Math.max(0, Math.min(140, w.acc - d));
+    var sc = 1 + (w.acc / 400);
+    card.style.transform = 'scale(' + sc.toFixed(3) + ')';
+    card.setAttribute('data-approach', '1');
+    later('wheel', function () {
+      if (S.wheel && S.wheel.card) { S.wheel.card.style.transform = ''; S.wheel.card.removeAttribute('data-approach'); }
+      S.wheel = null;
+    }, T.wheelIdle);
+    if (sc >= 1.25) {
+      var idx = Number(card.getAttribute('data-idx'));
+      S.wheel = null;
+      cancel('wheel');
+      zoomIn(idx, { from: card });
+    }
+  }
+
+  // ---------------------------------------------------------- pano goster/gizle
+  function blurTable() {
+    try {
+      var ae = D.activeElement, w = wrapperEl();
+      if (ae && w && ae !== D.body && w.contains(ae) && typeof ae.blur === 'function') { ae.blur(); }
+    } catch (e) { /* yut */ }
+  }
+  function blurIn(scope) {
+    try { var ae = D.activeElement; if (ae && scope && scope.contains(ae) && typeof ae.blur === 'function') { ae.blur(); } } catch (e) { /* yut */ }
+  }
+  function showBoard(animated, kb) {
+    if (!boardOk()) { ensureBoard(); }
+    var b = S.board;
+    // Tablonun acik bir katmani (menu, modal) varken pano acilmaz; gorunum degismez (sonraki montajda kendiliginden acilmasin).
+    if (b && boardOk() && b.hidden && tableLayer()) { trace('board:refused'); return Promise.resolve(false); }
+    S.view = 'board';
+    if (!b || !boardOk()) { S.sig = ''; paintSoon(); return Promise.resolve(false); }
+    if (!b.hidden) { S.sig = ''; paintSoon(); return Promise.resolve(true); }
+    // Tablonun sutun / More menuleri kapanir (tek olay), tablo odagi birakilir.
+    fireResize();
+    blurTable();
+    b.hidden = false;
+    S.sig = '';
+    S.dirty = true;
+    flush();
+    rescanMaybe();
+    var cur = b.querySelector('.octo-wsb-card[aria-current="true"]');
+    var finish = function () { if (kb) { focusBoard(); } else { blurIn(S.bar); } return true; };
+    if (!animated || noMo() || typeof b.animate !== 'function') { return Promise.resolve(finish()); }
+    var p1 = anim(b, [{ opacity: 0 }, { opacity: 1 }], T.inMs, 'ease-out');
+    var p2 = cur ? ghostRun(fullRect(), rectIn(cur), false) : Promise.resolve(null);
+    return Promise.all([p1, p2]).then(function (r) { cancelAnim(r[0]); return finish(); });
+  }
+  function hideBoard(animated) {
+    var b = S.board;
+    S.view = 'table';
+    if (!b || b.hidden) { S.sig = ''; paintSoon(); return Promise.resolve(true); }
+    var done = function (a) {
+      b.hidden = true;
+      cancelAnim(a);
+      rmGhost();
+      S.sig = '';
+      fireResize();
+      paintSoon();
+      return true;
+    };
+    if (!animated || noMo()) { return Promise.resolve(done(null)); }
+    return anim(b, [{ opacity: 1 }, { opacity: 0 }], T.fadeMs, 'ease-in').then(done);
+  }
+  function focusBoard() {
+    var c = S.board && (S.board.querySelector('.octo-wsb-card[aria-current="true"]') || S.board.querySelector('.octo-wsb-card'));
+    try { (c || S.board).focus({ preventScroll: true }); } catch (e1) { /* yut */ }
+  }
+  function openBoard(kb) {
+    if (!boardOk()) {
+      // Pano yok (Varyant B, ray hucresi henuz yok): surec menusu.
+      if (!S.noProc[sheetKey()]) { openMenu('stages'); }
+      return Promise.resolve(false);
+    }
+    if (!S.board.hidden) { return Promise.resolve(true); }
+    return zoomOut(kb);
+  }
+  function stepStage(dir, kb) {
+    var s = snapshot();
+    S.snap = s;
+    var cur = curStage(s);
+    if (!cur || cur.idx < 0) { return Promise.resolve(false); }
+    var st = stageModel(s);
+    var to = cur.idx + dir;
+    if (to < 0 || to >= st.length) { return Promise.resolve(false); }
+    return zoomIn(to, { kb: kb });
+  }
+
+  // ------------------------------------------------------------------ zoom
+  function fullRect() { var b = S.board; return { left: 0, top: 0, width: b ? b.clientWidth : 0, height: b ? b.clientHeight : 0 }; }
+  function rectIn(n) {
+    var b = S.board;
+    if (!b || !n) { return fullRect(); }
+    var br = b.getBoundingClientRect(), r = n.getBoundingClientRect();
+    return { left: r.left - br.left + b.scrollLeft, top: r.top - br.top, width: r.width, height: r.height };
+  }
+  function rmGhost() { rm(S.ghost); S.ghost = null; }
+  // Hayalet son geometrisinde (pano dolu) kurulur; karttan buyume transform ile (pano tablonun atasi degil).
+  function ghostRun(from, to, grow, label, rows) {
+    var b = S.board;
+    if (!b || noMo() || typeof b.animate !== 'function') { return Promise.resolve(null); }
+    rmGhost();
+    var g = el('div', 'octo-wsb-ghost');
+    g.setAttribute('aria-hidden', 'true');
+    var big = grow ? to : from;
+    var small = grow ? from : to;
+    g.style.left = big.left + 'px';
+    g.style.top = (big.top + b.scrollTop) + 'px';
+    g.style.width = Math.max(1, big.width) + 'px';
+    g.style.height = Math.max(1, big.height) + 'px';
+    var gt = el('div', 'octo-wsb-gbar');
+    if (label) { gt.appendChild(el('span', 'octo-wsb-gname', label)); }
+    g.appendChild(gt);
+    var nrows = rows == null ? 6 : rows;
+    for (var i = 0; i < nrows; i++) { g.appendChild(el('div', 'octo-wsb-grow')); }
+    b.appendChild(g);
+    S.ghost = g;
+    var sx = Math.max(0.05, small.width / Math.max(1, big.width));
+    var sy = Math.max(0.05, small.height / Math.max(1, big.height));
+    var dx = small.left - big.left, dy = small.top - big.top;
+    var tSmall = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + sx.toFixed(4) + ',' + sy.toFixed(4) + ')';
+    var frames = grow ? [{ transform: tSmall, opacity: 0.6 }, { transform: 'none', opacity: 1 }] : [{ transform: 'none', opacity: 1 }, { transform: tSmall, opacity: 0.2 }];
+    return anim(g, frames, T.zoomMs).then(function (a) { if (!grow) { cancelAnim(a); rmGhost(); } return a; });
+  }
+  function isCurrent(target) {
+    var cur = curStage();
+    return !!cur && cur.idx === target.idx && !!ctx().stage_id;
+  }
+  function zoomIn(idxOrName, opts) {
+    opts = opts || {};
+    if (!S.mounted || S.zoom || S.chromeErr) { return Promise.resolve(false); }
+    if (tableLayer() || railSheet()) { return Promise.resolve(false); }
+    ensureTableTab();
+    var s = snapshot();
+    S.snap = s;
+    var st = stageModel(s);
+    var target = null;
+    if (typeof idxOrName === 'number') { target = st[idxOrName] || null; }
+    else { for (var i = 0; i < st.length; i++) { if (st[i].name === idxOrName) { target = st[i]; break; } } }
+    if (!target) { toast('Could not open', true); return Promise.resolve(false); }
+    closeMenu(false);
+    var c0 = ctx();
+    var k0 = c0.key;
+    var cur0 = isCurrent(target);
+    var b = boardOpen() ? S.board : null;
+    S.zoom = { name: target.name, idx: target.idx, k0: k0, t0: now() };
+    trace('zoom:' + target.ord);
+    var cardNode = b ? (opts.from || b.querySelector('.octo-wsb-card[data-idx="' + target.idx + '"]')) : null;
+    var fromR = cardNode ? rectIn(cardNode) : null;
+    if (cardNode) { cardNode.style.transform = ''; cardNode.removeAttribute('data-approach'); }
+    if (b) { b.setAttribute('data-zooming', '1'); }
+    var table = !target.tipi || /^table$/i.test(target.tipi);
+    var proxied = cur0 ? Promise.resolve('current') : pxStage(target);
+    return proxied.then(function (how) {
+      if (!how) { return { ok: false, how: '' }; }
+      var grow = (b && fromR && !target.create) ? ghostRun(fromR, fullRect(), true, target.name, table ? 6 : 0) : Promise.resolve(null);
+      var ready = (how === 'current') ? Promise.resolve(true) : waitFor(function () {
+        var c = ctx();
+        if (c.key === k0) { return false; }
+        var sn = S.snap;
+        if (sn && sn.cell >= 0) { return sn.cells[sn.cell].name === target.name || (now() - S.zoom.t0) >= T.settleMs * 3; }
+        return (now() - S.zoom.t0) >= T.settleMs;
+      }, T.zoomWait);
+      return Promise.all([grow, ready]).then(function (r) { return { ok: r[1], how: how }; });
+    }).then(function (res) {
+      if (b) { b.removeAttribute('data-zooming'); }
+      if (!res.ok) {
+        var back = (S.ghost && fromR) ? ghostRun(fullRect(), fromR, false) : Promise.resolve(null);
+        return back.then(function () {
+          S.zoom = null;
+          rmGhost();
+          S.sig = '';
+          paintSoon();
+          toast('Could not open', true);
+          return false;
+        });
+      }
+      // stage_id config'ten sonra gelebilir: yalniz zoom oncesinden farkliysa yazilir; degilse tik ilk yeni id'yi benimser.
+      var sid = ctx().stage_id || '';
+      S.cur = { name: target.name, idx: target.idx, stageId: ((sid && sid !== (c0.stage_id || '')) || res.how === 'current') ? sid : '', prev: c0.stage_id || '', at: now() };
+      S.ctxKey = ctx().key;
+      return hideBoard(!!b && isConn(b) && !b.hidden).then(function () {
+        S.zoom = null;
+        say(target.name + ' opened');
+        if (opts.kb) {
+          var pb = S.bar && (S.bar.querySelector('[data-act="stage-menu"]') || S.bar.querySelector('[data-view="board"]'));
+          if (pb) { try { pb.focus({ preventScroll: true }); } catch (e) { /* yut */ } }
+        } else { blurIn(S.board); blurIn(S.bar); }
+        return true;
+      });
+    });
+  }
+  function zoomOut(kb) {
+    if (!S.mounted || S.zoom) { return Promise.resolve(false); }
+    if (!boardOk()) { openMenu('stages'); return Promise.resolve(false); }
+    if (!S.board.hidden) { return Promise.resolve(true); }
+    ensureTableTab();
+    trace('zoom:out');
+    closeMenu(false);
+    return showBoard(true, kb);
+  }
+
+  // ------------------------------------------------------------- Esc (genel)
+  // Pencere kabarcik evresi: tablonun belge dinleyicisi kendi katmanini kapatip yayilimi durdurur. Esc yalniz kabugun
+  // acik menusunu ve Classic menuyu kapatir (evin kurali: Esc Table'a dondurur; panoya zoom out ETMEZ).
+  function onWinKey(e) {
+    var k = e && e.key;
+    if (k !== 'Escape' && k !== 'Esc') { return; }
+    if (e.defaultPrevented) { return; }
+    if (S.menu) { e.preventDefault(); closeMenu(true); return; }
+    if (S.classic) {
+      var t = e.target;
+      if (editable(t) && !(S.bar && S.bar.contains(t))) { return; }
+      if (q1(SEL.userMenu) && shown(q1(SEL.userMenu), null)) { return; }
+      e.preventDefault();
+      classic(false);
+    }
+  }
+  // Rayin Table sekmesi ya da rayin New record'u pano acikken: pano kapanir (SA degismez, vekil yok).
+  function onDocClickCap(e) {
+    if (!S.mounted || !boardOpen()) { return; }
+    var t = e && e.target;
+    var M = railM();
+    var tb = M && M.parts && M.parts.tabBtns ? M.parts.tabBtns.table : null;
+    if (tb && (t === tb || (tb.contains && tb.contains(t))) && railTab() === 'table') { hideBoard(true); return; }
+    if (M && M.aside && M.aside.contains(t)) {
+      var nr = upTo(t, function (x) { return x.getAttribute && /new-record|new/.test(x.getAttribute('data-act') || ''); }, M.aside);
+      if (nr) { hideBoard(false); }
+    }
+  }
+  function onTouchTable(e) {
+    if (S.touched) { return; }
+    var w = wrapperEl();
+    try { if (w && e && e.target && w.contains(e.target)) { S.touched = true; } } catch (x) { /* yut */ }
+  }
+
+  // ---------------------------------------------------------- bildirim / ses
+  function toast(text, withClassic) {
+    if (!S.mounted || !S.toast) { return; }
+    var t = S.toast;
+    clear(t);
+    t.appendChild(octo.icon('alert', 16));
+    t.appendChild(el('span', 'octo-wsb-ttext', text));
+    if (withClassic && !S.classic) {
+      var b = btn('octo-wsb-tbtn', 'classic');
+      b.appendChild(el('span', '', 'Classic menu'));
+      b.addEventListener('click', function () { t.hidden = true; classic(true); });
+      t.appendChild(b);
+    }
+    t.hidden = false;
+    S.lastErr = text;
+    trace('toast');
+    later('toast', function () { if (S.toast) { S.toast.hidden = true; } }, T.toast);
+  }
+  function say(text) {
+    if (!S.live) { return; }
+    S.live.textContent = '';
+    later('say', function () { if (S.live) { S.live.textContent = text; } }, 30);
+  }
+
+  // ------------------------------------------------------------ sayfa tarama
+  // Bubble bari sayfa basina 5 surec cizer: gorunmeyen sayfalarin sayaclari icin ileri / geri (SA degismez).
+  // Yalniz pano acik, Classic ve menu kapaliyken; tablo basina bir kez + secenek listesi degisince + T.rescanAfter.
+  function scanSig(s) { return s.moreOpts.map(function (o) { return o.name; }).join('|') || String(s.cells.length); }
+  function scanMaybe(force) {
+    if (S.scan || S.zoom || S.classic || S.menu || !boardOpen()) { return; }
+    var s = S.snap;
+    if (!s || !s.bar || !s.next || s.prev) { return; }
+    var k = sheetKey(s);
+    if (!k) { return; }
+    var sig = scanSig(s);
+    var last = S.scannedAt[k];
+    if (last && last.sig === sig && !force) { return; }
+    var st = stageModel(s);
+    var missing = false;
+    for (var i = 0; i < st.length; i++) { if (st[i].count == null) { missing = true; break; } }
+    if (!missing && !force) { S.scannedAt[k] = { at: now(), sig: sig }; return; }
+    S.scan = { key: k, sig: sig, pages: pagesOf(s), at: 1, id: now() };
+    S.page = 1;
+    trace('scan:start');
+    scanStep(S.scan.id);
+  }
+  function rescanMaybe() {
+    var s = S.snap;
+    var k = sheetKey(s);
+    var last = k ? S.scannedAt[k] : null;
+    if (last && (now() - last.at) >= T.rescanAfter) { scanMaybe(true); } else { later('scanSoon', function () { scanMaybe(false); }, 60); }
+  }
+  function abortScan() { if (S.scan) { S.scan = null; cancel('scan'); trace('scan:abort'); } }
+  function scanStep(id) {
+    var sc = S.scan;
+    if (!sc || sc.id !== id || !S.mounted) { return; }
+    if (sc.at >= sc.pages) { scanBack(id); return; }
+    pageStep(1).then(function (moved) {
+      if (!S.scan || S.scan.id !== id) { return; }
+      if (!moved) { scanBack(id); return; }
+      sc.at++;
+      later('scan', function () { scanStep(id); }, 0);
+    });
+  }
+  function scanBack(id) {
+    var sc = S.scan;
+    if (!sc || sc.id !== id) { return; }
+    toFirstPage(sc.pages + 1).then(function () {
+      if (!S.scan || S.scan.id !== id) { return; }
+      S.scannedAt[sc.key] = { at: now(), sig: sc.sig };
+      S.scan = null;
+      trace('scan:done');
+      S.sig = '';
+      tick();
+    });
+  }
+
+  // ---------------------------------------------------------- boyama (tek kare)
+  function paintSoon() {
+    S.dirty = true;
+    if (S.frameT) { return; }
+    S.frameT = setTimeout(flush, 32);
+    try { if (typeof W.requestAnimationFrame === 'function') { S.frameR = W.requestAnimationFrame(flush); } } catch (e) { S.frameR = null; }
+  }
+  function flush() {
+    if (S.frameT) { try { clearTimeout(S.frameT); } catch (e) { /* yut */ } }
+    if (S.frameR) { try { W.cancelAnimationFrame(S.frameR); } catch (e2) { /* yut */ } }
+    S.frameT = null; S.frameR = null;
+    if (!S.dirty || !S.mounted) { S.dirty = false; return; }
+    S.dirty = false;
+    try {
+      if (!S.snap) { S.snap = snapshot(); }
+      paintBar();
+      paintBoard();
+      if (S.menu) { paintMenu(); }
+    } catch (e3) { logErr(e3); }
+  }
+  function logErr(e) { S.lastErr = 'error'; try { console.warn('[OCTO-WSBAR] ' + ((e && e.message) || String(e)).slice(0, 120)); } catch (x) { /* yut */ } }
+
+  // ------------------------------------------------------------ gozlem / omur
+  function own(n) {
+    if (!n) { return false; }
+    try {
+      if (S.bar && S.bar.contains(n)) { return true; }
+      if (S.pop && S.pop.contains(n)) { return true; }
+      if (S.board && S.board.contains(n)) { return true; }
+      if (S.toast && S.toast.contains(n)) { return true; }
+      if (S.scrim && S.scrim.contains(n)) { return true; }
+      if (S.live && S.live.contains(n)) { return true; }
+    } catch (e) { /* yut */ }
+    return false;
+  }
+  // Gozlemci A: belge {childList, characterData}; tablonun, rayin ve kabugun kendi dugumlerindeki kayitlar sayilmaz.
+  function railOwn(n) {
+    var M = railM();
+    try {
+      if (!M) { return false; }
+      if (M.row && M.row.contains(n)) { return true; }
+      if (M.aside && M.aside.contains(n)) { return true; }
+      if (M.parts && M.parts.tabs && M.parts.tabs.contains(n)) { return true; }
+      if (M.parts && M.parts.panel && M.parts.panel.contains(n)) { return true; }
+    } catch (e) { /* yut */ }
+    return false;
+  }
+  function onMutate(recs) {
+    if (S.moTimer) { return; }
+    if (recs && recs.length) {
+      var w = wrapperEl();
+      var rel = false;
+      for (var i = 0; i < recs.length; i++) {
+        var t = recs[i] && recs[i].target;
+        if (!t || own(t)) { continue; }
+        try { if (w && (t === w || w.contains(t))) { continue; } } catch (e) { /* yut */ }
+        if (railOwn(t)) { continue; }
+        rel = true;
+        break;
+      }
+      if (!rel) { return; }
+    }
+    S.moTimer = setTimeout(function () { S.moTimer = null; tick(); later('settle', tick, T.settle); }, T.tick);
+  }
+  // Gozlemci B: yalniz Bubble menusu ve barinda stil / sinif (secili gostergeler yalniz satir ici stille degisir).
+  function attachAttrObs() {
+    if (typeof MutationObserver !== 'function') { return; }
+    var roots = [sideRoot(), barRoot()].filter(function (x) { return !!x; });
+    var same = roots.length === S.mo2Roots.length && roots.every(function (r, i) { return r === S.mo2Roots[i]; });
+    if (same && S.mo2) { return; }
+    if (S.mo2) { try { S.mo2.disconnect(); } catch (e) { /* yut */ } }
+    S.mo2 = new MutationObserver(function () { onMutate(null); });
+    for (var i = 0; i < roots.length; i++) {
+      try { S.mo2.observe(roots[i], { attributes: true, attributeFilter: ['style', 'class'], subtree: true }); } catch (e2) { /* yut */ }
+    }
+    S.mo2Roots = roots;
+  }
+  function boot() {
+    if (S.armed) { return true; }
+    S.flag = readFlag();
+    if (!S.flag || W.__OCTO_WS_OFF === true) { return false; }
+    S.armed = true;
+    S.bootAt = now();
+    S.bootTries = 0;
+    S.view = null;
+    S.touched = false;
+    try { S.pinned = octo.state.get(PIN_KEY, true) !== false; } catch (e) { S.pinned = true; }
+    try {
+      if (typeof MutationObserver === 'function') {
+        S.mo = new MutationObserver(onMutate);
+        S.mo.observe(D.documentElement, { childList: true, subtree: true, characterData: true });
+      }
+    } catch (e2) { S.mo = null; }
+    listen(W, 'resize', onResize);
+    listen(W, 'popstate', function () { later('pop', tick, 0); });
+    listen(W, 'gx:el-mounted', function () { later('gx', tick, 350); });
+    listen(W, 'keydown', onWinKey);
+    listen(D, 'click', onDocClickCap, true);
+    listen(D, 'pointerdown', onTouchTable, true);
+    listen(D, 'keydown', onTouchTable, true);
+    // Ray ve Bubble gec kurulur: mutasyon yoksa bile 1 sn'de bir bakilir (yalniz ilk kuruluma kadar, tavanli).
+    later('boot', bootPoll, 0);
+    trace('boot');
+    return true;
+  }
+  function bootPoll() {
+    if (!S.armed) { return; }
+    tick();
+    S.bootTries++;
+    if (!S.mounted && S.bootTries < T.bootTries) { later('boot', bootPoll, 1000); }
+  }
+  var resizeT = null;
+  function onResize() {
+    if (resizeT) { return; }
+    resizeT = setTimeout(function () { resizeT = null; if (!S.armed) { return; } tick(); if (S.mounted) { S.sig = ''; paintSoon(); placeMenu(); } }, 60);
+  }
+  function shutdown() {
+    unmount('shutdown', true);
+    unlistenAll();
+    if (S.mo) { try { S.mo.disconnect(); } catch (e) { /* yut */ } S.mo = null; }
+    if (S.mo2) { try { S.mo2.disconnect(); } catch (e0) { /* yut */ } S.mo2 = null; S.mo2Roots = []; }
+    if (S.moTimer) { try { clearTimeout(S.moTimer); } catch (e1) { /* yut */ } S.moTimer = null; }
+    stopTimers();
+    dropWaiters();
+    S.armed = false;
+    S.counts = {}; S.names = {}; S.memoSig = {}; S.scannedAt = {}; S.noProc = {}; S.sheetSig = ''; S.sig = ''; S.snap = null; S.cur = null;
+    S.view = null; S.page = 0; S.chromeErr = ''; S.reopenTries = 0; S.dropAt = 0;
+    return true;
+  }
+  function mountNodes() {
+    var bar = buildBar();
+    D.body.appendChild(bar);
+    S.bar = bar;
+    var p = el('div', 'octo-wsb-pop');
+    p.id = POP_ID;
+    p.hidden = true;
+    p.addEventListener('click', onPopClick);
+    p.addEventListener('keydown', onPopKey);
+    D.body.appendChild(p);
+    S.pop = p;
+    var t = el('div', 'octo-wsb-toast');
+    t.id = TOAST_ID;
+    t.setAttribute('role', 'status');
+    t.hidden = true;
+    D.body.appendChild(t);
+    S.toast = t;
+    var sc = el('div', 'octo-wsb-scrim');
+    sc.id = SCRIM_ID;
+    sc.hidden = true;
+    sc.addEventListener('click', function () { classic(false); });
+    D.body.appendChild(sc);
+    S.scrim = sc;
+    var live = el('div', 'octo-wsb-live');
+    live.id = LIVE_ID;
+    live.setAttribute('aria-live', 'polite');
+    D.body.appendChild(live);
+    S.live = live;
+  }
+  // Kurulum: cubuk + govde dugumleri BIR kez (sonra yalniz hidden / icerik), gizleme, pano (hucre oturunca).
+  function mount(err) {
+    if (S.mounted) { return; }
+    S.mounted = true;
+    S.chromeErr = err || '';
+    S.variant = (railM() && railM().variant) || '';
+    S.zoom = null;
+    mountNodes();
+    if (!S.chromeErr) { chromeOn(); }
+    S.sig = '';
+    S.snap = snapshot();
+    S.sheetSig = sheetKey(S.snap);
+    S.ctxKey = ctx().key;
+    coveredCheck();
+    trace('mount' + (S.chromeErr ? ':' + S.chromeErr : ''));
+    paintSoon();
+    flush();
+  }
+  function unmount(why, hard) {
+    if (!S.mounted && !S.bar && !S.board) { if (chromeOff()) { fireResize(); } return; }
+    closeMenu(false);
+    dropWaiters();
+    abortScan();
+    detachBoard();
+    rm(S.bar); S.bar = null;
+    rm(S.pop); S.pop = null;
+    rm(S.toast); S.toast = null;
+    rm(S.scrim); S.scrim = null;
+    rm(S.live); S.live = null;
+    S.mounted = false;
+    S.zoom = null;
+    S.peek = false;
+    S.dropAt = 0;
+    S.cellRef = null;
+    if (hard) { S.view = null; }
+    var had = chromeOff();
+    trace('unmount:' + (why || ''));
+    if (had) { fireResize(); }
+  }
+  // Cubugun altinda ne var (teshis): Bubble'in etkilesimli ogesi ya da rayin seridi.
+  function coveredCheck() {
+    S.covered = '';
+    try {
+      var r = S.bar ? S.bar.getBoundingClientRect() : null;
+      if (!r || typeof D.elementsFromPoint !== 'function') { return; }
+      var pts = [[r.left + 8, r.bottom - 6], [r.left + r.width / 2, r.bottom - 6], [r.right - 8, r.bottom - 6]];
+      for (var i = 0; i < pts.length; i++) {
+        var all = D.elementsFromPoint(pts[i][0], pts[i][1]);
+        for (var j = 0; j < all.length; j++) {
+          var n = all[j];
+          if (own(n) || n === D.body || n === D.documentElement) { continue; }
+          if (upTo(n, function (x) { return hasCls(x, 'octo-tabs'); }, null)) { S.covered = 'strip'; return; }
+          if (n.tagName === 'BUTTON' || n.tagName === 'A' || n.tagName === 'INPUT' || hasCls(n, 'clickable-element')) { S.covered = 'bubble'; return; }
+          break;
+        }
+      }
+    } catch (e) { S.covered = ''; }
+  }
+  // On kosullar. Sert dusus (bayrak, dar ekran, Edit Workspace, misafir, ray kapali) hemen geri alir; yumusak
+  // dusus (ray yeniden kuruluyor, baglam gec, tablo alani gizli) T.dropGrace boyunca bekler.
+  function preconditions() {
+    if (W.__OCTO_WS_OFF === true) { return { ok: false, hard: true, why: 'off' }; }
+    if (!wide()) { return { ok: false, hard: true, why: 'narrow' }; }
+    if (!railArmed()) { return { ok: false, hard: true, why: 'rail' }; }
+    if (guest()) { return { ok: false, hard: true, why: 'guest' }; }
+    if (editMode()) { return { ok: false, hard: true, why: 'edit' }; }
+    var c = ctx();
+    if (!c.key) { return { ok: false, hard: false, why: 'ctx' }; }
+    if (!tableVisible()) { return { ok: false, hard: false, why: 'table' }; }
+    var side = sideRoot();
+    if (!side) { return { ok: true, err: 'bubble_hidden' }; }
+    if (!shown(side, null)) {
+      if (S.reopenTries < 2 && reopenSide()) { return { ok: false, hard: false, why: 'reopen' }; }
+      return { ok: true, err: 'bubble_hidden' };
+    }
+    return { ok: true, err: '' };
+  }
+  function tick() {
+    if (!S.armed) { return; }
+    if (W.__OCTO_WS_OFF === true) { shutdown(); return; }
+    S.ticks = (S.ticks || 0) + 1;
+    var pc = preconditions();
+    if (!pc.ok) {
+      if (!S.mounted) { return; }
+      if (pc.hard) { unmount(pc.why, false); return; }
+      // Yumusak: kisa sure bekle (ray yeniden kurulumu 300 ms + varyant denetimi); pano hucreyle birlikte duser.
+      if (!S.dropAt) { S.dropAt = now(); later('drop', tick, T.dropGrace + 20); trace('grace:' + pc.why); }
+      if (now() - S.dropAt >= T.dropGrace) { unmount(pc.why, false); return; }
+      ensureBoard();
+      return;
+    }
+    S.dropAt = 0;
+    if (S.mounted && (pc.err || '') !== S.chromeErr) { unmount('err', false); }
+    if (!S.mounted) { mount(pc.err); }
+    if (S.chromeErr) { S.snap = snapshot(); paintSoon(); return; }
+    S.reopenTries = 0;
+    if (!root().hasAttribute(A_ON)) { root().setAttribute(A_ON, '1'); }
+    if (S.classic && !root().hasAttribute(A_CLASSIC)) { root().setAttribute(A_CLASSIC, '1'); }
+    if (gutterApply()) { fireResize(); }
+    if (q1('[data-octo-side]')) { sweepSide(); }
+    if (S.bar && !isConn(S.bar)) { D.body.appendChild(S.bar); S.sig = ''; }
+    attachAttrObs();
+    var M = railM();
+    if (M && (M.variant || '') !== S.variant) { S.variant = M.variant || ''; S.sig = ''; }
+    var s = snapshot();
+    S.snap = s;
+    alignCells(s);
+    var c = ctx();
+    var sk = sheetKey(s);
+    // Rolu surec bari olmayan kullanici (Creator, Searcher, SearcherCreator): bar ve listeler Bubble'da gizli.
+    if (!s.bar) {
+      if (!S.noBarSince) { S.noBarSince = now(); later('noBar', tick, T.barWait + 20); }
+      if (sk && s.listsHidden && (now() - S.noBarSince) >= T.barWait && !S.noProc[sk]) { S.noProc[sk] = true; S.view = 'table'; trace('noproc'); }
+    } else { S.noBarSince = 0; if (sk && S.noProc[sk]) { delete S.noProc[sk]; } }
+    ensureBoard();
+    // Baglam degisimi: tablo degisti -> kartlar; kabugun baslatmadigi surec / liste degisimi -> pano kapanir.
+    var sheetChanged = !!sk && !!S.sheetSig && sk !== S.sheetSig && !S.zoom;
+    if (sheetChanged) {
+      S.cur = null;
+      S.page = 0;
+      if (!S.noProc[sk]) { S.view = 'board'; if (S.board && S.board.hidden && boardOk()) { showBoard(false); } }
+      if (S.classic) { classic(false); }
+      trace('sheet');
+    } else if (c.key && S.ctxKey && c.key !== S.ctxKey && !S.zoom && (now() - S.ours) > T.ours) {
+      // Pano ayni turda hucreyle dusmus olabilir (Bubble tabloyu yeniden cizdi): gorunum yine 'table' olur.
+      if (boardOpen() || S.view === 'board') { hideBoard(false); }
+      if (S.classic) { classic(false); }
+      trace('ctx:ext');
+    }
+    if (sk) { S.sheetSig = sk; }
+    S.ctxKey = c.key;
+    // Rayin cevabi henuz yeni tabloya ait degil: rayin kendi boyamasi bizi tetiklemez, kisa araliklarla yeniden bak.
+    var fresh = railFresh(s);
+    if (!fresh && railData()) { if (!S.timers.railWait) { later('railWait', tick, 300); } }
+    // Su anki surec bellegi: stage_id degisince Bubble gostergesinden / os_workspace'ten yenilenir.
+    var curWait = !!S.cur && !S.cur.stageId && (now() - (S.cur.at || 0)) <= T.zoomWait;
+    if (curWait) {
+      if (c.stage_id && c.stage_id !== S.cur.prev) { S.cur.stageId = c.stage_id; }
+    } else if (!c.stage_id) { S.cur = null; } else if (!S.cur || S.cur.stageId !== c.stage_id) {
+      var cs = curStage(s);
+      if (cs && cs.idx >= 0) { S.cur = { name: cs.name, idx: cs.idx, stageId: c.stage_id }; }
+    }
+    var sig = [sk, c.key, fresh ? 1 : 0, viewKind(), S.board ? (S.board.hidden ? 0 : 1) : -1, S.classic ? 1 : 0, S.pinned ? 1 : 0, S.menu, S.cur ? S.cur.idx : -1,
+      S.noProc[sk] ? 1 : 0, viewingAs() ? 1 : 0, s.person,
+      s.bar ? 1 : 0, s.sheets.map(function (x) { return x.name + (x.selected ? '*' : ''); }).join('|'),
+      s.lists.map(function (x) { return x.name + ':' + x.count + (x.selected ? '*' : ''); }).join('|'),
+      s.cells.map(function (x) { return x.name + ':' + x.count + (x.selected ? '*' : ''); }).join('|'),
+      s.moreOpts.map(function (x) { return x.name; }).join('|'),
+      [!!s.can.addTable, !!s.can.addList, !!s.can.addStage, !!s.can.templates, !!s.can.gear, !!s.can.person].join(''),
+      s.flows ? (s.flows.num + '/' + s.flows.total) : ''].join('~');
+    if (sig !== S.sig) { S.sig = sig; paintSoon(); }
+    checkWaiters();
+    if (!S.scan) { scanMaybe(false); }
+  }
+
+  function diag() {
+    var s = snapshot();
+    var g = [];
+    try { var all = D.querySelectorAll('[' + A_GUTTER + ']'); for (var i = 0; i < all.length; i++) { g.push(str(all[i].className).slice(0, 60)); } } catch (e) { g = []; }
+    var pc = S.armed ? preconditions() : { ok: false, why: 'flag' };
+    return {
+      flag: ssGet(FLAG_KEY) === '1', armed: S.armed, mounted: S.mounted, variant: S.variant, pre: pc.ok ? (pc.err || 'ok') : pc.why,
+      rail: !!(railM() && railM().mounted), board: !!S.board, covered: S.covered,
+      chrome: {
+        side: s.side, sideShown: s.sideShown, bar: s.bar, sheets: s.sheets.length, sheet: s.sheet, lists: s.lists.length, cells: s.cells.length,
+        more: s.moreOpts.length, prev: !!s.prev, next: !!s.next, edit: !!editMode(), guest: guest(),
+        addTable: !!s.can.addTable, addList: !!s.can.addList, addStage: !!s.can.addStage, templates: !!s.can.templates, gear: !!s.can.gear,
+        person: !!s.can.person, flows: !!s.flows
+      },
+      gutter: g, ctx: ctx().key ? 'set' : '', view: S.mounted ? viewKind() : '', last: S.lastErr, ticks: S.ticks || 0, trace: S.trace.slice(-16)
+    };
+  }
+
+  // ================================================================= API
+  var api = {
+    boot: boot,
+    shutdown: shutdown,
+    tick: tick,
+    flush: flush,
+    active: function () { return S.mounted && !S.chromeErr; },
+    state: function () {
+      var cur = S.mounted ? curStage() : null;
+      return {
+        on: S.armed, mounted: S.mounted, view: S.mounted ? viewKind() : '', zoom: !!S.zoom, sheet: sheetName(),
+        stage: cur ? cur.name : '', list: curListName(), menu: S.menu, classic: S.classic, pinned: S.pinned, scanning: !!S.scan,
+        noProc: !!S.noProc[sheetKey()], err: S.chromeErr, viewingAs: S.mounted ? viewingAs() : false
+      };
+    },
+    snapshot: function () {
+      var s = snapshot();
+      function names(a) { return a.map(function (x) { return { name: x.name, count: x.count == null ? null : x.count, selected: !!x.selected }; }); }
+      return {
+        side: s.side, bar: s.bar, sheets: names(s.sheets), lists: names(s.lists), cells: names(s.cells),
+        stages: stageModel(s).map(function (x) { return { name: x.name, ord: x.ord, count: x.count, current: x.current, create: x.create }; }),
+        more: s.moreOpts.map(function (x) { return x.name; }),
+        can: { addTable: !!s.can.addTable, addList: !!s.can.addList, addStage: !!s.can.addStage, templates: !!s.can.templates, gear: !!s.can.gear, person: !!s.can.person }
+      };
+    },
+    zoomIn: zoomIn,
+    zoomOut: zoomOut,
+    openView: openView,
+    openSheet: openSheet,
+    openMenu: function (kind) { return openMenu(kind); },
+    closeMenu: function () { closeMenu(false); },
+    classic: classic,
+    diag: diag,
+    own: own,
+    SEL: SEL,
+    T: T,
+    T_DEFAULT: T_DEFAULT
+  };
+  try {
+    Object.defineProperty(octo, '_wsbar', { value: api, writable: false, enumerable: false, configurable: true });
+  } catch (e) { /* yut */ }
+
+  boot();
 })();
 
 </script>
