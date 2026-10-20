@@ -30029,6 +30029,107 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (say) { el.setAttribute('title', say); el.setAttribute('aria-label', say); }
       else { el.removeAttribute('title'); el.removeAttribute('aria-label'); }
     }
+    /* AITHIA-INAPP-BEGIN (20.10) */
+    // Uygulama ici AITHIA fiyat penceresi: window.gxAithiaPricing({ source:'setup'|'mail', slug, billing:{sirket,user_id} }).
+    // Bubble'da /aithia sayfasi gerekmez: aithia-pricing elementi (gaia-elements, ayni kanal) bu pencereye yuklenir
+    // (loader __gxEl.scan). Odeme kimligi (Paddle custom_data user_sirket / user_id) os_mail_status'un billing alanindan,
+    // yani kopru kimliginden gelir; sayfa uydurmaz. Odeme bitince sayfa 'gx:aithia-paid' yayar (ayni pencere; storage
+    // olayi yalniz baska sekmeye gider), "Back to setup" 'gx:aithia-close' yayar. Katman: kurulum penceresinden SONRA
+    // eklenir (ayni z-index'te sonraki ustte), Paddle'in kendi penceresi de sonradan eklenip bunun ustune cikar.
+    (function(){
+      if (window.gxAithiaPricing) return;
+      var OV_ID = 'gx-aithia-pay';
+      var ESC = null;
+      function log(){ try { console.log.apply(console, ['%c[AITHIA-PAY]', 'color:#6366f1;font-weight:bold'].concat([].slice.call(arguments))); } catch(e){} }
+      function css(){
+        if (document.getElementById('gx-aithia-pay-css')) return;
+        var st = document.createElement('style'); st.id = 'gx-aithia-pay-css';
+        st.textContent = '#' + OV_ID + '{position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.55);display:flex;align-items:flex-end;justify-content:center;}'
+          + '#' + OV_ID + '[hidden]{display:none!important;}'
+          + '#' + OV_ID + ' .gxap-sheet{position:relative;width:100%;max-width:1080px;height:min(92vh,920px);background:#fff;border-radius:20px 20px 0 0;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 40px rgba(49,46,129,.16);}'
+          + '@media(min-width:900px){#' + OV_ID + '{align-items:center;}#' + OV_ID + ' .gxap-sheet{border-radius:16px;height:min(88vh,900px);}}'
+          + '#' + OV_ID + ' .gxap-bar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px 10px 20px;border-bottom:1px solid #eef2f7;font:600 15px/20px var(--gx-font,Inter,system-ui,sans-serif);color:#0f172a;}'
+          + '#' + OV_ID + ' .gxap-x{width:44px;height:44px;border:0;border-radius:999px;background:#f6f7f9;color:#475569;font:600 20px/1 system-ui,sans-serif;cursor:pointer;}'
+          + '#' + OV_ID + ' .gxap-x:focus-visible{outline:2px solid #6366f1;outline-offset:2px;}'
+          + '#' + OV_ID + ' .gxap-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;}'
+          + '#' + OV_ID + ' .gxap-wait{padding:48px 20px;text-align:center;color:#475569;font:500 15px/22px var(--gx-font,Inter,system-ui,sans-serif);}';
+        (document.head || document.documentElement).appendChild(st);
+      }
+      function close(why){
+        var ov = document.getElementById(OV_ID); if (!ov || ov.hidden) return;
+        ov.hidden = true;
+        if (ESC) { document.removeEventListener('keydown', ESC, true); ESC = null; }
+        log('closed', why || '');
+        try { window.dispatchEvent(new CustomEvent('gx:aithia-pricing-closed', { detail: { why: why || '' } })); } catch(e){}
+      }
+      function billing(given){
+        if (given && given.sirket) return Promise.resolve(given);
+        return new Promise(function(resolve){
+          if (typeof window._gadTrigRequest !== 'function') { resolve(null); return; }
+          var done = false;
+          try {
+            window._gadTrigRequest('os_mail_status', {}, function(res){
+              if (done) return; done = true;
+              var d = (res && res.data && typeof res.data === 'object') ? res.data : (res || {});
+              resolve(d && d.billing && d.billing.sirket ? d.billing : null);
+            }, 15000);
+          } catch(e){ if (!done) { done = true; resolve(null); } }
+        });
+      }
+      window.gxAithiaPricing = function(opts){
+        opts = opts || {};
+        css();
+        var src = opts.source === 'mail' ? 'mail' : 'setup';
+        var cfg = window.AITHIA_PRICING && typeof window.AITHIA_PRICING === 'object' ? window.AITHIA_PRICING : {};
+        // the page merges these once, when it mounts; later opens reuse the mounted page
+        cfg.embedded = true; cfg.source = src;
+        if (opts.slug && /^[a-z0-9-]{2,60}$/i.test(String(opts.slug))) cfg.fromSlug = String(opts.slug).toLowerCase();
+        window.AITHIA_PRICING = cfg;
+        var ov = document.getElementById(OV_ID);
+        if (!ov) {
+          ov = document.createElement('div');
+          ov.id = OV_ID;
+          ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'AITHIA packages');
+          var sh = document.createElement('div'); sh.className = 'gxap-sheet';
+          var bar = document.createElement('div'); bar.className = 'gxap-bar';
+          var t = document.createElement('span'); t.textContent = 'AITHIA packages';
+          var x = document.createElement('button'); x.type = 'button'; x.className = 'gxap-x'; x.setAttribute('aria-label', 'Close'); x.textContent = '×';
+          x.addEventListener('click', function(){ close('x'); });
+          bar.appendChild(t); bar.appendChild(x);
+          var body = document.createElement('div'); body.className = 'gxap-body';
+          var wait = document.createElement('div'); wait.className = 'gxap-wait'; wait.textContent = 'Loading the packages...';
+          var mount = document.createElement('div'); mount.setAttribute('data-gx-el', 'aithia-pricing');
+          body.appendChild(wait); body.appendChild(mount);
+          sh.appendChild(bar); sh.appendChild(body); ov.appendChild(sh);
+          ov.addEventListener('click', function(ev){ if (ev.target === ov) close('backdrop'); });
+          document.body.appendChild(ov);
+          window.addEventListener('gx:el-mounted', function(ev){
+            try { var n = ev && ev.detail && (ev.detail.name || ev.detail.el); if (!n || String(n).indexOf('aithia-pricing') >= 0) { var w = ov.querySelector('.gxap-wait'); if (w && ov.querySelector('#aithia')) w.hidden = true; } } catch(e){}
+          });
+          window.addEventListener('gx:aithia-close', function(){ close('done'); });
+          (function poll(n){
+            var w = ov.querySelector('.gxap-wait');
+            if (ov.querySelector('#aithia')) { if (w) w.hidden = true; return; }
+            if (n > 120) { if (w) w.textContent = 'The packages could not be loaded. Close and try again.'; return; }
+            setTimeout(function(){ poll(n + 1); }, 250);
+          })(0);
+        } else if (ov.parentNode !== document.body || ov.nextSibling) {
+          document.body.appendChild(ov);   // keep it after the setup sheet (same z-index, the later one paints on top)
+        }
+        ov.hidden = false;
+        if (!ESC) { ESC = function(ev){ if (ev.key === 'Escape') { ev.stopPropagation(); close('esc'); } }; document.addEventListener('keydown', ESC, true); }
+        billing(opts.billing).then(function(b){
+          if (b) { window.__gxUserSirket = String(b.sirket); window.__gxUserId = String(b.user_id || ''); }
+          log('open', src, cfg.fromSlug || '', 'bound=' + (b ? 'yes' : 'no'));
+          if (!ov.querySelector('#aithia')) {
+            try { if (window.__gxEl && typeof window.__gxEl.scan === 'function') window.__gxEl.scan(); } catch(e){ log('scan failed', e && e.message); }
+          }
+        });
+        try { var xb = ov.querySelector('.gxap-x'); if (xb) xb.focus(); } catch(e){}
+        return true;
+      };
+    })();
+    /* AITHIA-INAPP-END */
     /* AITHIA-PAYWALL-BEGIN (20.10) */
     // Odeme duvari: AITHIA posta kartlari (inbox-chief-of-staff*) "Start the assistant" / "Review" taahhudunden ONCE
     // sunucuya paketi sorar (os_mail_status, Architect'in kendi koprusu _gadTrigRequest ile; kabugun adina dokunulmaz,
@@ -30068,7 +30169,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
             if (st !== 'SUCCESS' || code) { fin({ v: 'open', plan: '', why: code || st || 'no_status' }); return; }
             var pk = d.plan && d.plan.package ? String(d.plan.package) : '';
             if (pk) { fin({ v: 'ok', plan: pk }); return; }
-            if (d.state === 'plan_required') { fin({ v: 'required', plan: '' }); return; }
+            if (d.state === 'plan_required') { fin({ v: 'required', plan: '', billing: (d.billing && d.billing.sirket) ? d.billing : null }); return; }
             fin({ v: 'open', plan: '', why: 'no_state' });
           }, 20000);
         } catch(e){ fin({ v: 'open', plan: '', why: 'send_failed' }); }
@@ -30077,7 +30178,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     function _gflPayStopWatch(){
       var w = _gflPayWatch; _gflPayWatch = null; if (!w) return;
       try { clearInterval(w.iv); } catch(e){}
-      try { window.removeEventListener('storage', w.onStore); window.removeEventListener('focus', w.onFocus); document.removeEventListener('visibilitychange', w.onFocus); } catch(e){}
+      try { window.removeEventListener('storage', w.onStore); window.removeEventListener('focus', w.onFocus); document.removeEventListener('visibilitychange', w.onFocus); window.removeEventListener('gx:aithia-paid', w.onPaid); window.removeEventListener('gx:aithia-pricing-closed', w.onPaid); } catch(e){}
     }
     function _gflPayRecheck(s, why){
       if (!s || !s.pay || s.pay.state !== 'required' || s.pay.asking) return;
@@ -30101,12 +30202,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var t0 = Date.now();
       var w = { iv: 0, onStore: null, onFocus: null };
       w.onStore = function(ev){ if (ev && ev.key === 'gx_aithia_paid') _gflPayRecheck(s, 'storage'); };
+      w.onPaid = function(){ _gflPayRecheck(s, 'storage'); };   // AITHIA-INAPP: same window, no storage event
       w.onFocus = function(){ if (!document.hidden) _gflPayRecheck(s, 'focus'); };
       w.iv = setInterval(function(){
         if (Date.now() - t0 > 1200000 || _gadFlagshipSession !== s) { _gflPayStopWatch(); return; }
         if (!document.hidden) _gflPayRecheck(s, 'poll');
       }, 8000);
-      try { window.addEventListener('storage', w.onStore); window.addEventListener('focus', w.onFocus); document.addEventListener('visibilitychange', w.onFocus); } catch(e){}
+      try { window.addEventListener('storage', w.onStore); window.addEventListener('focus', w.onFocus); document.addEventListener('visibilitychange', w.onFocus); window.addEventListener('gx:aithia-paid', w.onPaid); window.addEventListener('gx:aithia-pricing-closed', w.onPaid); } catch(e){}
       _gflPayWatch = w;
     }
     // Taahhut tikindan once cagrilir. true = tik burada durdu (sorgu suruyor ya da paket yok); false = devam.
@@ -30122,7 +30224,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (_gadFlagshipSession !== s) return;
         _gflPayLog('check ->', r.v, r.plan || r.why || '', '| slug', ctx.slug);
         if (r.v === 'required') {
-          s.pay.state = 'required';
+          s.pay.state = 'required'; s.pay.billing = r.billing || null;
           try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_shown', { slug: ctx.slug }); } catch(e){}
           _gadFlagshipPrimaryLabel();
           return;
@@ -30161,7 +30263,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       }
       t.textContent = 'Choose an AITHIA package to start';
       d.textContent = s.pay.opened
-        ? 'Finish the payment in the new tab. This setup stays here and continues when the package is active.'
+        ? (typeof window.gxAithiaPricing === 'function' ? 'Finish the payment in the packages window. Setup continues when the package is active.' : 'Finish the payment in the new tab. This setup stays here and continues when the package is active.')
         : 'Your preview and settings are kept. One subscription. No per-email or per-flow charges.';
       if (s.pay.opened) {
         var a = document.createElement('button'); a.type = 'button'; a.className = 'gfl-pay-a'; a.id = 'gfl-pay-check';
@@ -30169,10 +30271,23 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         a.disabled = !!s.pay.asking;
         el.appendChild(a);
       }
-      if (go) { go.textContent = s.pay.opened ? 'Open the payment page again' : 'Choose a package'; go.disabled = false; go.setAttribute('data-act', 'aithia-pay'); }
+      if (go) { go.textContent = s.pay.opened ? 'See the packages again' : 'Choose a package'; go.disabled = false; go.setAttribute('data-act', 'aithia-pay'); }
     }
     // Birincil dugme data-act=aithia-pay iken tik: sayfayi AYNI tik icinde ac (acilir pencere engeli), izlemeyi kur.
     function _gflPayOpen(s, ctx){
+      // 20.10 (AITHIA-INAPP): the in-app packages window; the /aithia tab stays the fallback
+      if (typeof window.gxAithiaPricing === 'function') {
+        var okIn = false;
+        try { okIn = window.gxAithiaPricing({ source: 'setup', slug: ctx.slug, billing: s.pay.billing || null }) === true; } catch(e){ okIn = false; }
+        if (okIn) {
+          s.pay.opened = true;
+          _gflPayLog('packages window opened');
+          try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_open', { slug: ctx.slug, where: 'inapp' }); } catch(e){}
+          _gflPayStartWatch(s);
+          _gadFlagshipPrimaryLabel();
+          return;
+        }
+      }
       var url = _gflPayUrl(ctx);
       var w = null;
       try { w = window.open(url, '_blank'); } catch(e){ w = null; }
@@ -38879,6 +38994,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var onKey = function(ev){
         var o = _gadFlagshipOv();
         if (!o) { try { document.removeEventListener('keydown', onKey, true); } catch(e){} return; }
+        // AITHIA-INAPP (20.10): the packages window sits on top; its own Escape and focus belong to it, not to this sheet
+        var _apw = document.getElementById('gx-aithia-pay'); if (_apw && !_apw.hidden) return;
         if (ev.key === 'Escape') { if (!s.busy && !s.gateRunning) { ev.preventDefault(); closeSheet('escape'); } return; }
         if (ev.key !== 'Tab') return;
         var f = Array.prototype.filter.call(o.querySelectorAll('button,[href],input,select,textarea,summary,[tabindex]:not([tabindex="-1"])'), function(el){ return !el.disabled && !el.hidden && el.offsetParent !== null; });
@@ -61181,7 +61298,27 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     if (ch && ch !== 'main' && /^[A-Za-z0-9._-]{1,40}$/.test(ch)) { q += '&gxel=' + encodeURIComponent(ch); }
     return origin + (p.indexOf('/version-test') === 0 ? '/version-test' : '') + '/aithia' + q;
   }
+  // os8p: after the in-app checkout the package reaches the server through Paddle's webhook (seconds): fresh status
+  // reads on the paid signal (3 / 8 / 15 / 30 s) and once when the packages window closes. One watcher at a time.
+  var mailPaidW = null;
+  function mailPaidWatch() {
+    if (mailPaidW) { return; }
+    var timers = [];
+    function fresh() { try { mailStatus(true, true); } catch (e) { /* yut */ } }
+    function onPaid() { [3000, 8000, 15000, 30000].forEach(function (ms) { timers.push(setTimeout(fresh, ms)); }); }
+    function onClosed() { fresh(); setTimeout(stop, 31000); }
+    function stop() {
+      try { W.removeEventListener('gx:aithia-paid', onPaid); W.removeEventListener('gx:aithia-pricing-closed', onClosed); } catch (e) { /* yut */ }
+      mailPaidW = null;
+    }
+    mailPaidW = { stop: stop, timers: timers };
+    try { W.addEventListener('gx:aithia-paid', onPaid); W.addEventListener('gx:aithia-pricing-closed', onClosed); } catch (e2) { /* yut */ }
+  }
   function mailOpenPlan() {
+    // os8p: the host's in-app packages window (Architect, AITHIA-INAPP) when present; the /aithia tab otherwise
+    if (typeof W.gxAithiaPricing === 'function') {
+      try { if (W.gxAithiaPricing({ source: 'mail' }) === true) { mailPaidWatch(); return; } } catch (e0) { /* yut */ }
+    }
     var url = mailPlanUrl();
     try { W.open(url, '_blank', 'noopener'); } catch (e) { /* yut */ }
   }

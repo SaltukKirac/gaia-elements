@@ -56,6 +56,7 @@
   #aithia{font-family:var(--gx-font);color:var(--gx-ink);background:#fff;font-size:17px;line-height:1.55;letter-spacing:-.002em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
   #aithia *,#aithia *::before,#aithia *::after{box-sizing:border-box;margin:0;padding:0}
   #aithia [hidden]{display:none!important}
+  #aithia.is-embedded>footer,#aithia.is-embedded>.ax-sec:not(#ax-packages){display:none!important}
   #aithia a{color:var(--gx-primary-deep);text-decoration:none}#aithia a:hover{text-decoration:underline}
   #aithia button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;letter-spacing:inherit}
   #aithia button:disabled{cursor:default}
@@ -444,7 +445,7 @@
   };
   /* prices: { live: {focus:{month,year},...}, sandbox: {...} }. A flat { focus: {...}, ... } map (older shape) applies to both environments. */
   function mergeCfg(base,over){
-    var out={env:base.env,tokens:{},prices:{},maxMailboxes:base.maxMailboxes,successPath:base.successPath,fromSlug:base.fromSlug},e,k,p;
+    var out={env:base.env,tokens:{},prices:{},maxMailboxes:base.maxMailboxes,successPath:base.successPath,fromSlug:base.fromSlug,embedded:false,source:''},e,k,p;
     over=(over&&typeof over==='object')?over:{};
     if(over.env==='sandbox'||over.env==='live')out.env=over.env;
     for(k in base.tokens)out.tokens[k]=String((over.tokens&&over.tokens[k])||base.tokens[k]||'');
@@ -461,6 +462,9 @@
     if(mx>=1&&mx<=99)out.maxMailboxes=mx;
     if(typeof over.successPath==='string'&&/^\/[A-Za-z0-9_\/-]*$/.test(over.successPath))out.successPath=over.successPath;
     if(typeof over.fromSlug==='string'&&/^[a-z0-9-]{2,60}$/i.test(over.fromSlug))out.fromSlug=over.fromSlug.toLowerCase();
+    /* 20.10 (AITHIA-INAPP): mounted inside the app's packages window (Architect gxAithiaPricing) */
+    if(over.embedded===true)out.embedded=true;
+    if(over.source==='setup'||over.source==='mail')out.source=over.source;
     return out;
   }
   var CFG=mergeCfg(DEFAULTS,W.AITHIA_PRICING);
@@ -502,7 +506,9 @@
   /* 20.10 (AITHIA-PAYWALL): ?src=setup = opened by the Architect setup tab, which waits for the package itself.
      After payment this tab does not send the person into a second setup; it tells the setup tab (localStorage
      gx_aithia_paid, a storage event on the same origin) and offers to close. */
-  var FROM_SETUP=/[?&]src=setup(&|$)/.test(location.search||'');
+  var EMBED=CFG.embedded===true;
+  var FROM_SETUP=/[?&]src=setup(&|$)/.test(location.search||'')||(EMBED&&CFG.source!=='mail');
+  if(EMBED)root.classList.add('is-embedded');
   /* the element channel (?gxel) the loader keeps per tab; carried to the app so a dev test stays on dev */
   function chan(){var c='';try{c=String(sessionStorage.getItem('gxel')||'');}catch(e){c='';}return (c&&c!=='main'&&/^[A-Za-z0-9._-]{1,40}$/.test(c))?c:'';}
   function appBase(){return (CFG.env==='sandbox'?'https://gaiasphere.io/version-test':'https://gaiasphere.io')+CFG.successPath;}
@@ -590,7 +596,8 @@
 
     if(m==='success'){
       el.form.hidden=true;el.success.hidden=false;el.note.hidden=!!String(W.__gxUserSirket||'');
-      if(FROM_SETUP&&!S.force){el.lead.textContent=S.closeFailed?'Close this tab and go back to your setup. It continues there.':'Your setup tab continues by itself in a few seconds.';el.open.textContent='Back to setup';}
+      if(EMBED&&!S.force){el.lead.textContent=CFG.source==='mail'?'Your package is being activated. Ask Aithia opens in a few seconds.':'Your setup continues by itself in a few seconds.';el.open.textContent=CFG.source==='mail'?'Back to Ask Aithia':'Back to setup';}
+      else if(FROM_SETUP&&!S.force){el.lead.textContent=S.closeFailed?'Close this tab and go back to your setup. It continues there.':'Your setup tab continues by itself in a few seconds.';el.open.textContent='Back to setup';}
     }
     else{el.form.hidden=false;el.success.hidden=true;}
 
@@ -732,7 +739,7 @@
         items:[{priceId:priceId(S.plan,S.period),quantity:S.qty}],
         /* user_sirket and user_id are hints read from page globals; the server binds by a verified signal, never by these alone */
         customData:{product:'aithia',plan:S.plan,source:'gaia',app_version:CFG.env==='sandbox'?'version-test':'live',from:CFG.fromSlug||'',user_sirket:String(W.__gxUserSirket||''),user_id:String(W.__gxUserId||'')},
-        settings:FROM_SETUP?{displayMode:'overlay'}:{displayMode:'overlay',successUrl:appUrl()}
+        settings:(FROM_SETUP||EMBED)?{displayMode:'overlay'}:{displayMode:'overlay',successUrl:appUrl()}
       });
       ok=true;
     }catch(e){ok=false;}
@@ -742,10 +749,12 @@
   }
   function writePaid(){
     try{localStorage.setItem('gx_aithia_paid',JSON.stringify({plan:S.plan,period:S.period,ts:Date.now()}));}catch(e){}
+    /* the app's own window hears no storage event of its own write: the same signal as a window event */
+    try{W.dispatchEvent(new CustomEvent('gx:aithia-paid',{detail:{plan:S.plan}}));}catch(e){}
   }
   function writePending(){
     writePaid();
-    if(FROM_SETUP)return;
+    if(FROM_SETUP||EMBED)return;
     var rec='';
     try{rec=JSON.stringify({slug:slug(),instant:false,intent:'preview',ts:Date.now()});}catch(e){rec='';}
     if(!rec)return;
@@ -754,6 +763,7 @@
   }
   function openApp(){
     writePending();
+    if(EMBED){try{W.dispatchEvent(new CustomEvent('gx:aithia-close'));}catch(e){}return;}
     if(FROM_SETUP){
       try{W.close();}catch(e){}
       /* a tab the browser will not close stays here with a plain instruction (no second setup) */
