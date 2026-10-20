@@ -5503,6 +5503,13 @@
     let connectedAuthConfigIds = new Set();   // auth_config_id (cross-slug eşleşme — googlesuper vs googlecalendar)
     let authConfigCache = {};                 // slug → auth_config_id (runtime cache, tekrar sorgulamayı önler)
     let connectedAccountIdCache = {};         // slug → connected_account_id (ca_xxx) — trigger create için
+    // 19.10 (C3): every ACTIVE id of a toolkit (newest first) and the chosen account's label; the three objects are never
+    // reassigned, so the window views below stay live for other script blocks and for the harness.
+    let connectedAccountIdsCache = {};        // slug -> [connected_account_id, ...]
+    let connectedAccountMetaCache = {};       // slug -> { id, email, status, ts, n, accounts: [{ id, email, ts }] }
+    window.connectedAccountIdCache = connectedAccountIdCache;
+    window.connectedAccountIdsCache = connectedAccountIdsCache;
+    window.connectedAccountMetaCache = connectedAccountMetaCache;
     let toolkitsCache = [];                   // gaia-toolkits-result'tan yüklenen toolkit listesi
     // triggersCache ve toolsCache → window.__GAIA_HUB__ singleton üzerinden erişilir
     let connectedAccountsLoaded = false;
@@ -5558,6 +5565,109 @@
       return p;
     };
 
+    // 19.10 (C3): one index for both list readers (loadConnectedAccounts and gaiaNotifyConnected). Bubble forwards
+    // Composio's list as is. When the items carry a status field only ACTIVE accounts count (an EXPIRED or INITIATED
+    // Outlook account used to win the slug); among several accounts of one toolkit the newest (updated_at / created_at,
+    // else the last one) is the default id and every ACTIVE id stays in connectedAccountIdsCache[slug]. A list without
+    // any status field indexes exactly as before (last item of a slug wins).
+    function _gxConnAcctTs(i){
+      var v = (i && (i.updated_at || i.updatedAt || i.created_at || i.createdAt)) || '';
+      var t = v ? Date.parse(String(v)) : NaN;
+      return isNaN(t) ? 0 : t;
+    }
+    function _gxConnAcctEmail(i){
+      if (!i || typeof i !== 'object') return '';
+      var d = (i.data && typeof i.data === 'object') ? i.data : {};
+      var sv = (i.state && i.state.val && typeof i.state.val === 'object') ? i.state.val : {};
+      var cands = [i.email, i.account_email, i.user_email, i.account_label, i.label,
+        d.email, d.account_email, d.user_email, d.userPrincipalName, d.mail,
+        sv.email, sv.account_email, sv.user_email,
+        i.meta && i.meta.email, i.params && i.params.email, i.connection_params && i.connection_params.email];
+      for (var k = 0; k < cands.length; k++) { var v = cands[k]; if (typeof v === 'string' && v.trim()) return v.trim().slice(0, 120); }
+      return '';
+    }
+    function _gxConnAcctIndex(items){
+      items = Array.isArray(items) ? items : [];
+      var hasStatus = items.some(function(i){ return !!(i && typeof i === 'object' && i.status !== undefined && i.status !== null && i.status !== ''); });
+      var kept = [], dropped = 0, seenSlugs = {};
+      items.forEach(function(i, k){
+        if (!i || typeof i !== 'object') return;
+        var slug = (i.toolkit && i.toolkit.slug) ? String(i.toolkit.slug).toLowerCase() : '';
+        if (slug) seenSlugs[slug] = 1;
+        // 19.10 (W2-7): an item without a status key stays even when other items carry one; only a non-empty
+        // status other than ACTIVE drops the item.
+        var stRaw = (i.status === undefined || i.status === null) ? '' : String(i.status).trim();
+        if (hasStatus && stRaw && stRaw.toUpperCase() !== 'ACTIVE') { dropped++; return; }
+        kept.push({ item: i, slug: slug, order: k });
+      });
+      var out = { hasStatus: hasStatus, dropped: dropped, total: items.length, slugs: [], authIds: [], authBySlug: {}, idBySlug: {}, idsBySlug: {}, metaBySlug: {}, acctsBySlug: {}, seenSlugs: seenSlugs };
+      kept.forEach(function(en){
+        var i = en.item;
+        if (en.slug && out.slugs.indexOf(en.slug) < 0) out.slugs.push(en.slug);
+        var aid = i.auth_config && i.auth_config.id;
+        if (aid && out.authIds.indexOf(aid) < 0) out.authIds.push(aid);
+      });
+      var bySlug = {};
+      kept.forEach(function(en){ if (!en.slug) return; (bySlug[en.slug] = bySlug[en.slug] || []).push(en); });
+      Object.keys(bySlug).forEach(function(slug){
+        var list = bySlug[slug].slice();
+        if (hasStatus) list.sort(function(x, y){ var dd = _gxConnAcctTs(y.item) - _gxConnAcctTs(x.item); return dd !== 0 ? dd : (y.order - x.order); });   // newest first; ties keep the last item first
+        else list.reverse();   // unchanged rule: the last item of a slug wins
+        var ids = [];
+        list.forEach(function(en){ var id = en.item.id; if (id && ids.indexOf(String(id)) < 0) ids.push(String(id)); });
+        var authId = '';
+        for (var q = 0; q < list.length; q++) { var a2 = list[q].item.auth_config && list[q].item.auth_config.id; if (a2) { authId = a2; break; } }
+        if (authId) out.authBySlug[slug] = authId;
+        if (ids.length) {
+          out.idBySlug[slug] = ids[0]; out.idsBySlug[slug] = ids;
+          var top = null; for (var q2 = 0; q2 < list.length; q2++) { if (String(list[q2].item.id || '') === ids[0]) { top = list[q2].item; break; } }
+          // 19.10 (W2-2): every kept account of the toolkit as {id, email, ts}, newest first, so the trigger create can
+          // pick the account whose address equals the chosen mailbox.
+          var accts = [];
+          list.forEach(function(en){ var it = en.item, iid = String(it.id || ''); if (!iid || accts.some(function(a){ return a.id === iid; })) return; accts.push({ id: iid, email: _gxConnAcctEmail(it), ts: _gxConnAcctTs(it) }); });
+          out.acctsBySlug[slug] = accts;
+          out.metaBySlug[slug] = { id: ids[0], email: _gxConnAcctEmail(top), status: String((top && top.status) || ''), ts: _gxConnAcctTs(top), n: ids.length, accounts: accts };
+        }
+      });
+      return out;
+    }
+    // 19.10 (W2-8): true when the raw Bubble list carries an INITIATED / INITIALIZING account of this toolkit (an OAuth
+    // sign-in that Composio has not finished yet).
+    function _gxConnAcctPending(slug){
+      slug = String(slug || '').trim().toLowerCase();
+      if (!slug) return false;
+      try {
+        var nodes = document.querySelectorAll('[id="gaia-connected-accounts"]');
+        var node = nodes.length ? nodes[nodes.length - 1] : null;
+        var raw = node ? String(node.textContent || '').trim() : '';
+        if (!raw || raw.charAt(0) !== '{') return false;
+        var d = JSON.parse(raw); var items = (d && Array.isArray(d.items)) ? d.items : [];
+        return items.some(function(i){
+          var s2 = (i && i.toolkit && i.toolkit.slug) ? String(i.toolkit.slug).toLowerCase() : '';
+          var st = String((i && i.status) || '').toUpperCase();
+          return s2 === slug && (st === 'INITIATED' || st === 'INITIALIZING');
+        });
+      } catch(e){ return false; }
+    }
+    window._gxConnAcctPending = _gxConnAcctPending;
+    function _gxConnAcctApply(idx){
+      connectedSlugs = new Set(idx.slugs);
+      connectedAuthConfigIds = new Set(idx.authIds);
+      Object.keys(idx.authBySlug).forEach(function(slug){ authConfigCache[slug] = idx.authBySlug[slug]; });
+      Object.keys(idx.idBySlug).forEach(function(slug){
+        connectedAccountIdCache[slug] = idx.idBySlug[slug];
+        connectedAccountIdsCache[slug] = idx.idsBySlug[slug].slice();
+        connectedAccountMetaCache[slug] = idx.metaBySlug[slug];
+      });
+      if (idx.hasStatus) {
+        // a toolkit that is in the list only with non ACTIVE accounts must not keep an older id (bizmail is not a Composio item)
+        Object.keys(idx.seenSlugs).forEach(function(slug){
+          if (slug === 'bizmail' || idx.idBySlug[slug]) return;
+          delete connectedAccountIdCache[slug]; delete connectedAccountIdsCache[slug]; delete connectedAccountMetaCache[slug];
+        });
+        if (idx.dropped) console.log('[MAILPROV] connected accounts: ' + idx.total + ' items, ' + (idx.total - idx.dropped) + ' active, ' + idx.dropped + ' ignored (status not ACTIVE)');
+      }
+    }
     function loadConnectedAccounts() {
       // Duplicate node olabilir — sonuncusunu al (Bubble'ın inject ettiği gerçek data)
       const nodes = document.querySelectorAll('[id="gaia-connected-accounts"]');
@@ -5570,16 +5680,7 @@
         lastConnectedRaw = raw;
         const data = JSON.parse(raw);
         const items = data.items || [];
-        connectedSlugs = new Set(items.map(i => i.toolkit && i.toolkit.slug && i.toolkit.slug.toLowerCase()).filter(Boolean));
-        connectedAuthConfigIds = new Set(items.map(i => i.auth_config && i.auth_config.id).filter(Boolean));
-        // slug → auth_config_id + connected_account_id cache'i doldur
-        items.forEach(i => {
-          const slug = i.toolkit && i.toolkit.slug && i.toolkit.slug.toLowerCase();
-          const authId = i.auth_config && i.auth_config.id;
-          const connId = i.id; // ca_xxx
-          if (slug && authId) authConfigCache[slug] = authId;
-          if (slug && connId) connectedAccountIdCache[slug] = connId;
-        });
+        _gxConnAcctApply(_gxConnAcctIndex(items));   // 19.10 (C3): ACTIVE only when statuses are present, newest per slug, ids list
         connectedAccountsLoaded = true;
         console.log('gaia: connected slugs:', [...connectedSlugs], '| auth_config_ids:', [...connectedAuthConfigIds]);
         return true;
@@ -5925,6 +6026,7 @@
         connBtn.className = 'hub-conn-btn ' + (connected ? 'connected' : 'disconnected');
         connBtn.textContent = connected ? '● Connected' : 'Connect';
       }
+      _hubConnAsk = null; _hubPaintConn();   // HUB-CONN: strip and confirm row of the opened app
 
       // Hero
       const logoEl = document.getElementById('hub-detail-logo');
@@ -5988,6 +6090,8 @@
       if (isSlugConnected(slug)) {
         // Zaten bağlı — yenile
         refreshConnectedAccounts();
+      } else if (_hubConnIds(slug).length) {
+        _hubConnOpenAsk('reconnect');   // 19.10 (W2-4): stale accounts are removed first, then the sign-in opens
       } else {
         window.gaiaConnectApp(slug);
       }
@@ -6067,10 +6171,13 @@
       var btn = document.getElementById('hub-detail-conn-btn');
       var strip = document.getElementById('hub-detail-conn-manage');
       var connected = slug ? isSlugConnected(slug) : false;
-      if (btn && slug) { btn.className = 'hub-conn-btn ' + (connected ? 'connected' : 'disconnected'); btn.textContent = connected ? '● Connected' : 'Connect'; }
+      // 19.10 (W2-4): a toolkit listed only with non ACTIVE accounts (EXPIRED, INITIATED) is not connected, but its
+      // stale Composio connections can still be removed: the strip shows from the raw list and the button says Reconnect.
+      var stale = !!slug && !connected && _hubConnIds(slug).length > 0;
+      if (btn && slug) { btn.className = 'hub-conn-btn ' + (connected ? 'connected' : 'disconnected'); btn.textContent = connected ? '● Connected' : (stale ? 'Reconnect' : 'Connect'); }
       if (!strip) return;
       var busy = !!(_hubConnBusy && _hubConnBusy.slug === slug);
-      var show = !!slug && (busy || (connected && _hubConnIds(slug).length > 0));
+      var show = !!slug && (busy || stale || (connected && _hubConnIds(slug).length > 0));
       strip.style.display = show ? '' : 'none';
       if (!show) return;
       var anyBusy = !!_hubConnBusy;
@@ -8787,16 +8894,7 @@
       if (data) {
         // Direkt veri geldi — connectedSlugs'ı güncelle
         const items = data.items || [];
-        connectedSlugs = new Set(items.map(i => i.toolkit && i.toolkit.slug && i.toolkit.slug.toLowerCase()).filter(Boolean));
-        connectedAuthConfigIds = new Set(items.map(i => i.auth_config && i.auth_config.id).filter(Boolean));
-        // slug → auth_config_id + connected_account_id cache'i doldur
-        items.forEach(i => {
-          const slug = i.toolkit && i.toolkit.slug && i.toolkit.slug.toLowerCase();
-          const authId = i.auth_config && i.auth_config.id;
-          const connId = i.id; // ca_xxx
-          if (slug && authId) authConfigCache[slug] = authId;
-          if (slug && connId) connectedAccountIdCache[slug] = connId;
-        });
+        _gxConnAcctApply(_gxConnAcctIndex(items));   // 19.10 (C3): ACTIVE only when statuses are present, newest per slug, ids list
         connectedAccountsLoaded = true;
         lastConnectedRaw = JSON.stringify(data);
         console.log('[GAIA notify] ✅ connected:', [...connectedSlugs]);
@@ -8816,6 +8914,7 @@
           connBtn.className = 'hub-conn-btn ' + (isConn ? 'connected' : 'disconnected');
           connBtn.textContent = isConn ? '● Connected' : 'Connect';
         }
+        _hubPaintConn();   // HUB-CONN
         if (isSlugConnected(slug)) _renderHubItems();
       }
       // Auth akışı bekliyorsa anında çöz
@@ -8900,15 +8999,20 @@
         const _changed = loadConnectedAccounts();
         if (_changed) {
           renderConnectionsList(); // loadConnectedAccounts + renderHubGrid içeriyor
+          _hubPaintConn();   // HUB-CONN: repaints the detail button in normal mode too
 
           // Picker modunda tool detail açıksa connect butonu + tool listesini güncelle
           // (renderHubGrid zaten app grid'i güncelledi, burada sadece detail gerekiyor)
           if (_pickerMode && _pickerCurrentApp) {
             const connBtn = document.getElementById('hub-detail-conn-btn');
             if (connBtn) {
-              const isConn = isSlugConnected(_pickerCurrentApp);
+              const pickSlug = String(_pickerCurrentApp.slug || _pickerCurrentApp || '').trim().toLowerCase();
+              const isConn = isSlugConnected(pickSlug);
+              // 19.10 (W2-4): same label rule as _hubPaintConn, which ran just above: a toolkit listed only with
+              // non ACTIVE accounts keeps Reconnect here too instead of being rewritten to Connect.
+              const stale = !isConn && _hubConnIds(pickSlug).length > 0;
               connBtn.className = 'hub-conn-btn ' + (isConn ? 'connected' : 'disconnected');
-              connBtn.textContent = isConn ? '● Connected' : 'Connect';
+              connBtn.textContent = isConn ? '● Connected' : (stale ? 'Reconnect' : 'Connect');
             }
             _renderHubItems();
           }
@@ -9347,7 +9451,8 @@
       // Her 2s'de DOM'u sıfırdan okuyarak kontrol et (MutationObserver fallback).
       // lastConnectedRaw sıfırlanıyor: Bubble aynı içeriği bile yeniden yazmış olsa yakalanır.
       let _checkAttempts = 0;
-      const _maxAttempts = 6; // 6 × 2s = 12s toplam
+      let _maxAttempts = 6; // 6 x 2s = 12s
+      let _extended = false;   // 19.10 (W2-8): one extension of 12 s while the sign-in is still INITIATED
       _connCheckTimer = setInterval(function () {
         _checkAttempts++;
         lastConnectedRaw = ''; // dedup bypass — her tick'te DOM'u taze oku
@@ -9361,7 +9466,19 @@
           return;
         }
         if (_checkAttempts >= _maxAttempts) {
-          console.warn('[GAIA auth] ⚠️ Bağlantı bulunamadı —', app, '(12s timeout)');
+          // 19.10 (W2-8): when the raw list still shows an INITIATED / INITIALIZING account of this toolkit the sign-in
+          // is not over: the list is requested once more and the window grows by 12 s before the retry screen.
+          if (!_extended && _gxConnAcctPending(app)) {
+            _extended = true;
+            _maxAttempts += 6;
+            console.log('[GAIA auth] sign-in still finishing for', app, '- waiting 12 s more');
+            const descEl2 = document.getElementById('auth-panel-desc');
+            if (descEl2) descEl2.textContent = 'Still finishing the sign-in.';
+            if (typeof window.bubble_fn_gaia_auth_recheck === 'function') window.bubble_fn_gaia_auth_recheck({ output1: app || '' });
+            else if (typeof window.bubble_fn_gaia_connected === 'function') window.bubble_fn_gaia_connected({});
+            return;
+          }
+          console.warn('[GAIA auth] connection not verified for', app, '(' + (_maxAttempts * 2) + ' s timeout)');
           clearInterval(_connCheckTimer);
           _connCheckTimer = null;
           authState.waitingForConnectedCheck = false;
@@ -27450,12 +27567,35 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         return true;
       } catch(e){ return false; }
     }
-    function _gadFlagshipTriggerFailed(reason){
+    // 19.10 (W2-2): among several ACTIVE accounts of one app, the one whose address equals the chosen mailbox
+    // (gx_mail_provider.email, case-insensitive) wins. Returns { id, note }: id '' when nothing matches and note then
+    // names the mailboxes (provider label from the card, else from the mail app).
+    function _gadFlagshipPickAccount(app, ids){
+      app = String(app || '').toLowerCase(); ids = Array.isArray(ids) ? ids.map(String) : [];
+      var meta = null;
+      try { meta = (typeof connectedAccountMetaCache !== 'undefined' && connectedAccountMetaCache) ? connectedAccountMetaCache[app] : null; } catch(e){ meta = null; }
+      var accts = (meta && Array.isArray(meta.accounts)) ? meta.accounts : [];
+      var want = '';
+      try { want = String(((typeof _gflMpStored === 'function' && _gflMpStored()) || {}).email || '').trim().toLowerCase(); } catch(e){ want = ''; }
+      var hit = null;
+      if (want) accts.forEach(function(a){ if (!hit && a && String(a.email || '').trim().toLowerCase() === want && ids.indexOf(String(a.id)) >= 0) hit = a; });
+      if (hit) return { id: String(hit.id), note: '' };
+      var label = '';
+      try { var s = _gadFlagshipSession; label = String((s && s.ctx && s.ctx.appLabels && s.ctx.appLabels[app]) || ''); } catch(e){ label = ''; }
+      if (!label) label = (['gmail', 'outlook'].indexOf(app) >= 0 && typeof _gflMailLabel === 'function') ? _gflMailLabel(app) : app;
+      var mails = accts.map(function(a){ return String((a && a.email) || '').trim(); }).filter(Boolean);
+      var n = ids.length, count = (n === 2) ? 'Two' : ((n === 3) ? 'Three' : String(n));
+      var note = count + ' ' + label + ' accounts are connected' + (mails.length ? (' (' + mails.join(', ') + ')') : '') + '. Pick one in Integrations.';
+      return { id: '', note: note };
+    }
+    window._gadFlagshipPickAccount = _gadFlagshipPickAccount;
+    function _gadFlagshipTriggerFailed(reason, note){
+      var txt = String(note || '') || _GFL_TRIG_FAIL_NOTE;   // 19.10 (W2-2): a specific note (several mailboxes) replaces the generic manual mode text
       var s = _gadFlagshipSession;
-      if (s) { s.triggerState = 'failed'; s.triggerNote = _GFL_TRIG_FAIL_NOTE; _gadFlagshipSaveSession(); }
-      _gadFlagshipNote(_GFL_TRIG_FAIL_NOTE, true);
+      if (s) { s.triggerState = 'failed'; s.triggerNote = txt; _gadFlagshipSaveSession(); }
+      _gadFlagshipNote(txt, true);
       // Taahhüt sheet'i hemen kaldırır → aynı not deploy overlay'inde (adım satırları 300..2700 ms'de akar)
-      setTimeout(function(){ _gadFlagshipDeployNote(_GFL_TRIG_FAIL_NOTE); }, 3200);
+      setTimeout(function(){ _gadFlagshipDeployNote(txt); }, 3200);
       _gadFlagshipTrackSafe('flagship_trigger_failed', { slug: s ? s.slug : '', reason: String(reason || '') });
       gW('[FLAGSHIP] tetikleyici hazırlanamadı → manuel mod:', reason);
     }
@@ -27464,7 +27604,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     function _gadFlagshipCreateTriggerDisabled(bp, scopeQuery, done){
       var settled = false;
       var finish = function(id){ if (settled) return; settled = true; try { done(id || ''); } catch(e){ gE('[FLAGSHIP] done hatası:', e && e.message); } };
-      var fail = function(reason){ if (settled) return; _gadFlagshipTriggerFailed(reason); finish(''); };
+      var fail = function(reason, note){ if (settled) return; _gadFlagshipTriggerFailed(reason, note); finish(''); };
       var t = bp && bp.trigger;
       if (!t || !t.trigger_slug) {
         // Ürün tetikleyici TANIMLAMIYOR: başarısızlık değil, dürüst manuel mod (fragile 22702 P2: sessiz değil)
@@ -27477,6 +27617,19 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var app = String(t.app_slug || '').toLowerCase();
       var connId = '';
       try { if (typeof connectedAccountIdCache !== 'undefined' && connectedAccountIdCache && connectedAccountIdCache[app]) connId = String(connectedAccountIdCache[app]); } catch(e){}
+      // 19.10 (C3): with more than one ACTIVE account for this app the client does not guess; the server resolves the
+      // account or answers NEEDS_ACCOUNT_CHOICE (which lands in the manual mode note above).
+      var multiNote = '';
+      try {
+        var connIds = (typeof connectedAccountIdsCache !== 'undefined' && connectedAccountIdsCache) ? connectedAccountIdsCache[app] : null;
+        if (connId && Array.isArray(connIds) && connIds.length > 1) {
+          // 19.10 (W2-2): the account whose address equals the chosen mailbox wins; without a match the id stays empty
+          // and a NEEDS_ACCOUNT_CHOICE answer shows a note that names the mailboxes instead of the manual mode text.
+          var pickRes = _gadFlagshipPickAccount(app, connIds);
+          if (pickRes.id) { connId = pickRes.id; gL('[FLAGSHIP] ' + connIds.length + ' active accounts for ' + app + ': using the one that matches the chosen mailbox'); }
+          else { connId = ''; multiNote = pickRes.note; gW('[FLAGSHIP] ' + connIds.length + ' active accounts for ' + app + ': no address match, connected_account_id left empty for the server to resolve'); }
+        }
+      } catch(e){}
       var cfg = {}; try { Object.keys(t.trigger_config || {}).forEach(function(k){ cfg[k] = t.trigger_config[k]; }); } catch(e){}
       if (!connId && app === 'bizmail' && window.__gflBizmail && window.__gflBizmail.account_id) connId = String(window.__gflBizmail.account_id); /* MAILPROV */
       if (app === 'gmail') try { /* MAILPROV */ // Gmail search syntax only: Outlook and bizmail keep the blueprint trigger_config
@@ -27492,7 +27645,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (settled) return;
         var st = String((res && res.status) || '').toUpperCase();
         if (!res || res.timeout || st === 'TIMEOUT') { fail('timeout'); return; }   // geç gelen create'i onTriggerResponse mezar taşıyla siler
-        if (st === 'NEEDS_ACCOUNT_CHOICE') { fail('needs-account-choice'); return; }
+        if (st === 'NEEDS_ACCOUNT_CHOICE') { fail('needs-account-choice', multiNote); return; }
         if (st === 'ERROR') { fail('error:' + String((res && res.message) || '').slice(0, 80)); return; }
         var d = (res.data && typeof res.data === 'object') ? res.data : res;
         var id = String(d.id || d.triggerId || d.trigger_id || d.trigger_instance_id || '').trim();
@@ -28998,6 +29151,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         + P + ' .gfl-footrow .gfl-go{flex:1 1 auto;min-width:0;}'
         // ★ 20.09 (P1 madde 6): dugmenin altindaki tek satir. Sessiz, ortalanmis, dugmeyle ayni genislikte.
         + P + ' .gfl-gocap{margin:7px 0 0;font-size:12px;line-height:16px;font-weight:600;text-align:center;color:var(--gx-ink-2,#475569);}'
+        // AITHIA-PAYWALL (20.10): paket karti. --gx-* token'lari, tek vurgu rengi, ince cizgi.
+        + P + ' .gfl-pay{margin:0 0 12px;padding:12px 14px;border:1px solid var(--gx-line,#e2e8f0);border-radius:var(--gx-r-md,10px);background:var(--gx-field,#f6f7f9);color:var(--gx-ink,#0f172a);min-width:0;}'
+        + P + ' .gfl-pay-t{margin:0;font-size:14px;line-height:20px;font-weight:700;}'
+        + P + ' .gfl-pay-d{margin:3px 0 0;font-size:13px;line-height:18px;color:var(--gx-ink-2,#475569);overflow-wrap:anywhere;}'
+        + P + ' .gfl-pay-a{display:inline-flex;align-items:center;margin:4px 0 0;padding:0;min-height:44px;border:0;background:none;color:var(--gx-accent,#6366f1);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;}'
+        + P + ' .gfl-pay.is-ok{border-color:var(--gx-ok,#16a34a);}'
         + P + ' .gfl-back{flex:0 0 auto;min-height:52px;padding:0 20px;border-radius:var(--gx-r-pill,999px);border:1px solid var(--gx-line,#e2e8f0);background:var(--gx-field,#f6f7f9);color:var(--gx-ink,#0f172a);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;}'
         + P + ' .gfl-back[disabled]{opacity:.55;cursor:not-allowed;}'
         + '@media(min-width:900px){'
@@ -29611,7 +29770,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           + '<div class="gfl-appmain"><div class="gfl-apptitle">' + _flagEsc(label)
           + '<span class="gfl-pill ' + (req ? 'gfl-req' : 'gfl-opt') + '">' + (req ? 'Required' : 'Optional') + '</span>'
           + '<span class="gfl-state chk" data-role="state">Checking...</span></div>'
-          + (a.why ? '<div class="gfl-why">' + _flagEsc(a.why) + '</div>' : '') + '</div>'
+          + (a.why ? '<div class="gfl-why">' + _flagEsc(a.why) + '</div>' : '')
+          + '<div class="gfl-rowhint" data-role="mailbox" style="color:var(--gx-ink-3,#64748b);" hidden></div>' + '</div>'   /* MAILPROV */ // 19.10: the connected mailbox address, filled by the repaint
           + '<div class="gfl-appact">'
           + '<button type="button" class="gfl-btn gfl-connect" data-slug="' + _flagEsc(slug) + '">' + (req ? ('Connect ' + _flagEsc(label)) : 'Connect') + '</button>'
           + (req ? '' : '<button type="button" class="gfl-btn gfl-ghost gfl-skip" data-slug="' + _flagEsc(slug) + '"' + (_blk ? (' title="' + _flagEsc(a.why || _bn) + '" aria-label="Skip for now. ' + _flagEsc(a.why || _bn) + '"') : '') + '>Skip for now</button>')
@@ -29624,6 +29784,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         + (act.time_to_value ? '<div class="gfl-ttv">' + _flagEsc(act.time_to_value) + '</div>' : '')
         + '<div class="gfl-h4">Connect your accounts</div>'
         + appRows
+        // 19.10 (MAILPROV): which mailbox this copy is set up for (label from data) and a way to ask the question again.
+        + (_mailCtx ? ('<div class="gfl-hint gfl-mp-change" id="gfl-mp-change"><span data-role="mp-current">' + _flagEsc('Set up for ' + _gflMailLabel(_gflMailApp(ctx)) + '.') + '</span> '
+            + '<button type="button" class="gfl-link" id="gfl-change-mailbox" data-slug="' + _flagEsc(ctx.mpReqSlug || ctx.slug || '') + '">Change mailbox</button></div>') : '')
         + ((hasGmail && hasGcal && _mailCtx && _gflMailApp(ctx) === 'gmail' /* MAILPROV */) ? '<div class="gfl-hint">One Google sign-in can cover both. If Calendar already shows Connected, nothing else is needed.</div>' : '')   /* PHONE-FLAGSHIP-FIX */ // the hint is a Gmail hint
         + '</div>';
 
@@ -29769,6 +29932,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         + '</div><aside class="gfl-gs-side" id="gfl-gs-side" hidden aria-label="Setup summary"></aside></div>'
         + '</div>'
         + '<div class="gfl-foot" id="gfl-foot">'
+        // AITHIA-PAYWALL (20.10): paket karti; yalniz baslatma ozetinde ve paket sorgusu bir sey soyleyince gorunur.
+        + '<div class="gfl-pay" id="gfl-pay" role="status" aria-live="polite" hidden></div>'
         + '<div class="gfl-footrow">'
         + '<button type="button" class="gfl-back" id="gfl-back" hidden>Back</button>'
         + '<button type="button" class="gfl-go" id="gfl-go">Continue</button></div>'
@@ -29829,7 +29994,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var s = _gadFlagshipSession; if (s) { s.busy = !!on; if (!on) s.starting = false; }   // 18.09: basarisiz baslatma "Starting..." damgasini birakmaz
       ['gfl-go','gfl-go2','gfl-review','gfl-chgtoggle','gfl-close','gfl-prev-again'].forEach(function(id){ var el = _gadFlagshipEl(id); if (el) el.disabled = !!on; });
       var ov = _gadFlagshipOv();
-      if (ov) Array.prototype.forEach.call(ov.querySelectorAll('.gfl-connect,.gfl-skip,.gfl-refresh,#gfl-prefs input,#gfl-prefs select,#gfl-prefs textarea,#gfl-chgtxt'), function(el){ el.disabled = !!on; });
+      if (ov) Array.prototype.forEach.call(ov.querySelectorAll('.gfl-connect,.gfl-skip,.gfl-refresh,#gfl-change-mailbox,#gfl-prefs input,#gfl-prefs select,#gfl-prefs textarea,#gfl-chgtxt'), function(el){ el.disabled = !!on; });
       var go = _gadFlagshipEl('gfl-go');
       // 18.09 (LIVING_UI_SPEC 6.8): "Starting..." damgasi kapsul bicimini de getirir (donen halka etiketin solunda).
       if (go && on && label) {
@@ -29864,7 +30029,168 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (say) { el.setAttribute('title', say); el.setAttribute('aria-label', say); }
       else { el.removeAttribute('title'); el.removeAttribute('aria-label'); }
     }
+    /* AITHIA-PAYWALL-BEGIN (20.10) */
+    // Odeme duvari: AITHIA posta kartlari (inbox-chief-of-staff*) "Start the assistant" / "Review" taahhudunden ONCE
+    // sunucuya paketi sorar (os_mail_status, Architect'in kendi koprusu _gadTrigRequest ile; kabugun adina dokunulmaz,
+    // K20). Paket yoksa sunucu state plan_required der; o zaman
+    // ayak alanina paket karti cizilir, birincil dugme "Choose a package" olur ve /aithia YENI sekmede acilir
+    // (kanal ?gxel ve kart kimligi tasinir). Odeme sayfasi bitince localStorage gx_aithia_paid yazar; bu sekme
+    // storage olayi, odak ve 8 sn yoklama ile paketi yeniden sorar (en cok 20 dk). Paket gelince dugme yine
+    // "Start the assistant" olur; taahhut kisinin tikiyla. Sunucu AITHIA'yi bilmiyorsa ya da kopru yoksa (unavailable,
+    // bridge_missing, timeout) duvar ACIK gecer: canli bugun boyle kalir. Kapatma: ?aithia_pay=0. Konsol: [PAYWALL].
+    var _GFL_PAY_RE = /^inbox-chief-of-staff(-|$)/;
+    var _gflPayWatch = null;
+    function _gflPayLog(){ try { console.log.apply(console, ['%c[PAYWALL]', 'color:#6366f1;font-weight:bold'].concat([].slice.call(arguments))); } catch(e){} }
+    function _gflPayApplies(ctx){
+      if (!ctx || !_GFL_PAY_RE.test(String(ctx.slug || ''))) return false;
+      try { if (/[?&]aithia_pay=0(&|#|$)/.test(location.search || '')) return false; } catch(e){}
+      return typeof window._gadTrigRequest === 'function';
+    }
+    function _gflPayPlanName(p){ p = String(p || ''); return p ? 'AITHIA ' + p.charAt(0).toUpperCase() + p.slice(1) : 'AITHIA'; }
+    function _gflPayUrl(ctx){
+      var vt = false, ch = '';
+      try { vt = String(location.pathname || '').indexOf('/version-test') === 0; } catch(e){}
+      try { ch = String(sessionStorage.getItem('gxel') || ''); } catch(e){ ch = ''; }
+      var q = '?from=' + encodeURIComponent(String((ctx && ctx.slug) || '')) + '&src=setup';
+      if (ch && /^[A-Za-z0-9._-]{1,40}$/.test(ch) && ch !== 'main') q += '&gxel=' + encodeURIComponent(ch);
+      return 'https://gaiasphere.io' + (vt ? '/version-test' : '') + '/aithia' + q;
+    }
+    // os_mail_status -> 'ok' (paket var) | 'required' | 'open' (sunucu AITHIA'yi bilmiyor / kopru yok: duvar acik)
+    function _gflPayAsk(fresh){
+      return new Promise(function(resolve){
+        var done = false;
+        function fin(r){ if (done) return; done = true; resolve(r); }
+        try {
+          window._gadTrigRequest('os_mail_status', fresh ? { fresh: true } : {}, function(res){
+            var d = (res && res.data && typeof res.data === 'object') ? res.data : (res || {});
+            var st = String((res && res.status) || d.status || '').toUpperCase();
+            var code = String(d.error_code || (res && res.error_code) || '');
+            if (st !== 'SUCCESS' || code) { fin({ v: 'open', plan: '', why: code || st || 'no_status' }); return; }
+            var pk = d.plan && d.plan.package ? String(d.plan.package) : '';
+            if (pk) { fin({ v: 'ok', plan: pk }); return; }
+            if (d.state === 'plan_required') { fin({ v: 'required', plan: '' }); return; }
+            fin({ v: 'open', plan: '', why: 'no_state' });
+          }, 20000);
+        } catch(e){ fin({ v: 'open', plan: '', why: 'send_failed' }); }
+      });
+    }
+    function _gflPayStopWatch(){
+      var w = _gflPayWatch; _gflPayWatch = null; if (!w) return;
+      try { clearInterval(w.iv); } catch(e){}
+      try { window.removeEventListener('storage', w.onStore); window.removeEventListener('focus', w.onFocus); document.removeEventListener('visibilitychange', w.onFocus); } catch(e){}
+    }
+    function _gflPayRecheck(s, why){
+      if (!s || !s.pay || s.pay.state !== 'required' || s.pay.asking) return;
+      if (why !== 'storage' && why !== 'button' && Date.now() - (s.pay.lastAsk || 0) < 6000) return;
+      s.pay.asking = true; s.pay.lastAsk = Date.now();
+      _gadFlagshipPrimaryLabel();
+      _gflPayAsk(true).then(function(r){
+        s.pay.asking = false;
+        if (_gadFlagshipSession !== s) { _gflPayStopWatch(); return; }
+        _gflPayLog('recheck', why, '->', r.v, r.plan || r.why || '');
+        if (r.v === 'ok' || r.v === 'open') {
+          s.pay.state = 'ok'; s.pay.plan = r.plan; s.pay.justPaid = (r.v === 'ok');
+          _gflPayStopWatch();
+          try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_cleared', { slug: s.ctx && s.ctx.slug, plan: r.plan || '' }); } catch(e){}
+        }
+        _gadFlagshipPrimaryLabel();
+      });
+    }
+    function _gflPayStartWatch(s){
+      _gflPayStopWatch();
+      var t0 = Date.now();
+      var w = { iv: 0, onStore: null, onFocus: null };
+      w.onStore = function(ev){ if (ev && ev.key === 'gx_aithia_paid') _gflPayRecheck(s, 'storage'); };
+      w.onFocus = function(){ if (!document.hidden) _gflPayRecheck(s, 'focus'); };
+      w.iv = setInterval(function(){
+        if (Date.now() - t0 > 1200000 || _gadFlagshipSession !== s) { _gflPayStopWatch(); return; }
+        if (!document.hidden) _gflPayRecheck(s, 'poll');
+      }, 8000);
+      try { window.addEventListener('storage', w.onStore); window.addEventListener('focus', w.onFocus); document.addEventListener('visibilitychange', w.onFocus); } catch(e){}
+      _gflPayWatch = w;
+    }
+    // Taahhut tikindan once cagrilir. true = tik burada durdu (sorgu suruyor ya da paket yok); false = devam.
+    function _gflPayGate(s, ctx, which){
+      if (!s || !_gflPayApplies(ctx)) return false;
+      s.pay = s.pay || { state: 'idle' };
+      if (s.pay.state === 'ok') return false;
+      if (s.pay.state === 'checking') return true;
+      if (s.pay.state === 'required') { _gflPayRecheck(s, 'button'); return true; }
+      s.pay.state = 'checking'; s.pay.resume = which || 'go';
+      _gadFlagshipPrimaryLabel();
+      _gflPayAsk(false).then(function(r){
+        if (_gadFlagshipSession !== s) return;
+        _gflPayLog('check ->', r.v, r.plan || r.why || '', '| slug', ctx.slug);
+        if (r.v === 'required') {
+          s.pay.state = 'required';
+          try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_shown', { slug: ctx.slug }); } catch(e){}
+          _gadFlagshipPrimaryLabel();
+          return;
+        }
+        s.pay.state = 'ok'; s.pay.plan = r.plan;
+        _gadFlagshipPrimaryLabel();
+        // paket var (ya da duvar acik): kisinin az once bastigi dugme kaldigi yerden devam eder
+        var btn = _gadFlagshipEl(s.pay.resume === 'review' ? 'gfl-review' : 'gfl-go');
+        if (btn && !btn.disabled && !btn.hidden) { try { btn.click(); } catch(e){} }
+      });
+      return true;
+    }
+    // Ayak alanindaki paket karti + birincil dugme. _gadFlagshipPrimaryLabel her cizimden sonra cagirir.
+    function _gflPayPaint(s, go){
+      var el = _gadFlagshipEl('gfl-pay'); if (!el) return;
+      var on = !!(s && s.pay && s.step === 'launch' && s.launchView === 'summary' && !s.pending && !s.starting && s.phase !== 'done');
+      var st = on ? s.pay.state : '';
+      if (st === 'ok' && !s.pay.justPaid) st = '';
+      if (go && st !== 'required' && go.getAttribute('data-act') === 'aithia-pay') go.removeAttribute('data-act');
+      if (go && st !== 'checking') go.removeAttribute('aria-busy');
+      if (st !== 'checking' && st !== 'required' && st !== 'ok') { el.hidden = true; el.textContent = ''; el.className = 'gfl-pay'; return; }
+      el.hidden = false; el.textContent = ''; el.className = 'gfl-pay' + (st === 'ok' ? ' is-ok' : '');
+      var t = document.createElement('p'); t.className = 'gfl-pay-t';
+      var d = document.createElement('p'); d.className = 'gfl-pay-d';
+      el.appendChild(t); el.appendChild(d);
+      if (st === 'checking') {
+        t.textContent = 'Checking your AITHIA package...';
+        d.textContent = 'This takes a few seconds.';
+        if (go) { go.textContent = 'Checking...'; go.disabled = true; go.setAttribute('aria-busy', 'true'); }
+        return;
+      }
+      if (st === 'ok') {
+        t.textContent = _gflPayPlanName(s.pay.plan) + ' is active.';
+        d.textContent = 'Start the assistant to finish setup.';
+        return;
+      }
+      t.textContent = 'Choose an AITHIA package to start';
+      d.textContent = s.pay.opened
+        ? 'Finish the payment in the new tab. This setup stays here and continues when the package is active.'
+        : 'Your preview and settings are kept. One subscription. No per-email or per-flow charges.';
+      if (s.pay.opened) {
+        var a = document.createElement('button'); a.type = 'button'; a.className = 'gfl-pay-a'; a.id = 'gfl-pay-check';
+        a.textContent = s.pay.asking ? 'Checking...' : 'I paid, check again';
+        a.disabled = !!s.pay.asking;
+        el.appendChild(a);
+      }
+      if (go) { go.textContent = s.pay.opened ? 'Open the payment page again' : 'Choose a package'; go.disabled = false; go.setAttribute('data-act', 'aithia-pay'); }
+    }
+    // Birincil dugme data-act=aithia-pay iken tik: sayfayi AYNI tik icinde ac (acilir pencere engeli), izlemeyi kur.
+    function _gflPayOpen(s, ctx){
+      var url = _gflPayUrl(ctx);
+      var w = null;
+      try { w = window.open(url, '_blank'); } catch(e){ w = null; }
+      try { if (w) w.opener = null; } catch(e){}
+      if (!w) { try { location.assign(url); } catch(e){} return; }
+      s.pay.opened = true;
+      _gflPayLog('pricing opened', url);
+      try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_open', { slug: ctx.slug }); } catch(e){}
+      _gflPayStartWatch(s);
+      _gadFlagshipPrimaryLabel();
+    }
+    window._gflPayGate = _gflPayGate;
+    /* AITHIA-PAYWALL-END */
     function _gadFlagshipPrimaryLabel(){
+      _gadFlagshipPrimaryLabel0();
+      try { var s1 = _gadFlagshipSession; if (s1 && s1.pay) _gflPayPaint(s1, _gadFlagshipEl('gfl-go')); } catch(e){ try { console.warn('[PAYWALL] paint', e && e.message); } catch(_e){} }   /* AITHIA-PAYWALL */
+    }
+    function _gadFlagshipPrimaryLabel0(){
       var s = _gadFlagshipSession, go = _gadFlagshipEl('gfl-go'); if (!s || !go) return;
       _gflGsGoCap('');
       // 18.09 (GUIDED_SETUP_SPEC bolum 5): her adimin TEK ana dugmesi, etiketi o adimin eylemi.
@@ -29922,12 +30248,25 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           else if (!loaded) { badge.className = 'gfl-state chk'; badge.textContent = 'Checking...'; }
           else { badge.className = 'gfl-state'; badge.textContent = 'Not connected'; }
         }
+        /* MAILPROV */ // 19.10: the connected mailbox address when the account list carries one (bizmail from its own mark)
+        var mbEl = row.querySelector('[data-role="mailbox"]');
+        if (mbEl) {
+          var mbTxt = '';
+          if (on) {
+            try {
+              if (slug === 'bizmail') mbTxt = String((window.__gflBizmail && window.__gflBizmail.email) || '');
+              else { var mbMeta = (typeof connectedAccountMetaCache !== 'undefined' && connectedAccountMetaCache) ? connectedAccountMetaCache[slug] : null; mbTxt = String((mbMeta && mbMeta.email) || ''); }
+            } catch(e){ mbTxt = ''; }
+          }
+          mbEl.textContent = mbTxt; mbEl.hidden = !mbTxt;
+        }
         var cb = row.querySelector('.gfl-connect'), sb = row.querySelector('.gfl-skip'), rb = row.querySelector('.gfl-refresh');
         var skipped = !req && s.apps.skipped.indexOf(slug) >= 0;
         if (cb) { cb.hidden = on; cb.disabled = !!s.gateRunning || !!s.busy; }
         if (sb) { sb.hidden = on; sb.disabled = !!s.gateRunning || !!s.busy; sb.textContent = skipped ? 'Skipped' : 'Skip for now'; }
         if (rb && on) { rb.hidden = true; var h = row.querySelector('[data-role="hint"]'); if (h) { h.hidden = true; h.textContent = ''; } }
       });
+      /* MAILPROV */ try { var mpCur = ov.querySelector('[data-role="mp-current"]'); if (mpCur && _gflIsMailCard(s.ctx)) mpCur.textContent = 'Set up for ' + _gflMailNameNow() + '.'; } catch(e){}
       _gadFlagshipConnectHint(s);   // 17.09 (spec 6.1)
       _gadFlagshipPrimaryLabel();
       _gadFlagshipSaveSession();
@@ -30757,6 +31096,18 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       payment: 'About a payment', date: 'Mentions a date or time', unread: 'Unread', flagged: 'Starred or important', attachment: 'Has an attachment' };
     var _GFL_ST_TEXT  = { would_do: 'Would do after you approve', needs_you: 'Needs your decision', suggestion: 'Suggestion', found: 'Found' };
     var _GFL_PRODUCT_LABELS = ['Chief of Staff/Needs you', 'Chief of Staff/Draft ready', 'Chief of Staff/Deadline'];
+    /* MAILPROV */ // 19.10 (C9): the three product label names come from the card (activation.labels, in the order needs you /
+    // draft ready / deadline) when it names them; the Gmail product names above stay the fallback.
+    function _gflProductLabels(){
+      var out = _GFL_PRODUCT_LABELS.slice();
+      try {
+        var s = (typeof _gadFlagshipSession !== 'undefined') ? _gadFlagshipSession : null;
+        var ls = (s && s.ctx && s.ctx.activation && Array.isArray(s.ctx.activation.labels)) ? s.ctx.activation.labels : null;
+        if (ls) for (var i = 0; i < 3 && i < ls.length; i++) { var n = _gflStr(ls[i]).trim(); if (n) out[i] = n; }
+      } catch(e){}
+      return out;
+    }
+    window._gflProductLabels = _gflProductLabels;
     // Uygulama simgeleri: createElementNS ile basit jenerik sekiller, Google logosu YOK.
     function _gflSvg(tag, attrs){
       var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -31198,9 +31549,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var pr = _gflStr(_gflPick(rec, 'priority')).trim().toLowerCase();
       var draft = _gflStr(_gflPick(rec, 'drafted reply')).trim();
       var dl = _gflStr(_gflPick(rec, 'commitment and deadline'));
-      if (rn === 'yes' || pr === 'now') out.push(_GFL_PRODUCT_LABELS[0]);
-      if (draft) out.push(_GFL_PRODUCT_LABELS[1]);
-      if (/by:\s*(?!not stated)\S/i.test(dl)) out.push(_GFL_PRODUCT_LABELS[2]);
+      var PL = _gflProductLabels();   /* MAILPROV */ // 19.10 (C9)
+      if (rn === 'yes' || pr === 'now') out.push(PL[0]);
+      if (draft) out.push(PL[1]);
+      if (/by:\s*(?!not stated)\S/i.test(dl)) out.push(PL[2]);
       return out;
     }
     function _gflMsgOf(rec, card){
@@ -31255,12 +31607,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         });
       }
       if (!card) {
-        checked = [{ app: ((typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail') /* MAILPROV */, kind: 'message', state: 'read', ev: '', title: '', detail: '', data: null }];
+        var mailApp = (typeof _gflMailAppNow === 'function') ? _gflMailAppNow() : 'gmail';   /* MAILPROV */ // 19.10 (C9): the mailbox app of this card, never a typed gmail
+        checked = [{ app: mailApp, kind: 'message', state: 'read', ev: '', title: '', detail: '', data: null }];
         _gflLabelRules(rec).forEach(function(nm){
-          actions.push({ id: 'a' + (actions.length + 1), app: 'gmail', kind: 'label', status: 'would_do', label: nm, by: 'server' });
+          actions.push({ id: 'a' + (actions.length + 1), app: mailApp, kind: 'label', status: 'would_do', label: nm, by: 'server' });
         });
         if (_gflStr(_gflPick(rec, 'drafted reply')).trim()) {
-          actions.push({ id: 'a' + (actions.length + 1), app: 'gmail', kind: 'draft', status: 'would_do',
+          actions.push({ id: 'a' + (actions.length + 1), app: mailApp, kind: 'draft', status: 'would_do',
             to: msg.from_email || msg.from, subject: 'Re: ' + msg.subject, by: 'server' });
         }
       }
@@ -31319,9 +31672,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       return out;
     }
     function _gflChipClassOf(name){
-      if (name === _GFL_PRODUCT_LABELS[0]) return 'gfl-chip needs';
-      if (name === _GFL_PRODUCT_LABELS[1]) return 'gfl-chip draft';
-      if (name === _GFL_PRODUCT_LABELS[2]) return 'gfl-chip due';
+      var PL = _gflProductLabels();   /* MAILPROV */ // 19.10 (C9)
+      if (name === PL[0]) return 'gfl-chip needs';
+      if (name === PL[1]) return 'gfl-chip draft';
+      if (name === PL[2]) return 'gfl-chip due';
       return 'gfl-chip';
     }
     function _gflChipShort(name){
@@ -31534,6 +31888,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     }
     // Ray etiketleri: gercek Gmail etiketleri (profilden ya da kartlardan) + uc urun etiketi ("new").
     function _gflRailOf(models, profile){
+      var PL = _gflProductLabels();   /* MAILPROV */ // 19.10 (C9)
       var out = [{ name: 'Inbox', n: models.length, isNew: false, type: 'system' }];
       var seen = { inbox: 1 };
       var byName = {};
@@ -31549,7 +31904,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var key = nm.toLowerCase();
         if (seen[key] || out.length >= 24) return;
         seen[key] = 1;
-        var isNew = (l.is_new === true) || (_GFL_PRODUCT_LABELS.indexOf(nm) >= 0);
+        var isNew = (l.is_new === true) || (PL.indexOf(nm) >= 0);
         var n = isNew ? (byName[nm] || 0) : (Number(l.count) > 0 ? Math.floor(Number(l.count)) : (byName[nm] || 0));
         out.push({ name: nm, n: n, isNew: isNew, type: 'user' });
       });
@@ -31557,9 +31912,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var key = nm.toLowerCase();
         if (seen[key] || out.length >= 24) return;
         seen[key] = 1;
-        out.push({ name: nm, n: byName[nm], isNew: (_GFL_PRODUCT_LABELS.indexOf(nm) >= 0), type: 'user' });
+        out.push({ name: nm, n: byName[nm], isNew: (PL.indexOf(nm) >= 0), type: 'user' });
       });
-      _GFL_PRODUCT_LABELS.forEach(function(nm){
+      PL.forEach(function(nm){
         var key = nm.toLowerCase();
         if (seen[key]) return;
         seen[key] = 1;
@@ -31617,11 +31972,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       bar.appendChild(dots);
       bar.appendChild(_gflNode('span', 'gfl-mc-title', 'Your inbox, if you hire me'));
       var nLabel = 0, nDraft = 0, nDue = 0;
+      var dueName = _gflProductLabels()[2];   /* MAILPROV */ // 19.10 (C9)
       models.forEach(function(cm){
         var ls = _gflLandingLabels(cm);
         if (ls.length) nLabel += 1;
         if (cm.actions.some(function(a){ return a.kind === 'draft'; })) nDraft += 1;
-        if (ls.indexOf(_GFL_PRODUCT_LABELS[2]) >= 0) nDue += 1;
+        if (ls.indexOf(dueName) >= 0) nDue += 1;
       });
       var counts = _gflNode('span', 'gfl-mc-count');
       // 17.09 (H2): sayaclar oynatmada 0'dan yuvarlanir; hedef data-n'de durur, hareketsizken metin zaten son deger.
@@ -34886,10 +35242,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         try { var sc = s.evidence.scan; if (sc && typeof sc === 'object' && sc.picked != null) picked = Math.floor(Number(sc.picked) || 0); } catch(e){ picked = -1; }
         var hasScan = Array.isArray(s.scanRows) && s.scanRows.length > 0;
         var kind = (!hasScan && picked === 0) ? 'nothing_in_scope' : 'no_example';
-        var btns = [];
+        var btns = [], capTxt = '';
         if (kind === 'no_example' && hasScan) btns.push({ label: 'Pick a message', act: 'pick-scan' });
         btns.push({ label: 'Change scope', act: 'change-scope' });
-        host.appendChild(_gflStateCard(kind, { buttons: btns }));
+        /* MAILPROV */ // 19.10 (C5): on a non Gmail mailbox an empty result also offers Skip and names the mailbox that was read
+        try { if (_gflIsMailCard(s.ctx) && _gflMailAppNow() !== 'gmail') { btns.push({ label: 'Skip preview', act: 'skip-preview' }); capTxt = 'I read ' + _gflMailNameNow() + ' and found nothing to show in this scope.'; } } catch(e){}
+        host.appendChild(_gflStateCard(kind, { buttons: btns, caption: capTxt }));
         host.hidden = false;
         // ★ 19.09 gorsel denetim: kartin basligi ile canli satir AYNI seyi iki kez yaziyordu (ustelik biri
         // "kapsamda mesaj yok" derken kart "bir mesaj sec" diyordu). Kart ekrandayken satir yalniz ekran
@@ -36509,6 +36867,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // ★ 20.09: "Try again" tarama halinde YENIDEN INCELER ve arkasindan onizlemeyi kosar (Look again ile ayni yol).
       else if (act === 'retry-scan') { try { if (!_gadFlagshipWorkMapLookAgain()) _gadFlagshipRunPreview(true); } catch(e){} return; }
       else if (act === 'skip-preview') { s.notTested = true; _gadFlagshipStep('configure'); return; }
+      /* MAILPROV */ // 19.10 (C5): 4A skipped -> launch summary (its Not tested row says so); nothing is written before Start.
+      else if (act === 'skip-retest') { if (!_gflGsSkipAllowed(s)) return; s.notTested = true; s.launchView = 'summary'; gL('[FLAGSHIP] test skipped on ' + _gflMailNameNow() + ', going to the launch summary'); _gadFlagshipStep('launch'); return; }
       else if (act === 'biz-edit') { s.bizEdit = true; }
       else if (act === 'biz-cancel') { s.bizEdit = false; }
       else if (act === 'biz-save') {
@@ -37280,6 +37640,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         return false;
       }
       r.state = 'running'; r.progress = null; r.error = ''; r.card = null; r.legacy = false; r.mismatch = false;
+      s.notTested = false;   // 19.10 (W2-1): a test runs now; only a later skip sets it again
       // 18.09 (orkestrator): istenen mesajin KIMLIGI de saklanir; sonuc karti once kimlikle eslenir (bkz. _gflGsRetestDone).
       r.want = { id: _gflStr(cm.msg.id), ref: _gflStr(cm.ref), subject: _gflStr(cm.msg.subject), from: _gflStr(cm.msg.from_email || cm.msg.from) };
       _gflGsSyncOverrides(s);
@@ -37440,6 +37801,20 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       return rows2;
     }
     // Sonucun durumu: 'verified' | 'partial' | 'error'. Kaynak okunamadiysa hata (bu isten baslatma YOK).
+    // 19.10 (C5): when the test cannot run or did not finish, the launch summary stays reachable: always on a non Gmail
+    // mailbox (its preview path may not answer yet) and on Gmail once the preview was already skipped (the summary
+    // already says Not tested). The Gmail happy path keeps its rule: a failed run does not start the assistant.
+    function _gflGsSkipAllowed(s){
+      try {
+        if (!s || !_gflIsMailCard(s.ctx)) return false;
+        if (_gflMailAppNow() !== 'gmail') return true;
+        // 19.10 (W2-1): Gmail may skip only when the preview was skipped AND no test ran: there is no message to try,
+        // or the retest is still idle. A test that ran (and failed) is never skipped on Gmail.
+        if (!s.notTested) return false;
+        var r = (s.retest && typeof s.retest === 'object') ? s.retest : { state: 'idle' };
+        return !_gflGsRetestCard(s) || r.state === 'idle';
+      } catch(e){ return false; }
+    }
     function _gflGsOutcome(s){
       var r = _gflGsRetest(s);
       if (r.state !== 'done') return r.state;
@@ -37463,6 +37838,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       host.appendChild(_gflNode('div', 'gfl-h4', 'Now let me try this message with your settings.'));
       if (!cm) {
         host.appendChild(_gflNode('div', 'gfl-gs-note', 'I have no message to try. Go back and pick one.'));
+        /* MAILPROV */ // 19.10 (C5): no message (the preview was skipped or returned nothing) is not a dead end
+        if (_gflGsSkipAllowed(s)) {
+          var skRow = _gflNode('div', 'gfl-state-b');
+          var skBtn = _gflNode('button', 'gfl-btn gfl-ghost', 'Skip this test'); skBtn.type = 'button'; skBtn.setAttribute('data-gs', 'skip-retest');
+          skRow.appendChild(skBtn); host.appendChild(skRow);
+        }
         return;
       }
       // 18.09 (6.7): denenen mesaj kisinin kendi verisidir; cumle degil, iki cip olarak durur.
@@ -37503,13 +37884,21 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         // Kosunun kendi nedeni altyazidir; "hatali kosudan asistan baslatmam" kuralı kartin adinda kalir.
         var whyTxt = why || 'The run could not be finished this time.';
         // "Try again" ayagin ana dugmesidir; kartta ikinci kez yazilmaz (ayni cagri iki kez okunuyordu).
-        var stc0 = _gflStateCard('retest_failed', { caption: whyTxt, buttons: [
-          { label: 'Fix the source', act: 'goto-sources', ghost: true }
-        ] });
-        var rule0 = 'I do not start an assistant from a run that failed.';
-        stc0.setAttribute('title', whyTxt + ' ' + rule0);
-        stc0.setAttribute('aria-label', whyTxt + ' ' + rule0);
-        stc0.appendChild(_gflNode('span', 'gfl-vh', rule0));
+        var stcBtns = [{ label: 'Fix the source', act: 'goto-sources', ghost: true }];
+        // 19.10 (W2-1): the Skip button on a failed test is for non Gmail mailboxes only; Gmail never starts from a run that failed.
+        var skipHere = _gflMailAppNow() !== 'gmail' && _gflGsSkipAllowed(s);
+        if (skipHere) stcBtns.push({ label: 'Skip this test', act: 'skip-retest', ghost: true });   /* MAILPROV */ // 19.10 (C5)
+        var stc0 = _gflStateCard('retest_failed', { caption: whyTxt, buttons: stcBtns });
+        if (skipHere) {
+          // 19.10 (W2-5): with a Skip button on the card the 'no start from a failed run' rule is not claimed.
+          stc0.setAttribute('title', whyTxt);
+          stc0.setAttribute('aria-label', whyTxt);
+        } else {
+          var rule0 = 'I do not start an assistant from a run that failed.';
+          stc0.setAttribute('title', whyTxt + ' ' + rule0);
+          stc0.setAttribute('aria-label', whyTxt + ' ' + rule0);
+          stc0.appendChild(_gflNode('span', 'gfl-vh', rule0));
+        }
         host.appendChild(stc0);
         // ★ 20.09 (ortak revizesi P1 madde 5): dusen kosuda da HANGI kaynagin okunamadigi gorunur. Kart
         // durum karti degildir, kontrol sonuclaridir: okunamadi ile eslesme yok ayni ekranda ayri okunur.
@@ -37766,9 +38155,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         r4.appendChild(ch4);
       }
       if (s.notTested) {
-        var r5 = row('warn', 'Not tested');
+        // 19.10 (W2-5): a test that ran and failed before the skip is named as such; 'Not tested' means no run at all.
+        var r5t = (_gflGsTestState(s) === 'failed') ? 'Test failed, skipped' : 'Not tested';
+        var r5 = row('warn', r5t);
         r5.setAttribute('data-tone', 'warn');
-        r5.appendChild(_gflChipEl('warn', 'Not tested', 'warn'));
+        r5.appendChild(_gflChipEl('warn', r5t, 'warn'));
       }
       // 5) Ilk kosu: anahtar. Uzun aciklama balonda durur (metin DOM'dan cikmaz).
       var foot = _gflNode('div', 'gfl-lc-f');
@@ -37963,7 +38354,15 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var stCap = (why === 'lost') ? 'The run was lost while the server was waking up.' : ((why === 'timeout' || why === 'unavailable') ? '' : failText);
         var stBtns = [];
         if (s.previewCount < 6) stBtns.push({ label: 'Try again', act: 'retry-preview' });
-        if (stKind === 'preview_failed') stBtns.push({ label: 'Skip preview', act: 'skip-preview' });
+        /* MAILPROV */ // 19.10 (C5): on a non Gmail mailbox the preview path may not answer at all. Skip is offered on every
+        // failed run (timeout and lost included) and the card says which mailbox it was reading (label from data).
+        var mpApp = _gflMailAppNow(), mpNonGmail = _gflIsMailCard(s.ctx) && mpApp !== 'gmail';
+        if (mpNonGmail) {
+          var mpName = _gflMailNameNow();
+          if (stKind === 'preview_timeout') stCap = 'The preview of ' + mpName + ' did not finish in time.';
+          else if (stKind === 'preview_failed') stCap = failText + ' It was reading ' + mpName + '.';
+        }
+        if (stKind === 'preview_failed' || mpNonGmail) stBtns.push({ label: 'Skip preview', act: 'skip-preview' });
         try { window._gflStageDone(null, false, { kind: stKind, caption: stCap, buttons: stBtns }); } catch(_sf){}
         // Altyazi (aria-live) kartin basligiyla ayni kisa cumleyi soyler; uzun aciklama ekranda YOK.
         if (prog) prog.textContent = (stKind === 'preview_timeout') ? 'This is taking too long'
@@ -37987,6 +38386,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // ayni gercegi soyler; kapsam gercekten bossa eski cumle kalir.
       var _emptyCap = (Array.isArray(s.scanRows) && s.scanRows.length)
         ? 'The preview ran. No request to show yet.' : 'The preview ran, but no messages were in scope.';
+      /* MAILPROV */ // 19.10 (C5): a non Gmail mailbox says which mailbox was read
+      try { if (!recs.length && _gflIsMailCard(s.ctx) && _gflMailAppNow() !== 'gmail' && !(Array.isArray(s.scanRows) && s.scanRows.length)) _emptyCap = 'The preview read ' + _gflMailNameNow() + ', but no messages were in scope.'; } catch(e){}
       if (prog) prog.textContent = recs.length ? ('Preview ready: ' + _gflPlural(recs.length, 'message', 'messages') + ' worked through.') : _emptyCap;
       try { _gflClearScanList(); } catch(esl){}   // 17.09 (H2): kosu bitti, canli kontrol listesi yerini sonuca birakir
       // 18.09 (LIVING_UI_SPEC 4 bitis): cekirdek tik cizer, karolar oturur, sahne kapanir; yerini sonuc ekrani alir.
@@ -38079,6 +38480,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       _gadFlagshipTableToggle(tableBuilt, mirrorDrawn);   // 17.09 (spec 6.5): aynada satir varsa tablo kapali
       // 18.09 (GUIDED_SETUP_SPEC 2.1 / 3.2): kart modelleri rehberli adimlarin tek kaynagi. Yeniden denenecek
       // mesaj (s.retestRef) burada secilir: engelleyen sorusu olan ilk kart, yoksa ilk kart.
+      if (!fromCache && recs.length) s.notTested = false;   // 19.10 (W2-1): a fresh preview with records; a skip before it no longer counts
       try { _gflGsSyncCards(s, recs, evCards); } catch(esc){ gW('[GUIDED] kart modeli kurulamadi:', esc && esc.message); }
       try { _gflGsRenderStep(s); } catch(ers){ gW('[GUIDED] adim cizilemedi:', ers && ers.message); }
       // 22.09 (readiness, SHARED with the mail card, not gated): the run has settled (s.phase is idle) but the primary was locked
@@ -38123,6 +38525,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     function _gflMpStored(){ try { var o = JSON.parse(sessionStorage.getItem('gx_mail_provider') || 'null'); return (o && typeof o === 'object') ? o : null; } catch(e){ return null; } }
     window._gflMpStored = _gflMpStored;
     function _gflMpStore(app, email){ try { sessionStorage.setItem('gx_mail_provider', JSON.stringify({ app: String(app || ''), email: String(email || ''), ts: Date.now() })); } catch(e){} }
+    // 19.10: the pinned choice is dropped when its card is missing or when the person asks for another mailbox.
+    function _gflMpClear(){ try { sessionStorage.removeItem('gx_mail_provider'); } catch(e){} }
+    window._gflMpClear = _gflMpClear;
+    var _GFL_MP_NO_CARD_NOTE = 'This mailbox type is not available here yet. Choose another.';
     function _gflMpIsEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim()); }
     function _gflMpCss(){
       if (document.getElementById('gfl-mailprov-css')) return;
@@ -38137,6 +38543,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         + '.gfl-bz-help{font-size:13px;line-height:1.45;color:var(--gx-ink-3,#64748b);}'
         + '.gmp-links{display:flex;flex-direction:column;align-items:flex-start;margin-top:4px;}'
         + '.gmp-links .gfl-link{font-size:14px;min-height:40px;padding:8px 0;text-align:left;}'
+        + '#gaia-mailprov .gmp-note{font-size:14px;line-height:1.45;color:#92400e;background:#fffbeb;border-radius:10px;padding:9px 12px;}'
         + '#gaia-mailprov .gfl-card{max-width:460px;}'
         + '#gaia-mailprov .gfl-scroll{padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));}';
       (document.head || document.documentElement).appendChild(st);
@@ -38267,17 +38674,28 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (app === 'outlook' || app === 'bizmail') return String(serverSlug || '') || _GFL_MP_SLUGS[app];
       return req;
     }
+    // 19.10 (C4): provider cards live where the template factory produces them, the LIVE templates table (_TMPL_API,
+    // the same base the template library reads). The version-aware base (_gadDataApiBase) is empty for these rows on
+    // version-test, so the router used to boot the Gmail card in place of the Outlook / IMAP card.
+    function _gflMpTemplateUrl(slug){
+      return _TMPL_API + '?constraints=' + encodeURIComponent(JSON.stringify([{ key:'Slug', constraint_type:'equals', value: String(slug || '') }]));
+    }
+    // 19.10 (W2-3): cb(row, why) is called once. why = 'ok' with a row, 'no_row' when the table answered without a row
+    // (the card does not exist), 'offline' when the request failed (non 2xx, network, bad JSON).
     function _gflMpFetchRow(slug, cb){
+      var done = false;
+      var once = function(row, why){ if (done) return; done = true; cb(row, why); };
       try {
-        var url = _gadDataApiBase() + '/api/1.1/obj/templates?constraints='
-                + encodeURIComponent(JSON.stringify([{ key:'Slug', constraint_type:'equals', value: slug }]));
+        var url = _gflMpTemplateUrl(slug);
         fetch(url, { headers:{ Accept:'application/json' } })
           .then(function(r){ if (!r.ok) throw new Error('templates ' + r.status); return r.json(); })
-          .then(function(j){ var rows = (j && j.response && j.response.results) || []; cb(rows.length ? rows[0] : null); })
-          .catch(function(err){ gW('[MAILPROV] card fetch failed:', slug, err && err.message); cb(null); });
-      } catch(e){ cb(null); }
+          .then(function(j){ var rows = (j && j.response && j.response.results) || []; once(rows.length ? rows[0] : null, rows.length ? 'ok' : 'no_row'); })
+          .catch(function(err){ gW('[MAILPROV] card fetch failed:', slug, err && err.message); once(null, 'offline'); });
+      } catch(e){ once(null, 'offline'); }
     }
-    function _gflMailProviderAsk(reqSlug, onPick, onClose){
+    // note: a fixed sentence shown under the title (the chosen mailbox type has no card here); preEmail: keeps the typed
+    // address when the question comes back after the pinned choice was cleared.
+    function _gflMailProviderAsk(reqSlug, onPick, onClose, note, preEmail){
       _gflMpCss();
       var old = document.getElementById('gaia-mailprov'); if (old && old.parentNode) old.parentNode.removeChild(old);
       var ov = document.createElement('div');
@@ -38286,12 +38704,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.55);display:flex;align-items:flex-end;justify-content:center;'
         + "font-family:var(--gx-font,'Inter',system-ui,-apple-system,'Segoe UI',sans-serif);";
       var css = (typeof _gadFlagshipCss === 'function') ? _gadFlagshipCss('#gaia-mailprov') : '';
-      var pre = String(((_gflMpStored() || {}).email) || '');
+      var pre = String(preEmail || ((_gflMpStored() || {}).email) || '');
       ov.innerHTML = css
         + '<div class="gfl-card">'
         + '<button type="button" class="gfl-x" data-mp="close" aria-label="Close">&times;</button>'
         + '<form class="gfl-scroll gfl-bz" novalidate>'
         + '<h3 id="gmp-title">Which mailbox should it work in?</h3>'
+        + '<div class="gfl-bz-help gmp-note" data-role="mp-note" role="status" hidden></div>'
         + '<label>Your work email<input type="email" name="gmp-email" autocomplete="email" inputmode="email" spellcheck="false" placeholder="you@company.com"></label>'
         + '<div class="gfl-bz-err" role="alert" hidden></div>'
         + '<button type="submit" class="gfl-btn" data-mp="go">Continue</button>'
@@ -38303,6 +38722,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       document.body.appendChild(ov);
       var form = ov.querySelector('form'), inp = ov.querySelector('input[name="gmp-email"]');
       var errEl = ov.querySelector('.gfl-bz-err'), goBtn = ov.querySelector('[data-mp="go"]');
+      var noteEl = ov.querySelector('[data-role="mp-note"]');
+      if (noteEl) { var noteTxt = String(note || ''); noteEl.textContent = noteTxt; noteEl.hidden = !noteTxt; }
       if (inp) inp.value = pre;
       var busy = false, closed = false;
       var showErr = function(t){ if (errEl) { errEl.textContent = t || ''; errEl.hidden = !t; } };
@@ -38357,21 +38778,39 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var isObj = !!(slugOrCard && typeof slugOrCard === 'object');
       var reqSlug = isObj ? String(slugOrCard.Slug || slugOrCard.slug || '') : String(slugOrCard || '').trim();
       if (!/^inbox-chief-of-staff/i.test(reqSlug)) return false;
-      var o2 = {}; Object.keys(opts).forEach(function(k){ o2[k] = opts[k]; }); o2.__mpDone = true;
+      var o2 = {}; Object.keys(opts).forEach(function(k){ o2[k] = opts[k]; }); o2.__mpDone = true; o2.__mpReqSlug = reqSlug;
+      var ask;   // (re)opens the question; note = fixed sentence under the title, keepEmail = the typed address
+      var isProvSlug = function(sl){ return Object.keys(_GFL_MP_SLUGS).some(function(k){ return _GFL_MP_SLUGS[k] === sl; }); };
       var bootSlug = function(newSlug){
-        if (!newSlug || newSlug === reqSlug) { window.gaiaUseFlagship(slugOrCard, o2); return; }
-        _gflMpFetchRow(newSlug, function(row){
+        // 19.10 (W2-6): a card object boots as is; a provider slug (the asked for one included) goes through the row
+        // fetch, so a missing provider row ends in the no-card path and not in 'Could not load this product'.
+        if (!newSlug || (newSlug === reqSlug && (isObj || !isProvSlug(newSlug)))) { window.gaiaUseFlagship(slugOrCard, o2); return; }
+        _gflMpFetchRow(newSlug, function(row, why){
           if (row) { window.gaiaUseFlagship(row, o2); return; }
-          gW('[MAILPROV] no card for', newSlug, '- falling back to', reqSlug);
-          window.gaiaUseFlagship(slugOrCard, o2);
+          if (why === 'offline') {
+            // 19.10 (W2-3): the table could not be reached: the pinned choice stays and the error sheet offers a retry.
+            gW('[MAILPROV] card fetch offline for ' + newSlug + ': provider choice kept, retry offered');
+            _gadFlagshipRenderError('Product', 'Could not load this product. Please check your connection and try again.', function(){ bootSlug(newSlug); });
+            try { if (typeof opts.onBoot === 'function') opts.onBoot(false); } catch(e){}
+            return;
+          }
+          // 19.10 (C4): no card for this mailbox type. The Gmail card is NOT booted in its place: the pinned choice is
+          // dropped and the question comes back with a note, so the person chooses another mailbox or closes.
+          var keepEmail = String(((_gflMpStored() || {}).email) || '');
+          gW('[MAILPROV] no card for ' + newSlug + ' (asked for ' + reqSlug + '): provider choice cleared, asking again');
+          _gflMpClear();
+          ask(_GFL_MP_NO_CARD_NOTE, keepEmail);
         });
+      };
+      ask = function(note, keepEmail){
+        _gflMailProviderAsk(reqSlug, function(newSlug){ bootSlug(newSlug); }, function(){
+          _gadFlagshipClearDeepLink();   // closing the question drops the pending intent (no reopen on the next load)
+          try { if (typeof opts.onBoot === 'function') opts.onBoot(false); } catch(e){}
+        }, note || '', keepEmail || '');
       };
       var stored = _gflMpStored();
       if (stored && ['gmail', 'outlook', 'bizmail'].indexOf(String(stored.app || '')) >= 0) { bootSlug(_gflMpSlugFor(stored.app, reqSlug, '')); return true; }
-      _gflMailProviderAsk(reqSlug, function(newSlug){ bootSlug(newSlug); }, function(){
-        _gadFlagshipClearDeepLink();   // closing the question drops the pending intent (no reopen on the next load)
-        try { if (typeof opts.onBoot === 'function') opts.onBoot(false); } catch(e){}
-      });
+      ask('', '');
       return true;
     }
     window._gflMailProviderRoute = _gflMailProviderRoute;
@@ -38454,6 +38893,16 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var b;
         if ((b = t.closest('#gfl-close'))) { closeSheet('x'); return; }
         if ((b = t.closest('.gfl-connect'))) { _gadFlagshipConnectRow(b.getAttribute('data-slug') || ''); return; }
+        if ((b = t.closest('#gfl-change-mailbox'))) {   /* MAILPROV */ // 19.10: drop the pinned choice, close this sheet, ask the question again
+          if (s.busy || s.gateRunning) return;
+          var mpReq = String(b.getAttribute('data-slug') || ctx.mpReqSlug || ctx.slug || '');
+          _gflMpClear();
+          gL('[MAILPROV] change mailbox: provider choice cleared, asking again for ' + mpReq);
+          closeSheet('change-mailbox');
+          try { window.gaiaUseFlagship(mpReq, { source: 'direct', intent: String(ctx.intent || 'preview') }); }
+          catch(mpErr){ gW('[MAILPROV] change mailbox failed: ' + (mpErr && mpErr.message)); }
+          return;
+        }
         if ((b = t.closest('.gfl-refresh'))) { _gadFlagshipRepaintApps(); if (_gadFlagshipIsOn(b.getAttribute('data-slug') || '')) _gadFlagshipConnectAdvance(s); return; }   // 17.09 (spec 6.1)
         if ((b = t.closest('.gfl-skip'))) {
           var sk = b.getAttribute('data-slug') || '';
@@ -38477,6 +38926,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           if (s.busy) return;
           // "Skip preview": izin adimina gider, ozet "Not tested" der; hicbir yazma izni vermez (spec bolum 5).
           if (s.step === 'preview') { s.notTested = true; _gadFlagshipStep('configure'); return; }
+          if (_gflPayGate(s, ctx, 'review')) return;   /* AITHIA-PAYWALL */
           _gadFlagshipReadPrefs();
           _gadFlagshipCommit(ctx, { review: true });
           return;
@@ -38495,9 +38945,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           _gadFlagshipRepaintApps();
           return;
         }
+        if ((b = t.closest('#gfl-pay-check'))) { _gflPayRecheck(s, 'button'); return; }   /* AITHIA-PAYWALL */
         if ((b = t.closest('#gfl-go'))) {
           if (s.busy) return;
           if (b.getAttribute('data-act') === 'open-workspace') { closeSheet('open-workspace'); return; }
+          if (b.getAttribute('data-act') === 'aithia-pay') { _gflPayOpen(s, ctx); return; }   /* AITHIA-PAYWALL */
           if (s.step === 'connect') { if (_gadFlagshipRequiredMissing(s).length === 0) _gadFlagshipStep('preview'); return; }
           // 18.09 (GUIDED_SETUP_SPEC 2.1 - 2.5): dort adimin ileri yolu. 2A'dan 2B'ye YALNIZ yeniden denenecek
           // mesajin engelleyen bir sorusu varsa gecilir; yoksa dogrudan izinlere.
@@ -38518,6 +38970,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
             s.launchView = 'summary'; _gadFlagshipStep('launch'); return;
           }
           if (s.step === 'launch' && _gflGsRetestStale(s)) { s.launchView = 'retest'; _gadFlagshipStep('launch'); _gflGsRunRetest(s, true); return; }
+          if (_gflPayGate(s, ctx, 'go')) return;   /* AITHIA-PAYWALL */
           _gadFlagshipReadPrefs();
           s.starting = true;
           _gadFlagshipPrimaryLabel();
@@ -39097,6 +39550,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           prefKeys: prefKeys,
           howItWorks: Array.isArray(hiw) ? hiw : [],
           intent: String(opts.intent || 'preview'),
+          mpReqSlug: String(opts.__mpReqSlug || ''),   /* MAILPROV */ // 19.10: the slug asked for before the provider question (Change mailbox re-asks with it)
           channel: String(demo.entry_channel || '')   /* PHONE-FLAGSHIP-FIX */ // the card's own marker (mail cards: trigger, phone card: table); logged and probed, the mail test is _gflIsMailCard
         };
         gL('[FLAGSHIP] hazir |', ctx.name, '| apps:', ctx.appSlugs.join(','), '| required:', ctx.requiredSlugs.join(','), '| fields:', (bp.custom_fields||[]).length, '| tools:', (bp.action_tools||[]).length, '| channel:', ctx.channel, '| mail card:', _gflIsMailCard(ctx));   /* PHONE-FLAGSHIP-FIX */
@@ -39113,8 +39567,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var slug = String(slugOrCard||'').trim();
       if (!slug) { gW('[FLAGSHIP] slug yok'); notify(false); return; }
       if (slug === _GX_WS_SLUG && (opts.source === 'resume' || _gxKnowDev())) { try { boot(_gxWorkspaceCard()); } catch(e){ gE('[FLAGSHIP] boot hatasi:', e && e.message); _gadFlagshipRenderError('Product', 'Could not open this product. Please try again.', null); notify(false); } return; }
-      var url = _gadDataApiBase() + '/api/1.1/obj/templates?constraints='
-              + encodeURIComponent(JSON.stringify([{ key:'Slug', constraint_type:'equals', value: slug }]));
+      var url = _gflMpTemplateUrl(slug);   /* MAILPROV */ // 19.10 (C4): live templates table, same base as the template library
       var retry = function(){ window.gaiaUseFlagship(slug, opts); };
       fetch(url, { headers:{ Accept:'application/json' } })
         .then(function(r){ if(!r.ok) throw new Error('templates '+r.status); return r.json(); })
@@ -39552,8 +40005,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       } catch(e){}
       var url = '';
       try {
-        url = _gadDataApiBase() + '/api/1.1/obj/templates?constraints='
-            + encodeURIComponent(JSON.stringify([{ key: 'Slug', constraint_type: 'equals', value: s }]));
+        url = _gflMpTemplateUrl(s);   /* MAILPROV */ // 19.10 (C4): live templates table, same base as the template library
       } catch(e){ finish(null, 'offline'); return; }
       try { if (typeof AbortController === 'function') ctl = new AbortController(); } catch(e){ ctl = null; }
       try { timer = setTimeout(function(){ try { if (ctl) ctl.abort(); } catch(e){} finish(null, 'offline'); }, 8000); } catch(e){}
@@ -44674,7 +45126,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-.octo-tabs[data-fit="tight"] .octo-tabs-tab[data-tab="mail"] { display: none; }
+/* OCTO_TABS_SPEC 12: a ready Mail tab never hides; only the Soon placeholder gives way when the strip is tight. */
+.octo-tabs[data-fit="tight"] .octo-tabs-tab[data-tab="mail"][data-state="soon"] { display: none; }
 /* os3t2 OS kipi: seridin basinda Bubble sol menusunu getiren / gizleyen dugme (ikon, sagda ince ayrac). */
 .octo-tabs-side {
   flex: 0 0 auto;
@@ -44900,6 +45353,132 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
   background: var(--octo-surface);
 }
 .octo-tabs-add .octo-rail-input { flex: 1 1 200px; min-width: 0; }
+
+/* Mail (Ask Aithia, OCTO_TABS_SPEC 12): thread (role=log) + sticky composer. Tokens are the panel's --octo-* set;
+   no transform / filter / backdrop-filter / will-change / contain / perspective (the table's fixed parts). */
+.octo-tabs-mail { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 100%; min-width: 0; }
+.octo-tabs-mail-prov {
+  flex: 0 0 auto;
+  max-width: 40%;
+  padding: 0 6px;
+  color: var(--octo-ink-3t);
+  font: 500 12px/16px var(--octo-font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.octo-tabs-mail-thread { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 14px 16px 10px; }
+.octo-tabs-mail-thread > .octo-tabs-empty { min-height: 160px; }
+.octo-tabs-mail-thread > .octo-rail-err { padding: 0; }
+.octo-tabs-mail-thread > .octo-rail-muted { margin: 0 0 -6px; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-turn { display: flex; flex-direction: column; gap: 8px; min-width: 0; max-width: 100%; }
+.octo-tabs-mail-turn.is-user { align-items: flex-end; }
+.octo-tabs-mail-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: rgba(99, 102, 241, .10);
+  color: var(--octo-ink);
+  font: 400 14px/20px var(--octo-font);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.octo-tabs-mail-ctxpill { display: inline-flex; align-items: center; gap: 4px; max-width: 85%; }
+.octo-tabs-mail-head { color: var(--octo-ink); font: 700 14px/20px var(--octo-font); }
+.octo-tabs-mail-answer { color: var(--octo-ink); font: 400 14px/21px var(--octo-font); white-space: pre-wrap; overflow-wrap: anywhere; }
+.octo-tabs-mail-cites { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.octo-tabs-mail-cite {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border-radius: var(--octo-r2);
+  background: var(--octo-bg);
+  box-shadow: inset 0 0 0 1px var(--octo-line);
+}
+.octo-tabs-mail-cite-b {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--octo-r2);
+  background: transparent;
+  color: var(--octo-ink);
+  font: 500 13px/18px var(--octo-font);
+  text-align: left;
+  cursor: pointer;
+}
+.octo-tabs-mail-cite-b:hover { background: var(--octo-line-2); }
+.octo-tabs-mail-cite-b.is-on { box-shadow: inset 0 0 0 1.5px var(--octo-accent); }
+.octo-tabs-mail-cite-s { font: 600 13px/18px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.octo-tabs-mail-cite-m { color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.octo-tabs-mail-cite-t { color: var(--octo-ink-2); font: 400 12px/16px var(--octo-font); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.octo-tabs-mail-cite-a {
+  flex: 0 0 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-left: 1px solid var(--octo-line);
+  border-radius: 0 var(--octo-r2) var(--octo-r2) 0;
+  color: var(--octo-ink-2);
+}
+.octo-tabs-mail-cite-a:hover { color: var(--octo-accent); background: var(--octo-line-2); }
+.octo-tabs-mail-cov { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-partial { color: var(--octo-warn); box-shadow: inset 0 0 0 1px rgba(180, 83, 9, .35); }
+.octo-tabs-mail-acts { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.octo-tabs-mail-acts .octo-rail-btn { min-height: 44px; padding: 0 16px; }
+.octo-tabs-mail-acts .octo-rail-btn.is-link { min-height: 44px; padding: 0 8px; }
+.octo-tabs-mail-acts .octo-rail-muted { font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-done { display: inline-flex; align-items: center; gap: 6px; color: var(--octo-ok); font: 600 13px/18px var(--octo-font); }
+.octo-tabs-mail-choices { gap: 8px; }
+.octo-tabs-mail-choices .octo-rail-chip { height: auto; min-height: 44px; padding: 8px 14px; font-size: 13px; line-height: 20px; white-space: normal; text-align: left; }
+.octo-tabs-mail-form {
+  position: sticky;
+  bottom: 0;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: auto 0 0;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--octo-hair);
+  background: var(--octo-surface);
+}
+.octo-tabs-mail-ctx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 0 0 12px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-bg);
+  box-shadow: inset 0 0 0 1px var(--octo-line);
+  color: var(--octo-ink-2);
+  font: 500 12px/16px var(--octo-font);
+}
+.octo-tabs-mail-ctx-t { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.octo-tabs-mail-ctx .octo-rail-btn.is-link { min-height: 36px; min-width: 44px; padding: 0 12px; }
+.octo-tabs-mail-row { display: flex; align-items: flex-end; gap: 8px; min-width: 0; }
+.octo-tabs-mail-ask {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 160px;
+  padding: 11px 12px;
+  font: 400 16px/22px var(--octo-font);
+  resize: none;
+  overflow-y: auto;
+}
+.octo-tabs-mail-send { flex: 0 0 44px; width: 44px; min-height: 44px; height: 44px; padding: 0; border-radius: var(--octo-r9); }
+.octo-tabs-mail-form[aria-busy="true"] .octo-tabs-mail-send { background: var(--octo-line-2); color: var(--octo-ink-3); box-shadow: none; }
+.octo-tabs-mail-status { min-height: 16px; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-mail-thread { padding: 12px 16px 8px; }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-mail-bubble { max-width: 92%; }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-mail-prov { max-width: 30%; }
 
 /* Pasif sekme: tek kaynagin kurulum karti */
 .octo-tabs-setup {
@@ -46391,7 +46970,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-10-01.os6b';
+  var VERSION = 'octo 2026-10-19.os8m';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -50077,11 +50656,12 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
    perspective YOK (tablonun 8 position:fixed parcasi).
 
    Sekmeler (os3t, OCTO_TABS_SPEC): sol hucrenin ilk cocugu 44 px serit (Table, Calendar,
-   Drive, Notes, Tasks, Sheet, Mail Soon); Table disindaki sekme kaynagini tabloyu orten
+   Drive, Notes, Tasks, Sheet, Mail); Table disindaki sekme kaynagini tabloyu orten
    mutlak panelde gosterir (Calendar/Notes/Sheet gomulu, Drive bizim tarayici + onizleme,
    Tasks dogal liste; kurulmamis/bagli olmayan kaynak panelde kurulum karti). Tablo ASLA
    yeniden ebeveynlenmez; Table'a donuste panel bosalir + tek resize. Rayin %50 gomulu
-   gorunumu ve telefon hizli satiri EMEKLI.
+   gorunumu ve telefon hizli satiri EMEKLI. Mail (os8m, OCTO_TABS_SPEC 12): Ask Aithia
+   paneli (os_mail_*), yalniz sunucu rail.mail_build gonderdiginde; yoksa Soon.
 
    Veri YALNIZ sunucudan (octo.request; kimlik alanlari cekirdekte atilir). Tum
    uzak metin textContent; HTML dizgisi hic yazilmaz (ikonlar octo.icon). Kod yorumlari
@@ -50143,6 +50723,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     trPoll: 10000, trMax: 900000, trLoginEvery: 1000, trLoginWait: 30000
   };
   T.mineBusy = 60000; T.mineIdle = 300000; T.mineBusyWin = 600000; T.mineRepoll = 5000; T.mineRetry = 4000; T.mineAfter = 6000; T.mineUndo = 8000; T.mineMove = 600; T.mineSearch = 500; T.mineSearchMax = 6000; T.mineNoJump = 120000; T.mineNeg = 1800000; // mytasks
+  T.mailFreshPoll = 3000; T.mailFreshTries = 20; // mail: after OAuth the status is re-read with fresh:true every 3 s, at most 20 times (OCTO_TABS_SPEC 12)
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
 
@@ -50727,6 +51308,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     if (M.armed) { return true; }
     if (readSwitch()) { M.off = true; dbgSoon(); return false; }
     onbRead();
+    mailRead();
     arrBoot();
     dropResume('rail');
     M.off = false;
@@ -50757,6 +51339,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
 
   function shutdown() {
     stopConn();
+    mailStop();
     onbHint(false);
     homeSync(false);
     stopDsPoll();
@@ -50909,7 +51492,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     // app-workspace tabloyu kendi octo:hide dinleyicisinde birakir; ray bir tur sonra alir.
     M.retakeTimer = setTimeout(function () { M.retakeTimer = null; if (!overlayVisible()) { retake(); } }, 0);
   });
-  octo.bus.on('octo:connected', function () { if (M.armed) { connectedNow(); } });
+  octo.bus.on('octo:connected', function (ev) { if (M.armed) { connectedNow(ev); } });
 
   // ================================================================= veri
   function load(c) {
@@ -50971,6 +51554,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     // os5: ciplak id sayfasinda Home acikken gercek workspace geldi -> Home kapanir, ray kurulur.
     if (M.home) { homeSync(false); }
     if (!M.mounted && !M.yielded) { mount(); }
+    // os8m Mail (OCTO_TABS_SPEC 12): mailbox status rides its own octo.live key; asked whenever the workspace answers.
+    if (mailOk()) { mailStatus(false); }
     paintSoon();
     loadCards();
     // os6 (dev): Home / amiral gemisi Build kaydi bu yeni tabloya aitse yarim kalan bag burada surer.
@@ -51478,7 +52063,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     }
     fitTabs(phone);
   }
-  // 900..1099 px: 7 sekme sigmazsa Mail (yalniz Soon) gizlenir; telefonda serit kayar (gizleme yok).
+  // 900..1099 px: 7 sekme sigmazsa Mail YALNIZ Soon iken gizlenir (OCTO_TABS_SPEC 12: hazir Mail sekmesi hic gizlenmez,
+  // serit kayar); telefonda serit kayar (gizleme yok).
   function fitTabs(phone) {
     var tb = M.parts.tabs;
     if (!tb) { return; }
@@ -51486,10 +52072,11 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     var want = '';
     if (!phone) {
       var mb = M.parts.tabBtns && M.parts.tabBtns.mail;
+      var soon = !!(mb && mb.getAttribute('data-state') === 'soon');
       try {
         // Gereksiz oznitelik yazimi yok (tablonun gozlemcisi bosa tetiklenmesin): gizliyken olculen genislik kullanilir.
-        if (cur !== 'tight') {
-          if (mb && mb.offsetWidth) { M.mailW = mb.offsetWidth; }
+        if (!soon || cur !== 'tight') {
+          if (soon && mb && mb.offsetWidth) { M.mailW = mb.offsetWidth; }
           want = (tb.scrollWidth > tb.clientWidth + 1) ? 'tight' : '';
         } else {
           want = (tb.scrollWidth + (M.mailW || 90) > tb.clientWidth + 1) ? 'tight' : '';
@@ -52972,7 +53559,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   function tabState(k) {
     if (k === 'onb') { return onbNeeded() ? 'ready' : 'off'; }
     if (k === 'table') { return 'ready'; }
-    if (k === 'mail' || !RES[k]) { return 'soon'; }
+    if (k === 'mail') { return mailTabState(); }
+    if (!RES[k]) { return 'soon'; }
     if (!data()) { return (M.handle && M.handle.busy) ? 'loading' : 'off'; }
     if (!railOk()) { return 'off'; }
     if (!has(k)) { return 'unset'; }
@@ -52998,7 +53586,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     if (M.tv[k]) { return M.tv[k]; }
     var t = (k === 'drive')
       ? { folder: '', crumbs: null, parent: '', files: null, truncated: false, err: '', busy: false, h: null, hkey: '', gen: 0, cgen: 0, ver: 0, preview: null, check: null, scroll: 0, restore: false }
-      : (k === 'tasks' ? { draft: '', adding: false, addErr: '' } : {});
+      : (k === 'tasks' ? { draft: '', adding: false, addErr: '' } : (k === 'mail' ? mailNew() : {}));
     M.tv[k] = t;
     return t;
   }
@@ -53040,6 +53628,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     } catch (e) { /* yut */ }
   }
   function enterTab(k) {
+    if (k === 'mail') { mailEnter(); return; }
     var st = tabState(k);
     if (st === 'unset') { armSetup(k); return; }
     if (st === 'unlinked') { return; }
@@ -53055,6 +53644,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   // Sekmeden cikis: ucustaki istek sonuclari yok sayilir (nesil), onizleme kapanir; klasor konumu bellekte kalir.
   function leaveTab(k) {
     var t = M.tv[k];
+    if (k === 'mail' && t) { mailLeave(t); return; }
     if (k === 'drive' && t) {
       t.gen++; t.cgen++;
       t.h = null; t.hkey = ''; t.busy = false; t.preview = null; t.check = null; t.restore = false;
@@ -53201,7 +53791,8 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     if (k === 'onb') { try { panelOnb(); } catch (e0) { logErr(e0); } return; }
     var st = tabState(k);
     try {
-      if (st === 'unset' || st === 'unlinked' || st === 'off' || st === 'soon') { panelSetup(k, st); }
+      if (k === 'mail') { panelMail(st); }
+      else if (st === 'unset' || st === 'unlinked' || st === 'off' || st === 'soon') { panelSetup(k, st); }
       else if (k === 'drive') { panelDrive(); }
       else if (k === 'tasks') { panelTasks(); }
       else { panelFrame(k); }
@@ -55002,6 +55593,7 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
         portalRestore();
         if (M.setup) { enterStep(M.setup); }
         loadCards();
+        mailConnected(C.tk);
         paintSoon();
         return;
       }
@@ -55013,8 +55605,11 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
       C.timer = setTimeout(function () { connPoll(C); }, T.connectPoll);
     }
   }
-  function connectedNow() {
+  function connectedNow(ev) {
     portalRestore();
+    // os8m Mail: after a MAIL OAuth the mailbox status is re-read at once with fresh:true (server memo bypass) and
+    // re-polled bounded until the state moves, so the Mail tab turns ready in place (mailConnected).
+    mailConnected(isObj(ev) ? (str(ev.slug) || str(ev.app)) : '');
     var C = M.conn;
     if (C) {
       if (C.timer) { try { clearTimeout(C.timer); } catch (e) {} }
@@ -59676,6 +60271,934 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
   };
   // ---- jobs end
 
+  // ---- mail
+  /* os8m Mail tab = Ask Aithia (OCTO_TABS_SPEC 12, SERVER_CONTRACT 34). The tab is real only when the server
+     answers os_workspace with rail.mail_build (octo_aithia mounted, AITHIA_ENABLED=1) and the session kill
+     switch (?octo_mail=0 -> sessionStorage octo_mail) is off; old servers keep the Soon placeholder.
+     Data only from the server (os_mail_status / ask / result / draft / action_status); identity comes from the
+     plugin, every payload carries sheet_id. All remote text goes through textContent; citation cards and the
+     context chip are built only from ids the server sent. Mail text never enters sessionStorage: ask and
+     draft go out with {retry:false} and never through octo.live; only os_mail_status rides octo.live.
+     Turns live in M.tv.mail (memory): leaving the tab keeps them, a workspace change wipes them.
+     os8m.1 (19.10 review): ids follow the shared rule below (Graph ids are ~150 chars with '=' and '/'); a FAILED
+     result is a server verdict (timeout included: Try again re-asks), only the client poll budget re-polls; a FAILED
+     answer text is never drawn as a turn; plan_required inside FAILED moves to the plan card; the forced status read
+     after OAuth carries fresh:true and re-polls bounded; os_mail_ask not_found drops the conversation and context;
+     action_status 'proposed' is retryable; proposed_actions[].allowed wins over the local package map; the composer
+     and its role=status line survive repaints.
+     os8m.2: only a mail connect arms the fresh re-poll; an unread status before OAuth takes the first auth_required /
+     no_mailbox answer as its baseline; auth / plan verdicts keep Try again for a ready re-read; os_mail_result
+     not_found drops the conversation and context; the allowed:false lock label follows the server reason. */
+  var MAIL_KEY = 'octo_mail';
+  var MAIL_TEXT_MAX = 2000;
+  // Shared id rule (SERVER_CONTRACT 34): message, thread, conversation, request, action and choice ids.
+  var MAIL_ID_RE = /^[A-Za-z0-9_=+\/.-]{1,256}$/;
+  var MAIL_URL_RE = /^https:\/\/(mail\.google\.com|outlook\.live\.com|outlook\.office\.com|outlook\.office365\.com)\/[^\s"'<>\\]*$/;
+  var MAIL_NONE = "I couldn't verify that in your connected mailbox.";
+  var MAIL_LABEL = { gmail: 'Gmail', outlook: 'Outlook', bizmail: 'Business email' };
+  var MAIL_PKG = { focus: 'Focus', compose: 'Compose', coordinate: 'Coordinate' };
+  // Package capabilities (KAYNAK_AITHIA page 11). The canonical map is on the server; this copy only decides
+  // whether a proposed action's button is live or labelled with the package that carries it.
+  var MAIL_CAPS = {
+    focus: ['mail.read', 'mail.classify', 'mail.label', 'mail.summarize', 'chat.ask', 'knowledge.read', 'draft.knowledge_reply'],
+    compose: ['draft.reply', 'draft.edit', 'tone.apply', 'language.transform'],
+    coordinate: ['followup.track', 'draft.followup', 'task.write', 'calendar.read', 'crm.write']
+  };
+  var MAIL_PKG_ORDER = ['focus', 'compose', 'coordinate'];
+  var MAIL_ACT_TYPES = { draft_followup: 1, draft_reply: 1 };
+  var MAIL_CITES_MAX = 10, MAIL_ACTS_MAX = 3, MAIL_CHOICES_MAX = 6, MAIL_ACT_CHECKS = 10;
+
+  function mailRead() {
+    var q = railQuery();
+    if (/[?&]octo_mail=0(&|#|$)/.test(q)) { ssSet(MAIL_KEY, '0'); }
+    else if (/[?&]octo_mail=1(&|#|$)/.test(q)) { ssDel(MAIL_KEY); }
+    M.mailOff = ssGet(MAIL_KEY) === '0';
+    return !M.mailOff;
+  }
+  function mailOffQ() { return M.mailOff === true; }
+  // Feature flag: the server declares the module (rail.mail_build) and the session switch is not off.
+  function mailOk() {
+    if (!railOk() || mailOffQ()) { return false; }
+    var d = data();
+    return !!str(d.rail.mail_build);
+  }
+  function mailNew() {
+    return {
+      st: null, serr: '', sh: null, skey: '',          // mailbox status (os_mail_status via octo.live)
+      msgs: [], conv: '', draft: '', ctx: null,        // turns, conversation id, composer draft, selected email context
+      req: null, pend: null, stage: '', err: '', retry: null,   // request in flight, parked request, stage, error, retry
+      acts: {}, gen: 0, ver: 0, timer: null, stick: false, choice: '',
+      fresh: null, ftimer: null,                       // bounded fresh:true status re-poll after OAuth
+      ui: null                                         // composer nodes kept across repaints (live region)
+    };
+  }
+  function mailT() { return tvOf('mail'); }
+  function mailDirty(t) { t.ver++; paintSoon('tabs'); }
+  function mailId() {
+    try { if (W.crypto && typeof W.crypto.randomUUID === 'function') { return W.crypto.randomUUID(); } } catch (e) { /* yut */ }
+    var s = 'm' + Date.now().toString(36) + '_';
+    for (var i = 0; i < 12; i++) { s += 'abcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random() * 36)); }
+    return s;
+  }
+  function mailClearTimer(t) {
+    if (t.timer) { try { clearTimeout(t.timer); } catch (e) { /* yut */ } t.timer = null; }
+  }
+  // Tab state for the strip (OCTO_TABS_SPEC 2 table): soon | loading | unlinked | unset | error | ready.
+  function mailTabState() {
+    if (!mailOk()) { return 'soon'; }
+    var t = M.tv.mail;
+    if (!t || (!t.st && !t.serr)) { return 'loading'; }
+    if (!t.st && t.serr) { return (t.serr === 'bad_request' || t.serr === 'unavailable') ? 'soon' : 'error'; }
+    var s = t.st.state;
+    if (s === 'auth_required' || s === 'not_connected') { return 'unlinked'; }
+    if (s === 'no_mailbox' || s === 'plan_required') { return 'unset'; }
+    return 'ready';
+  }
+  function mailReady() { return mailTabState() === 'ready'; }
+  function mailLabel(st) {
+    if (!st) { return ''; }
+    return st.label || MAIL_LABEL[st.provider] || '';
+  }
+  // os_mail_status: own octo.live key (rail:mail:<sheet>), 60 s stale, generation guarded like driveLoad.
+  // fresh (connectedNow / connPoll after OAuth): the forced read carries {fresh:true} so the server bypasses its
+  // mailbox memo (SERVER_CONTRACT 34.1), and the status is re-read every T.mailFreshPoll until the state changes
+  // (at most T.mailFreshTries). The non-forced read (onWs, mailEnter) schedules no frame of its own: the caller
+  // paints, and the answer paints only when the status really changed (keeps the arrival repaint cadence intact).
+  function mailStatus(force, fresh) {
+    var sid = sheetId();
+    if (!idOk(sid) || !mailOk()) { return; }
+    var t = mailT();
+    var key = 'rail:mail:' + sid;
+    if (fresh) { mailFreshArm(t); }
+    if (t.sh && t.skey === key) {
+      if (force) { t.serr = ''; t.sh.refresh(); mailDirty(t); }
+      else { t.sh.refreshIfStale(T.stale); }
+      return;
+    }
+    var g = M.gen;
+    t.skey = key; t.serr = '';
+    var h = octo.live(key, function () {
+      var p = { sheet_id: sid };
+      if (t.fresh) { p.fresh = true; }
+      return octo.request('os_mail_status', p, { cacheKey: 'os_mail_status|' + sid + (t.fresh ? '|fresh' : '') });
+    }, function (d, meta) {
+      if (g !== M.gen || t.skey !== key) { return; }
+      if (mailStatusData(t, d)) { mailDirty(t); }
+      // The cached (stale) copy only tells the fresh loop which state it is waiting to leave; network answers tick.
+      if (meta && meta.stale) { if (t.fresh && t.fresh.was === '') { t.fresh.was = t.st ? t.st.state : ''; } }
+      else { mailFreshTick(t); }
+    }, function (err) {
+      if (g !== M.gen || t.skey !== key) { return; }
+      // A stale status stays painted; the error replaces it only when nothing was ever read.
+      if (!t.st) { t.serr = str(err && err.code) || 'provider_error'; }
+      mailDirty(t);
+      mailFreshTick(t);
+    }, { autoStart: false });
+    t.sh = h;
+    if (force) { h.refresh(); } else { h.refreshIfStale(T.stale); }
+    mailDirty(t);
+  }
+  // os8m.2: only a MAIL connect (gmail | outlook | bizmail, or the status' connect_slug) forces the fresh:true status
+  // read and its bounded re-poll; connecting Drive, Calendar or Sheets leaves the mailbox status alone.
+  function mailConnected(app) {
+    if (!mailOk()) { return; }
+    app = str(app).toLowerCase();
+    var t = M.tv.mail;
+    var slug = (t && t.st) ? t.st.slug : '';
+    if (!app || !(/^(gmail|outlook|bizmail)$/.test(app) || app === slug)) { return; }
+    mailStatus(true, true);
+  }
+  // After OAuth the server memo may still answer the old state: ask again with fresh:true until it moves. Nothing is
+  // armed when the mailbox is already ready (another app was connected): one forced read is enough then.
+  function mailFreshArm(t) {
+    var was = t.st ? t.st.state : '';
+    mailClearFresh(t);
+    if (was === 'ready') { return; }
+    t.fresh = { was: was, n: 0 };
+  }
+  function mailClearFresh(t) {
+    t.fresh = null;
+    if (t.ftimer) { try { clearTimeout(t.ftimer); } catch (e) { /* yut */ } t.ftimer = null; }
+  }
+  function mailFreshTick(t) {
+    var f = t.fresh;
+    if (!f || t.ftimer) { return; }
+    var s = t.st ? t.st.state : '';
+    // os8m.2: nothing was read before OAuth: the first auth_required / no_mailbox answer is the state the loop waits
+    // to leave, not a change.
+    if (f.was === '' && (s === 'auth_required' || s === 'no_mailbox')) { f.was = s; }
+    if (s !== f.was || s === 'ready' || f.n >= T.mailFreshTries) { mailClearFresh(t); return; }
+    f.n++;
+    var g = M.gen;
+    t.ftimer = setTimeout(function () {
+      t.ftimer = null;
+      if (g !== M.gen || M.tv.mail !== t || t.fresh !== f || !t.sh || !mailOk()) { mailClearFresh(t); return; }
+      t.sh.refresh();
+    }, T.mailFreshPoll);
+  }
+  function mailStatusSig(t) {
+    var s = t.st;
+    if (!s) { return 'none|' + t.serr; }
+    return [s.state, s.provider, s.label, s.slug, s.mailbox ? s.mailbox.id : '', s.plan.pkg, s.plan.active ? 1 : 0, s.drafts === null ? '' : (s.drafts ? 1 : 0), s.reason].join('|');
+  }
+  // Reads one status answer into t.st; true when something the strip or the panel shows has changed.
+  function mailStatusData(t, d) {
+    var was = mailStatusSig(t);
+    d = isObj(d) ? d : {};
+    var s = str(d.state);
+    if (!/^(ready|auth_required|plan_required|no_mailbox)$/.test(s)) {
+      s = d.ready === true ? 'ready' : (d.connected === false ? 'auth_required' : 'no_mailbox');
+    }
+    var prov = str(d.provider);
+    var mb = (isObj(d.mailbox) && str(d.mailbox.id)) ? { id: str(d.mailbox.id), address: str(d.mailbox.address) } : null;
+    var plan = isObj(d.plan) ? d.plan : {};
+    var pkg = str(plan['package']).toLowerCase();
+    var slug = str(d.connect_slug).toLowerCase();
+    t.st = {
+      state: s,
+      provider: prov,
+      label: str(d.label) || MAIL_LABEL[prov] || '',
+      mailbox: mb,
+      connected: (d.connected === true) ? true : (d.connected === false ? false : null),
+      slug: /^(gmail|outlook)$/.test(slug) ? slug : '',
+      plan: { pkg: MAIL_PKG[pkg] ? pkg : '', active: plan.active === true },
+      checked_at: str(d.checked_at),
+      build: str(d.mail_build),
+      // Informational (SERVER_CONTRACT 34.1): action store, drafting switch and the mailbox reason code.
+      store: str(d.store).slice(0, 40),
+      drafts: d.draft_enabled === true ? true : (d.draft_enabled === false ? false : null),
+      reason: str(d.reason).slice(0, 40)
+    };
+    t.serr = '';
+    if (s === 'ready' && t.pend && M.tab === 'mail') { mailResume(t); }
+    return mailStatusSig(t) !== was;
+  }
+  // Entering the tab: status is re-read when stale (a failed read waits for Try again); a request parked by
+  // leaveTab resumes its polling.
+  function mailEnter() {
+    var t = mailT();
+    if (!t.serr || t.st) { mailStatus(false); }
+    if (t.pend && mailReady()) { mailResume(t); }
+    t.stick = true;
+    mailDirty(t);
+  }
+  // Leaving the tab (OCTO_TABS_SPEC 12): turns and draft stay, timers stop, the generation moves on. A request
+  // that already has an id is parked and polled again on return; one still waiting for its id is dropped.
+  function mailLeave(t) {
+    t.gen++;
+    mailClearTimer(t);
+    if (t.req) {
+      if (t.req.id) { t.pend = t.req; } else { t.err = ''; }
+      t.req = null; t.stage = '';
+    }
+  }
+  function mailStop() {
+    var t = M.tv.mail;
+    if (!t) { return; }
+    t.gen++;
+    mailClearTimer(t);
+    mailClearFresh(t);
+    t.req = null; t.pend = null; t.stage = '';
+  }
+  function mailResume(t) {
+    var r = t.pend;
+    t.pend = null;
+    if (!r || !r.id) { return; }
+    r.n = 0;
+    t.req = r; t.err = ''; t.retry = null;
+    mailPoll(t, 0);
+  }
+
+  // ------------------------------------------------ ask + poll (os_mail_ask, os_mail_result)
+  function mailTurn(t, m) {
+    m.at = iso(now());
+    t.msgs.push(m);
+    t.stick = true;
+  }
+  function mailSend(choice) {
+    var t = mailT();
+    var sid = sheetId();
+    if (!idOk(sid) || !mailReady() || t.req) { return false; }
+    var text = str(choice ? choice.label : t.draft).replace(/\r\n?/g, '\n').trim().slice(0, MAIL_TEXT_MAX);
+    if (!text) { return false; }
+    var cmid = mailId();
+    var p = { sheet_id: sid, text: text, client_message_id: cmid };
+    if (t.conv && MAIL_ID_RE.test(t.conv)) { p.conversation_id = t.conv; }
+    if (t.ctx && MAIL_ID_RE.test(str(t.ctx.mid))) { p.context_message_id = t.ctx.mid; }
+    if (choice && MAIL_ID_RE.test(str(choice.id))) { p.choice_id = choice.id; }
+    mailTurn(t, { role: 'user', text: text, ctx: t.ctx ? str(t.ctx.subject) : '', cmid: cmid });
+    if (!choice) { t.draft = ''; }
+    var r = { id: '', cmid: cmid, text: text, choice: choice || null, n: 0 };
+    t.req = r; t.stage = ''; t.err = ''; t.retry = null; t.pend = null;
+    mailDirty(t);
+    var g = M.gen, tg = t.gen;
+    octo.request('os_mail_ask', p, { retry: false, cacheKey: 'os_mail_ask|' + cmid }).then(function (d) {
+      if (g !== M.gen || tg !== t.gen || t.req !== r) { return; }
+      var rid = isObj(d) ? str(d.request_id) : '';
+      if (!MAIL_ID_RE.test(rid)) { mailAskFail(t, r, 'provider_error'); return; }
+      r.id = rid;
+      var cv = isObj(d) ? str(d.conversation_id) : '';
+      if (MAIL_ID_RE.test(cv)) { t.conv = cv; }
+      mailPoll(t, T.homeScanEvery);
+    }, function (err) {
+      if (g !== M.gen || tg !== t.gen || t.req !== r) { return; }
+      mailAskFail(t, r, str(err && err.code) || 'provider_error');
+    });
+    return true;
+  }
+  // os8m.2: a verdict that moves the tab to a setup card (auth, plan). The user turn stays and so do the muted line
+  // and Try again (re-ask): the card hides them, a forced status re-read that answers ready again shows them.
+  function mailLost(t, r, code) {
+    t.req = null; t.stage = '';
+    t.err = code;
+    t.retry = r ? { kind: 'ask', text: r.text, choice: r.choice } : null;
+  }
+  function mailAskFail(t, r, code) {
+    t.req = null; t.stage = '';
+    if (code === 'not_connected' || code === 'auth_required') {
+      mailLost(t, r, code);
+      if (t.st) { t.st.state = 'auth_required'; }
+      mailStatus(true);
+      mailDirty(t);
+      return;
+    }
+    // not_found: the conversation is gone on the server; Try again opens a fresh one (no stale context either).
+    if (code === 'not_found') { t.conv = ''; t.ctx = null; }
+    t.err = code;
+    t.retry = { kind: 'ask', text: r.text, choice: r.choice };
+    mailDirty(t);
+  }
+  function mailPollMax() {
+    var every = Math.max(1, num(T.homeScanEvery) || 2000);
+    return Math.max(1, Math.ceil((num(T.homeScanMax) || 150000) / every));
+  }
+  // Poll every T.homeScanEvery up to T.homeScanMax (counted in ticks: the harness clock may stand still).
+  function mailPoll(t, delay) {
+    var r = t.req;
+    if (!r || !r.id) { return; }
+    mailClearTimer(t);
+    var g = M.gen, tg = t.gen, sid = sheetId();
+    t.timer = setTimeout(function () {
+      t.timer = null;
+      if (g !== M.gen || tg !== t.gen || t.req !== r) { return; }
+      r.n++;
+      // Client poll budget spent: a client sentinel, never the server's 'timeout' verdict (Try again re-polls).
+      if (r.n > mailPollMax()) { mailReqEnd(t, r, 'poll_budget'); return; }
+      M.seq++;
+      octo.request('os_mail_result', { sheet_id: sid, request_id: r.id }, { retry: false, cacheKey: 'os_mail_result|' + r.id + '|' + M.seq }).then(function (d) {
+        if (g !== M.gen || tg !== t.gen || t.req !== r) { return; }
+        mailResult(t, r, d);
+      }, function (err) {
+        if (g !== M.gen || tg !== t.gen || t.req !== r) { return; }
+        var code = str(err && err.code) || 'provider_error';
+        // A timed out poll is one more tick, not a verdict (SERVER_CONTRACT 34: timeout is never a write failure either).
+        if (code === 'timeout' || code === 'unavailable') { mailPoll(t, T.homeScanEvery); return; }
+        if (code === 'not_connected') { mailAskFail(t, r, code); return; }
+        mailReqEnd(t, r, code);
+      });
+    }, Math.max(0, num(delay) || 0));
+  }
+  function mailReqEnd(t, r, code) {
+    mailClearTimer(t);
+    t.req = null; t.stage = '';
+    t.err = code;
+    // os8m.2: os_mail_result not_found (envelope or FAILED verdict) is the os_mail_ask case: the conversation is gone,
+    // Try again opens a fresh one without the stale context.
+    if (code === 'not_found') { t.conv = ''; t.ctx = null; }
+    // Only the spent client poll budget resumes the same request (idempotent on the server); every server verdict,
+    // FAILED + aithia_code 'timeout' included, is re-asked with a new client_message_id (SERVER_CONTRACT 34.3).
+    t.retry = (code === 'poll_budget' && r && r.id) ? { kind: 'poll', req: r } : { kind: 'ask', text: r.text, choice: r.choice };
+    mailDirty(t);
+  }
+  function mailRetry() {
+    var t = mailT();
+    var x = t.retry;
+    if (!x || t.req) { return; }
+    t.err = ''; t.retry = null;
+    if (x.kind === 'poll' && x.req && x.req.id) {
+      x.req.n = 0;
+      t.req = x.req;
+      mailDirty(t);
+      mailPoll(t, 0);
+      return;
+    }
+    // A failed ask is sent again as a fresh message (new client_message_id): the failed user turn is replaced
+    // (a FAILED verdict never left an Aithia turn behind).
+    if (x.kind === 'ask') {
+      var keep = t.draft;
+      if (t.msgs.length && t.msgs[t.msgs.length - 1].role === 'user') { t.msgs.pop(); }
+      t.draft = x.text;
+      mailSend(x.choice || null);
+      t.draft = keep;
+    }
+  }
+  function mailResult(t, r, d) {
+    d = isObj(d) ? d : {};
+    var s = str(d.status).toUpperCase();
+    if (s === 'PROCESSING') {
+      var stg = str(d.stage);
+      t.stage = /^(window|search|threads|answer)$/.test(stg) ? stg : (t.stage || 'search');
+      mailDirty(t);
+      mailPoll(t, T.homeScanEvery);
+      return;
+    }
+    mailClearTimer(t);
+    var code = mailCode(d);
+    if (s === 'AUTH_REQUIRED' || code === 'auth_required') {
+      mailLost(t, r, 'auth_required');
+      if (t.st) { t.st.state = 'auth_required'; }
+      mailStatus(true);
+      mailDirty(t);
+      return;
+    }
+    if (s === 'SUCCEEDED' || s === 'NEEDS_CLARIFICATION') {
+      t.req = null; t.stage = ''; t.err = ''; t.retry = null;
+      var m = mailAnswer(d, s === 'NEEDS_CLARIFICATION');
+      mailTurn(t, m);
+      if (code === 'plan_required' && t.st) { t.st.state = 'plan_required'; mailStatus(true); }
+      mailDirty(t);
+      return;
+    }
+    // FAILED (or an unknown status) is a server verdict, 'timeout' included: the answer text is never drawn as an
+    // Aithia turn; the user turn stays above a muted line and the retry row (Try again re-asks).
+    if (code === 'plan_required') {
+      // No package any more: the plan card takes over (no retry row on it); the turns stay in memory and a status
+      // re-read that answers ready again shows the muted line and Try again under the user turn (os8m.2).
+      mailLost(t, r, 'plan_required');
+      if (t.st) { t.st.state = 'plan_required'; }
+      mailStatus(true);
+      mailDirty(t);
+      return;
+    }
+    mailReqEnd(t, r, code || 'provider_error');
+  }
+  // Answer shape for one aithia turn, built only from validated ids and strings.
+  function mailAnswer(d, clar) {
+    var cites = [], acts = [], choices = [];
+    var list = isArr(d.citations) ? d.citations : [];
+    for (var i = 0; i < list.length && cites.length < MAIL_CITES_MAX; i++) {
+      var c = list[i];
+      if (!isObj(c) || !MAIL_ID_RE.test(str(c.message_id))) { continue; }
+      var dir = str(c.direction);
+      cites.push({
+        mid: str(c.message_id), tid: MAIL_ID_RE.test(str(c.thread_id)) ? str(c.thread_id) : '', sid: str(c.source_id),
+        subject: str(c.subject).slice(0, 200), sent_at: str(c.sent_at), snippet: str(c.snippet).slice(0, 160), from: str(c.from).slice(0, 120),
+        dir: (dir === 'in' || dir === 'out') ? dir : '', url: MAIL_URL_RE.test(str(c.source_url)) ? str(c.source_url) : ''
+      });
+    }
+    var al = isArr(d.proposed_actions) ? d.proposed_actions : [];
+    for (var j = 0; j < al.length && acts.length < MAIL_ACTS_MAX; j++) {
+      var a = al[j];
+      if (!isObj(a) || !MAIL_ID_RE.test(str(a.id)) || !MAIL_ACT_TYPES[str(a.type)] || !str(a.confirmation_token)) { continue; }
+      acts.push({ id: str(a.id), version: (num(a.version) !== null) ? a.version : str(a.version), type: str(a.type), summary: str(a.summary).slice(0, 200),
+        cap: str(a.required_capability), expires_at: str(a.expires_at), token: str(a.confirmation_token),
+        // Server verdict on the capability at answer time; wins over the local package map when present (34.3).
+        allowed: a.allowed === true ? true : (a.allowed === false ? false : null), reason: str(a.reason).slice(0, 40) });
+    }
+    var cl = isArr(d.choices) ? d.choices : [];
+    for (var k = 0; k < cl.length && choices.length < MAIL_CHOICES_MAX; k++) {
+      var ch = cl[k];
+      if (!isObj(ch) || !MAIL_ID_RE.test(str(ch.id)) || !str(ch.label).trim()) { continue; }
+      choices.push({ id: str(ch.id), label: str(ch.label).trim().slice(0, 160) });
+    }
+    var cov = isObj(d.coverage) ? d.coverage : null;
+    var found = d.found === true && cites.length > 0;
+    var text = str(d.answer).trim();
+    if (!found && !clar && !text) { text = MAIL_NONE; }
+    var code = mailCode(d);
+    return {
+      role: 'aithia', text: text, cites: cites, acts: acts, choices: clar ? choices : [], chosen: '',
+      found: found, partial: code === 'partial_results' || (!!cov && cov.complete === false),
+      checked_at: str(d.checked_at), code: code
+    };
+  }
+  // AITHIA state code inside a SUCCESS body. SERVER_CONTRACT 34.3 names it error_code, but octo-core.request rejects
+  // any data.error_code (normCode -> provider_error) before this code runs, so the server sends it as aithia_code until
+  // the core change lands; both spellings are read here.
+  function mailCode(d) {
+    return str(d.aithia_code || d.error_code).toLowerCase().slice(0, 40);
+  }
+  function mailChoose(m, ch) {
+    var t = mailT();
+    if (t.req || m.chosen) { return; }
+    if (mailSend(ch)) { m.chosen = ch.id; }
+  }
+  function mailSetCtx(c) {
+    var t = mailT();
+    t.ctx = c ? { mid: c.mid, subject: c.subject } : null;
+    mailDirty(t);
+    batch(function () { var ta = M.parts.pbody && M.parts.pbody.querySelector('[data-k="mail-ask"]'); if (ta && M.tab === 'mail') { focusNode(ta); } });
+  }
+
+  // ------------------------------------------------ proposed actions (os_mail_draft, os_mail_action_status)
+  function mailActOf(t, a) {
+    var A = t.acts[a.id];
+    if (!A) { A = t.acts[a.id] = { status: '', busy: false, draft_id: '', url: '', reason: '', key: mailId(), n: 0 }; }
+    return A;
+  }
+  // Which package carries a capability; '' when every package has it, 'coordinate' when none lists it (server decides).
+  function mailCapPkg(cap) {
+    for (var i = 0; i < MAIL_PKG_ORDER.length; i++) {
+      var p = MAIL_PKG_ORDER[i];
+      if (MAIL_CAPS[p].indexOf(cap) >= 0) { return p; }
+    }
+    return 'coordinate';
+  }
+  // Is the proposed action live? The server's allowed flag (computed at answer time) wins; the local package map
+  // decides only when the server sent none.
+  function mailCapOk(t, a) {
+    if (a && a.allowed === true) { return true; }
+    if (a && a.allowed === false) { return false; }
+    var cap = a ? a.cap : '';
+    var pkg = t.st && t.st.plan ? t.st.plan.pkg : '';
+    if (!pkg || !(t.st.plan.active)) { return false; }
+    if (pkg === 'coordinate') { return true; }
+    var need = mailCapPkg(cap);
+    return MAIL_PKG_ORDER.indexOf(pkg) >= MAIL_PKG_ORDER.indexOf(need);
+  }
+  function mailDraft(a) {
+    var t = mailT();
+    var sid = sheetId();
+    var A = mailActOf(t, a);
+    if (!idOk(sid) || A.busy || A.status === 'succeeded' || A.status === 'not_available' || !mailCapOk(t, a)) { return; }
+    A.busy = true; A.status = 'executing'; A.reason = ''; A.n = 0;
+    mailDirty(t);
+    var g = M.gen;
+    M.seq++;
+    var p = { sheet_id: sid, action_id: a.id, action_version: a.version, confirmation_token: a.token, idempotency_key: A.key };
+    octo.request('os_mail_draft', p, { retry: false, cacheKey: 'os_mail_draft|' + A.key + '|' + M.seq }).then(function (d) {
+      if (g !== M.gen) { return; }
+      mailActData(t, a, A, d);
+    }, function (err) {
+      if (g !== M.gen) { return; }
+      var code = str(err && err.code) || 'provider_error';
+      // Timeout is not a failure: the status query decides, never a blind second write.
+      if (code === 'timeout') { mailActStatus(t, a, A); return; }
+      A.busy = false; A.status = 'failed'; A.reason = code;
+      mailDirty(t);
+    });
+  }
+  function mailActStatus(t, a, A) {
+    var sid = sheetId();
+    if (!idOk(sid)) { A.busy = false; A.status = 'unknown'; mailDirty(t); return; }
+    A.busy = true; A.n++;
+    mailDirty(t);
+    var g = M.gen;
+    M.seq++;
+    octo.request('os_mail_action_status', { sheet_id: sid, action_id: a.id }, { retry: false, cacheKey: 'os_mail_action_status|' + a.id + '|' + M.seq }).then(function (d) {
+      if (g !== M.gen) { return; }
+      mailActData(t, a, A, d);
+    }, function (err) {
+      if (g !== M.gen) { return; }
+      A.busy = false; A.status = 'unknown'; A.reason = str(err && err.code) || 'provider_error';
+      mailDirty(t);
+    });
+  }
+  function mailActData(t, a, A, d) {
+    d = isObj(d) ? d : {};
+    var s = str(d.action_status);
+    A.reason = str(d.reason);
+    if (s === 'succeeded') {
+      A.busy = false; A.status = 'succeeded';
+      A.draft_id = str(d.draft_id);
+      A.url = MAIL_URL_RE.test(str(d.open_url)) ? str(d.open_url) : '';
+    } else if (s === 'failed' || s === 'not_available') {
+      A.busy = false; A.status = s;
+    } else if (s === 'proposed') {
+      // Never confirmed on the server (the draft call never arrived): Prepare draft comes back, same idempotency_key.
+      A.busy = false; A.status = 'proposed';
+    } else if (s === 'executing' && A.n < MAIL_ACT_CHECKS) {
+      // Still running on the provider: ask again after one scan tick (bounded).
+      A.status = 'executing';
+      var g = M.gen;
+      setTimeout(function () { if (g !== M.gen || t.acts[a.id] !== A || A.status !== 'executing') { return; } mailActStatus(t, a, A); }, T.homeScanEvery);
+      mailDirty(t);
+      return;
+    } else {
+      A.busy = false; A.status = 'unknown';
+    }
+    mailDirty(t);
+  }
+  function mailPlanUrl() {
+    var p = '';
+    try { p = (typeof W.__octoUrlPath === 'string') ? W.__octoUrlPath : String((W.location && W.location.pathname) || ''); } catch (e) { p = ''; }
+    var origin = '';
+    try { origin = String((W.location && W.location.origin) || ''); } catch (e2) { origin = ''; }
+    // 20.10: the element channel (?gxel, kept per tab by the loader) rides along; a noopener tab does not copy
+    // sessionStorage, so without it a dev test lands on the main channel.
+    var ch = '';
+    try { ch = String((W.sessionStorage && W.sessionStorage.getItem('gxel')) || ''); } catch (e3) { ch = ''; }
+    var q = '?src=mail';
+    if (ch && ch !== 'main' && /^[A-Za-z0-9._-]{1,40}$/.test(ch)) { q += '&gxel=' + encodeURIComponent(ch); }
+    return origin + (p.indexOf('/version-test') === 0 ? '/version-test' : '') + '/aithia' + q;
+  }
+  function mailOpenPlan() {
+    var url = mailPlanUrl();
+    try { W.open(url, '_blank', 'noopener'); } catch (e) { /* yut */ }
+  }
+
+  // ------------------------------------------------ panel: passive states (setup card) and the chat
+  function panelMail(st) {
+    var t = mailT();
+    if (st === 'ready') { panelMailChat(t); return; }
+    panelMailSetup(t, st);
+  }
+  function panelMailSetup(t, st) {
+    var s = t.st;
+    var label = mailLabel(s) || 'Mail';
+    var state = s ? s.state : '';
+    var sig = 'mail-setup|' + st + '|' + state + '|' + label + '|' + (s ? s.slug : '') + '|' + t.serr + '|' + (M.conn ? M.conn.tk : '') + '|' + (t.sh && t.sh.busy ? 1 : 0);
+    if (M.panelSig === sig) { return; }
+    keepFocus(M.parts.panel, function () {
+      var keep = panelReset('mail-setup', sig);
+      barTitle('Ask Aithia');
+      var box = el('div', 'octo-tabs-setup');
+      box.setAttribute('data-res', 'mail');
+      box.setAttribute('data-mail', state || st);
+      var top = el('div', 'octo-tabs-setup-top');
+      var ic = el('span', 'octo-tabs-setup-ico');
+      ic.setAttribute('data-tone', 'mail');
+      ic.appendChild(octo.icon('mail', 28));
+      top.appendChild(ic);
+      top.appendChild(el('div', 'octo-tabs-setup-name', label));
+      var flags = el('span', 'octo-tabs-setup-st');
+      if (st === 'unlinked') { flags.appendChild(octo.icon('plug', 18, { label: 'Not connected' })); }
+      if (state === 'plan_required') { flags.appendChild(octo.icon('lock', 18, { label: 'Locked' })); }
+      if (flags.firstChild) { top.appendChild(flags); }
+      box.appendChild(top);
+      if (st === 'loading') {
+        box.appendChild(spin());
+      } else if (st === 'error') {
+        box.appendChild(errRow(function () { mailStatus(true); }));
+      } else if (st === 'unlinked') {
+        // OAuth providers: the same Connect row as the other tabs, promoted to primary. Business email has no
+        // OAuth slug: the card is label only (the person reconnects it where it was set up).
+        if (s && s.slug) {
+          var cr = connectRow([s.slug]);
+          var cb = cr.querySelector('[data-act="connect"]');
+          if (cb) { cb.classList.remove('is-ghost'); cb.classList.add('is-primary'); }
+          box.appendChild(cr);
+        }
+      } else if (state === 'plan_required') {
+        var row = el('div', 'octo-rail-connect');
+        var pb = withIcon(btn('is-primary', 'Choose a package', 'Choose a package', 'mail-plan'), 'external');
+        pb.addEventListener('click', mailOpenPlan);
+        row.appendChild(pb);
+        box.appendChild(row);
+      } else if (state === 'no_mailbox') {
+        var row2 = el('div', 'octo-rail-connect');
+        var tk = (s && s.slug) || 'gmail';
+        var nb = withIcon(btn('is-primary', 'Connect a mailbox', 'Connect a mailbox', 'mail-connect'), 'plug');
+        nb.setAttribute('data-tk', tk);
+        if (M.conn && M.conn.tk === tk) { nb.disabled = true; nb.appendChild(spin()); }
+        nb.addEventListener('click', function () { startConnect(tk); });
+        row2.appendChild(nb);
+        box.appendChild(row2);
+      }
+      M.parts.pbody.appendChild(box);
+      M.parts.pbody.scrollTop = keep;
+    });
+  }
+  function mailStatusText(t) {
+    if (!t.req) { return ''; }
+    return t.stage === 'answer' ? 'Writing the answer' : 'Searching your mailbox';
+  }
+  function mailStageAttr(t) { return t.req ? (t.stage || 'search') : (t.msgs.length ? 'ready' : 'empty'); }
+  function panelMailChat(t) {
+    var s = t.st;
+    var label = mailLabel(s);
+    var sig = 'mail|' + t.ver + '|' + label + '|' + t.msgs.length + '|' + (t.req ? 1 : 0) + '|' + t.stage + '|' + t.err + '|' + (t.ctx ? t.ctx.mid : '');
+    if (M.panelSig === sig) { return; }
+    var body = M.parts.pbody;
+    var ui = t.ui;
+    // The chat is already on screen: only the thread is rebuilt. The composer, its textarea and the role=status line
+    // stay the same nodes (screen readers keep the live region, the caret stays, typing is never interrupted).
+    if (M.panelView === 'mail' && ui && ui.label === label && ui.box.parentNode === body && isConn(ui.form)) {
+      M.panelSig = sig;
+      keepFocus(M.parts.panel, function () {
+        var keep = body.scrollTop || 0;
+        ui.box.setAttribute('data-stage', mailStageAttr(t));
+        var log = mailThreadEl(t);
+        ui.box.replaceChild(log, ui.log);
+        ui.log = log;
+        mailComposerSync(t);
+        if (t.stick) { body.scrollTop = body.scrollHeight; t.stick = false; }
+        else { body.scrollTop = keep; }
+      });
+      return;
+    }
+    keepFocus(M.parts.panel, function () {
+      var keep = panelReset('mail', sig);
+      barTitle('Ask Aithia');
+      if (label) { barAdd(el('span', 'octo-tabs-mail-prov', label)); }
+      var box = el('div', 'octo-tabs-mail');
+      box.setAttribute('data-stage', mailStageAttr(t));
+      var log = mailThreadEl(t);
+      box.appendChild(log);
+      box.appendChild(mailComposer(t));
+      t.ui.box = box; t.ui.log = log; t.ui.label = label;
+      body.appendChild(box);
+      if (t.stick) { body.scrollTop = body.scrollHeight; t.stick = false; }
+      else { body.scrollTop = keep; }
+    });
+  }
+  function mailThreadEl(t) {
+    var log = el('div', 'octo-tabs-mail-thread');
+    log.setAttribute('role', 'log');
+    log.setAttribute('aria-label', 'Conversation');
+    if (!t.msgs.length) { log.appendChild(emptyBox('chat', 'Ask about your emails')); }
+    for (var i = 0; i < t.msgs.length; i++) { log.appendChild(mailTurnEl(t, t.msgs[i], i === t.msgs.length - 1)); }
+    // A failed ask, a FAILED verdict or a spent poll budget: one muted line and Try again; the user turn stays.
+    if (t.err && !t.req) {
+      log.appendChild(muted('Could not search mailbox'));
+      log.appendChild(errRow(mailRetry));
+    }
+    return log;
+  }
+  function mailTurnEl(t, m, lastOne) {
+    var turn = el('div', 'octo-tabs-mail-turn is-' + (m.role === 'user' ? 'user' : 'aithia'));
+    if (m.role === 'user') {
+      if (m.ctx) {
+        var cp = el('span', 'octo-rail-pill octo-tabs-mail-ctxpill');
+        cp.appendChild(octo.icon('mail', 12));
+        cp.appendChild(el('span', '', m.ctx));
+        turn.appendChild(cp);
+      }
+      turn.appendChild(el('div', 'octo-tabs-mail-bubble', m.text));
+      return turn;
+    }
+    // Head line only with at least one verified source (client rule, KAYNAK_AITHIA page 5).
+    if (m.cites.length >= 1) { turn.appendChild(el('div', 'octo-tabs-mail-head', 'Aithia found it.')); }
+    if (m.text) { turn.appendChild(el('div', 'octo-tabs-mail-answer', m.text)); }
+    if (m.cites.length) {
+      var cl = el('div', 'octo-tabs-mail-cites');
+      for (var i = 0; i < m.cites.length; i++) { cl.appendChild(mailCiteEl(t, m.cites[i])); }
+      turn.appendChild(cl);
+    }
+    var when = rel(m.checked_at);
+    if (when || m.partial) {
+      var cov = el('div', 'octo-tabs-mail-cov');
+      if (when) { cov.appendChild(el('span', '', 'Checked ' + when)); }
+      if (m.partial) { cov.appendChild(el('span', 'octo-rail-pill is-warn octo-tabs-mail-partial', 'Partial results')); }
+      turn.appendChild(cov);
+    }
+    for (var j = 0; j < m.acts.length; j++) { turn.appendChild(mailActEl(t, m.acts[j])); }
+    if (m.choices.length) {
+      var ch = el('div', 'octo-rail-chips octo-tabs-mail-choices');
+      ch.setAttribute('role', 'group');
+      ch.setAttribute('aria-label', 'Pick one');
+      for (var k = 0; k < m.choices.length; k++) {
+        (function (c) {
+          var b = D.createElement('button');
+          b.type = 'button';
+          b.className = 'octo-rail-chip' + (m.chosen === c.id ? ' is-on' : '');
+          b.setAttribute('data-act', 'mail-choice');
+          b.setAttribute('data-cid', c.id);
+          b.textContent = c.label;
+          b.disabled = !!m.chosen || !!t.req || !lastOne;
+          b.addEventListener('click', function () { mailChoose(m, c); });
+          ch.appendChild(b);
+        })(m.choices[k]);
+      }
+      turn.appendChild(ch);
+    }
+    return turn;
+  }
+  function mailCiteEl(t, c) {
+    var row = el('div', 'octo-tabs-mail-cite');
+    row.setAttribute('data-mid', c.mid);
+    if (c.tid) { row.setAttribute('data-tid', c.tid); }
+    var b = D.createElement('button');
+    b.type = 'button';
+    b.className = 'octo-tabs-mail-cite-b' + (t.ctx && t.ctx.mid === c.mid ? ' is-on' : '');
+    b.setAttribute('data-act', 'mail-cite');
+    b.setAttribute('data-mid', c.mid);
+    b.setAttribute('aria-pressed', (t.ctx && t.ctx.mid === c.mid) ? 'true' : 'false');
+    b.appendChild(el('span', 'octo-tabs-mail-cite-s', c.subject || 'Email'));
+    var meta = [];
+    var when = rel(c.sent_at);
+    if (c.from) { meta.push(c.from); }
+    if (when) { meta.push(when); }
+    if (meta.length) { b.appendChild(el('span', 'octo-tabs-mail-cite-m', meta.join(' | '))); }
+    if (c.snippet) { b.appendChild(el('span', 'octo-tabs-mail-cite-t', c.snippet)); }
+    b.addEventListener('click', function () { mailSetCtx((t.ctx && t.ctx.mid === c.mid) ? null : c); });
+    row.appendChild(b);
+    if (c.url) {
+      var a = el('a', 'octo-tabs-mail-cite-a');
+      a.href = c.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.setAttribute('data-act', 'mail-open');
+      a.setAttribute('aria-label', 'Open email');
+      a.title = 'Open email';
+      a.appendChild(octo.icon('external', 16));
+      row.appendChild(a);
+    }
+    return row;
+  }
+  function mailActEl(t, a) {
+    var A = t.acts[a.id] || null;
+    var wrap = el('div', 'octo-tabs-mail-acts');
+    wrap.setAttribute('data-aid', a.id);
+    var st = A ? A.status : '';
+    if (st === 'succeeded') {
+      var done = el('span', 'octo-tabs-mail-done');
+      done.setAttribute('role', 'status');
+      done.appendChild(octo.icon('check', 16));
+      done.appendChild(el('span', '', 'Draft ready'));
+      wrap.appendChild(done);
+      if (A.url) {
+        var oa = el('a', 'octo-rail-btn is-link');
+        oa.href = A.url; oa.target = '_blank'; oa.rel = 'noopener noreferrer';
+        oa.setAttribute('data-act', 'mail-draft-open');
+        oa.appendChild(octo.icon('external', 16));
+        oa.appendChild(el('span', '', 'Open draft'));
+        wrap.appendChild(oa);
+      }
+      wrap.appendChild(muted('Draft only. You send.'));
+      return wrap;
+    }
+    if (st === 'not_available') {
+      wrap.appendChild(muted('Not available'));
+      return wrap;
+    }
+    if (st === 'unknown' && !(A && A.busy)) {
+      var ck = withIcon(btn('is-ghost', 'Check status', 'Check status', 'mail-check'), 'refresh');
+      ck.addEventListener('click', function () { mailActStatus(t, a, A); });
+      wrap.appendChild(ck);
+      wrap.appendChild(muted('Draft only. You send.'));
+      return wrap;
+    }
+    var okCap = mailCapOk(t, a);
+    var busy = !!(A && A.busy);
+    var failed = st === 'failed';
+    var b = btn('is-primary', failed ? 'Try again' : 'Prepare draft', null, 'mail-draft');
+    b.setAttribute('data-aid', a.id);
+    if (busy) {
+      b.appendChild(spin());
+      b.appendChild(el('span', '', 'Preparing draft'));
+      b.disabled = true;
+    } else {
+      b.appendChild(octo.icon(failed ? 'alert' : 'doc', 16));
+      b.appendChild(el('span', '', failed ? 'Try again' : 'Prepare draft'));
+    }
+    if (!okCap) {
+      var lockT = mailLockText(t, a);
+      b.disabled = true;
+      b.setAttribute('aria-disabled', 'true');
+      b.title = lockT;
+      b.setAttribute('aria-label', lockT);
+    } else {
+      var exp = Date.parse(a.expires_at);
+      if (isFinite(exp) && exp < now()) { b.disabled = true; b.title = 'Expired'; b.setAttribute('aria-label', 'Expired'); }
+    }
+    b.addEventListener('click', function () { mailDraft(a); });
+    wrap.appendChild(b);
+    wrap.appendChild(muted('Draft only. You send.'));
+    return wrap;
+  }
+  // Lock label (os8m.2). The server's allowed:false names its reason: plan_required -> the package that carries the
+  // capability when it is not the current plan, else Not in your plan; draft_disabled -> Drafts are off; any other
+  // reason -> Not available. Without a server verdict the local package map names the package.
+  function mailLockText(t, a) {
+    var need = mailCapPkg(a.cap);
+    if (a.allowed !== false) { return 'Available in ' + MAIL_PKG[need]; }
+    var why = str(a.reason).toLowerCase();
+    if (why === 'plan_required') {
+      var cur = (t.st && t.st.plan && t.st.plan.active) ? t.st.plan.pkg : '';
+      return need !== cur ? 'Available in ' + MAIL_PKG[need] : 'Not in your plan';
+    }
+    if (why === 'draft_disabled') { return 'Drafts are off'; }
+    return 'Not available';
+  }
+  function mailCtxEl(t) {
+    var cx = el('div', 'octo-tabs-mail-ctx');
+    cx.appendChild(octo.icon('mail', 14));
+    cx.appendChild(el('span', 'octo-tabs-mail-ctx-t', t.ctx.subject || 'Selected email'));
+    var rm = btn('is-link', 'Remove', 'Remove', 'mail-ctx-off');
+    rm.addEventListener('click', function () { mailSetCtx(null); });
+    cx.appendChild(rm);
+    return cx;
+  }
+  // Brings the kept composer up to date in place: busy flag, Send glyph, context chip, draft text, status line.
+  function mailComposerSync(t) {
+    var ui = t.ui;
+    if (!ui || !ui.form) { return; }
+    var busy = !!t.req;
+    ui.form.setAttribute('aria-busy', busy ? 'true' : 'false');
+    if (ui.busy !== busy) {
+      ui.busy = busy;
+      clear(ui.sb);
+      if (busy) { ui.sb.appendChild(spin()); } else { ui.sb.appendChild(octo.icon('arrow-up', 18)); }
+    }
+    var cm = t.ctx ? t.ctx.mid : '';
+    if (ui.ctxMid !== cm) {
+      if (ui.ctx) { try { ui.form.removeChild(ui.ctx); } catch (e) { /* yut */ } ui.ctx = null; }
+      if (t.ctx) { ui.ctx = mailCtxEl(t); ui.form.insertBefore(ui.ctx, ui.row); }
+      ui.ctxMid = cm;
+    }
+    if (ui.ta.value !== str(t.draft)) { ui.ta.value = str(t.draft); ui.grow(); }
+    ui.sb.disabled = busy || !str(ui.ta.value).trim();
+    var line = mailStatusText(t);
+    if (ui.stl.textContent !== line) { ui.stl.textContent = line; }
+  }
+  function mailComposer(t) {
+    var f = D.createElement('form');
+    f.className = 'octo-tabs-mail-form';
+    f.setAttribute('aria-label', 'Ask Aithia');
+    f.setAttribute('aria-busy', t.req ? 'true' : 'false');
+    f.addEventListener('submit', function (e) { e.preventDefault(); mailSend(null); });
+    var cx = t.ctx ? mailCtxEl(t) : null;
+    if (cx) { f.appendChild(cx); }
+    var row = el('div', 'octo-tabs-mail-row');
+    var ta = D.createElement('textarea');
+    ta.className = 'octo-rail-input octo-tabs-mail-ask';
+    ta.rows = 1;
+    ta.maxLength = MAIL_TEXT_MAX;
+    ta.placeholder = 'Ask about your emails';
+    ta.setAttribute('aria-label', 'Ask about your emails');
+    ta.setAttribute('data-k', 'mail-ask');
+    ta.setAttribute('enterkeyhint', 'send');
+    ta.value = t.draft || '';
+    var sb = btn('is-primary octo-tabs-mail-send', 'Send', null, 'mail-send');
+    if (t.req) { sb.appendChild(spin()); } else { sb.appendChild(octo.icon('arrow-up', 18)); }
+    function grow() {
+      try { ta.style.height = 'auto'; ta.style.height = Math.min(160, Math.max(44, ta.scrollHeight)) + 'px'; } catch (e) { /* yut */ }
+    }
+    function sync() { sb.disabled = !!t.req || !str(ta.value).trim(); }
+    ta.addEventListener('input', function () { t.draft = ta.value; sync(); grow(); });
+    ta.addEventListener('keydown', function (e) {
+      var k = e && e.key;
+      if (k === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        if (!t.req) { mailSend(null); }
+        return;
+      }
+      if (k === 'Escape' || k === 'Esc') {
+        // First Escape while typing or waiting only leaves the composer (focus to the Mail tab); the next Escape
+        // on an empty, idle composer bubbles to the panel and returns to Table (OCTO_TABS_SPEC 12 SAPMA).
+        if (t.req || str(ta.value).trim()) {
+          e.stopPropagation();
+          e.preventDefault();
+          focusNode(M.parts.tabBtns && M.parts.tabBtns.mail);
+        }
+      }
+    });
+    sb.addEventListener('click', function (e) { e.preventDefault(); mailSend(null); });
+    sync();
+    row.appendChild(ta);
+    row.appendChild(sb);
+    f.appendChild(row);
+    var stl = el('div', 'octo-tabs-mail-status', mailStatusText(t));
+    stl.setAttribute('role', 'status');
+    stl.setAttribute('aria-live', 'polite');
+    f.appendChild(stl);
+    t.ui = { form: f, ta: ta, sb: sb, stl: stl, row: row, ctx: cx, ctxMid: t.ctx ? t.ctx.mid : '', busy: !!t.req, grow: grow, box: null, log: null, label: '' };
+    batch(grow);
+    return f;
+  }
+  // ---- mail end
+
   // ---- mytasks
   /* C15 My tasks (MYTASKS_SPEC 3 + K5-K7, KOORDINASYON): ray karti 'mine', jobs'un hemen altinda. Veri YALNIZ os_my_tasks
      cevabindan: isimler sunucuda cozulur, ham kullanici id'si hic boyanmaz (metindeki kalinti id de silinir). Yazim
@@ -61065,6 +62588,9 @@ body.octo-home-away .octo-tabs-panel.is-home { visibility: hidden; }
     Object.defineProperty(api, 'home', { get: function () { return M.home; }, enumerable: true, configurable: true });
     // os7 drop (salt okunur): birakma oturumu (bilet bellekte; teshis ve harness icin).
     Object.defineProperty(api, 'drop', { get: function () { return M.drop; }, enumerable: true, configurable: true });
+    // os8m Mail (salt okunur): sekme durumu (status, turns, request) teshis ve harness icin; mailOk bayragi ayrica.
+    Object.defineProperty(api, 'mail', { get: function () { return M.tv.mail || null; }, enumerable: true, configurable: true });
+    Object.defineProperty(api, 'mailOk', { get: function () { return mailOk(); }, enumerable: true, configurable: true });
     Object.defineProperty(api, 'dbgState', { get: function () { return dbgState(); }, enumerable: true, configurable: true });
     Object.defineProperty(octo, '_rail', { value: api, writable: false, enumerable: false, configurable: true });
   } catch (e) { /* yut */ }
