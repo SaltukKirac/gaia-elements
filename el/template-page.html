@@ -115,6 +115,17 @@
   .ax-pk-foot{max-width:640px;margin:22px auto 0;text-align:center;font-size:15px;color:var(--gx-ink-2,#475569)}
   .ax-pk-foot b{color:var(--gx-ink,#0f172a)}
   @media(max-width:860px){.ax-pks{grid-template-columns:1fr;max-width:460px}.ax-pk-d{min-height:0}}
+  /* 21.10 StoryBrand blocks: problem and stakes cards, guide subtitle, success line */
+  .ax-pbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:980px;margin:0 auto}
+  .ax-pb{background:#fff;border:1px solid var(--gx-line,#e2e8f0);border-radius:var(--gx-r-lg,16px);padding:20px;text-align:left;min-width:0}
+  .ax-pb b{display:block;font-size:17px;line-height:1.35;color:var(--gx-ink,#0f172a);margin-bottom:6px}
+  .ax-pb span{font-size:15px;line-height:1.5;color:var(--gx-ink-2,#475569)}
+  @media(max-width:860px){.ax-pbs{grid-template-columns:1fr;max-width:460px}}
+  .stitle.ax-st{margin-bottom:14px}
+  .ax-ssub{max-width:640px;margin:0 auto 32px;text-align:center;font-size:17px;line-height:1.5;color:var(--gx-ink-2,#475569)}
+  .ax-win{max-width:640px;margin:40px auto 0;text-align:center}
+  .ax-win b{display:block;font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--gx-ink,#0f172a)}
+  .ax-win span{display:block;margin-top:8px;font-size:17px;line-height:1.5;color:var(--gx-ink-2,#475569)}
   .steps{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
   .step{display:flex;gap:20px;align-items:flex-start}
   .step .num{flex-shrink:0;width:38px;height:38px;border-radius:50%;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center}
@@ -2980,11 +2991,14 @@ html #gxRail.gxr3 .gx3-burger{display:none}
           ? '<span class="ax-eyebrow"><span class="ax-mark" aria-hidden="true"><i></i><i></i><i></i></span><span class="ax-tagline">The AI that remembers.</span></span>'
           : '<span class="fship-badge">'+L.flagshipTag+'</span>')
       :esc(t.category||L.assistantFallback)+(t.is_featured?' · <span class="feat">'+L.featured+'</span>':'');
+    // 21.10 StoryBrand (CLAUDE.md "Pazarlama metni", STORYBRAND_ESLEME.md): on an AITHIA card the hero line is the
+    // one-liner (problem, guide, result); the card's short_desc stays in the data for search and the other surfaces.
+    var axCard=!!(fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''));
     var html=
       '<section class="hero"><div class="container">'
       + '<div class="eyebrow">'+eyebrow+'</div>'
       + '<h1>'+esc(t.name)+'</h1>'
-      + '<p class="sub">'+esc(t.short_desc||'')+'</p>'
+      + '<p class="sub">'+(axCard?'The answer you need is often buried in an old thread. Aithia finds the context, prepares your reply and keeps the next step in view, so you can answer with the full picture.':esc(t.short_desc||''))+'</p>'
       + lockup(apps)
       // 14.09 F3: a flagship's pricing link carries the product (?from=<slug>) so the pricing page can hand the
       // same intent to setup; see_pricing matches a[href^="/pricing"] for that reason.
@@ -2996,11 +3010,22 @@ html #gxRail.gxr3 .gx3-burger{display:none}
     // 20.10 AITHIA product page (the prototype's story in the page's tokens): Ask Aithia example, the three packages
     // (each starts the same setup; the choice is remembered for the packages window), and how it starts. Copy is the
     // AITHIA brief's fixed strings; no price is typed here (prices come from Paddle in the packages window).
-    var aithia=!!(fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''));
+    // 21.10 StoryBrand order (STORYBRAND_ESLEME.md): problem and stakes (band), guide = Ask Aithia (white), packages
+    // (band), plan and success (white). Facts only from KAYNAK_AITHIA_Teslim_1_1.md and the card data.
+    var aithia=axCard;
     if(aithia){
       var MK='<span class="ax-mark" aria-hidden="true"><i></i><i></i><i></i></span>';
       html+='<section class="band"><div class="container">'
-        + '<h2 class="stitle">Ask Aithia about any thread</h2>'
+        + '<h2 class="stitle">Your inbox should not be your memory.</h2>'
+        + '<div class="ax-pbs">'+[
+            ['The answer is somewhere in an old thread.','An offer, a date, a promise. Finding it means digging while someone waits.'],
+            ['You are never quite sure nothing slipped.','A quote nobody answered. A reply you still owe.'],
+            ['Left to the inbox, it costs you.','Offers go quiet, follow-ups come late and the same context gets rebuilt by hand.']
+          ].map(function(p){return '<div class="ax-pb"><b>'+p[0]+'</b><span>'+p[1]+'</span></div>';}).join('')+'</div>'
+        + '</div></section>';
+      html+='<section><div class="container">'
+        + '<h2 class="stitle ax-st">Ask Aithia about any thread</h2>'
+        + '<p class="ax-ssub">We know the moment: someone is waiting for your answer and the thread is somewhere in your inbox. Aithia answers from your own mail, shows the source and says so when it cannot verify something.</p>'
         + '<div class="ax-ask" aria-label="Example">'
         +   '<div class="ax-ask-top"><span>Ask Aithia</span><span>Example</span></div>'
         +   '<div class="ax-q">What happened to the offer we sent last week?</div>'
@@ -3014,7 +3039,7 @@ html #gxRail.gxr3 .gx3-burger{display:none}
         {k:'compose',n:'Compose',d:'Your next reply, ready to review.',cta:'Choose Compose',rec:true,f:['Everything in Focus','Reply drafts in your tone','Edit tone and language','Drafts only, you send']},
         {k:'coordinate',n:'Coordinate',d:'Keep every next step in view.',cta:'Choose Coordinate',f:['Everything in Compose','Tracks replies you are waiting for','Follow-up drafts on time','Tasks, calendar and CRM records']}
       ];
-      html+='<section id="aithia-packages"><div class="container">'
+      html+='<section id="aithia-packages" class="band"><div class="container">'
         + '<h2 class="stitle">Choose how much Aithia does</h2>'
         + '<div class="ax-pks">'+PK.map(function(p){
             return '<div class="ax-pk'+(p.rec?' is-rec':'')+'" data-plan="'+p.k+'">'
@@ -3026,11 +3051,13 @@ html #gxRail.gxr3 .gx3-burger{display:none}
           }).join('')+'</div>'
         + '<p class="ax-pk-foot"><b>One subscription. No per-email or per-flow charges.</b><br>Try it on your own mail first. You choose the package before it starts working.</p>'
         + '</div></section>';
-      html+='<section class="band"><div class="container"><h2 class="stitle">How it starts</h2><div class="steps">'
+      html+='<section><div class="container"><h2 class="stitle">How it starts</h2><div class="steps">'
         + ['Connect your mailbox: Gmail, Outlook or business email.','See it work on your own mail. Nothing is sent or changed.','Choose a package and start. Aithia prepares, you decide.']
           .map(function(s,i){return '<div class="step"><div class="num">'+(i+1)+'</div><div class="stx">'+s+'</div></div>';}).join('')
-        + '</div></div></section>';
-      bi=1;   // the next section of the page starts white, then alternates again
+        + '</div>'
+        + '<div class="ax-win"><b>Your conversations, connected.</b><span>You start the day knowing what needs you. The context of any thread is one question away, and the reply starts as a draft for you to review.</span></div>'
+        + '</div></section>';
+      bi=0;   // the AITHIA block ends white: the next section of the page is a band, then alternates again
     }
     if(t.full_desc) html+='<section'+B()+'><div class="container narrow"><p class="lead'+(String(t.full_desc).length>340?' long':'')+'">'+esc(t.full_desc)+'</p></div></section>';
     // 14.09 G5-2: "Who this is for" as scenario cards, flagship only, right under the pitch and ABOVE

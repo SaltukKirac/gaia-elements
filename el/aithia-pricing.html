@@ -174,6 +174,11 @@
   #aithia .ax-how-list{margin-top:24px;display:grid;gap:16px;max-width:520px}
   #aithia .ax-how-list li{font-size:16px;color:var(--gx-ink-2);line-height:1.5}
   #aithia .ax-how-list strong{display:block;color:var(--gx-ink);font-weight:600}
+  #aithia .ax-steps{counter-reset:s;list-style:none}
+  #aithia .ax-steps li{counter-increment:s;position:relative;padding-left:44px;min-height:30px}
+  #aithia .ax-steps li::before{content:counter(s);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:999px;background:var(--gx-primary);color:#fff;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center}
+  #aithia .ax-win{margin-top:36px;max-width:620px;font-size:17px;line-height:1.5;color:var(--gx-ink-2)}
+  #aithia .ax-win strong{display:block;font-size:clamp(20px,2.6vw,24px);font-weight:600;letter-spacing:-.012em;color:var(--gx-ink);margin-bottom:6px}
   #aithia .ax-demo{position:relative;border:1px solid var(--gx-line-soft);border-radius:var(--gx-r-lg);background:var(--gx-bg);padding:22px 16px 16px;margin-top:12px;min-width:0}
   #aithia .ax-demo-label{position:absolute;top:-12px;left:16px;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--gx-ink-2);background:var(--gx-surface);border:1px solid var(--gx-line);border-radius:var(--gx-r-pill);padding:3px 10px}
   #aithia .ax-chat{display:grid;gap:12px}
@@ -229,7 +234,7 @@
       <h1 class="ax-h1"><span class="ax-brand">AITHIA</span><span class="ax-tagline">The AI that remembers.</span></h1>
       <p class="ax-sub">Your AI email colleague.</p>
       <p class="ax-line">Find the context. Prepare the reply. Follow through.</p>
-      <p class="ax-story">Inspired by a messenger remembered for his extraordinary memory, Aithia helps you understand conversations and keep track of what comes next.</p>
+      <p class="ax-story">The answer you need is often buried in an old thread. Aithia finds the context, prepares your reply and keeps the next step in view, so you can answer with the full picture.</p>
     </div>
 
     <aside class="ax-basket" id="ax-basket" lang="en" translate="no" aria-label="Your plan">
@@ -274,7 +279,16 @@
     <p>One connected mailbox per subscription.</p>
   </div></section>
 
-  <section class="ax-sec" id="ax-packages"><div class="ax-wrap">
+  <section class="ax-sec"><div class="ax-wrap">
+    <h2 class="stitle">Your inbox should not be your memory.</h2>
+    <ul class="ax-how-list">
+      <li><strong>The answer is somewhere in an old thread.</strong>An offer, a date, a promise. Finding it means digging while someone waits.</li>
+      <li><strong>You are never quite sure nothing slipped.</strong>A quote nobody answered. A reply you still owe.</li>
+      <li><strong>Left to the inbox, it costs you.</strong>Offers go quiet, follow-ups come late and the same context gets rebuilt by hand.</li>
+    </ul>
+  </div></section>
+
+  <section class="ax-sec ax-band" id="ax-packages"><div class="ax-wrap">
     <h2 class="stitle">Three packages, three outcomes.</h2>
     <p class="ssub">Every package reads the same mailbox with the same care. The difference is what Aithia prepares for you.</p>
     <fieldset class="ax-plans" role="radiogroup" aria-labelledby="ax-plans-l">
@@ -319,9 +333,9 @@
     <p class="ax-note">Prices are per mailbox. Aithia never sends email in this version.</p>
   </div></section>
 
-  <section class="ax-sec ax-band"><div class="ax-wrap">
+  <section class="ax-sec"><div class="ax-wrap">
     <h2 class="stitle">Included everywhere.</h2>
-    <p class="ssub">Your conversations, connected. Every package starts from the same foundation.</p>
+    <p class="ssub">Every package starts from the same foundation.</p>
     <ul class="ax-inc">
       <li>Classification and priority</li>
       <li>Daily summary</li>
@@ -331,15 +345,16 @@
     <div class="ax-trust"><p>Sending stays your click.</p><p>Aithia never sends email in this version.</p></div>
   </div></section>
 
-  <section class="ax-sec"><div class="ax-wrap ax-how-grid">
+  <section class="ax-sec ax-band"><div class="ax-wrap ax-how-grid">
     <div>
       <h2 class="stitle">How Ask Aithia answers.</h2>
-      <p class="ssub">Ask about a conversation in plain words. Aithia searches your connected mailbox, answers with the source, and says so when it cannot verify something.</p>
+      <p class="ssub">We know the moment: someone is waiting for your answer and the thread is somewhere in your inbox. Ask about it in plain words. Aithia searches your connected mailbox, answers with the source, and says so when it cannot verify something.</p>
       <ul class="ax-how-list">
         <li><strong>Answers come with sources.</strong>Each answer points to the conversation it came from. Open it with one click.</li>
         <li><strong>When Aithia is not sure, it says so.</strong>No guessing and no made-up certainty.</li>
         <li><strong>Drafts wait for your review.</strong>Aithia prepares the reply. You read it, and you send it.</li>
       </ul>
+      <p class="ax-note">Inspired by a messenger remembered for his extraordinary memory, Aithia helps you understand conversations and keep track of what comes next.</p>
     </div>
     <figure class="ax-demo" aria-labelledby="ax-demo-cap">
       <figcaption class="ax-demo-label" id="ax-demo-cap">Example</figcaption>
@@ -361,6 +376,16 @@
         <div class="ax-compose" aria-hidden="true">Ask about your emails...</div>
       </div>
     </figure>
+  </div></section>
+
+  <section class="ax-sec"><div class="ax-wrap">
+    <h2 class="stitle">How it starts.</h2>
+    <ol class="ax-how-list ax-steps">
+      <li><strong>Connect your mailbox.</strong>Gmail, Outlook or business email.</li>
+      <li><strong>See it work on your own mail.</strong>Nothing is sent or changed.</li>
+      <li><strong>Choose your package and start.</strong>Aithia prepares, you decide.</li>
+    </ol>
+    <p class="ax-win"><strong>Your conversations, connected.</strong>You start the day knowing what needs you. The context of any thread is one question away, and the reply starts as a draft for you to review.</p>
   </div></section>
 
   <section class="ax-sec ax-band"><div class="ax-wrap">
