@@ -47194,6 +47194,10 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   --octo-sh-s: 0 1px 2px rgba(15, 23, 42, .06);
   --octo-sh-m: 0 6px 18px rgba(15, 23, 42, .10);
   --octo-sh-l: 0 16px 40px rgba(49, 46, 129, .16);
+  --octo-spring: cubic-bezier(.22, 1, .36, 1);
+  --octo-exit: cubic-bezier(.2, .8, .2, 1);
+  --octo-t1: 180ms;
+  --octo-t2: 280ms;
   --octo-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
   color: var(--octo-ink);
@@ -47622,6 +47626,313 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
 #octo-wsb-board .octo-wsb-gname { font: 700 14px/18px var(--octo-font); color: var(--octo-ink); }
 #octo-wsb-board .octo-wsb-grow { height: 36px; margin: 0 16px; border-bottom: 1px solid var(--octo-line-2); }
 
+/* ---------------------------------------------------------------- pano duzeni (os9b, OCTO_BOARD_SPEC 0A)
+   Overview = yukaridaki os9a kurallari AYNEN (varsayilan). Board kurallari yalniz #octo-wsb-board[data-layout="board"]
+   altinda EKLENIR. Kokte, hucrede ve satirda transform / filter / will-change / contain YOK; transform yalniz
+   pinch sirasinda sutun li'sinde ve hayalette (ikisi de tablonun atasi degil). Canlandirilan yalniz opacity ve transform. */
+
+/* Duzen secici: h2'nin hemen saginda sessiz bolmeli denetim (32 px hap, tik alani 44 px). Iki duzende de. */
+#octo-wsb-board .octo-wsb-lay {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: baseline;   /* Overview basligi taban cizgisine hizali (os9a btw: align-items baseline) */
+  flex: 0 0 auto;
+  height: 44px;
+  padding: 0 2px;
+}
+#octo-wsb-board[data-layout="board"] .octo-wsb-lay { align-self: center; }
+#octo-wsb-board .octo-wsb-lay::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 0;
+  bottom: 6px;
+  left: 0;
+  border-radius: var(--octo-r9);
+  background: var(--octo-field);
+}
+#octo-wsb-board .octo-wsb-lbtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+#octo-wsb-board .octo-wsb-lbtn > span {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--octo-r9);
+  color: var(--octo-ink-2);
+  font: 600 12px/16px var(--octo-font);
+  white-space: nowrap;
+}
+#octo-wsb-board .octo-wsb-lbtn:hover > span { color: var(--octo-ink); }
+#octo-wsb-board .octo-wsb-lbtn[aria-pressed="true"] > span { background: var(--octo-surface); box-shadow: var(--octo-sh-s); color: var(--octo-ink); }
+#octo-wsb-board .octo-wsb-lbtn:focus-visible { outline: none; }
+#octo-wsb-board .octo-wsb-lbtn:focus-visible > span { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+
+/* Board koku: dikey kaymaz, tek eksen yatay serittir; baslik akista (yapiskan degil). */
+#octo-wsb-board[data-layout="board"] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+#octo-wsb-board[data-layout="board"] .octo-wsb-bhead {
+  position: static;
+  flex: none;
+  z-index: auto;
+  align-items: flex-start;
+  margin: 0;
+  padding: 16px 24px 8px;
+}
+/* Baslik solu kalan genisligi alir ve kendi icinde kirilir: altyazi + Try again dar seritte ikinci satira iner,
+   eylemler ilk satirda kalir (yalniz cok darda eylemler alta kayar). */
+#octo-wsb-board[data-layout="board"] .octo-wsb-btw { flex: 1 1 0; min-width: auto; align-items: center; gap: 0 12px; flex-wrap: wrap; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-bacts { flex: none; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-btitle { font: 600 17px/22px var(--octo-font); }
+#octo-wsb-board .octo-wsb-bstat { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+#octo-wsb-board .octo-wsb-bnote { color: var(--octo-ink-3t); font: 400 12px/16px var(--octo-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Baslik dugmeleri sessiz: cerceve ve golge yok; New record tek dolu birincil dugme. Yalniz baslikta: stateBox
+   (Processes unavailable / No processes yet) dugmeleri os9a gibi kalir. */
+#octo-wsb-board[data-layout="board"] .octo-wsb-bhead .octo-wsb-bbtn {
+  border: 0;
+  border-radius: var(--octo-r9);
+  background: transparent;
+  color: var(--octo-ink-2);
+  box-shadow: none;
+}
+#octo-wsb-board[data-layout="board"] .octo-wsb-bhead .octo-wsb-bbtn:hover { background: var(--octo-field); color: var(--octo-ink); }
+#octo-wsb-board[data-layout="board"] .octo-wsb-bhead .octo-wsb-bbtn[data-act="new-record"] { background: var(--octo-accent); color: #fff; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-bhead .octo-wsb-bbtn[data-act="new-record"]:hover { background: #4f46e5; color: #fff; }
+/* Kendi tekrari ucustaki Try again: yerinde kalir (odak ve satir oynamaz), mesgul. */
+#octo-wsb-board .octo-wsb-bbtn[data-act="cards-retry"][aria-busy="true"] { opacity: .6; cursor: progress; }
+
+/* Serit: tek yatay kaydirici (overscroll-behavior 'contain' ozelligi DEGILDIR). */
+#octo-wsb-board .octo-wsb-cols {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  margin: 0;
+  padding: 4px 24px 16px;  /* ust 4 px: sutun basinin odak halkasi seridin overflow'unda kesilmez */
+  list-style: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--octo-line) transparent;
+}
+#octo-wsb-board .octo-wsb-cols > .octo-wsb-cell {
+  flex: 0 0 var(--octo-wsb-colw, 248px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  scroll-snap-align: start;
+  transform-origin: 50% 0;
+}
+#octo-wsb-board .octo-wsb-cols > .octo-wsb-cell.is-create { flex: 0 0 auto; max-width: 160px; }
+/* Pinch ile yaklasan sutun komsularinin ustunde boyanir (z-index yasak ozellik degil; li tablonun atasi degil). */
+#octo-wsb-board .octo-wsb-cols > .octo-wsb-cell[data-approach="1"] { z-index: 1; }
+
+/* Sutun basi: os9a karti, 44 px (tur satiri varsa hepsi 60 px), saydam; mevcut surec 2 px alt cizgi. */
+#octo-wsb-board[data-layout="board"] .octo-wsb-card {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--octo-r2);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  transition: none;
+}
+#octo-wsb-board[data-layout="board"][data-tall="1"] .octo-wsb-card { height: 60px; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-card:hover { transform: none; border-color: transparent; box-shadow: none; background: var(--octo-field); }
+#octo-wsb-board[data-layout="board"] .octo-wsb-card:focus-visible { transform: none; border-color: transparent; box-shadow: none; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-card[data-approach="1"] { border-color: transparent; box-shadow: none; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-card[aria-current="true"] { border-color: transparent; box-shadow: inset 0 -2px 0 var(--octo-accent); }
+#octo-wsb-board[data-layout="board"] .octo-wsb-card[data-kind="create"] { border-style: none; background: transparent; cursor: pointer; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-card[data-kind="create"]:hover { background: var(--octo-field); }
+#octo-wsb-board .octo-wsb-crow { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-cname {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 600 13px/18px var(--octo-font);
+  color: var(--octo-ink);
+}
+#octo-wsb-board[data-layout="board"] .octo-wsb-card[aria-current="true"] .octo-wsb-cname { font-weight: 600; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-count {
+  flex: none;
+  font: 500 13px/18px var(--octo-font);
+  font-variant-numeric: tabular-nums;   /* font kisaltmasi bunu sifirlar: ardindan yeniden */
+  color: var(--octo-ink-3t);
+  letter-spacing: 0;
+}
+#octo-wsb-board[data-layout="board"] .octo-wsb-unit,
+#octo-wsb-board .octo-wsb-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* Ipucu satirin akisinda yer tutmaz (gorunmezken adin yerini yemez): sag kenarda opak hap, yalniz hover / odak /
+   yaklasmada gorunur. Dikey ortalama transform'suz. */
+#octo-wsb-board[data-layout="board"] .octo-wsb-crow { position: relative; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-hint {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  margin-top: -11px;
+  background: linear-gradient(var(--octo-accent-soft), var(--octo-accent-soft)), var(--octo-field);
+  pointer-events: none;
+}
+#octo-wsb-board[data-layout="board"] .octo-wsb-cell[data-approach="1"] .octo-wsb-hint { opacity: 1; }
+#octo-wsb-board[data-layout="board"] .octo-wsb-tipi {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 400 12px/16px var(--octo-font);
+  color: var(--octo-ink-3t);
+}
+#octo-wsb-board[data-layout="board"] .octo-wsb-cplus { flex: none; margin: 0; color: var(--octo-accent); }
+
+/* Govde: kartlar ust uste, tasan kart JS ile gizlenir (sutunda dikey kaydirma YOK). Govde icerigi kadar uzar ama
+   sutuna sigmazsa kisalir (0 1 auto): 'Open all' son kartin hemen altinda durur, seridin dibine kopmaz. */
+#octo-wsb-board .octo-wsb-recs {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 -4px;          /* 4 px pay: odak halkasi (offset 2) ve hover golgesi govdenin overflow'unda kesilmez */
+  padding: 8px 4px 4px;
+  list-style: none;
+}
+#octo-wsb-board .octo-wsb-recs > li { flex: 0 0 auto; min-width: 0; }
+#octo-wsb-board .octo-wsb-recs > li[hidden] { display: none; }
+/* Kayit karti: dinlenirken golge yok, transform yok; hover yalniz ince imlecli aygitta ::after katmaninda. */
+#octo-wsb-board .octo-wsb-rec {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 8px;
+  align-items: start;
+  align-content: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--octo-r2);
+  background: var(--octo-surface);
+  box-shadow: inset 0 0 0 1px var(--octo-hair);
+  text-align: left;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+#octo-wsb-board .octo-wsb-rec::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--octo-line), var(--octo-sh-s);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--octo-t1) var(--octo-spring);
+}
+@media (hover: hover) and (pointer: fine) {
+  #octo-wsb-board .octo-wsb-rec:hover::after { opacity: 1; }
+}
+#octo-wsb-board .octo-wsb-rref {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+  font: 500 13px/18px var(--octo-font);
+  color: var(--octo-ink);
+}
+#octo-wsb-board .octo-wsb-rage {
+  padding-top: 1px;
+  white-space: nowrap;
+  font: 400 12px/16px var(--octo-font);
+  color: var(--octo-ink-3t);
+  font-variant-numeric: tabular-nums;
+}
+#octo-wsb-board .octo-wsb-none { margin: 0; padding: 12px 12px 0; color: var(--octo-ink-3t); font: 400 12px/16px var(--octo-font); }
+#octo-wsb-board .octo-wsb-call {
+  flex: none;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--octo-r2);
+  background: transparent;
+  color: var(--octo-accent);
+  font: 600 12px/16px var(--octo-font);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+}
+#octo-wsb-board .octo-wsb-call:hover { background: var(--octo-field); }
+
+/* Kenar solgunlugu: yalniz serit o yone kayabiliyorsa (JS hidden). */
+#octo-wsb-board .octo-wsb-fade { position: absolute; bottom: 0; z-index: 2; width: 24px; pointer-events: none; }
+#octo-wsb-board .octo-wsb-fade[data-side="l"] { left: 0; background: linear-gradient(90deg, var(--octo-bg), rgba(248, 250, 252, 0)); }
+#octo-wsb-board .octo-wsb-fade[data-side="r"] { right: 0; background: linear-gradient(270deg, var(--octo-bg), rgba(248, 250, 252, 0)); }
+#octo-wsb-board .octo-wsb-fade[hidden] { display: none; }
+
+/* Iskelet: sutun (96x12 cubuk + uc 56 px yuva) ve kart yuvasi; 300 ms sonra gorunur, 1.2 sn parlama. JS iki
+   gecikmeyi satir ici yazar (yukleme baslangicina gore): yeniden kurulan yuva beklemeyi bastan almaz. */
+#octo-wsb-board .octo-wsb-cell.is-skel { gap: 8px; }
+#octo-wsb-board .octo-wsb-sbar { flex: none; width: 96px; height: 12px; margin: 16px 12px; border-radius: var(--octo-r9); }
+#octo-wsb-board .octo-wsb-slot { flex: none; height: 56px; border-radius: var(--octo-r2); }
+#octo-wsb-board .octo-wsb-sbar,
+#octo-wsb-board .octo-wsb-slot {
+  background: linear-gradient(90deg, var(--octo-line-2) 0%, var(--octo-bg) 50%, var(--octo-line-2) 100%);
+  background-size: 200% 100%;
+  animation: octo-wsb-in 0s linear 300ms both, octo-wsb-shimmer 1.2s linear infinite;
+}
+
+/* Hayalet Board'da belirtece bagli (r3) ve ad 600. */
+#octo-wsb-board[data-layout="board"] .octo-wsb-ghost { border-radius: var(--octo-r3); }
+#octo-wsb-board[data-layout="board"] .octo-wsb-gname { font-weight: 600; }
+
 /* ---------------------------------------------------------------- bildirim, scrim, ses */
 #octo-wsb-toast {
   position: fixed;
@@ -47670,6 +47981,9 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   #octo-wsbar, #octo-wsb-board .octo-wsb-card, #octo-wsb-board .octo-wsb-cell, #octo-wsb-board .octo-wsb-hint { transition: none; }
   #octo-wsb-board .octo-wsb-card:hover, #octo-wsb-board .octo-wsb-card:focus-visible { transform: none; }
   #octo-wsb-board .octo-wsb-skel { animation: none; opacity: 1; }
+  /* Board iskeleti duragan ama 300 ms beklemesi kalir (0 sn adim hareket degildir; hizli cevapta yanip sonmez). */
+  #octo-wsb-board .octo-wsb-sbar, #octo-wsb-board .octo-wsb-slot { animation: octo-wsb-in 0s linear 300ms both; background: var(--octo-line-2); }
+  #octo-wsb-board .octo-wsb-rec::after { transition: none; }
 }
 
 </style>
@@ -47709,7 +48023,7 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-10-20.os9a';
+  var VERSION = 'octo 2026-10-20.os9b';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -65252,8 +65566,9 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
    Ray (app-rail.js) iki kanca tasir: ownNode kabuk dugumlerini tanir; sol menu gizleyicisi kipte susar.
 
    Veri YALNIZ Bubble DOM'undan (adlar, Bubble'in kendi sayaclari) ve rayin baglamindan / os_workspace
-   cevabindan (surec adlari, tipi); sunucu istegi YOK. Tum uzak metin textContent. Kod yorumlari Turkce,
-   UI metni Ingilizce, em/en dash yok.
+   cevabindan (surec adlari, tipi). os9b (OCTO_BOARD_SPEC): panonun Board duzeninde kart verisi tablonun
+   aynasindan, tablonun kendi Bubble kopru yoluyla (mirror_query, salt okunur); Overview duzeninde (varsayilan)
+   ag cagrisi YOK. Tum uzak metin textContent. Kod yorumlari Turkce, UI metni Ingilizce, em/en dash yok.
 
    Harness dikisleri: window.__octoWsQuery (location.search yerine), window.__OCTO_WS_OFF, octo._wsbar.
    ========================================================================== */
@@ -66568,9 +66883,11 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     b.setAttribute('aria-label', 'Processes');
     b.setAttribute('tabindex', '-1');
     b.hidden = true;
+    b.setAttribute('data-layout', S.layout);
     b.addEventListener('click', onBoardClick);
     b.addEventListener('keydown', onBoardKey);
     b.addEventListener('wheel', onBoardWheel, { passive: false });
+    b.addEventListener('pointerdown', onBoardDown);
     return b;
   }
   // Pano yalniz rayin Varyant A hucresi oturduktan (T.variantWait) sonra kurulur; hucre degisirse tasinir.
@@ -66615,8 +66932,8 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     var from = e.relatedTarget;
     var M = railM();
     var tb = (M && M.parts && M.parts.tabBtns) ? M.parts.tabBtns[railTab()] : null;
-    // Shift+Tab panodan cikiyorsa rayin seridine; aksi halde panoya.
-    var to = (from && b.contains(from) && tb) ? tb : (b.querySelector('.octo-wsb-bbtn, .octo-wsb-card') || b);
+    // Shift+Tab panodan cikiyorsa rayin seridine; aksi halde panoya (os9b: ilk durak duzen secicisinin secili dugmesi).
+    var to = (from && b.contains(from) && tb) ? tb : (b.querySelector('.octo-wsb-lbtn[aria-pressed="true"], .octo-wsb-bbtn, .octo-wsb-card') || b);
     try { to.focus({ preventScroll: true }); } catch (x) { /* yut */ }
   }
   function detachBoard() {
@@ -66637,13 +66954,17 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     var b = S.board;
     if (!b) { return; }
     b.style.top = boardTop() + 'px';
+    if (b.getAttribute('data-layout') !== S.layout) { b.setAttribute('data-layout', S.layout); }
     if (b.hidden || S.zoom) { return; }
     var s = S.snap || snapshot();
     var fk = focusedKey(b);
+    if (S.layout === 'board' && S.colsShown) { colsKeep(); }
     clear(b);
     var head = el('header', 'octo-wsb-bhead');
     var tw = el('div', 'octo-wsb-btw');
     tw.appendChild(el('h2', 'octo-wsb-btitle', 'Processes'));
+    tw.appendChild(layoutSwitch());
+    if (S.layout === 'board') { cardsNote(tw); }
     head.appendChild(tw);
     var acts = el('div', 'octo-wsb-bacts');
     var ab = btn('octo-wsb-bbtn', 'all');
@@ -66668,6 +66989,7 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     }
     head.appendChild(acts);
     b.appendChild(head);
+    if (S.layout === 'board') { paintCols(b, s, fk); return; }
 
     if (!s.bar) {
       if (!S.noBarSince) { S.noBarSince = now(); }
@@ -66751,6 +67073,8 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     var a = t.getAttribute('data-act');
     // detail 0 = klavye (Enter / Space): odak zoom sonunda cubuga; fare tiklamasinda odak birakilir.
     var kb = e.detail === 0;
+    if (a === 'layout') { setLayout(t.getAttribute('data-layout')); return; }
+    if (S.layout === 'board' && colsClick(e, t, a, kb)) { return; }
     if (a === 'zoom') { zoomIn(Number(t.getAttribute('data-idx')), { kb: kb }); return; }
     if (a === 'all') { openView('all'); return; }
     if (a === 'add-stage') { proxyAdd('addStage'); return; }
@@ -66760,6 +67084,8 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   function onBoardKey(e) {
     var k = e && e.key;
     if (k === 'Enter' || k === ' ' || k === 'Spacebar') { e.stopPropagation(); return; }
+    if (layKey(e)) { return; }
+    if (S.layout === 'board') { colsKey(e); return; }
     if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') { return; }
     var cards = Array.prototype.slice.call(S.board.querySelectorAll('.octo-wsb-card'));
     var at = cards.indexOf(D.activeElement);
@@ -66780,6 +67106,7 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   // Yaklasma: yalniz trackpad pinch (ctrl + kucuk piksel deltasi) ve yalniz bir kartin ustunde. Fare tekerlegi ile
   // ctrl (sayfa yakinlastirma, dusuk gorus) tarayiciya kalir.
   function onBoardWheel(e) {
+    if (S.layout === 'board') { onColsWheel(e); return; }
     var d = pinchDelta(e);
     if (!d || S.zoom) { return; }
     var cellLi = upTo(e.target, function (x) { return hasCls(x, 'octo-wsb-cell'); }, S.board);
@@ -66831,19 +67158,23 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     b.hidden = false;
     S.sig = '';
     S.dirty = true;
+    cardsTick('show');
     flush();
     rescanMaybe();
     var cur = b.querySelector('.octo-wsb-card[aria-current="true"]');
+    // Board: hayalet mevcut SUTUNA kuculur; sutun seritte tam gorunmuyorsa once serit aninda kaydirilir.
+    if (cur && S.layout === 'board') { cur = upTo(cur, isCellLi, b) || cur; colsShow(cur, true); }
     var finish = function () { if (kb) { focusBoard(); } else { blurIn(S.bar); } return true; };
     if (!animated || noMo() || typeof b.animate !== 'function') { return Promise.resolve(finish()); }
     var p1 = anim(b, [{ opacity: 0 }, { opacity: 1 }], T.inMs, 'ease-out');
-    var p2 = cur ? ghostRun(fullRect(), rectIn(cur), false) : Promise.resolve(null);
+    var p2 = cur ? ghostRun(fullRect(), S.layout === 'board' ? colsClip(rectIn(cur)) : rectIn(cur), false) : Promise.resolve(null);
     return Promise.all([p1, p2]).then(function (r) { cancelAnim(r[0]); return finish(); });
   }
   function hideBoard(animated) {
     var b = S.board;
     S.view = 'table';
     if (!b || b.hidden) { S.sig = ''; paintSoon(); return Promise.resolve(true); }
+    if (S.layout === 'board') { colsKeep(); S.colsShown = false; }   // display:none seridin kaydirmasini dusurur
     var done = function (a) {
       b.hidden = true;
       cancelAnim(a);
@@ -66875,7 +67206,10 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     var cur = curStage(s);
     if (!cur || cur.idx < 0) { return Promise.resolve(false); }
     var st = stageModel(s);
-    var to = cur.idx + dir;
+    // More indeksi -> dizi konumu (adi bos hucre atlandiginda ikisi ayrisir; os9b 5.2 duzeltmesi).
+    var at = -1;
+    for (var j = 0; j < st.length; j++) { if (st[j].idx === cur.idx) { at = j; break; } }
+    var to = (at < 0 ? cur.idx : at) + dir;
     if (to < 0 || to >= st.length) { return Promise.resolve(false); }
     return zoomIn(to, { kb: kb });
   }
@@ -66939,8 +67273,10 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     var b = boardOpen() ? S.board : null;
     S.zoom = { name: target.name, idx: target.idx, k0: k0, t0: now() };
     trace('zoom:' + target.ord);
-    var cardNode = b ? (opts.from || b.querySelector('.octo-wsb-card[data-idx="' + target.idx + '"]')) : null;
-    var fromR = cardNode ? rectIn(cardNode) : null;
+    // Kart dizi konumuyla bulunur (More indeksi degil, os9b 5.2); Board'da sutun li'si, dikdortgen seride kirpilir.
+    var at = st.indexOf(target);
+    var cardNode = b ? (opts.from || b.querySelector(S.layout === 'board' ? '.octo-wsb-cell[data-col="' + at + '"]' : '.octo-wsb-card[data-idx="' + at + '"]')) : null;
+    var fromR = cardNode ? (S.layout === 'board' ? colsClip(rectIn(cardNode)) : rectIn(cardNode)) : null;
     if (cardNode) { cardNode.style.transform = ''; cardNode.removeAttribute('data-approach'); }
     if (b) { b.setAttribute('data-zooming', '1'); }
     var table = !target.tipi || /^table$/i.test(target.tipi);
@@ -67205,6 +67541,7 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     listen(D, 'click', onDocClickCap, true);
     listen(D, 'pointerdown', onTouchTable, true);
     listen(D, 'keydown', onTouchTable, true);
+    listen(D, 'visibilitychange', onCardsVis);
     // Ray ve Bubble gec kurulur: mutasyon yoksa bile 1 sn'de bir bakilir (yalniz ilk kuruluma kadar, tavanli).
     later('boot', bootPoll, 0);
     trace('boot');
@@ -67232,6 +67569,7 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     S.armed = false;
     S.counts = {}; S.names = {}; S.memoSig = {}; S.scannedAt = {}; S.noProc = {}; S.sheetSig = ''; S.sig = ''; S.snap = null; S.cur = null;
     S.view = null; S.page = 0; S.chromeErr = ''; S.reopenTries = 0; S.dropAt = 0;
+    cardsDrop(true);
     return true;
   }
   function mountNodes() {
@@ -67287,6 +67625,7 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     dropWaiters();
     abortScan();
     detachBoard();
+    cardsDrop(hard);
     rm(S.bar); S.bar = null;
     rm(S.pop); S.pop = null;
     rm(S.toast); S.toast = null;
@@ -67416,6 +67755,7 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     if (sig !== S.sig) { S.sig = sig; paintSoon(); }
     checkWaiters();
     if (!S.scan) { scanMaybe(false); }
+    cardsTick('tick');
   }
 
   function diag() {
@@ -67433,6 +67773,1091 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
         person: !!s.can.person, flows: !!s.flows
       },
       gutter: g, ctx: ctx().key ? 'set' : '', view: S.mounted ? viewKind() : '', last: S.lastErr, ticks: S.ticks || 0, trace: S.trace.slice(-16)
+    };
+  }
+
+  /* ======================================================================
+     WSB-CARDS (os9b)  -  OCTO_BOARD_SPEC. Processes panosunun iki duzeni:
+     - Overview (VARSAYILAN): os9a sayacli surec kartlari AYNEN (yukaridaki paintBoard, klavye, pinch, hayalet).
+     - Board (yalniz kullanici secince): Trello bicimi yatay surec seridi. Sutun basi os9a karti (.octo-wsb-card,
+       ayni zoom sozlesmesi, Bubble'in kendi sayaci); altinda o surecin en yeni en cok 6 kaydi (Kesim 2), en altta
+       'Open all <n>'. Salt okunur: surukle-birak YOK.
+     Kesim 2 kart verisi tablonun aynasindan, tablonun kendi Bubble kopru yoluyla (mirror_query; yenileme basina 2
+     cagri). Kayit verisi YALNIZ bu kapanisin belleginde; localStorage / sessionStorage / octo.state / octo.cache'e
+     yazilmaz; kayit kimligi DOM'a yazilmaz (kart data-key = r:<k>:<i>, kimlik kapanis haritasinda). Uzak metin
+     (_ref) yalniz textContent. trace yalniz olay adi tutar. Duzen secimi yalniz S.layout'ta (sayfa omru).
+     ====================================================================== */
+  (function () {
+    var add = {
+      perCol: 6, recTtl: 300000, recMin: 30000, recDeb: 3000, recCap: 12, recAbort: 30000, recRetryA: 1500, recRetryB: 4000,
+      recCaption: 300, staleMs: 300000, openWait: 30000, openPoll: 250, revealWait: 2000, searchMax: 8000, dragSlop: 8
+    };
+    for (var k in add) { if (Object.prototype.hasOwnProperty.call(add, k)) { T[k] = add[k]; T_DEFAULT[k] = add[k]; } }
+  })();
+  function cardsFresh() {
+    return {
+      byTable: {}, tidOf: {}, refused: {}, seq: 0, ctrl: null, inflight: null, phase: 'off', why: 'layout', at: 0, calls: [],
+      liveChg: 0, cntSig: '', loadAt: 0, sk: '', pu: null, shown: {}, painted: {}, errTid: '', errAt: 0, tblSince: 0,
+      errCls: '', cap: '', capPend: false, capNode: null
+    };
+  }
+  S.layout = 'overview';
+  S.cards = cardsFresh();
+  S.colScroll = {};
+  S.press = null;
+  S.lastRec = null;
+  S.colsShown = false;
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var CARDS_OFF = { layout: 1, off: 1, origin: 1, viewas: 1, mirror: 1, rail: 1 };
+  var BID_RE = /^\d{13}x\d{15,}$/;
+  function isArr(a) { return Object.prototype.toString.call(a) === '[object Array]'; }
+  function nonEmpty(a) { return isArr(a) && a.length > 0; }
+  function isCellLi(x) { return hasCls(x, 'octo-wsb-cell'); }
+
+  // ------------------------------------------------------------- duzen secici
+  // Overview / Board: pano kapaliyken yalniz S.layout yazilir; Overview'a donus ucustaki kart istegini keser.
+  function setLayout(name) {
+    if (name !== 'overview' && name !== 'board') { return S.layout; }
+    if (name === S.layout) { return S.layout; }
+    S.layout = name;
+    trace('layout:' + name);
+    S.press = null;
+    S.colsShown = false;
+    S.cards.shown = {};
+    S.cards.painted = {};
+    if (S.wheel && S.wheel.card) { S.wheel.card.style.transform = ''; S.wheel.card.removeAttribute('data-approach'); }
+    S.wheel = null;
+    cancel('wheel');
+    if (name !== 'board') { cardsAbort('layout'); cardsPhase('off', 'layout'); S.cards.cap = ''; S.cards.capPend = false; cancel('cardsNote'); }
+    if (S.board) { S.board.setAttribute('data-layout', name); }
+    if (!S.mounted || !boardOpen() || S.zoom) { return S.layout; }
+    rmGhost();
+    if (name === 'board') { cardsTick('layout'); }
+    S.dirty = true;
+    flush();
+    return S.layout;
+  }
+  function layoutSwitch() {
+    var g = el('div', 'octo-wsb-lay');
+    g.setAttribute('role', 'group');
+    g.setAttribute('aria-label', 'Layout');
+    var opts = [['overview', 'Overview'], ['board', 'Board']];
+    for (var i = 0; i < opts.length; i++) {
+      var b = btn('octo-wsb-lbtn', 'layout');
+      b.setAttribute('data-layout', opts[i][0]);
+      b.setAttribute('data-key', 'lay:' + opts[i][0]);
+      b.setAttribute('aria-pressed', S.layout === opts[i][0] ? 'true' : 'false');
+      b.appendChild(el('span', '', opts[i][1]));
+      g.appendChild(b);
+    }
+    return g;
+  }
+  // Baslik eylemleri kurali: ArrowLeft / Right iki dugme arasinda odak gezdirir (secim Enter / Space ile).
+  function layKey(e) {
+    var k = e && e.key;
+    if (k !== 'ArrowLeft' && k !== 'ArrowRight') { return false; }
+    var g = upTo(e.target, function (x) { return hasCls(x, 'octo-wsb-lay'); }, S.board);
+    if (!g) { return false; }
+    var bs = g.querySelectorAll('button');
+    var at = Array.prototype.indexOf.call(bs, D.activeElement);
+    if (at < 0) { return false; }
+    e.preventDefault();
+    e.stopPropagation();
+    var to = (at + (k === 'ArrowRight' ? 1 : -1) + bs.length) % bs.length;
+    try { bs[to].focus({ preventScroll: true }); } catch (x) { /* yut */ }
+    return true;
+  }
+
+  // ------------------------------------------------------------- Board cizimi
+  // Altyazi onceligi: gecici hata > ret > View as > yukleniyor > onizleme > bayat (yalniz Board'da cizilir).
+  function cardsCaption() {
+    var C = S.cards;
+    if (C.phase === 'error') { return 'Could not load records'; }
+    if (C.phase === 'refused') { return 'Records unavailable'; }
+    if (C.phase === 'off' && C.why === 'viewas') { return 'Records hidden in View as'; }
+    var ent = cardsDrawable();
+    if (C.phase === 'loading' && !ent) { return (now() - C.loadAt >= T.recCaption - 5) ? 'Loading records' : ''; }
+    if (ent) {
+      if (ent.preview) { return 'Preview: live data'; }
+      var stale = ent.fs * 1000 + (now() - ent.at);
+      if (stale >= T.staleMs) { return 'Synced ' + Math.max(1, Math.floor(stale / 60000)) + ' min ago'; }
+    }
+    return '';
+  }
+  // Altyazi ve 'Try again' tek sarmalda: dar seritte (1100, ray acik) ikisi birlikte basligin ikinci satirina iner,
+  // baslik eylemleri ilk satirda kalir.
+  function cardsNote(tw) {
+    var C = S.cards;
+    var w = el('span', 'octo-wsb-bstat');
+    var n = el('span', 'octo-wsb-bnote');
+    n.setAttribute('role', 'status');
+    n.setAttribute('aria-live', 'polite');
+    capPaint(n);
+    w.appendChild(n);
+    // Try again yalniz gecici hatada ve tavanda yer varken (yoksa dugme olu kalirdi). Kendi tekrari ucustayken
+    // mesgul (aria-disabled) kalir: odak ve baslik satiri yerinden oynamaz.
+    var busy = C.phase === 'loading' && !!C.inflight && !!C.errTid && C.inflight.tid === C.errTid;
+    if ((C.phase === 'error' && cardsRoom()) || busy) {
+      var rb = btn('octo-wsb-bbtn', 'cards-retry');
+      rb.setAttribute('data-key', 'b:retry');
+      if (busy) { rb.setAttribute('aria-disabled', 'true'); rb.setAttribute('aria-busy', 'true'); }
+      rb.appendChild(octo.icon('alert', 16));
+      rb.appendChild(el('span', '', 'Try again'));
+      w.appendChild(rb);
+    }
+    tw.appendChild(w);
+  }
+  // Altyazi canli bolgesi: degisen altyazi BOS eklenen role=status dugumune kisa sure sonra yazilir (var olan canli
+  // bolgede degisim: ekran okuyucu bir kez okur); degismeyen altyazi yeniden boyamada dolu eklenir (yeniden okunmaz).
+  // Duzen Board'dan cikinca bellek sifirlanir (donuste bir kez okunur).
+  function capPaint(n) {
+    var C = S.cards;
+    var t = cardsCaption();
+    C.capNode = n;
+    if (t === C.cap && !C.capPend) { n.textContent = t; return; }
+    C.cap = t;
+    C.capPend = !!t;
+    if (!t) { cancel('cardsNote'); return; }
+    if (S.timers.cardsNote) { return; }
+    later('cardsNote', function () {
+      var c = S.cards;
+      if (!c || !c.capPend) { return; }
+      c.capPend = false;
+      if (c.capNode && isConn(c.capNode)) { c.capNode.textContent = c.cap; }
+    }, 30);
+  }
+  // Iskelet gorunme gecikmesi yukleme baslangicina gore: yeniden kurulan yuva 300 ms beklemesini bastan almaz,
+  // parlama evresi kesintisiz surer (iki animasyon: octo-wsb-in, octo-wsb-shimmer).
+  function skelDelay(since) {
+    var e = Math.max(0, now() - (since || now()));
+    return Math.round(Math.max(0, T.recCaption - e)) + 'ms, ' + (-Math.round(e % 1200)) + 'ms';
+  }
+  // Pano yukleniyor (Bubble bari henuz yok): 3 iskelet sutun (bar beklemesinin basindan 300 ms sonra gorunur).
+  function colsSkel() {
+    var ol = el('ol', 'octo-wsb-cols');
+    ol.setAttribute('aria-busy', 'true');
+    var dl = skelDelay(S.noBarSince);
+    for (var q = 0; q < 3; q++) {
+      var li = el('li', 'octo-wsb-cell is-skel');
+      var sb = el('div', 'octo-wsb-sbar');
+      sb.style.animationDelay = dl;
+      li.appendChild(sb);
+      for (var j = 0; j < 3; j++) { var sl = el('div', 'octo-wsb-slot'); sl.style.animationDelay = dl; li.appendChild(sl); }
+      ol.appendChild(li);
+    }
+    return ol;
+  }
+  // Board odagi: restoreFocus'tan sonra odak panoda gorunur bir ogede degilse (anahtar kalkti ya da fitCols kartin
+  // li'sini gizledi) ayni sutunun son gorunur kartina, yoksa basligina; Try again kalktiysa mevcut / ilk sutun basina;
+  // diger baslik anahtarlarinda All records'a. Odak preventScroll; yalniz serit kayar.
+  function colsFocus(b, fk) {
+    restoreFocus(b, fk);
+    if (!fk) { return; }
+    var a = D.activeElement;
+    if (a && a !== D.body && b.contains(a) && a.getClientRects().length) { return; }
+    var to = null;
+    var m = /^[rfc]:(\d+)/.exec(fk);
+    if (m) {
+      var li = b.querySelector('.octo-wsb-cell[data-col="' + m[1] + '"]');
+      if (li) {
+        var rs = li.querySelectorAll('.octo-wsb-rec');
+        for (var i = rs.length - 1; i >= 0 && !to; i--) { if (rs[i].getClientRects().length) { to = rs[i]; } }
+        if (!to) { to = li.querySelector('.octo-wsb-card'); }
+      }
+    }
+    if (!to && (m || fk === 'b:retry')) { to = b.querySelector('.octo-wsb-card[aria-current="true"]') || b.querySelector('.octo-wsb-card'); }
+    if (!to) { to = b.querySelector('[data-key="b:all"]'); }
+    if (!to) { return; }
+    try { to.focus({ preventScroll: true }); } catch (e) { try { to.focus(); } catch (e2) { /* yut */ } }
+    var tl = upTo(to, isCellLi, b);
+    if (tl) { colsShow(tl, false); }
+  }
+  function paintCols(b, s, fk) {
+    S.colsShown = false;
+    S.cards.shown = {};
+    S.cards.painted = {};
+    if (!s.bar) {
+      if (!S.noBarSince) { S.noBarSince = now(); }
+      if (now() - S.noBarSince < T.barWait) {
+        later('barWait', function () { S.sig = ''; tick(); }, T.barWait + 20);
+        b.appendChild(colsSkel());
+      } else {
+        b.appendChild(stateBox('Processes unavailable', true));
+      }
+      colsFocus(b, fk);
+      return;
+    }
+    var st = stageModel(s);
+    if (!st.length) {
+      b.appendChild(stateBox('No processes yet', false));
+      colsFocus(b, fk);
+      return;
+    }
+    var maps = cardsMap(st);
+    var ent = cardsDrawable();
+    var loading = S.cards.phase === 'loading' && !ent;
+    var ol = el('ol', 'octo-wsb-cols');
+    ol.setAttribute('aria-label', 'Process columns');
+    var tall = false;
+    for (var k = 0; k < st.length; k++) {
+      var x = st[k];
+      var table = !x.tipi || /^table$/i.test(x.tipi);
+      if (x.tipi && !x.create && !table) { tall = true; }
+      var li = el('li', 'octo-wsb-cell' + (x.create ? ' is-create' : ''));
+      li.setAttribute('data-col', String(k));
+      li.appendChild(colHead(x, k, table));
+      if (!x.create) { colBody(li, x, k, maps[k] === true, ent, loading); }
+      ol.appendChild(li);
+    }
+    if (tall) { b.setAttribute('data-tall', '1'); } else { b.removeAttribute('data-tall'); }
+    ol.addEventListener('scroll', onColsScroll, { passive: true });
+    b.appendChild(ol);
+    var fl = el('div', 'octo-wsb-fade');
+    fl.setAttribute('data-side', 'l');
+    fl.setAttribute('aria-hidden', 'true');
+    var fr = el('div', 'octo-wsb-fade');
+    fr.setAttribute('data-side', 'r');
+    fr.setAttribute('aria-hidden', 'true');
+    b.appendChild(fl);
+    b.appendChild(fr);
+    var top = colWidth(ol);
+    fl.style.top = top + 'px';
+    fr.style.top = top + 'px';
+    var sk = sheetKey(s);
+    var keep = sk ? (S.colScroll[sk] || 0) : 0;
+    if (keep) { ol.scrollLeft = keep; }
+    fitCols(ol);
+    colsFades(ol);
+    S.colsShown = true;
+    colsFocus(b, fk);
+  }
+  // Sutun basi: os9a karti (ayni data-act / data-idx / data-key / aria sozlesmesi); sira numarasi cizilmez.
+  function colHead(x, k, table) {
+    var c = btn('octo-wsb-card', 'zoom');
+    c.setAttribute('data-idx', String(k));
+    c.setAttribute('data-name', x.name);
+    c.setAttribute('data-key', 'c:' + k);
+    if (x.create) { c.setAttribute('data-kind', 'create'); }
+    c.setAttribute('aria-label', x.name + (x.count != null ? (', ' + x.count + (x.count === 1 ? ' record' : ' records')) : ''));
+    if (x.current) { c.setAttribute('aria-current', 'true'); }
+    var row = el('span', 'octo-wsb-crow');
+    if (x.create) { row.appendChild(octo.icon('plus', 16, { className: 'octo-wsb-cplus' })); }
+    var nm = el('span', 'octo-wsb-cname', x.name);
+    nm.title = x.name;
+    row.appendChild(nm);
+    if (x.count != null) {
+      row.appendChild(el('span', 'octo-wsb-count', String(x.count)));
+      row.appendChild(el('span', 'octo-wsb-unit', x.count === 1 ? 'record' : 'records'));
+    }
+    row.appendChild(el('span', 'octo-wsb-hint', (x.create || !table) ? 'Open' : 'Zoom in'));
+    c.appendChild(row);
+    if (x.tipi && !x.create && !table) { c.appendChild(el('span', 'octo-wsb-tipi', x.tipi)); }
+    return c;
+  }
+  // Govde: kayit kartlari | yukleniyor yuvalari | 'No records' (yalniz Bubble 0, ya da sayi null + taze ayna + grup yok);
+  // altlik 'Open all <n>' No records olmayan her sutunda. Kart sayisi Bubble sayisini gecmez.
+  function colBody(li, x, k, mapped, ent, loading) {
+    var C = S.cards;
+    var col = (ent && mapped && x.id) ? (ent.cols[x.id] || null) : null;
+    var none = x.count === 0 || (x.count == null && !!ent && ent.fresh && mapped && !col);
+    if (none) { li.appendChild(el('p', 'octo-wsb-none', 'No records')); return; }
+    var recs = recsOf(x, col);
+    if (loading && mapped) {
+      var sk = el('ol', 'octo-wsb-recs');
+      sk.setAttribute('aria-label', x.name);
+      sk.setAttribute('aria-busy', 'true');
+      var n = x.count == null ? 2 : Math.min(3, x.count);
+      var dl = skelDelay(C.loadAt);
+      for (var q = 0; q < n; q++) { var sl = el('li', 'octo-wsb-slot'); sl.setAttribute('aria-hidden', 'true'); sl.style.animationDelay = dl; sk.appendChild(sl); }
+      li.appendChild(sk);
+    } else if (recs.length) {
+      var ol = el('ol', 'octo-wsb-recs');
+      ol.setAttribute('aria-label', x.name);
+      for (var i = 0; i < recs.length; i++) { var r = el('li'); r.appendChild(recCard(recs[i], k, i)); ol.appendChild(r); }
+      li.appendChild(ol);
+      C.painted[k] = recs;
+    }
+    var f = btn('octo-wsb-call', 'zoom');
+    f.setAttribute('data-idx', String(k));
+    f.setAttribute('data-key', 'f:' + k);
+    f.appendChild(el('span', '', x.count != null ? ('Open all ' + x.count) : 'Open all'));
+    li.appendChild(f);
+  }
+  function recsOf(x, col) {
+    if (!col || x.count === 0) { return []; }
+    return col.recs.slice(0, Math.min(T.perCol, x.count != null ? x.count : T.perCol));
+  }
+  // Kart: _ref (2 satir) + son degisiklik yasi (sagda, aria-hidden); dugmenin adi '<ref> Updated <Mon D, YYYY>'.
+  function recCard(r, k, i) {
+    var b = btn('octo-wsb-rec', 'open');
+    b.setAttribute('data-col', String(k));
+    b.setAttribute('data-i', String(i));
+    b.setAttribute('data-key', 'r:' + k + ':' + i);
+    b.setAttribute('draggable', 'false');
+    b.appendChild(el('span', 'octo-wsb-rref', r.ref));
+    if (r.mod != null) {
+      var day = 'Updated ' + fmtDay(r.mod);
+      var ag = el('span', 'octo-wsb-rage', fmtAge(r.mod));
+      ag.setAttribute('aria-hidden', 'true');
+      ag.title = day;
+      b.appendChild(ag);
+      b.appendChild(el('span', 'octo-wsb-sr', day));
+    }
+    return b;
+  }
+  function fmtDay(ms) { var d = new Date(ms); return MON[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear(); }
+  function fmtAge(ms) {
+    var diff = Date.now() - ms;
+    if (diff < 60000) { return 'now'; }
+    if (diff < 3600000) { return Math.floor(diff / 60000) + 'm'; }
+    if (diff < 86400000) { return Math.floor(diff / 3600000) + 'h'; }
+    if (diff < 14 * 86400000) { return Math.floor(diff / 86400000) + 'd'; }
+    if (diff < 56 * 86400000) { return Math.floor(diff / (7 * 86400000)) + 'w'; }
+    var d = new Date(ms);
+    return (d.getFullYear() === new Date().getFullYear()) ? (MON[d.getMonth()] + ' ' + d.getDate()) : (MON[d.getMonth()] + ' ' + d.getFullYear());
+  }
+  function modMs(v) {
+    if (typeof v === 'number') { return isFinite(v) ? v : null; }
+    var t = str(v).trim();
+    if (!t) { return null; }
+    if (/^\d{10,}$/.test(t)) { return Number(t); }
+    var ms = Date.parse(t);
+    return isFinite(ms) ? ms : null;
+  }
+  // Baslik yerine Bubble kimligi, talep paketleri (octo1. / octo2.) ve cihaz anahtari satirlari ASLA gosterilmez.
+  function safeRef(v) {
+    var t = clean(v);
+    if (!t || /^\d{13}x\d{15,}$/.test(t) || /^octo[12]\./.test(t) || t.indexOf('octo-cihaz1.') >= 0) { return 'Untitled record'; }
+    return t;
+  }
+  // Sutun genisligi: tek layout okumasi (serit genisligi + Create genisligi + serit ust konumu), sonra tek yazma.
+  function colWidth(ol) {
+    var cw = ol.clientWidth;
+    var cr = ol.querySelector('.octo-wsb-cell.is-create');
+    var crw = cr ? cr.offsetWidth : 0;
+    var top = ol.offsetTop;
+    var A = cw - 48 - (cr ? crw + 16 : 0);
+    var n = Math.max(1, Math.floor((A + 16) / (232 + 16)));
+    var w = Math.max(120, Math.min(280, Math.floor((A - 16 * (n - 1)) / n)));
+    ol.style.setProperty('--octo-wsb-colw', w + 'px');
+    return top;
+  }
+  // Yukseklige sigdirma: tek okuma gecisi (govdeler ve kart altlari), sonra tek yazma gecisi. Sutunda dikey kaydirma YOK.
+  function fitCols(ol) {
+    var C = S.cards;
+    var bodies = ol.querySelectorAll('.octo-wsb-recs');
+    var plan = [];
+    for (var i = 0; i < bodies.length; i++) {
+      var body = bodies[i];
+      var col = body.parentNode ? body.parentNode.getAttribute('data-col') : '';
+      // Alt dolgu (odak halkasi payi) sigma alanina sayilmaz: kart icerik kutusunun altinda bitmeli.
+      var pb = 0;
+      try { pb = parseFloat(W.getComputedStyle(body).paddingBottom) || 0; } catch (x) { pb = 0; }
+      var lim = body.offsetTop + body.clientHeight - pb + 0.5;
+      var lis = body.children;
+      for (var j = 0; j < lis.length; j++) { plan.push([lis[j], lis[j].offsetTop + lis[j].offsetHeight > lim, col]); }
+    }
+    C.shown = {};
+    for (var p = 0; p < plan.length; p++) {
+      var li = plan[p][0];
+      li.hidden = plan[p][1];
+      if (!plan[p][1] && li.querySelector('.octo-wsb-rec')) { C.shown[plan[p][2]] = (C.shown[plan[p][2]] || 0) + 1; }
+    }
+  }
+  function colsEl() { var b = S.board; return b ? b.querySelector('.octo-wsb-cols[aria-label]') : null; }
+  function colsKeep() { var ol = colsEl(), k = sheetKey(); if (ol && k && isConn(ol)) { S.colScroll[k] = ol.scrollLeft; } }
+  // Kenar solgunlugu yalniz serit o yone kayabiliyorsa gorunur.
+  function colsFades(ol) {
+    ol = ol || colsEl();
+    var b = S.board;
+    if (!ol || !b) { return; }
+    var sl = ol.scrollLeft, max = ol.scrollWidth - ol.clientWidth;
+    var fl = b.querySelector('.octo-wsb-fade[data-side="l"]'), fr = b.querySelector('.octo-wsb-fade[data-side="r"]');
+    if (fl) { fl.hidden = !(sl > 1); }
+    if (fr) { fr.hidden = !(max - sl > 1); }
+  }
+  function onColsScroll(e) {
+    var ol = e && e.currentTarget;
+    var k = sheetKey();
+    if (ol && k && S.board && !S.board.hidden) { S.colScroll[k] = ol.scrollLeft; }
+    if (S.fadeQ) { return; }
+    var q = S.fadeQ = { t: null, r: null };
+    var run = function () {
+      if (S.fadeQ !== q) { return; }
+      S.fadeQ = null;
+      try { clearTimeout(q.t); } catch (x) { /* yut */ }
+      try { if (q.r) { W.cancelAnimationFrame(q.r); } } catch (x2) { /* yut */ }
+      colsFades(null);
+    };
+    q.t = setTimeout(run, 48);
+    try { if (typeof W.requestAnimationFrame === 'function') { q.r = W.requestAnimationFrame(run); } } catch (x3) { q.r = null; }
+  }
+  // Sutunu seritte gosterir (yalniz seridin scrollLeft'i; scrollIntoView ASLA, atalari kaydirirdi).
+  function colsShow(li, left) {
+    var ol = colsEl();
+    if (!ol || !li || li.parentNode !== ol) { return; }
+    var a = li.offsetLeft, w = li.offsetWidth, sl = ol.scrollLeft, cw = ol.clientWidth;
+    if (a >= sl && a + w <= sl + cw) { return; }
+    var to = (left || a < sl) ? a - 24 : a + w + 24 - cw;
+    ol.scrollLeft = Math.max(0, to);
+    var k = sheetKey();
+    if (k) { S.colScroll[k] = ol.scrollLeft; }
+  }
+  // Hayalet dikdortgeni seridin gorunen dikdortgeniyle kesisir (panoya gore).
+  function colsClip(r) {
+    var ol = colsEl();
+    if (!ol || !r) { return r; }
+    var o = rectIn(ol);
+    var l = Math.max(r.left, o.left), t = Math.max(r.top, o.top);
+    var rr = Math.min(r.left + r.width, o.left + o.width), bb = Math.min(r.top + r.height, o.top + o.height);
+    if (rr <= l || bb <= t) { return r; }
+    return { left: l, top: t, width: rr - l, height: bb - t };
+  }
+
+  // ---------------------------------------------------- Board etkilesimi
+  function onBoardDown(e) {
+    var t = upTo(e && e.target, function (x) { return x.hasAttribute && x.hasAttribute('data-act'); }, S.board);
+    S.press = { x: e.clientX || 0, y: e.clientY || 0, n: t, at: now() };
+  }
+  // Fareyle gelen tik T.dragSlop'tan uzaktaysa (ayni dugmede surukleme) yutulur; klavye tiki (detail 0) etkilenmez.
+  function colsClick(e, t, a, kb) {
+    if (a === 'cards-retry') { if (t.getAttribute('aria-disabled') !== 'true') { refreshCards(true); } return true; }
+    if (a !== 'zoom' && a !== 'open') { return false; }
+    var p = S.press;
+    S.press = null;
+    if (!kb && p && p.n === t && (now() - p.at) < 10000 &&
+      (Math.abs((e.clientX || 0) - p.x) > T.dragSlop || Math.abs((e.clientY || 0) - p.y) > T.dragSlop)) { trace('drag'); return true; }
+    var li = upTo(t, isCellLi, S.board);
+    if (a === 'open') { openRecord(Number(t.getAttribute('data-col')), Number(t.getAttribute('data-i')), kb, li); return true; }
+    zoomIn(Number(t.getAttribute('data-idx')), { kb: kb, from: li });
+    return true;
+  }
+  // Iki boyutlu klavye: sutun = [baslik, gorunur kartlar, altlik?]. Sol / sag komsu sutunda ayni satir (son ogeye
+  // kirpilir), yukari / asagi sutun icinde, Home / End ilk / son baslik. Odak preventScroll; yalniz serit kayar.
+  function colsKey(e) {
+    var k = e && e.key;
+    if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown' && k !== 'Home' && k !== 'End') { return false; }
+    var ol = colsEl();
+    if (!ol) { return false; }
+    var lis = [], map = [], at = null;
+    for (var i = 0; i < ol.children.length; i++) {
+      var li = ol.children[i];
+      if (!li.hasAttribute('data-col')) { continue; }
+      var items = [];
+      var h = li.querySelector('.octo-wsb-card');
+      if (h) { items.push(h); }
+      var rs = li.querySelectorAll('.octo-wsb-rec');
+      for (var j = 0; j < rs.length; j++) { if (!(rs[j].parentNode && rs[j].parentNode.hidden)) { items.push(rs[j]); } }
+      var f = li.querySelector('.octo-wsb-call');
+      if (f) { items.push(f); }
+      if (!items.length) { continue; }
+      for (var r = 0; r < items.length; r++) { if (items[r] === D.activeElement) { at = [map.length, r]; } }
+      lis.push(li);
+      map.push(items);
+    }
+    if (!at) { return false; }
+    e.preventDefault();
+    e.stopPropagation();
+    var c = at[0], row = at[1];
+    if (k === 'Home') { c = 0; row = 0; }
+    else if (k === 'End') { c = map.length - 1; row = 0; }
+    else if (k === 'ArrowLeft' || k === 'ArrowRight') { c = Math.max(0, Math.min(map.length - 1, c + (k === 'ArrowRight' ? 1 : -1))); row = Math.min(row, map[c].length - 1); }
+    else { row = Math.max(0, Math.min(map[c].length - 1, row + (k === 'ArrowDown' ? 1 : -1))); }
+    var to = map[c][row];
+    try { to.focus({ preventScroll: true }); } catch (x) { try { to.focus(); } catch (x2) { /* yut */ } }
+    colsShow(lis[c], false);
+    return true;
+  }
+  // Pinch (yalniz trackpad, os9a kurallari): olcek ve data-approach sutun li'sine; sutunun her yerinde, baslik
+  // seridinde degil. Fare tekerlegi (satir kipi ya da buyuk adim, ctrl / shift / deltaX yok) seridi yatay kaydirir.
+  function onColsWheel(e) {
+    var d = pinchDelta(e);
+    if (d) {
+      if (S.zoom) { return; }
+      var li = upTo(e.target, isCellLi, S.board);
+      if (!li || !li.hasAttribute('data-col') || !li.querySelector('.octo-wsb-card')) { return; }
+      e.preventDefault();
+      var w = S.wheel;
+      if (!w || w.card !== li) {
+        if (w && w.card) { w.card.style.transform = ''; w.card.removeAttribute('data-approach'); }
+        w = S.wheel = { card: li, acc: 0 };
+      }
+      w.acc = Math.max(0, Math.min(140, w.acc - d));
+      var sc = 1 + (w.acc / 400);
+      li.style.transform = 'scale(' + sc.toFixed(3) + ')';
+      li.setAttribute('data-approach', '1');
+      later('wheel', function () {
+        if (S.wheel && S.wheel.card) { S.wheel.card.style.transform = ''; S.wheel.card.removeAttribute('data-approach'); }
+        S.wheel = null;
+      }, T.wheelIdle);
+      if (sc >= 1.25) {
+        S.wheel = null;
+        cancel('wheel');
+        zoomIn(Number(li.getAttribute('data-col')), { from: li });
+      }
+      return;
+    }
+    if (!e || e.ctrlKey || e.shiftKey || (e.deltaX || 0) !== 0) { return; }
+    var dy = e.deltaY || 0;
+    if (!dy || !(e.deltaMode === 1 || Math.abs(dy) >= 50)) { return; }
+    var ol = colsEl();
+    if (!ol || !ol.contains(e.target) || ol.scrollWidth <= ol.clientWidth + 1) { return; }
+    e.preventDefault();
+    ol.scrollLeft += dy * (e.deltaMode === 1 ? 40 : 1);
+  }
+
+  // ------------------------------------------------------------ kayit acma
+  function pollP(test, ms, step, gone) {
+    var until = now() + ms;
+    return new Promise(function (resolve) {
+      function go() {
+        if (gone()) { resolve(null); return; }
+        var ok = false;
+        try { ok = !!test(); } catch (e) { ok = false; }
+        if (ok) { resolve(true); return; }
+        if (now() >= until) { resolve(false); return; }
+        setTimeout(go, step);
+      }
+      go();
+    });
+  }
+  function revealP(id) {
+    var dt = W.dynamicTable;
+    if (!dt || typeof dt.reveal !== 'function') { return Promise.resolve(null); }
+    try {
+      return Promise.resolve(dt.reveal([id])).then(function (r) { return (r && typeof r === 'object') ? r : null; }, function () { return null; });
+    } catch (e) { return Promise.resolve(null); }
+  }
+  function cardsRec(k, i, st) {
+    var list = (S.layout === 'board' && S.cards.painted[k]) ? S.cards.painted[k] : null;
+    if (!list) {
+      var x = st[k];
+      var ent = cardsDrawable();
+      var maps = cardsMap(st);
+      list = (x && ent && maps[k] && x.id) ? recsOf(x, ent.cols[x.id] || null) : [];
+    }
+    return list[i] || null;
+  }
+  // Kart tiki: tablo turunde zoom + tablonun hazir olmasini bekle + reveal + tablonun kendi Open yolu (start).
+  // Tablo turu olmayan surecte yalniz zoom. Dogrudan bubble_fn_start yedegi YOK.
+  function openRecord(k, i, kb, li) {
+    if (!S.mounted || S.zoom || S.chromeErr) { return Promise.resolve(false); }
+    var s = S.snap || snapshot();
+    var st = stageModel(s);
+    var x = st[k];
+    if (!x) { return Promise.resolve(false); }
+    if (!li && S.board) { li = S.board.querySelector('.octo-wsb-cell[data-col="' + k + '"]'); }
+    var from = (li && S.layout === 'board' && boardOpen()) ? li : null;
+    if (x.tipi && !/^table$/i.test(x.tipi)) { return zoomIn(k, { from: from, kb: kb }); }
+    var rec = cardsRec(k, i, st);
+    if (!rec) { return Promise.resolve(false); }
+    var tok = {};
+    S.lastRec = tok;
+    var t0 = gmStatus();
+    var k0 = (t0 && t0.stats && t0.stats.screen) ? str(t0.stats.screen.key) : '';
+    var wasCur = isCurrent(x);
+    var sk0 = sheetKey();
+    trace('rec:open');
+    return zoomIn(k, { from: from, kb: kb }).then(function (ok) {
+      if (!ok) { return false; }
+      // stage_id / list_id config'ten sonra gelebilir (#bubble-options ayri eleman; zoomIn yorumu, WBS:182): hedefin
+      // kendi stage_id'sinin gelmesi ve list_id'nin bosalmasi baglam degisimi SAYILMAZ, benimsenir. Kesilme nedeni
+      // tutulur: panoya donus, yeni acilis ve geri alma disinda kesilme 'Could not find record' der (sessiz kalmaz).
+      var c1 = ctx(), base = { stage: str(c1.stage_id), list: str(c1.list_id) }, lost = '';
+      var why = function () {
+        if (S.lastRec !== tok) { return 'new'; }
+        if (!S.mounted) { return 'unmount'; }
+        if (boardOpen()) { return 'board'; }
+        if (sheetKey() !== sk0) { return 'sheet'; }
+        var c = ctx(), sid = str(c.stage_id), lid = str(c.list_id);
+        if (sid && sid !== base.stage) { if (sid !== str(x.id)) { return 'ctx'; } base.stage = sid; }
+        if (lid !== base.list) { if (lid) { return 'ctx'; } base.list = ''; }
+        return '';
+      };
+      var gone = function () { if (!lost) { lost = why(); } return !!lost; };
+      return pollP(function () {
+        var t = gmStatus();
+        if (!t || t.loading || !t.stats) { return false; }
+        return wasCur || str(t.stats.screen && t.stats.screen.key) !== k0;
+      }, T.openWait, T.openPoll, gone).then(function (ready) {
+        if (ready === null) { return false; }
+        if (!ready) { toast('Could not find record', false); return false; }
+        return recReveal(rec, gone);
+      }).then(function (done) {
+        if (!done && lost && lost !== 'board' && lost !== 'new' && lost !== 'unmount') { trace('rec:lost'); toast('Could not find record', false); }
+        return done;
+      });
+    });
+  }
+  function recReveal(rec, gone) {
+    var until = now() + T.revealWait;
+    function done() {
+      try { if (W.dynamicTable && typeof W.dynamicTable.start === 'function') { W.dynamicTable.start(); } } catch (e) { /* yut */ }
+      trace('rec:start');
+      say(rec.ref + ' opened');
+      return true;
+    }
+    function step() {
+      if (gone()) { return Promise.resolve(false); }
+      return revealP(rec.id).then(function (r) {
+        if (gone()) { return false; }
+        if (r && nonEmpty(r.found)) { return done(); }
+        if (r && nonEmpty(r.hidden)) { toast('Hidden by table filter', false); return false; }
+        if (now() < until) { return wait(T.openPoll).then(step); }
+        return recSearch(rec, r, gone, done);
+      });
+    }
+    return step();
+  }
+  // Pencere kipi ve missing (hidden degil): tek arama (rayin emsali), sonra T.searchMax boyunca reveal yoklanir.
+  function recSearch(rec, r, gone, done) {
+    var gm = gmObj();
+    var t = gmStatus();
+    var win = (r && typeof r.windowed === 'boolean') ? r.windowed : !!(t && t.windowed === true);
+    if (!win || !r || !nonEmpty(r.missing) || !gm || typeof gm.search !== 'function' || rec.ref === 'Untitled record') {
+      toast('Could not find record', false);
+      return Promise.resolve(false);
+    }
+    try { gm.search(rec.ref); } catch (e) { toast('Could not find record', false); return Promise.resolve(false); }
+    trace('rec:search');
+    var until = now() + T.searchMax;
+    function poll() {
+      return wait(T.openPoll).then(function () {
+        if (gone()) { return false; }
+        return revealP(rec.id).then(function (r2) {
+          if (gone()) { return false; }
+          if (r2 && nonEmpty(r2.found)) { return done(); }
+          if (now() >= until) { toast('Could not find record', false); return false; }
+          return poll();
+        });
+      });
+    }
+    return poll();
+  }
+
+  // ------------------------------------------------------------ kart verisi
+  function gmObj() { var m = W.gaiaTableMirror; return (m && (typeof m === 'object' || typeof m === 'function')) ? m : null; }
+  function gmMode() { try { var m = gmObj(); return !!m && typeof m.mode === 'function' && m.mode() === true; } catch (e) { return false; } }
+  function gmStatus() {
+    try { var m = gmObj(); var t = (m && typeof m.status === 'function') ? m.status() : null; return (t && typeof t === 'object') ? t : null; } catch (e) { return null; }
+  }
+  function gmLive() {
+    try {
+      var m = gmObj();
+      var l = (m && m.live && typeof m.live.status === 'function') ? m.live.status() : null;
+      var n = l ? Number(l.changes) : 0;
+      return isFinite(n) ? n : 0;
+    } catch (e) { return 0; }
+  }
+  function httpOrigin() { try { return /^https?:$/.test(String(W.location.protocol)); } catch (e) { return false; } }
+  function cardsTid() { var t = gmStatus(); var tb = t && t.stats && t.stats.table; return tb ? str(tb.id) : ''; }
+  // Esleme: sutunun os_workspace id'si var, Create degil, adi tek (ayni adli iki surec eslenmez).
+  function cardsMap(st) {
+    var out = {}, seen = {}, dup = {}, seen2 = {};
+    var rs = railFresh() ? railStages() : [];
+    for (var r = 0; r < rs.length; r++) { var n = clean(rs[r].name); if (seen[n]) { dup[n] = 1; } seen[n] = 1; }
+    for (var k = 0; k < st.length; k++) { if (seen2[st[k].name]) { dup[st[k].name] = 1; } seen2[st[k].name] = 1; }
+    for (var j = 0; j < st.length; j++) { var x = st[j]; if (x.id && !x.create && !dup[x.name]) { out[j] = true; } }
+    return out;
+  }
+  function cardsDrawable() {
+    var C = S.cards;
+    if (C.phase !== 'ready' && C.phase !== 'loading' && C.phase !== 'error') { return null; }
+    var tid = C.tidOf[sheetKey()];
+    if (!tid || C.refused[tid]) { return null; }
+    return C.byTable[tid] || null;
+  }
+  // Kapi: bos dize ya da neden; ilk dusen kural kazanir (0A.4: ilk kural duzen).
+  function cardsGate(s) {
+    s = s || S.snap;
+    if (S.layout !== 'board') { return 'layout'; }
+    if (W.__OCTO_WS_CARDS_OFF === true) { return 'off'; }
+    if (typeof W.__octoWsBridge !== 'function' && !httpOrigin()) { return 'origin'; }
+    if (viewingAs()) { return 'viewas'; }
+    if (!gmMode()) { return 'mirror'; }
+    var t = gmStatus();
+    var stt = t && t.stats;
+    var tb = stt && stt.table;
+    if (!t || t.loading || !stt || !tb || !str(tb.id)) { return 'table'; }
+    var d = railData();
+    if (!(d && str(tb.id) === str(d.sheet.id)) && clean(tb.name) !== sheetName(s)) { return 'table'; }
+    if (!s || !railFresh(s)) { return 'rail'; }
+    var st = stageModel(s), any = false;
+    for (var i = 0; i < st.length; i++) { if (st[i].id) { any = true; break; } }
+    if (!any) { return 'rail'; }
+    var hid = false;
+    try { hid = D.hidden === true; } catch (e) { hid = false; }
+    if (hid || !boardOpen() || S.zoom || S.classic) { return 'hidden'; }
+    return '';
+  }
+  function cardsPhase(p, why) {
+    var C = S.cards;
+    why = why || '';
+    if (C.phase === p && C.why === why) { return; }
+    C.phase = p;
+    C.why = why;
+    // Eszamanli boyama: state().cards ile DOM ayni anda tutarli (bekleyen paintSoon flush'ta iptal olur; tek yeniden kurulum).
+    if (S.layout === 'board' && boardOpen() && !S.zoom) { S.dirty = true; flush(); }
+  }
+  function cardsAbort(why) {
+    var C = S.cards;
+    if (!C) { return; }
+    var had = !!C.inflight;
+    C.seq++;
+    if (C.ctrl) { try { C.ctrl.abort(); } catch (e) { /* yut */ } }
+    C.ctrl = null;
+    C.inflight = null;
+    cancel('cardsCap');
+    if (had) {
+      trace('cards:abort');
+      if (C.phase === 'loading') { C.phase = 'off'; C.why = why || ''; }
+    }
+  }
+  // Geri alma / shutdown: onbellek, duzen ve kaydirma bellegi silinir (tavan sayaci yalniz shutdown'da).
+  function cardsDrop(hard) {
+    var C = S.cards;
+    if (C) {
+      cardsAbort('unmount');
+      C.byTable = {}; C.tidOf = {}; C.refused = {}; C.errTid = ''; C.errAt = 0; C.sk = ''; C.pu = null; C.tblSince = 0;
+      C.shown = {}; C.painted = {}; C.phase = 'off'; C.why = 'layout';
+      C.errCls = ''; C.cap = ''; C.capPend = false; C.capNode = null;
+      if (hard) { C.calls = []; }
+    }
+    cancel('cardsTbl');
+    cancel('cardsDeb');
+    cancel('cardsNote');
+    S.layout = 'overview';
+    S.colScroll = {};
+    S.press = null;
+    S.lastRec = null;
+    S.colsShown = false;
+  }
+  // Son 60 dk'daki kopru kosulari (her deneme bir is akisi kosusu = 1 WU; tekrarlar dahil).
+  function cardsCalls1h() {
+    var C = S.cards, t = now(), keep = [];
+    for (var i = 0; i < C.calls.length; i++) { if (t - C.calls[i] < 3600000) { keep.push(C.calls[i]); } }
+    C.calls = keep;
+    return keep.length;
+  }
+  // Tavan: saatte en cok 2 * T.recCap kosu (12 yenileme = 24 WU, 0B); yeni yenileme bir cift kosuya yer ister.
+  function cardsRoom() { return cardsCalls1h() + 2 <= 2 * T.recCap; }
+  // Bubble sayac imzasi: bilinen iki sayi farkliysa degisti; null -> sayi (tarama ogrenimi) degisim sayilmaz.
+  function cntChanged(ent, st) {
+    var ch = false;
+    for (var i = 0; i < st.length; i++) {
+      var x = st[i];
+      if (x.count == null) { continue; }
+      var o = ent.cnt[x.name];
+      if (o == null) { ent.cnt[x.name] = x.count; continue; }
+      if (o !== x.count) { ch = true; }
+    }
+    return ch;
+  }
+  function onCardsVis() {
+    var hid = false;
+    try { hid = D.hidden === true; } catch (e) { hid = false; }
+    if (!hid && S.mounted && boardOpen()) { cardsTick('vis'); }
+  }
+  // Yenileme yalniz: (a) pano gorunur olur ve onbellek yok / T.recTtl'den eski, (b) pano acikken Bubble sayaci degisti
+  // ve T.recMin gecti (T.recDeb geciktirmeli), (c) tablonun canli degisim sayaci artti, (d) Try again. Kendi yoklamasi YOK.
+  function cardsTick(why) {
+    var C = S.cards;
+    if (!C || !S.mounted) { return Promise.resolve(false); }
+    try {
+      var sk = sheetKey();
+      if (sk !== C.sk) {
+        if (C.sk) { cardsAbort('sheet'); C.refused = {}; C.errTid = ''; C.tblSince = 0; cancel('cardsTbl'); cancel('cardsDeb'); }
+        // Eski tablonun ret / hata altyazisi (ve olu Try again) yeni tabloya tasinmaz: kapi karar verene kadar yalniz sayac.
+        if (C.sk && (C.phase === 'refused' || C.phase === 'error')) { C.phase = 'off'; C.why = 'table'; }
+        C.sk = sk;
+      }
+      var pu = '';
+      try { pu = str(octo.page.pageUser()); } catch (e0) { pu = ''; }
+      if (C.pu != null && pu !== C.pu) { cardsAbort('user'); C.byTable = {}; C.tidOf = {}; C.refused = {}; C.errTid = ''; trace('cards:user'); }
+      C.pu = pu;
+      var g = cardsGate(S.snap);
+      if (g !== 'table') { C.tblSince = 0; }
+      if (CARDS_OFF[g]) {
+        if (C.inflight) { cardsAbort(g); }
+        cardsPhase('off', g);
+        return Promise.resolve(false);
+      }
+      if (g === 'table') {
+        // Tablo DOM'u Gozlemci A'yi tetiklemez: pano acikken 500 ms aralikla T.openWait boyunca yeniden bakilir.
+        if (boardOpen() && !S.zoom) {
+          if (!C.tblSince) { C.tblSince = now(); }
+          if (now() - C.tblSince < T.openWait && !S.timers.cardsTbl) { later('cardsTbl', function () { cardsTick('show'); }, 500); }
+        }
+        if (!C.inflight && C.phase !== 'refused' && C.phase !== 'error') {
+          var ce = (C.tidOf[sk] && !C.refused[C.tidOf[sk]]) ? (C.byTable[C.tidOf[sk]] || null) : null;
+          cardsPhase(ce ? 'ready' : 'off', ce ? '' : 'table');
+        }
+        return Promise.resolve(false);
+      }
+      if (g === 'hidden') { return Promise.resolve(false); }
+      var tid = cardsTid();
+      C.tidOf[sk] = tid;
+      if (C.refused[tid]) { cardsPhase('refused', C.refused[tid]); return Promise.resolve(false); }
+      if (C.inflight) {
+        if (C.inflight.tid === tid) { return C.inflight.p || Promise.resolve(false); }
+        cardsAbort('table');
+      }
+      var ent = C.byTable[tid] || null;
+      var st = stageModel(S.snap);
+      var need = '';
+      var errHold = C.errTid === tid && now() - C.errAt < T.recTtl;
+      if (why === 'force') { need = 'force'; }
+      else if (errHold) { need = ''; }
+      else if (!ent) { need = 'first'; }
+      else if ((why === 'show' || why === 'layout' || why === 'vis') && now() - ent.at >= T.recTtl) { need = 'ttl'; }
+      else if (gmLive() > ent.liveChg) { need = 'live'; }
+      else if (cntChanged(ent, st)) {
+        var age = now() - ent.at;
+        if (why === 'count' && age >= T.recMin) { need = 'count'; }
+        else if (!S.timers.cardsDeb) { later('cardsDeb', function () { cardsTick('count'); }, Math.max(T.recDeb, T.recMin - age)); }
+      }
+      if (!need) {
+        // Gecici hata beklemesi: duzen gidis donusu ya da kisa bir kapi (off / viewas / rail) hata durumunu silmez.
+        if (errHold) { cardsPhase('error', C.errCls || 'timeout'); }
+        else if (C.phase !== 'error' || C.errTid !== tid) { cardsPhase(ent ? 'ready' : 'off', ''); }
+        return Promise.resolve(C.phase === 'ready');
+      }
+      if (!cardsRoom()) {
+        trace('cards:cap');
+        if (C.phase !== 'error') { cardsPhase(ent ? 'ready' : 'off', ent ? '' : 'cap'); }
+        return Promise.resolve(false);
+      }
+      return cardsLoad(tid, need, st);
+    } catch (e) { logErr(e); return Promise.resolve(false); }
+  }
+  // Iki cagri: A (grup sayisi + en yeni kimlikler), B (yalniz sistem alanlari). Ucusta tek istek (seq); tablo degisimi,
+  // unmount, shutdown, duzen degisimi ve daha yeni yukleme eski istegi keser, gec cevap duser.
+  function cardsLoad(tid, why, st) {
+    var C = S.cards;
+    cardsAbort('new');
+    var seq = C.seq;
+    var ctrl = null;
+    try { ctrl = (typeof AbortController === 'function') ? new AbortController() : null; } catch (e) { ctrl = null; }
+    var maps = cardsMap(st);
+    var idTo = {}, nMap = 0;
+    for (var mk in maps) { if (Object.prototype.hasOwnProperty.call(maps, mk)) { idTo[st[mk].id] = 1; nMap++; } }
+    var K = Math.min(T.perCol, Math.floor(500 / Math.max(1, nMap)));
+    var cnt = {};
+    for (var c = 0; c < st.length; c++) { if (st[c].count != null) { cnt[st[c].name] = st[c].count; } }
+    var liveChg = gmLive();
+    var live = function () { return seq === S.cards.seq; };
+    C.ctrl = ctrl;
+    C.loadAt = now();
+    C.inflight = { seq: seq, tid: tid, p: null };
+    trace('cards:load:' + why);
+    var p = cardsCall('mirror_query', { query: { table: tid, group_by: ['_surec'], group_samples: K, limit: 200 }, wait_ms: 4000 }, ctrl, live).then(function (a) {
+      if (!live() || !a.ok) { return a; }
+      var groups = rowsOf(a.data);
+      if (!groups) { return { error: 'shape' }; }
+      var cols = {}, ids = [], grpOf = {}, nG = 0, nM = 0;
+      for (var g = 0; g < groups.length; g++) {
+        var gr = groups[g] || {};
+        var sid = str(gr._surec).trim();
+        if (!sid) { continue; }
+        nG++;
+        if (!idTo[sid]) { continue; }
+        nM++;
+        cols[sid] = { recs: [] };
+        var sm = isArr(gr.sample_ids) ? gr.sample_ids : [];
+        for (var q = 0; q < sm.length && ids.length < 500; q++) { var id = str(sm[q]).trim(); if (id) { ids.push(id); grpOf[id] = sid; } }
+      }
+      // version-test: dev veritabani kimlikleri canli aynayla eslesmez -> yalniz sayac + Records unavailable.
+      if (nG && !nM) { return { error: 'nomap' }; }
+      var res = { ok: true, cols: cols, groups: nG, mapped: nM, mirror: a.mirror || null };
+      if (!ids.length) { return res; }
+      var order = {};
+      for (var o = 0; o < ids.length; o++) { order[ids[o]] = o; }
+      return cardsCall('mirror_query', { query: { table: tid, ids: ids, select: ['_id', '_ref', '_surec', '_modified'], limit: ids.length }, wait_ms: 4000 }, ctrl, live).then(function (b) {
+        if (!live() || !b.ok) { return b; }
+        var rows = rowsOf(b.data);
+        if (!rows) { return { error: 'shape' }; }
+        // Kart B'deki (daha taze) _surec'e gore yerlesir; eslesmeyen satir duser, eksik satir doldurulmaz.
+        // Postgres motoru ayni normalize adli kullanici sutununu sistem alanindan once okur (SRV:25126-25131, SAPMA):
+        // istenmeyen _id'li satir kullanilmaz; Bubble kimligi bicimi tasimayan _surec'e guvenilmez, kart A grubuna
+        // gore yerlesir. Hicbir satir istenen kimligi tasimiyorsa kart cizilemez: sessiz bos sutun yerine kesin ret.
+        var bad = 0, placed = 0;
+        for (var r = 0; r < rows.length; r++) {
+          var row = rows[r] || {};
+          var rid = str(row._id).trim();
+          if (!rid || order[rid] == null) { bad++; continue; }
+          var rs = str(row._surec).trim();
+          if (!idTo[rs] && !BID_RE.test(rs)) { rs = grpOf[rid] || ''; }
+          if (!idTo[rs]) { continue; }
+          if (!cols[rs]) { cols[rs] = { recs: [] }; }
+          cols[rs].recs.push({ id: rid, ref: safeRef(row._ref), mod: modMs(row._modified), o: order[rid] });
+          placed++;
+        }
+        if (bad && !placed) { return { error: 'shape' }; }
+        for (var cs in cols) {
+          if (!Object.prototype.hasOwnProperty.call(cols, cs)) { continue; }
+          cols[cs].recs.sort(function (x, y) {
+            var xn = x.mod == null, yn = y.mod == null;
+            if (xn !== yn) { return xn ? 1 : -1; }
+            if (!xn && x.mod !== y.mod) { return y.mod - x.mod; }
+            return x.o - y.o;
+          });
+          if (cols[cs].recs.length > T.perCol) { cols[cs].recs.length = T.perCol; }
+        }
+        res.mirror = b.mirror || res.mirror;
+        return res;
+      });
+    });
+    var fin = p.then(function (res) {
+      if (!live()) { return false; }
+      cancel('cardsCap');
+      C.inflight = null;
+      C.ctrl = null;
+      if (res && res.ok) {
+        var m = res.mirror || {};
+        C.byTable[tid] = {
+          tid: tid, at: now(), cols: res.cols, groups: res.groups, mapped: res.mapped, k: K, fresh: m.fresh === true,
+          fs: Math.max(0, Number(m.freshness_s) || 0), preview: m.preview === true, cnt: cnt, liveChg: liveChg
+        };
+        cardsLru();
+        C.at = C.byTable[tid].at;
+        C.liveChg = liveChg;
+        C.errTid = '';
+        trace('cards:ready');
+        cardsPhase('ready', '');
+        return true;
+      }
+      var cls = (res && res.error) || 'shape';
+      if (res && res.transient) { C.errTid = tid; C.errAt = now(); C.errCls = cls; trace('cards:error'); cardsPhase('error', cls); return false; }
+      C.refused[tid] = cls;
+      trace('cards:refused');
+      cardsPhase('refused', cls);
+      return false;
+    }, function (err) {
+      if (!live()) { return false; }
+      cancel('cardsCap');
+      C.inflight = null;
+      C.ctrl = null;
+      logErr(err);
+      C.errTid = tid;
+      C.errAt = now();
+      C.errCls = 'shape';
+      cardsPhase('error', 'shape');
+      return false;
+    });
+    C.inflight.p = fin;
+    cardsPhase('loading', '');
+    later('cardsCap', function () { if (S.cards.phase === 'loading' && S.cards.seq === seq) { paintSoon(); } }, T.recCaption);
+    return fin;
+  }
+  function cardsLru() {
+    var C = S.cards;
+    var keys = Object.keys(C.byTable);
+    while (keys.length > 3) {
+      var old = keys[0];
+      for (var i = 1; i < keys.length; i++) { if (C.byTable[keys[i]].at < C.byTable[old].at) { old = keys[i]; } }
+      delete C.byTable[old];
+      keys = Object.keys(C.byTable);
+    }
+  }
+  function rowsOf(d) {
+    if (!d || typeof d !== 'object') { return null; }
+    if (isArr(d.rows)) { return d.rows; }
+    if (isArr(d.cols) && isArr(d.data)) {
+      var cols = d.cols, out = [];
+      for (var i = 0; i < d.data.length; i++) {
+        var v = d.data[i] || [], o = {};
+        for (var c = 0; c < cols.length; c++) { if (v[c] !== null && v[c] !== undefined) { o[cols[c]] = v[c]; } }
+        out.push(o);
+      }
+      return out;
+    }
+    return null;
+  }
+  // Gecici hatada 2 tekrar (T.recRetryA, T.recRetryB); kesin ret ve sekil hatasi tekrar edilmez. Her deneme tavana
+  // sayilir; tavanda yeni deneme yapilmaz (son gecici sonuc doner).
+  function cardsCall(op, payload, ctrl, live) {
+    var delays = [T.recRetryA, T.recRetryB];
+    function attempt(n, last) {
+      if (cardsCalls1h() >= 2 * T.recCap) { trace('cards:cap'); return Promise.resolve(last || { error: 'cap', transient: true }); }
+      S.cards.calls.push(now());
+      return bridge(op, payload, ctrl).then(function (r) {
+        if (!live() || r.ok || !r.transient || n >= delays.length) { return r; }
+        trace('cards:retry');
+        return wait(delays[n]).then(function () { return live() ? attempt(n + 1, r) : r; });
+      });
+    }
+    return attempt(0, null);
+  }
+  // Ic zarf siniflamasi (iki yolda ortak, TV2 aynaBridge ile ayni): ERROR kesin ret ('try again' diyen GX-COLLAB
+  // dogrulamasi gecici); SUCCESS / OK disindaki durum (PROCESSING_TIMEOUT, PROCESSING, TIMEOUT) gecici.
+  function cardsInner(inner) {
+    if (!inner || typeof inner !== 'object') { return { error: 'shape' }; }
+    var st = str(inner.status).toUpperCase();
+    if (st === 'ERROR') { return /try again/i.test(str(inner.message)) ? { error: 'server', transient: true } : { error: 'server' }; }
+    if (st && st !== 'SUCCESS' && st !== 'OK') { return { error: 'timeout', transient: true }; }
+    var data = (inner.data && typeof inner.data === 'object') ? inner.data : inner;
+    return { ok: true, data: data, mirror: (inner.mirror && typeof inner.mirror === 'object') ? inner.mirror : null };
+  }
+  function bridgeUrl() {
+    var p = '';
+    try { p = (typeof W.__octoUrlPath === 'string') ? W.__octoUrlPath : String((W.location && W.location.pathname) || ''); } catch (e) { p = ''; }
+    return W.location.origin + (p.indexOf('/version-test') > -1 ? '/version-test' : '') + '/api/1.1/wf/bridge';
+  }
+  // Tablonun aynaBridge'inin kopyasi (TV2:5733-5770); tek fark: mirror meta bilgisi dusurulmez. Harness dikisi
+  // W.__octoWsBridge(op, payload) cozulmus ic zarfi verir. Hicbir zaman reddetmez: {ok, data, mirror} | {error, transient}.
+  function bridge(op, payload, outer) {
+    if (typeof W.__octoWsBridge === 'function') {
+      var sp;
+      try { sp = Promise.resolve(W.__octoWsBridge(op, payload)); } catch (e0) { sp = Promise.reject(e0); }
+      return sp.then(cardsInner, function () { return { error: 'network', transient: true }; });
+    }
+    if (!httpOrigin() || typeof W.fetch !== 'function') { return Promise.resolve({ error: 'origin' }); }
+    var ctrl = null;
+    try { ctrl = (typeof AbortController === 'function') ? new AbortController() : null; } catch (e1) { ctrl = null; }
+    var kill = function () { try { if (ctrl) { ctrl.abort(); } } catch (e2) { /* yut */ } };
+    var sig = outer && outer.signal;
+    if (sig) { if (sig.aborted) { kill(); } else { try { sig.addEventListener('abort', kill); } catch (e3) { /* yut */ } } }
+    var timer = setTimeout(kill, T.recAbort);
+    var fin = function () { clearTimeout(timer); if (sig) { try { sig.removeEventListener('abort', kill); } catch (e4) { /* yut */ } } };
+    var p;
+    try {
+      p = W.fetch(bridgeUrl(), {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ op: op, bridge_payload: JSON.stringify(payload || {}) }), signal: ctrl ? ctrl.signal : undefined
+      });
+    } catch (e5) { p = Promise.reject(e5); }
+    return p.then(function (r) {
+      return r.text().then(function (text) {
+        var j = null;
+        try { j = JSON.parse(text); } catch (e6) { j = null; }
+        if (r.status === 401 || r.status === 403) { return { error: 'session' }; }
+        if (r.status === 404) { return { error: 'no-bridge' }; }
+        if (!r.ok || !j) { return { error: 'http', transient: Number(r.status) >= 500 }; }
+        var g = j.response ? j.response : j;
+        var inner = null;
+        if (g && typeof g.final_json === 'string' && g.final_json.trim()) { try { inner = JSON.parse(g.final_json); } catch (e7) { inner = null; } }
+        if (!inner && g && typeof g === 'object' && (g.rows || g.data || g.status)) { inner = g; }
+        if (g && str(g.error_message).trim()) { return { error: 'server' }; }
+        return cardsInner(inner);
+      });
+    }).then(function (res) { fin(); return res; }, function (err) {
+      fin();
+      return { error: (err && err.name === 'AbortError') ? 'timeout' : 'network', transient: true };
+    });
+  }
+  // Try again ile ayni yol; tavana uyar. force: TTL ve hata beklemesi yok sayilir.
+  function refreshCards(force) {
+    if (!S.mounted || !S.cards) { return Promise.resolve(false); }
+    return cardsTick(force ? 'force' : 'show');
+  }
+  function cardsDiag() {
+    var C = S.cards;
+    var tid = C.tidOf[sheetKey()] || '';
+    var ent = tid ? (C.byTable[tid] || null) : null;
+    return {
+      state: C.phase, why: C.why, preview: ent ? ent.preview : false, fresh: ent ? ent.fresh : false,
+      stale_s: ent ? Math.round((ent.fs * 1000 + (now() - ent.at)) / 1000) : null, calls1h: cardsCalls1h(), k: ent ? ent.k : 0,
+      groups: ent ? ent.groups : 0, mapped: ent ? ent.mapped : 0, at: ent ? Math.round(ent.at) : 0, seq: C.seq
     };
   }
 
@@ -67474,6 +68899,22 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     T: T,
     T_DEFAULT: T_DEFAULT
   };
+  // os9b (OCTO_BOARD_SPEC 0A.6, 8): duzen ve kayit kartlari. Yalniz sayi ve bayrak; kayit kimligi ya da degeri YOK.
+  (function () {
+    var baseState = api.state, baseSnap = api.snapshot, baseDiag = api.diag;
+    api.state = function () { var o = baseState(); o.layout = S.layout; o.cards = S.cards.phase; o.cardsWhy = S.cards.why; return o; };
+    api.snapshot = function () {
+      var o = baseSnap();
+      o.layout = S.layout;
+      var maps = cardsMap(stageModel(snapshot()));
+      for (var i = 0; i < o.stages.length; i++) { o.stages[i].mapped = maps[i] === true; o.stages[i].shown = S.cards.shown[i] || 0; }
+      return o;
+    };
+    api.diag = function () { var o = baseDiag(); o.cards = cardsDiag(); return o; };
+    api.layout = function (name) { return (name === undefined) ? S.layout : setLayout(name); };
+    api.refreshCards = function (force) { return refreshCards(!!force); };
+    api.openRecord = function (k, i) { return openRecord(Number(k), Number(i), false, null); };
+  })();
   try {
     Object.defineProperty(octo, '_wsbar', { value: api, writable: false, enumerable: false, configurable: true });
   } catch (e) { /* yut */ }
