@@ -6214,6 +6214,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         rows = rows.concat(page);
         total = (typeof d.total === 'number') ? d.total : rows.length;
         if (d.mirror) { fresh = d.mirror.fresh; preview = !!d.mirror.preview; if (pages === 1 && d.mirror.freshness_s !== undefined) freshS = d.mirror.freshness_s; }   // AYNA-LIVE: the first answer says whether the server started a table delta
+        if (pages === 1) AYNA.loadMirror = d.mirror || null;   // AYNA-SETTLE (21.10): its settle_ok, read by aynaLiveLoaded
         if (d.table) table = d.table;
         if (d.screen && typeof d.screen === 'object') AYNA.srvScreen = { key: AYNA.screenKey, screen: d.screen };   // GX-PEOPLE (07.10): the screen's stage / list scope
         offset += page.length;
@@ -6346,11 +6347,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // seconds and show at the next probe); idle probes read the mirror as it is (no Bubble Data API call; the mirror's own
   // delta runs every 90 s). A probe waits while the viewer is mid-action (column menu, filter panel, modal, field popover,
   // a press, typing); a failed probe backs off (x2 up to 5 min). Bubble rows (config.data) never probe: Bubble keeps them live.
+  // AYNA-SETTLE (21.10, NOD x GAIA: an expert's new record reached the list only after a page refresh): a fresh answer never
+  // held the delta it started (mr16 answers first, the table delta lands 1-2 s later in the background), so after a load, a
+  // return to the tab or a return from idle the change waited for the NEXT probe (30-60 s); with freshness_s ≤ 20 the server
+  // started no delta at all and the load had no re-check. Now such an event gets one follow-up look (4 s; an older server
+  // that started no delta: when it will, then 4 s more), and every probe says settle: true (a GX-SETTLE server answers after
+  // its own table delta, mirror.settled; then no follow-up is needed).
   // ═══════════════════════════════════════════════════════════════════════════
   const AYNA_LIVE = { defMs: 30000, minMs: 5000, idleAfterMs: 5 * 60000, idleMs: 5 * 60000, backGapMs: 10000, boostMs: 8000, boostForMs: 120000, boostTailMs: 10000,
-                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000 };
+                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000, settleOkMs: 2000 };   // AYNA-SETTLE
   AYNA.live = { timer: null, at: 0, base: null, dirty: null, busy: false, checks: 0, changes: 0, errors: 0, input: Date.now(), keyAt: 0, downAt: 0,
-                boostUntil: 0, queue: [], signalAt: 0, wantFresh: false, retrySoon: false, bound: false, last: '', changedAt: 0 };
+                boostUntil: 0, queue: [], signalAt: 0, wantFresh: false, retrySoon: false, bound: false, last: '', changedAt: 0,
+                settle: 0, settleEarly: false, settleAt: 0, settleWhy: '', settles: 0, atFresh: false, srvSettle: false };   // AYNA-SETTLE: follow-ups left for the current event (at most 2), a wait for the server done, when the next one runs, its event, how many ran; the last probe asked for a delta
   AYNA.painted = null;   // the rows of the last aynaPaint (what the grid shows), compared with a refreshed answer
   function aynaLiveMs() {
     const c = AYNA.cfg; if (!c) return 0;
@@ -6386,6 +6394,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const L = AYNA.live; if (!L) return;
     if (L.timer) { clearTimeout(L.timer); L.timer = null; }
     L.base = null; L.dirty = null; L.queue = []; L.boostUntil = 0; L.wantFresh = false; L.retrySoon = false; AYNA.painted = null;
+    L.settle = 0; L.settleAt = 0;   // AYNA-SETTLE
   }
   // (re)schedules the next probe: a queued re-check first, else the boost / active / idle cadence (x2 per failed probe)
   function aynaLiveArm(ms, why) {
@@ -6396,7 +6405,25 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let wait = (typeof ms === 'number') ? ms : (now < L.boostUntil ? AYNA_LIVE.boostMs : (aynaLiveIdle() ? Math.max(AYNA_LIVE.idleMs, aynaLiveMs()) : aynaLiveMs()));
     if (typeof ms !== 'number' && L.errors) wait = Math.min(AYNA_LIVE.maxBackoffMs, wait * Math.pow(2, Math.min(L.errors, 4)));
     if (L.queue.length) wait = Math.min(wait, L.queue[0] - now);
+    if (L.settleAt) wait = Math.min(wait, L.settleAt - now);   // AYNA-SETTLE
     L.timer = setTimeout(() => { L.timer = null; aynaLiveTick(w); }, Math.max(250, wait));
+  }
+  // AYNA-SETTLE (21.10): an event (a load, back to the tab, back from idle, "check now") starts follow-ups; a fresh answer that
+  // showed no change and did not settle (an older server, or it was busy) gets one more look: 4 s later when the server started
+  // a table delta (freshness_s > 20 / unknown, or it can settle), else (freshness_s ≤ 20: none started) when it will (21 - s),
+  // and then one look 4 s after that. A change seen, a settled answer or a non-fresh probe ends the event.
+  function aynaLiveSettleStart(why) { const L = AYNA.live; if (!L) return; L.settle = 1; L.settleEarly = false; L.settleAt = 0; L.settleWhy = why || 'event'; }
+  function aynaLiveSettleNext(fresh, m) {
+    const L = AYNA.live; if (!L) return;
+    L.settleAt = 0;
+    if (m && fresh) L.srvSettle = m.settle_ok === true;   // the server settles (GX-SETTLE): live.status().settle.server
+    if (!(L.settle > 0) || !fresh || !m || m.settled === true) { L.settle = 0; return; }
+    const s = m.freshness_s, early = !m.settle_ok && typeof s === 'number' && s <= 20;
+    if (early && L.settleEarly) { L.settle = 0; return; }   // a global delta started after the event: it held every earlier write
+    L.settle--;
+    if (early) { L.settleEarly = true; L.settle++; }   // the server started no delta: wait until it will, then one look
+    // a server that settles runs (and waits for) its own delta for the look: 2 s lets the load's background delta finish first
+    L.settleAt = Date.now() + (early ? Math.max(AYNA_LIVE.afterLoadMs, (21 - s) * 1000) : (m.settle_ok ? AYNA_LIVE.settleOkMs : AYNA_LIVE.afterLoadMs));
   }
   // the viewer is in the middle of something a repaint would disturb → the probe waits a few seconds
   function aynaLiveUserBusy() {
@@ -6414,10 +6441,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // the screen's signature: row count + the newest _modified (and its row id, for window mode's first look)
   async function aynaLiveProbe(scr, fresh) {
-    const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, fresh: !!fresh, shape: 'columnar', fields: ['_id'], query: { limit: 1, offset: 0, order_by: '_modified desc' } }, null, { timeoutMs: AYNA_LIVE.timeoutMs });
+    // AYNA-SETTLE: settle = answer after the table delta this probe starts (a GX-SETTLE server; an older one ignores the key)
+    const r = await aynaBridge('mirror_screen', Object.assign({ screen_id: scr.screen, stage: scr.stage, list: scr.list, fresh: !!fresh, shape: 'columnar', fields: ['_id'], query: { limit: 1, offset: 0, order_by: '_modified desc' } }, fresh ? { settle: true } : {}), null, { timeoutMs: AYNA_LIVE.timeoutMs });
     if (!r.ok || !aynaIsPage(r.data)) return null;
     const d = r.data, top = aynaRowsOf(d)[0] || null;
-    return { total: (typeof d.total === 'number') ? d.total : (top ? 1 : 0), mod: top ? aynaLiveTime(top._modified) : 0, id: top ? String(top._id || '') : '' };
+    return { total: (typeof d.total === 'number') ? d.total : (top ? 1 : 0), mod: top ? aynaLiveTime(top._modified) : 0, id: top ? String(top._id || '') : '', mirror: d.mirror || null };
   }
   // window mode before the first probe (the page alone does not tell the screen's newest _modified): the newest row is on
   // this page with another _modified → it changed
@@ -6478,13 +6506,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const now = Date.now();
     let due = false;
     while (L.queue.length && L.queue[0] <= now + 50) { L.queue.shift(); due = true; }
+    if (L.settleAt && L.settleAt <= now + 50) { L.settleAt = 0; due = true; L.settles++; }   // AYNA-SETTLE: a follow-up look is due
     if (due || why !== 'timer' || now < L.boostUntil || !aynaLiveIdle()) L.wantFresh = true;
     if (AYNA.last || !AYNA.stats || !AYNA.screenKey) { aynaLiveArm(); return; }   // no healthy load to compare with (an error keeps its "Try again")
     if (L.busy || AYNA.loading || aynaLiveUserBusy()) { aynaLiveArm(AYNA_LIVE.retryMs, why); return; }
     const seq0 = AYNA.seq, key0 = AYNA.screenKey, cfg0 = AYNA.cfg, scr = aynaScreenOf(cfg0);
     if (scr.key !== key0) { aynaLiveArm(); return; }   // the screen id moved: aynaRescreen loads the new screen
     const fresh = L.wantFresh; L.wantFresh = false;
-    L.busy = true; L.at = now; L.last = why + (fresh ? ' · fresh' : '');
+    L.busy = true; L.at = now; L.atFresh = fresh; L.last = why + (fresh ? ' · fresh' : '');   // AYNA-SETTLE: atFresh = that probe asked for a table delta
     try {
       let p = null;
       if (L.dirty && L.dirty.key === key0) { p = L.dirty.p; L.dirty = null; }   // a change seen earlier, held while the viewer was busy
@@ -6496,8 +6525,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         L.errors = 0;
         const b = (L.base && L.base.key === key0) ? L.base : null;
         const moved = !!b && ((b.total !== null && p.total !== b.total) || (b.mod === null ? aynaLiveTopMoved(p) : p.mod !== b.mod));
-        if (!moved) { L.base = { key: key0, total: p.total, mod: p.mod }; return; }
+        if (!moved) { L.base = { key: key0, total: p.total, mod: p.mod }; aynaLiveSettleNext(fresh, p.mirror); return; }   // AYNA-SETTLE
       }
+      L.settle = 0; L.settleAt = 0;   // AYNA-SETTLE: the change is here, the event is over
       if (aynaLiveUserBusy()) { L.dirty = { key: key0, p: p }; L.retrySoon = true; return; }   // the rows wait for the viewer (no second probe)
       const res = aynaWindowed() ? await aynaLiveRefreshWindow(seq0, scr) : await aynaLiveRefreshFull(seq0, scr);
       if (res.gone) return;
@@ -6520,6 +6550,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // freshS = the first answer's mirror.freshness_s: over 20 s (or unknown) the server started a table delta in the background
   // (mr16) that this answer could not wait for → one re-check 4 s later. Case (founder 12.10): a record created on the YeniKayıt
   // screen, back on the list 15 s later → the list said 0 until the next period; now it shows within ~4 s.
+  // AYNA-SETTLE (21.10): the load is a settle event (aynaLiveSettleNext): freshness ≤ 20 s (the server started NO delta: the
+  // record written after the last global delta waited 30-60 s) now gets a look when the server will start one, then 4 s later.
+  // AYNA.loadMirror = the load's first answer's mirror block (settle_ok: a GX-SETTLE server needs no wait for its 20 s guard).
   function aynaLiveLoaded(windowed, rows, total, freshS) {
     const L = AYNA.live; if (!L) return;
     aynaLiveBind();
@@ -6527,11 +6560,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     L.base = { key: AYNA.screenKey, total: (typeof total === 'number') ? total : null, mod: windowed ? null : aynaLiveMaxMod(rows || []) };
     const now = Date.now();
     L.queue = L.queue.filter(t => t > now);
-    if (L.signalAt && now - L.signalAt < 60000) { L.signalAt = 0; AYNA_LIVE.signalAfterMs.forEach(ms => L.queue.push(now + ms)); }
-    else if (freshS === null || (typeof freshS === 'number' && freshS > 20)) L.queue.push(now + AYNA_LIVE.afterLoadMs);   // null = no delta yet (cold); absent = say nothing
+    if (L.signalAt && now - L.signalAt < 60000) { L.signalAt = 0; L.settle = 0; L.settleAt = 0; AYNA_LIVE.signalAfterMs.forEach(ms => L.queue.push(now + ms)); }
+    else if (freshS !== undefined && aynaLiveScreenKind() !== 'YeniKayıt') { aynaLiveSettleStart('load'); aynaLiveSettleNext(true, Object.assign({}, AYNA.loadMirror || {}, { freshness_s: freshS })); }   // absent = an older server: say nothing; a YeniKayıt screen has no rows to wait for
+    else { L.settle = 0; L.settleAt = 0; }
     L.queue.sort((a, b) => a - b);
     aynaLiveArm();
   }
+  // AYNA-SETTLE: the kind the server gave the screen in view (Arama, YeniKayıt, process, list) — '' when it said nothing
+  function aynaLiveScreenKind() { try { const s = AYNA.srvScreen; return (s && s.key === AYNA.screenKey && s.screen) ? String(s.screen.kind || '') : ''; } catch (e) { return ''; } }
   // Bubble's reloadFromConfig() = "the data changed": the reload's answer may not hold the write yet → re-checks follow it
   function aynaLiveSignal() { if (AYNA.live) AYNA.live.signalAt = Date.now(); }
   // the viewer started a Bubble write from the table (or woke the assistant): probe every 8 s until the change shows
@@ -6552,7 +6588,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (!aynaAlive()) return;
         if (aynaLiveHidden()) { if (L.timer) { clearTimeout(L.timer); L.timer = null; } return; }
         L.input = Date.now();
-        if (Date.now() - L.at > AYNA_LIVE.backGapMs) aynaLiveArm(400, 'back');
+        if (Date.now() - L.at > AYNA_LIVE.backGapMs) { aynaLiveSettleStart('back'); aynaLiveArm(400, 'back'); }   // AYNA-SETTLE: a write made elsewhere shows ~4 s after coming back, not 30 s
         else if (!L.timer && !L.busy) aynaLiveArm();
       },
       input: function (kind) {
@@ -6562,7 +6598,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (kind === 'key') L.keyAt = now;
         else if (kind === 'down') L.downAt = now;
         else if (kind === 'up') L.downAt = 0;
-        if (wasIdle && !L.busy && now - L.at > aynaLiveMs()) aynaLiveArm(400, 'back');   // back from idle on a view older than one period
+        // back from idle on a view older than one period, or last read by an idle probe (no table delta asked) → one probe at once
+        // (AYNA-SETTLE: + one follow-up look); else the active cadence takes over (the idle timer could be 5 min away)
+        if (wasIdle && !L.busy && (now - L.at > aynaLiveMs() || !L.atFresh)) { aynaLiveSettleStart('idle'); aynaLiveArm(400, 'back'); }
+        else if (wasIdle && !L.busy) aynaLiveArm();
       }
     };
     if (window.__gxLiveDocBound) return;
@@ -6596,8 +6635,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     status: function () { return { loading: AYNA.loading, last: AYNA.last, stats: AYNA.stats, cached: AYNA.cache.size, windowed: aynaWindowed(), criteria: AYNA.criteria, page: AYNA.win ? AYNA.win.page : null }; },
     // AYNA-LIVE (12.10): read-only status + a probe now / a boost (harness, console)
     live: {
-      status: function () { const L = AYNA.live, now = Date.now(); return { on: aynaLiveOn(), everyMs: aynaLiveMs(), hidden: aynaLiveHidden(), idle: aynaLiveIdle(), busy: L.busy, armed: !!L.timer, checks: L.checks, changes: L.changes, errors: L.errors, base: L.base ? { total: L.base.total, mod: L.base.mod } : null, dirty: !!L.dirty, queue: L.queue.map(t => t - now), boostMs: Math.max(0, L.boostUntil - now), last: L.last }; },
-      check: function () { aynaLiveArm(0, 'manual'); return true; },
+      status: function () { const L = AYNA.live, now = Date.now(); return { on: aynaLiveOn(), everyMs: aynaLiveMs(), hidden: aynaLiveHidden(), idle: aynaLiveIdle(), busy: L.busy, armed: !!L.timer, checks: L.checks, changes: L.changes, errors: L.errors, base: L.base ? { total: L.base.total, mod: L.base.mod } : null, dirty: !!L.dirty, queue: L.queue.map(t => t - now), boostMs: Math.max(0, L.boostUntil - now), last: L.last,
+        settle: { left: L.settle, inMs: L.settleAt ? L.settleAt - now : 0, why: L.settleWhy, ran: L.settles, server: !!L.srvSettle } }; },   // AYNA-SETTLE
+      check: function () { aynaLiveSettleStart('manual'); aynaLiveArm(0, 'manual'); return true; },
       boost: function () { aynaLiveBoost('manual'); return true; }
     },
     mode: function () { const s = document.getElementById('bubble-table-config'); try { return aynaMode(parseBubbleConfig((s && s.textContent) || '{}')); } catch (e) { return false; } },
