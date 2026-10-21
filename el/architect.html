@@ -27124,6 +27124,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       try {
         localStorage.setItem('gx_flagship_done:' + a.slug, JSON.stringify({ ts: Date.now(), workspace_label: a.workspace_label || '', trigger: trigger === 'armed' ? 'armed' : 'manual', uid: (typeof window._gadDraftUserId === 'function') ? window._gadDraftUserId() : '' }));
         _gadFlagshipAnnounceState(a.slug, trigger === 'armed' ? 'armed' : 'manual');
+        // 20.10 (ACCT-SWITCH): the mailbox choice belonged to this setup; the next mail assistant asks again.
+        try { sessionStorage.removeItem('gx_mail_provider'); } catch(_mp){}
         return true;
       }
       catch(e){ return false; }
@@ -27234,7 +27236,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
               var mwMode = '';
               try { mwMode = String((a.args && a.args.data_flow_rules && a.args.data_flow_rules.manual_wake && a.args.data_flow_rules.manual_wake.mode) || ''); } catch(e){ mwMode = ''; }
               if (!mwMode || mwMode === 'update_known') mwMode = 'bulk_create';
-              var job = { slug: a.slug, head: fbHead, mode: mwMode, ts: Date.now() };
+              var job = { slug: a.slug, head: fbHead, mode: mwMode, ts: Date.now(), uid: (typeof window._gadDraftUserId === 'function') ? String(window._gadDraftUserId() || '') : '' };   // ACCT-SWITCH
               // 20.09 (canlı koşu, build 2026-09-20.fb1): İŞARET KOŞUNUN İHTİYACINI TAŞIR. Yenilenen sayfada
               // Bubble prompt'u araçlardan ÖNCE basıyor; uyandırma o boşlukta gidince tools_list boş kalıyordu.
               // Taşınan liste izin elemelerinden SONRAKİ taahhüt listesidir (taslak kapalıysa taslak aracı,
@@ -27477,6 +27479,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       try { sessionStorage.removeItem(_GFL_FIRST_BATCH_KEY); } catch(e){}   // tek atım: yenileme döngüsü / ikinci koşu olmasın
       var job = null; try { job = JSON.parse(raw); } catch(e){ job = null; }
       if (!job || !job.head || !job.ts || (Date.now() - job.ts) > 3 * 60 * 1000) { gW('[FLAGSHIP] ilk işleme işareti bayat ya da bozuk, atlandı'); return false; }
+      if (_gflForeignRec(job)) { gW('[FLAGSHIP] ilk işleme işareti başka hesabın, atlandı'); return false; }   // ACCT-SWITCH: önizleme mesajları o hesabın
       var LIMIT = _GFL_FIRST_BATCH_LIMIT;
       var fallbackMsg = 'Press Ask Assistant in your workspace to run it on your newest messages.';
       var t0 = Date.now();
@@ -27491,6 +27494,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var headOk = ready && txt.indexOf(job.head) >= 0;
         var sl = _gflFbStageList();
         if (headOk && sl.stage && sl.list) {
+          if (_gflForeignRec(job)) { gW('[FLAGSHIP] ilk işleme işareti başka hesabın, atlandı'); return; }   // ACCT-SWITCH: kimlik açılışta henüz yoktuysa
           var lockKey = 'gx_flagship_first_batch_done:' + aid;
           try {
             if (localStorage.getItem(lockKey)) {
@@ -27901,12 +27905,19 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var _gadFlagshipSession = null;
     function _gadFlagshipSetSession(s){ _gadFlagshipSession = s || null; window._gadFlagshipSession = _gadFlagshipSession; return _gadFlagshipSession; }
     function _gadFlagshipSessionKey(slug){ return 'gx_flagship_session:' + String(slug || ''); }
+    // 20.10 (ACCT-SWITCH): kurulum kayıtları hesaba damgalı. Aynı sekmede çıkış yapıp başka hesapla girince eski hesabın
+    // yarım kurulumu sayfa açılışında kendiliğinden açılıyor ("still being confirmed" paneli, yeni kurulum yok), posta
+    // sağlayıcı seçimi ve ilk işleme işi de yeni hesaba geçiyordu. Kural: kimlik biliniyorsa kimliksiz ya da başka
+    // hesaba ait kayıt yok sayılır ve silinir; kimlik henüz yüklenmediyse karar verilmez (eski davranış).
+    function _gflOwnerUid(){ try { return (typeof window._gadDraftUserId === 'function') ? String(window._gadDraftUserId() || '') : ''; } catch(e){ return ''; } }
+    function _gflForeignRec(rec){ var cu = _gflOwnerUid(); if (!cu) return false; return !rec || String(rec.uid || '') !== cu; }
+    window._gflForeignRec = _gflForeignRec;
     function _gadFlagshipSaveSession(){
       var s = _gadFlagshipSession; if (!s || !s.slug) return;
       try {
         var copy = { slug: s.slug, phase: s.phase, step: s.step, apps: s.apps, prefs: s.prefs, changeText: s.changeText,
           previewRef: s.previewRef, previewRecords: (s.previewRecords || []).slice(0, 8), previewFp: s.previewFp, evidence: s.evidence,
-          previewCount: s.previewCount, previewLastTs: s.previewLastTs, triggerId: s.triggerId, triggerState: s.triggerState, handedOff: !!s.handedOff, ts: Date.now() };
+          previewCount: s.previewCount, previewLastTs: s.previewLastTs, triggerId: s.triggerId, triggerState: s.triggerState, handedOff: !!s.handedOff, ts: Date.now(), uid: _gflOwnerUid() };   // ACCT-SWITCH
         // 17.09 (WORK MAP): harita + durum + inceleme sayaci yalniz ozellik acik kartin oturumunda vardir (digerlerinde kopya ayni kalir)
         if (s.workMap || s.workMapState || s.inspectCount) { copy.workMap = s.workMap || null; copy.workMapState = String(s.workMapState || ''); copy.inspectCount = Number(s.inspectCount) || 0; copy.workMapSeen = !!s.workMapSeen; }
         // 17.09 (DEEP_SCAN spec H1.2): derin taramanin ciktilari da kalir; yenilemede glance seridi ve ray geri gelir,
@@ -27944,6 +27955,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (!raw) return null;
         var d = JSON.parse(raw);
         if (!d || !d.ts || (Date.now() - d.ts) > _GFL_SESSION_TTL) { sessionStorage.removeItem(_gadFlagshipSessionKey(slug)); return null; }
+        if (_gflForeignRec(d)) { sessionStorage.removeItem(_gadFlagshipSessionKey(slug)); gW('[FLAGSHIP] baska hesabin kurulum oturumu silindi |', slug); return null; }   // ACCT-SWITCH
         return d;
       } catch(e){ return null; }
     }
@@ -28075,8 +28087,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if (!d || !d.ts || (Date.now() - d.ts) > ttl) { localStorage.removeItem('gx_flagship_done:' + slug); return null; }
         // 14.09: işaret cihaz başına, hesap başına DEĞİLDİ → aynı telefonda açılan yeni hesap "Already hired" görebiliyordu.
         // İşaret kullanıcıya damgalı ve sayfadaki kullanıcı farklıysa YOK sayılır (silinmez: öbür hesabın işareti).
+        // 20.10 (ACCT-SWITCH): kimliksiz işaret (eski sürüm ya da kimlik yüklenmeden yazılmış) hiçbir hesabın sayılmaz → silinir.
         try {
           var cu = (typeof window._gadDraftUserId === 'function') ? window._gadDraftUserId() : '';
+          if (cu && !d.uid) { localStorage.removeItem('gx_flagship_done:' + slug); return null; }
           if (d.uid && cu && String(d.uid) !== cu) return null;
         } catch(eU){}
         return d;
@@ -37311,9 +37325,17 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       tls: 'The mail server\'s secure connection could not be verified.',
       timeout: 'The mail server did not answer in time. Try again.'
     };
-    function _gflMpStored(){ try { var o = JSON.parse(sessionStorage.getItem('gx_mail_provider') || 'null'); return (o && typeof o === 'object') ? o : null; } catch(e){ return null; } }
+    // 20.10 (ACCT-SWITCH): the choice belongs to the account that made it; another account's (or an unstamped) choice is dropped.
+    function _gflMpStored(){
+      try {
+        var o = JSON.parse(sessionStorage.getItem('gx_mail_provider') || 'null');
+        if (!o || typeof o !== 'object') return null;
+        if (_gflForeignRec(o)) { sessionStorage.removeItem('gx_mail_provider'); gW('[MAILPROV] another account\'s mailbox choice dropped'); return null; }
+        return o;
+      } catch(e){ return null; }
+    }
     window._gflMpStored = _gflMpStored;
-    function _gflMpStore(app, email){ try { sessionStorage.setItem('gx_mail_provider', JSON.stringify({ app: String(app || ''), email: String(email || ''), ts: Date.now() })); } catch(e){} }
+    function _gflMpStore(app, email){ try { sessionStorage.setItem('gx_mail_provider', JSON.stringify({ app: String(app || ''), email: String(email || ''), ts: Date.now(), uid: _gflOwnerUid() })); } catch(e){} }
     function _gflMpIsEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim()); }
     function _gflMpCss(){
       if (document.getElementById('gfl-mailprov-css')) return;
@@ -38846,6 +38868,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
               if (sk.indexOf('gx_flagship_session:') !== 0) continue;
               var sv = null; try { sv = JSON.parse(sessionStorage.getItem(sk) || 'null'); } catch(_pe){ sv = null; }
               if (!sv || !sv.slug || !sv.ts || (Date.now() - sv.ts) > _GFL_SESSION_TTL) continue;
+              if (_gflForeignRec(sv)) { gW('[FLAGSHIP] baska hesabin kurulum oturumu yeniden acilmadi, silindi |', sv.slug); try { sessionStorage.removeItem(sk); } catch(_ps){} si--; continue; }   // ACCT-SWITCH
               var pendingPh = (sv.phase === 'creating' || sv.phase === 'arming' || sv.phase === 'unconfirmed');
               var stepOk = (['preview','verify','configure','launch'].indexOf(sv.step) >= 0);
               if (!(pendingPh || (stepOk && (sv.phase === 'idle' || sv.phase === 'preview' || !sv.phase)))) continue;
@@ -38860,6 +38883,18 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var iv = setInterval(function(){
           tries++;
           if (typeof window.gaiaUseFlagship === 'function' && typeof window.gaiaOpenAgentDashboard === 'function'){
+            // ACCT-SWITCH (20.10): a resumed session opens only for its own account. The Prompt Builder (#bubble-options,
+            // the identity) may print after this element, so the resume waits up to 3 s for it, then checks the record again.
+            if (source === 'resume') {
+              if (!_gflOwnerUid() && tries <= 12) return;
+              var _rs = null; try { _rs = JSON.parse(sessionStorage.getItem(_gadFlagshipSessionKey(fslug)) || 'null'); } catch(_rp){ _rs = null; }
+              if (!_rs || _gflForeignRec(_rs)) {
+                clearInterval(iv);
+                if (_rs) { try { sessionStorage.removeItem(_gadFlagshipSessionKey(fslug)); } catch(_rd){} gW('[FLAGSHIP] baska hesabin kurulum oturumu yeniden acilmadi, silindi |', fslug); }
+                window.__GX_FLAGSHIP_BOOTED__ = false;
+                return;
+              }
+            }
             clearInterval(iv);
             window.gaiaUseFlagship(fslug, { instant: instant, intent: intent || 'preview', source: source,
               onBoot: function(ok){ if (!ok) window.__GX_FLAGSHIP_BOOTED__ = false; } });   // basarisizsa yeniden deneme serbest, niyet durur
