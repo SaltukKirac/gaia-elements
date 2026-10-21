@@ -68160,7 +68160,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   (function () {
     var add = {
       perCol: 6, recTtl: 300000, recMin: 30000, recDeb: 3000, recCap: 12, recAbort: 30000, recRetryA: 1500, recRetryB: 4000,
-      recCaption: 300, staleMs: 300000, openWait: 30000, openPoll: 250, revealWait: 2000, searchMax: 8000, dragSlop: 8
+      recCaption: 300, staleMs: 300000, openWait: 30000, openPoll: 250, revealWait: 2000, searchMax: 8000, dragSlop: 8,
+      tableWait: 4000
     };
     for (var k in add) { if (Object.prototype.hasOwnProperty.call(add, k)) { T[k] = add[k]; T_DEFAULT[k] = add[k]; } }
   })();
@@ -68708,8 +68709,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     return list[i] || null;
   }
-  // Kart tiki: tablo turunde zoom + tablonun hazir olmasini bekle + reveal + tablonun kendi Open yolu (start).
-  // Tablo turu olmayan surecte yalniz zoom. Dogrudan bubble_fn_start yedegi YOK.
+  // Kart tiki: zoom + tablonun hazir olmasini bekle + reveal + tablonun kendi Open yolu (start), surec turu ne olursa
+  // olsun (canli bulgu 21.10: NOD surecleri Visual to text, ekran tablo). Tablo turu olmayan surecte bekleme
+  // T.tableWait; o surede bu ekranda tablo yoksa zoom sonuctur, sessiz durulur. Dogrudan bubble_fn_start yedegi YOK.
   function openRecord(k, i, kb, li) {
     if (!S.mounted || S.zoom || S.chromeErr) { return Promise.resolve(false); }
     var s = S.snap || snapshot();
@@ -68718,9 +68720,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!x) { return Promise.resolve(false); }
     if (!li && S.board) { li = S.board.querySelector('.octo-wsb-cell[data-col="' + k + '"]'); }
     var from = (li && S.layout === 'board' && boardOpen()) ? li : null;
-    if (x.tipi && !/^table$/i.test(x.tipi)) { return zoomIn(k, { from: from, kb: kb }); }
+    var tbl = !x.tipi || /^table$/i.test(x.tipi);
     var rec = cardsRec(k, i, st);
-    if (!rec) { return Promise.resolve(false); }
+    if (!rec) { return tbl ? Promise.resolve(false) : zoomIn(k, { from: from, kb: kb }); }
     var tok = {};
     S.lastRec = tok;
     var t0 = gmStatus();
@@ -68745,19 +68747,38 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         return '';
       };
       var gone = function () { if (!lost) { lost = why(); } return !!lost; };
+      // Tablo turu olmayan surecte T.tableWait boyunca tablo izi yoksa zoom sonuctur (stop). Yuklenen canli tablo
+      // (loading + dynamicTable.reveal) tablodur: her goruldugunde pencere yeniden kurulur, en cok T.openWait.
+      var seen = false, lim = now() + T.tableWait;
+      var stop = function () { return gone() || (!tbl && now() >= lim); };
       return pollP(function () {
         var t = gmStatus();
+        if (!tbl && t && t.loading === true && revealFn()) { lim = now() + T.tableWait; }
         if (!t || t.loading || !t.stats) { return false; }
+        if (!tbl && !tableHere(t)) { return false; }
         return wasCur || str(t.stats.screen && t.stats.screen.key) !== k0;
-      }, T.openWait, T.openPoll, gone).then(function (ready) {
-        if (ready === null) { return false; }
-        if (!ready) { toast('Could not find record', false); return false; }
+      }, T.openWait, T.openPoll, stop).then(function (ready) {
+        if (ready === null && lost) { return false; }
+        if (!ready) {
+          if (tbl) { toast('Could not find record', false); } else { trace('rec:notable'); }
+          return false;
+        }
+        seen = true;
         return recReveal(rec, gone);
       }).then(function (done) {
-        if (!done && lost && lost !== 'board' && lost !== 'new' && lost !== 'unmount') { trace('rec:lost'); toast('Could not find record', false); }
+        if (!done && lost && (tbl || seen) && lost !== 'board' && lost !== 'new' && lost !== 'unmount') { trace('rec:lost'); toast('Could not find record', false); }
         return done;
       });
     });
+  }
+  // Tablo turu olmayan surecte ekranda tablo var mi: reveal islevi var ve aynanin ekrani su anki surece ait
+  // (stage bos = yalniz screen_id'li ekran, TV2:5699-5711). Eski ekranin bayat istatistigi sayilmaz.
+  function revealFn() { var dt = W.dynamicTable; return !!dt && typeof dt.reveal === 'function'; }
+  function tableHere(t) {
+    var sc = t.stats.screen;
+    if (!revealFn() || !sc || !str(sc.key)) { return false; }
+    var sid = str(sc.stage), cid = str(ctx().stage_id);
+    return !sid || !cid || sid === cid;
   }
   function recReveal(rec, gone) {
     var until = now() + T.revealWait;
