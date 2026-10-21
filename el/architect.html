@@ -17844,31 +17844,82 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       return false;
     }
 
-    function _gadShowNoAccountCard() {
+    // 21.10 (AUTH-INPLACE): the card opens the page's own Bubble sign up / log in window instead of leaving for
+    // /login. The sidebar buttons "Sign up for free" / "Log In" open it in place (Bubble adds &nav=signup); they stay
+    // in the DOM when the sidebar is hidden, so a click works there too. A sign up on the /login page lost the setup.
+    // The intent is still mirrored first (a reload after sign up resumes from it); when the page stays, the blocked
+    // action runs once more as soon as the login flag (AS SNP data-logged) turns 'yes' (15 min watch).
+    function _gadBubbleAuthButton(kind) {
+      var known = kind === 'signup' ? 'button.baWaHel' : 'button.baWaHeh';
+      var rx = kind === 'signup' ? /^sign up( for free)?$/i : /^log ?in$/i;
+      try {
+        var k = document.querySelector(known);
+        if (k && rx.test(String(k.textContent || '').trim())) return k;
+        var list = document.querySelectorAll('.clickable-element');
+        for (var i = 0; i < list.length; i++) {
+          var b = list[i];
+          if (!rx.test(String(b.textContent || '').trim())) continue;
+          var box = b.closest('.FloatingGroup, .GroupFocus, .Popup');
+          if (box && /continue with google/i.test(String(box.textContent || ''))) continue;   // a button of the auth window itself
+          return b;
+        }
+      } catch (_e) {}
+      return null;
+    }
+    var _gadAuthWatch = null;
+    function _gadAuthResumeArm(resume) {
+      if (_gadAuthWatch) { clearInterval(_gadAuthWatch.iv); _gadAuthWatch = null; }
+      if (typeof resume !== 'function') return;
+      var t0 = Date.now(), w = { iv: 0 };
+      w.iv = setInterval(function () {
+        if (_gadAuthWatch !== w) { clearInterval(w.iv); return; }
+        if (Date.now() - t0 > 15 * 60 * 1000) { clearInterval(w.iv); _gadAuthWatch = null; return; }
+        if (_gadLoginState() !== 'yes') return;
+        clearInterval(w.iv); _gadAuthWatch = null;
+        gL('[NO-ACCOUNT] signed in on this page, the setup continues');
+        try { if (typeof gxaTrack === 'function') gxaTrack('setup_resumed_after_login', {}); } catch (_t) {}
+        setTimeout(function () { try { resume(); } catch (_r) { gW('[NO-ACCOUNT] resume failed: ' + (_r && _r.message)); } }, 600);
+      }, 1000);
+      _gadAuthWatch = w;
+    }
+    window._gadBubbleAuthButton = _gadBubbleAuthButton;
+
+    function _gadShowNoAccountCard(resume) {
       try {
         var old = document.getElementById('gad-noacct'); if (old) old.remove();
         var ov = document.createElement('div');
         ov.id = 'gad-noacct';
         ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'gad-noacct-t');
         ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,0.45);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Inter,system-ui,sans-serif;';
-        var btn = 'min-height:40px;padding:0 16px;border-radius:10px;font:600 14px/1 Inter,system-ui,sans-serif;cursor:pointer;';
+        var btn = 'min-height:44px;padding:0 16px;border-radius:10px;font:600 14px/1 Inter,system-ui,sans-serif;cursor:pointer;';
         ov.innerHTML =
           '<div style="width:100%;max-width:400px;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(2,6,23,0.3);padding:24px;">' +
-            '<div id="gad-noacct-t" style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:8px;">Sign in to set this up</div>' +
-            '<div style="font-size:14px;line-height:1.55;color:#475569;margin-bottom:20px;">This assistant starts on its own when something happens, like a new email. It needs your own account to keep running. Sign in or create an account, then set it up again.</div>' +
+            '<div id="gad-noacct-t" style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:8px;">Create your free account to start</div>' +
+            '<div style="font-size:14px;line-height:1.55;color:#475569;margin-bottom:20px;">This assistant starts on its own when something happens, like a new email, so it runs on your own account. Sign up or log in right here. Your setup stays open and continues.</div>' +
             '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">' +
               '<button type="button" data-act="later" style="' + btn + 'background:#fff;color:#334155;border:1px solid #cbd5e1;">Not now</button>' +
-              '<button type="button" data-act="login" style="' + btn + 'background:#4f46e5;color:#fff;border:1px solid #4f46e5;">Sign in</button>' +
+              '<button type="button" data-act="login" style="' + btn + 'background:#fff;color:#4f46e5;border:1px solid #c7d2fe;">Log in</button>' +
+              '<button type="button" data-act="signup" style="' + btn + 'background:#4f46e5;color:#fff;border:1px solid #4f46e5;">Sign up</button>' +
             '</div>' +
           '</div>';
         var onKey = function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); ev.preventDefault(); close(); } };
         var close = function () { window.removeEventListener('keydown', onKey, true); try { ov.remove(); } catch (_r) {} };
         ov.addEventListener('click', function (ev) {
           var b = ev.target && ev.target.closest ? ev.target.closest('[data-act]') : null;
-          if (b && b.getAttribute('data-act') === 'login') {
-            // version-test altında aynı sürümün giriş sayfası
+          var act = b ? b.getAttribute('data-act') : '';
+          if (act === 'login' || act === 'signup') {
+            _gxUsePendingMirror();   // os6: the setup intent survives a reload after sign up
+            var ab = _gadBubbleAuthButton(act);   // AUTH-INPLACE: the page's own window, no page change
+            if (ab) {
+              close();
+              _gadAuthResumeArm(resume);
+              gL('[NO-ACCOUNT] page ' + act + ' window opened in place');
+              try { if (typeof gxaTrack === 'function') gxaTrack('setup_auth_inplace', { kind: act }); } catch (_t) {}
+              try { ab.click(); } catch (_c) {}
+              return;
+            }
+            // no such button on this page: the same version's login page (the old route)
             var base = /^\/version-test(\/|$)/.test(location.pathname) ? '/version-test' : '';
-            _gxUsePendingMirror();   // os6: the setup intent survives the login round trip
             location.href = base + '/login';
             return;
           }
@@ -17876,18 +17927,19 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         });
         window.addEventListener('keydown', onKey, true);
         document.body.appendChild(ov);
-        try { ov.querySelector('[data-act="login"]').focus(); } catch (_f) {}
+        try { ov.querySelector('[data-act="signup"]').focus(); } catch (_f) {}
       } catch (_e) {
         _gadToast('Sign in or create an account to set up an assistant that runs on its own.', 'error');
       }
     }
 
     // true = ENGELLENDİ (çağıran kurulumu durdurur). Yalnız bayrak açıkça 'no' iken.
-    function _gadNoAccountGate(where) {
+    // resume (optional): runs once when the person signs in on this page (AUTH-INPLACE), e.g. presses the blocked button again.
+    function _gadNoAccountGate(where, resume) {
       if (_gadLoginState() !== 'no') return false;
       gW('[NO-ACCOUNT] tetikleyicili ajan kurulumu engellendi (AS SNP data-logged=no) | ' + String(where || ''));
       try { if (typeof gxaTrack === 'function') gxaTrack('setup_blocked_no_account', { where: String(where || '') }); } catch (_e) {}
-      _gadShowNoAccountCard();
+      _gadShowNoAccountCard(resume);
       return true;
     }
     window._gadNoAccountGate = _gadNoAccountGate;
@@ -30214,6 +30266,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // Taahhut tikindan once cagrilir. true = tik burada durdu (sorgu suruyor ya da paket yok); false = devam.
     function _gflPayGate(s, ctx, which){
       if (!s || !_gflPayApplies(ctx)) return false;
+      // AUTH-INPLACE (21.10): the account comes first. A signed out visitor is stopped by the commit's account card;
+      // the package check runs when the setup continues after sign in, so a payment always has a workspace to land on.
+      try { if (typeof window._gadLoginState === 'function' && window._gadLoginState() === 'no') return false; } catch(_lg){}
       s.pay = s.pay || { state: 'idle' };
       if (s.pay.state === 'ok') return false;
       if (s.pay.state === 'checking') return true;
@@ -39309,7 +39364,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // 28.09 HESAP YOK KAPISI: tetikleyicili ürün hesabı olmayan ziyaretçiye (AS SNP data-logged=no) kurulmaz.
       // İnceleme dalı yukarıda GAD'ı açar (kurulum değil; Approve yine kapıdan geçer). Belge dizinleme ve tetikleyici
       // create'inden ÖNCE: hiçbir yan etki doğmaz.
-      if (bp && bp.trigger && bp.trigger.trigger_slug && _gadNoAccountGate('flagship:' + (fromReview ? 'review' : 'one_click'))) {
+      if (bp && bp.trigger && bp.trigger.trigger_slug && _gadNoAccountGate('flagship:' + (fromReview ? 'review' : 'one_click'), function(){
+            // AUTH-INPLACE: signed in on this page, so the person's own button runs once more (the package check follows)
+            var bt = _gadFlagshipEl(fromReview ? 'gfl-review' : 'gfl-go');
+            if (bt && !bt.disabled && !bt.hidden && _gadFlagshipOv()) bt.click();
+          })) {
         _gadFlagshipSetBusy(false);
         return false;
       }
@@ -47172,7 +47231,8 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
 #octo-wsbar,
 #octo-wsb-pop,
 #octo-wsb-board,
-#octo-wsb-toast {
+#octo-wsb-toast,
+#octo-wsb-tip {
   --octo-accent: #6366f1;
   --octo-accent-soft: rgba(99, 102, 241, .10);
   --octo-grad: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -47977,7 +48037,250 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   white-space: nowrap;
 }
 
+/* ======================================================== tek ust cubuk (os9c)
+   OCTO_WSH_SPEC. Cubuk Bubble'in baslik bandinin yerinde (top 0, yukseklik = bant, sag kenar = zil - 8; JS satir ici).
+   Ust kipte rayin seridi cubugun kapsulunde; alt kipte serit hucrenin dibinde (yalniz html[data-octo-wsh]).
+   Tablonun atalarina (satir, hucre) kural YOK: serit hucrenin cocugu olarak yalniz order / yukseklik alir. */
+#octo-wsbar[data-hdr="1"],
+#octo-wsbar[data-hdr="1"][data-classic="1"] {
+  /* Sayfa kayarsa bandla birlikte kayar (sabit cubuk tablonun ust satirlarini orterdi). */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  max-width: none;
+  gap: 0;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none !important;
+  transition: none;
+}
+/* Tek alt cizgi: zilin altina da uzanir (cubugun sag ayirmasi kadar). */
+#octo-wsbar[data-hdr="1"]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: calc(-1 * var(--octo-wsb-r, 0px));
+  bottom: 0;
+  width: auto;
+  height: 1px;
+  margin: 0;
+  border-radius: 0;
+  background: var(--octo-hair);
+  pointer-events: none;
+}
+#octo-wsbar .octo-wsb-zl { flex: 0 1 auto; display: flex; align-items: center; gap: 2px; min-width: 0; }
+#octo-wsbar .octo-wsb-gap { flex: 1 1 0; min-width: 0; }
+#octo-wsbar .octo-wsb-zr { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; margin-left: 8px; }
+#octo-wsbar[data-hdr="1"] .octo-wsb-name { max-width: 160px; }
+#octo-wsbar[data-hdr="1"][data-fit] .octo-wsb-eyebrow { display: none; }
+#octo-wsbar[data-hdr="1"][data-fit="compact"] .octo-wsb-name { max-width: 132px; }
+/* tight: workspace adi dusar (rayin basliginda yazar; aria-label ve ipucunda kalir). */
+#octo-wsbar[data-hdr="1"][data-fit="tight"] .octo-wsb-lab { display: none; }
+#octo-wsbar[data-hdr="1"][data-fit="tight"] .octo-wsb-ws { gap: 4px; padding-right: 6px; }
+#octo-wsbar[data-hdr="1"] .octo-wsb-chip.is-as { margin: 0 4px 0 0; }
+/* Gorunum grubu tasmayi kirpar (overflow hidden): odak halkasi dugmenin icinde. */
+#octo-wsbar[data-hdr="1"] .octo-wsb-views > button:focus-visible { outline-offset: -2px; }
+/* Kapsul yokken (alt bar) sag bolgenin bastaki ayraci hicbir seyi ayirmaz. */
+#octo-wsbar .octo-wsb-gap + .octo-wsb-zr > .octo-wsb-sep:first-child { display: none; }
+/* tight: secili olmayan gorunumler yalniz ikon (ad tooltip'te ve aria-label'da). */
+#octo-wsbar[data-hdr="1"][data-fit="tight"] .octo-wsb-view:not([aria-current]) {
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+}
+#octo-wsbar[data-hdr="1"][data-fit="tight"] .octo-wsb-view:not([aria-current]) .octo-wsb-vlab,
+#octo-wsbar[data-hdr="1"][data-fit="tight"] .octo-wsb-view:not([aria-current]) .octo-wsb-n { display: none; }
+
+/* Edit (birinci seviye) */
+#octo-wsbar .octo-wsb-edit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--octo-r3);
+  background: transparent;
+  color: var(--octo-ink-2);
+  font-weight: 600;
+  cursor: pointer;
+}
+#octo-wsbar .octo-wsb-edit:hover { background: var(--octo-field); color: var(--octo-ink); }
+#octo-wsbar[data-hdr="1"][data-fit] .octo-wsb-edit { width: 44px; padding: 0; }
+#octo-wsbar[data-hdr="1"][data-fit] .octo-wsb-elab { display: none; }
+
+/* Menu avatari */
+#octo-wsbar .octo-wsb-menu.is-av .octo-wsb-av {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-field);
+  box-shadow: inset 0 0 0 1px var(--octo-line);
+  color: var(--octo-ink-2);
+  font: 700 11px/12px var(--octo-font);
+  letter-spacing: .02em;
+}
+#octo-wsbar .octo-wsb-menu.is-av .octo-wsb-av[data-as="1"] { box-shadow: 0 0 0 2px var(--octo-warn); color: var(--octo-warn); }
+#octo-wsbar .octo-wsb-menu.is-av:hover .octo-wsb-av,
+#octo-wsbar .octo-wsb-menu.is-av[aria-expanded="true"] .octo-wsb-av { background: var(--octo-line-2); }
+
+/* Uygulama kapsulu: rayin seridi (.octo-tabs) + secim thumb'i. Serit kurallari rayinkini (0,1,0) ezer. */
+#octo-wsbar .octo-wsb-apps {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  height: 52px;
+  margin-left: 8px;
+  padding: 3px;
+  border-radius: 14px;
+  background: #eef1f5;
+}
+#octo-wsbar .octo-wsb-thumb {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: 46px;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .14), inset 0 0 0 1px rgba(15, 23, 42, .10);
+  transition: transform 200ms var(--octo-spring), width 200ms var(--octo-spring);
+  pointer-events: none;
+}
+#octo-wsbar .octo-wsb-thumb[data-still="1"] { transition: none; }
+#octo-wsbar .octo-wsb-apps > .octo-tabs {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+#octo-wsbar .octo-wsb-apps .octo-tabs-tab {
+  position: relative;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 52px;
+  height: 46px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--octo-ink-2);
+  font: 600 11px/13px var(--octo-font);
+}
+/* Rayin hover zemini (--octo-bg) kapsulde yok; yalniz hover olan aygitta acik zemin (dokunmatikte yapismaz). */
+#octo-wsbar .octo-wsb-apps .octo-tabs-tab:hover { background: transparent; }
+@media (hover: hover) {
+  #octo-wsbar .octo-wsb-apps .octo-tabs-tab:hover { background: rgba(255, 255, 255, .7); color: var(--octo-ink); }
+}
+/* Start kutucugu secili degilken accent ikon tasimaz (rayin kurali kapsulde secili gibi gosterirdi). */
+#octo-wsbar .octo-wsb-apps .octo-tabs-onb:not([aria-selected="true"]) .octo-tabs-ico { color: inherit; }
+/* Kurulu degil / bagli degil: tiklanir, yalniz ikon soluk (11 px kelime okunur kalir). */
+#octo-wsbar .octo-wsb-apps .octo-tabs-tab:is([data-state="unset"], [data-state="unlinked"]) { opacity: 1; color: var(--octo-ink-3t); }
+#octo-wsbar .octo-wsb-apps .octo-tabs-tab:is([data-state="unset"], [data-state="unlinked"]) .octo-tabs-ico { opacity: .55; }
+#octo-wsbar .octo-wsb-apps .octo-tabs-tab[aria-selected="true"],
+#octo-wsbar .octo-wsb-apps .octo-tabs-tab[aria-selected="true"]:hover { background: transparent; box-shadow: none; color: var(--octo-ink); }
+#octo-wsbar .octo-wsb-apps .octo-tabs-tab[data-state="soon"]:hover,
+#octo-wsbar .octo-wsb-apps .octo-tabs-tab[data-state="off"]:hover { background: transparent; color: var(--octo-ink-2); }
+#octo-wsbar .octo-wsb-apps .octo-tabs-soon { top: 2px; right: 2px; }
+#octo-wsbar[data-fit="tight"] .octo-wsb-apps .octo-tabs-tab[data-tab="mail"][data-state="soon"] { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  #octo-wsbar[data-fit="tight"] .octo-wsb-apps .octo-tabs-tab:not([aria-selected="true"]) { min-width: 44px; padding: 0; }
+  #octo-wsbar[data-fit="tight"] .octo-wsb-apps .octo-tabs-tab:not([aria-selected="true"]) .octo-tabs-word { display: none; }
+}
+/* Dokunmatik: kutucuk en az 52x48, kelime hep gorunur. */
+@media (hover: none), (pointer: coarse) {
+  #octo-wsbar[data-hdr="1"] .octo-wsb-chip.is-as[data-act] { height: 44px; }
+  #octo-wsbar[data-hdr="1"] .octo-wsb-more { min-width: 44px; justify-content: center; }
+  #octo-wsbar .octo-wsb-apps { height: 54px; }
+  #octo-wsbar .octo-wsb-thumb,
+  #octo-wsbar .octo-wsb-apps > .octo-tabs,
+  #octo-wsbar .octo-wsb-apps .octo-tabs-tab { height: 48px; }
+}
+
+/* Icerik: pano ve rayin paneli hucrenin ustunden (serit artik orada degil). */
+/* Panel yalniz serit gercekten hucreden ciktiysa ust kenarda (kanca basarisizsa serit ortulmez). */
+html[data-octo-wsh="top"] #octo-rail-row > .octo-rail-cell:not(:has(> .octo-tabs)) > .octo-tabs-panel,
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs-panel { top: 0; }
+@supports not selector(:has(*)) {
+  html[data-octo-wsh="top"] #octo-rail-row > .octo-rail-cell > .octo-tabs-panel { top: 0; }
+}
+html[data-octo-wsh] #octo-wsb-toast { top: calc(var(--octo-wsb-h, 64px) + 12px); }
+
+/* Alt bar (?appbar=bottom, karsilastirma): serit hucrenin dibinde, akista (sabit konum yok). */
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs {
+  order: 2;
+  flex: 0 0 auto;
+  justify-content: safe center;
+  align-items: flex-start;
+  gap: 4px;
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
+  padding: 4px max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
+  border-top: 1px solid var(--octo-hair);
+  border-bottom: 0;
+  background: var(--octo-surface);
+}
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs .octo-tabs-tab {
+  position: relative;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 64px;
+  height: 48px;
+  padding: 0 4px;
+  border-radius: 12px;
+  box-shadow: none;
+  font: 600 11px/14px var(--octo-font);
+}
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs .octo-tabs-ico,
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs .octo-tabs-ico > svg { width: 22px; height: 22px; }
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs .octo-tabs-tab[aria-selected="true"] {
+  background: rgba(99, 102, 241, .10);
+  box-shadow: none;
+  color: var(--octo-ink);
+}
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs-panel { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); min-height: 0; }
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs .octo-tabs-tab:hover { background: transparent; }
+@media (hover: hover) {
+  html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs .octo-tabs-tab:not([aria-selected="true"]):not([data-state="soon"]):not([data-state="off"]):hover { background: var(--octo-field); }
+}
+html[data-octo-wsh="bottom"] #octo-wsb-board { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+
+/* Tooltip (yalniz hover olan aygitta; kelimesi gorunmeyen kutucuk ve ikon-dugmeler). */
+#octo-wsb-tip {
+  position: fixed;
+  z-index: 1453;
+  max-width: 260px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  font: 500 12px/16px var(--octo-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: var(--octo-sh-m);
+  pointer-events: none;
+}
+#octo-wsb-tip[hidden] { display: none !important; }
+
 @media (prefers-reduced-motion: reduce) {
+  #octo-wsbar .octo-wsb-thumb { transition: none; }
   #octo-wsbar, #octo-wsb-board .octo-wsb-card, #octo-wsb-board .octo-wsb-cell, #octo-wsb-board .octo-wsb-hint { transition: none; }
   #octo-wsb-board .octo-wsb-card:hover, #octo-wsb-board .octo-wsb-card:focus-visible { transform: none; }
   #octo-wsb-board .octo-wsb-skel { animation: none; opacity: 1; }
@@ -48181,10 +48484,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
 #octo-wse-sheet {
   position: fixed;
   z-index: 1459;
-  top: 72px;
+  top: calc(var(--octo-wsb-h, 64px) + 8px);
   left: 50%;
   width: min(720px, calc(100vw - 48px));
-  max-height: calc(100vh - 120px);
+  max-height: calc(100vh - var(--octo-wsb-h, 64px) - 56px);
+  max-height: calc(100dvh - var(--octo-wsb-h, 64px) - 56px);
   margin-left: calc(min(720px, calc(100vw - 48px)) / -2);
   display: flex;
   flex-direction: column;
@@ -49066,7 +49370,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     'sidebar': 'M5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4z|M9.5 4v16',
     // os9a (OCTO_WSBAR_SPEC): Workspace cubugu acilir menu oku ve liste (gorunum) glifi.
     'chevron-down': 'M5 9l7 7 7-7',
-    'list': 'M9 6h11|M9 12h11|M9 18h11|M4.5 6h.01|M4.5 12h.01|M4.5 18h.01'
+    'list': 'M9 6h11|M9 12h11|M9 18h11|M4.5 6h.01|M4.5 12h.01|M4.5 18h.01',
+    // os9c (OCTO_WSH_SPEC 7): tek ust cubugun Edit dugmesi.
+    'pencil': 'M4 20h4L19 9a2.83 2.83 0 0 0-4-4L4 16z|M13.5 6.5l4 4'
   };
 
   // ------------------------------------------------------------ sayfa kimligi
@@ -53116,6 +53422,53 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     try { if (octo.noMotion()) { a.setAttribute('data-nomo', '1'); } } catch (e) { /* yut */ }
     return a;
   }
+  // os9c (OCTO_WSH_SPEC 5): Workspace cubugu seridi kendi kapsulune alabilir. Ev sahibi bir dugum dondururse serit
+  // oraya konur (montaj, Varyant B yerlesimi, retab); null ise hucreye ya da sarmalayicinin onune. Tablo tasinmaz.
+  var TABS_HOST = null;
+  // w: tablo sarmalayicisi (montajda M.wrapper henuz yok). Seridin ya da tablonun icindeki / tabloyu iceren ev
+  // sahibi reddedilir (serit tablonun alt agacina girmez, montaj yarida kalmaz).
+  function tabsSlot(w) {
+    if (!TABS_HOST) { return null; }
+    var h = null;
+    try { h = TABS_HOST(); } catch (e) { h = null; }
+    if (!h || h.nodeType !== 1 || !isConn(h)) { return null; }
+    var tb = M.parts.tabs, wr = w || M.wrapper;
+    try {
+      if (tb && (tb === h || tb.contains(h))) { return null; }
+      if (wr && (wr.contains(h) || h.contains(wr))) { return null; }
+    } catch (e2) { return null; }
+    return h;
+  }
+  function tabsToSlot(w) {
+    var tb = M.parts.tabs, h = tabsSlot(w);
+    if (!tb || !h) { return false; }
+    if (tb.parentNode !== h) {
+      // Odak seritteyse tasimadan sonra geri verilir (Varyant B araligi da buradan gecer).
+      var ae = null;
+      try { ae = (D.activeElement && tb.contains(D.activeElement)) ? D.activeElement : null; } catch (e) { ae = null; }
+      try { h.appendChild(tb); } catch (e1) { return false; }
+      if (ae) { focusNode(ae); }
+    }
+    if (tb.style.width) { tb.style.width = ''; }
+    return true;
+  }
+  // Ev sahibi degisti: serit yerine tasinir, odak seritteyse geri verilir. Tasidiysa true (resize cagiranin isi).
+  function retab() {
+    var tb = M.parts.tabs;
+    if (!M.mounted || !tb) { return false; }
+    var ae = null;
+    try { ae = (D.activeElement && tb.contains(D.activeElement)) ? D.activeElement : null; } catch (e) { ae = null; }
+    var p0 = tb.parentNode, nx0 = tb.nextSibling;
+    if (!tabsToSlot()) {
+      var w = M.wrapper;
+      if (M.variant === 'a' && M.cell && w && w.parentNode === M.cell) {
+        if (tb.parentNode !== M.cell || tb.nextSibling !== w) { M.cell.insertBefore(tb, w); }
+      } else if (M.variant === 'b') { placeB(); }
+    }
+    var moved = tb.parentNode !== p0 || tb.nextSibling !== nx0;
+    if (moved) { trace('tabs:' + (tabsSlot() ? 'host' : 'cell')); if (ae) { focusNode(ae); } layout(); }
+    return moved;
+  }
   function mountDom(w) {
     if (!M.mounted || !M.armed) { return; }
     if (!w || !w.parentNode || !isConn(w)) { M.mounted = false; kick(T.remount); return; }
@@ -53139,7 +53492,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     // Serit hucrenin ilk cocugu (tablonun ustunde, akista); panel tablonun ustune mutlak konumlu.
     // Tablo dugumu ASLA yeniden ebeveynlenmez: panel yalniz ortup kaldirilir (OCTO_TABS_SPEC 1, 3).
-    cell.insertBefore(M.parts.tabs, w);
+    // os9c: ev sahibi (Workspace cubugunun kapsulu) varsa serit oraya.
+    if (!tabsToSlot(w)) { cell.insertBefore(M.parts.tabs, w); }
     cell.appendChild(M.parts.panel);
     if (h > 0) { row.style.minHeight = Math.round(h) + 'px'; }
     M.row = row; M.cell = cell; M.hold = hold; M.wrapper = w; M.variant = 'a';
@@ -53269,7 +53623,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     M.aside.classList.add('octo-rail-b');
     // Varyant B: serit tablonun hemen ustune kardes; panel wrapper dikdortgenine sabit (placeB).
     try {
-      w.parentNode.insertBefore(M.parts.tabs, w);
+      if (!tabsToSlot(w)) { w.parentNode.insertBefore(M.parts.tabs, w); }
       D.body.appendChild(M.parts.panel);
       M.parts.panel.classList.add('is-b');
     } catch (e1) { /* yut */ }
@@ -53312,6 +53666,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!wr || !a) { return; }
     var w = railWidth();
     var tb = M.parts.tabs;
+    var slotted = tabsToSlot();
+    if (slotted) { tb = null; }   // os9c: serit kapsulde; genisligi ve yeri bu fonksiyonun isi degil
     if (tb && wr.parentNode && (tb.parentNode !== wr.parentNode || (tb.nextSibling !== wr && tb.nextSibling !== a))) {
       try { wr.parentNode.insertBefore(tb, wr); } catch (e0) { /* yut */ }
     }
@@ -53451,6 +53807,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function fitTabs(phone) {
     var tb = M.parts.tabs;
     if (!tb) { return; }
+    // os9c: kapsuldeki seridin sigdirmasi Workspace cubugunun (data-fit cubukta; iki sahip olmasin).
+    var hs = tabsSlot();
+    if (hs && tb.parentNode === hs) { if (tb.getAttribute('data-fit')) { tb.setAttribute('data-fit', ''); } return; }
     var cur = tb.getAttribute('data-fit') || '';
     var want = '';
     if (!phone) {
@@ -64366,6 +64725,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     TABS: TABS,
     setCollapsed: setCollapsed,
     flush: flushFrame,
+    // os9c: seridin ev sahibi (fn -> dugum | null); retab yeri yeniden uygular (tasidiysa true).
+    tabsHost: function (fn) { TABS_HOST = (typeof fn === 'function') ? fn : null; return retab(); },
+    retab: retab,
     M: M,
     T: T,
     T_DEFAULT: T_DEFAULT,
@@ -65910,6 +66272,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   var TOAST_ID = 'octo-wsb-toast';
   var SCRIM_ID = 'octo-wsb-scrim';
   var LIVE_ID = 'octo-wsb-live';
+  var TIP_ID = 'octo-wsb-tip';
+  var WSH_KEY = 'octo_wsh';        // os9c tek ust cubuk (OCTO_WSH_SPEC 1)
+  var APPBAR_KEY = 'octo_appbar';  // os9c alt bar karsilastirmasi
+  var A_WSH = 'data-octo-wsh';      // html: 'top' | 'bottom' (yalniz tek ust cubuk acikken)
   var A_ON = 'data-octo-ws';
   var A_CLASSIC = 'data-octo-ws-classic';
   var A_GUTTER = 'data-octo-ws-gutter';
@@ -65921,7 +66287,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     tick: 250, settle: 400, zoomMs: 280, fadeMs: 120, inMs: 180, settleMs: 350, zoomWait: 4000, barWait: 3000,
     pageStep: 350, toast: 4000, hideDelay: 600, wheelIdle: 220, poll: 100,
     dropGrace: 1500, bootGrace: 4000, variantWait: 600, ours: 1500, reopenEvery: 5000, gfWait: 3000,
-    blankConfirm: 5000, blankWait: 8000, rescanAfter: 60000, bootTries: 120
+    blankConfirm: 5000, blankWait: 8000, rescanAfter: 60000, bootTries: 120,
+    bandEvery: 5000, bandPoll: 1000, tipDelay: 500, tipChain: 600
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -65975,7 +66342,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     cur: null, counts: {}, names: {}, memoSig: {}, page: 0, scan: null, scannedAt: {},
     noBarSince: 0, noProc: {}, chromeErr: '', reopenAt: 0, reopenTries: 0, dropAt: 0,
     waiters: [], wheel: null, barWheel: null, gfSeen: false, blankAt: 0, findQ: '',
-    lastErr: '', trace: [], covered: ''
+    lastErr: '', trace: [], covered: '', full: null,
+    // os9c tek ust cubuk
+    wsh: false, appbar: 'top', hdrMode: '', hdrWhy: '', band: { h: 0, right: 0, at: 0, badAt: 0, pend: -1 }, fit: '', fitW: 0, fitSig: '', fitDropW: 0, fitOk: true, noFit: 0, noFitKey: '', gapAt: 0, resizeDue: false, tileSig: '',
+    zl: null, gap: null, zr: null, apps: null, thumb: null, stripObs: null, stripObsRef: null, stripT: null, stripAl: '',
+    tip: null, tipFor: null, tipGone: -1e9
   };
 
   // ------------------------------------------------------------- yardimcilar
@@ -66060,6 +66431,16 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (v === '1' || v === 'on') { ssSet(FLAG_KEY, '1'); } else { ssDel(FLAG_KEY); }
     }
     return ssGet(FLAG_KEY) === '1';
+  }
+  // os9c: ?wsh=1|0 ve ?appbar=bottom|top (alt bar tek ust cubugu da acar); sekme oturumu boyunca.
+  function readSub() {
+    var q = wsQuery();
+    var m = /[?&]wsh=(1|on|0|off)(?=&|#|$)/i.exec(q);
+    if (m) { if (/^(1|on)$/i.test(m[1])) { ssSet(WSH_KEY, '1'); } else { ssDel(WSH_KEY); ssDel(APPBAR_KEY); } }
+    var a = /[?&]appbar=(bottom|top|0|off)(?=&|#|$)/i.exec(q);
+    if (a) { if (/^bottom$/i.test(a[1])) { ssSet(APPBAR_KEY, 'bottom'); ssSet(WSH_KEY, '1'); } else { ssDel(APPBAR_KEY); } }
+    S.wsh = ssGet(WSH_KEY) === '1';
+    S.appbar = ssGet(APPBAR_KEY) === 'bottom' ? 'bottom' : 'top';
   }
 
   // ------------------------------------------------------------------- ray
@@ -66289,6 +66670,31 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.memoSig[k] = sig;
   }
   function memo(map, s) { memoCheck(s); var k = sheetKey(s); if (!k) { return {}; } if (!map[k]) { map[k] = {}; } return map[k]; }
+  // Canli bulgu 21.10: Bubble surec adini ifadede kisaltir ('Veri Kontrol &... '); title yok, tam ad DOM'da yok.
+  // Sonu '...' ya da U+2026 olan ad on ektir (ayni clean(), buyuk / kucuk harf duyarli); degilse ''.
+  function truncPrefix(v) {
+    var m = /^(.*?)(?:\.\.\.|\u2026)$/.exec(clean(v));
+    return (m && /\S/.test(m[1])) ? m[1] : '';
+  }
+  // On ek eslemesi (tahmin yok): names[i] kisaltilmis Bubble adi (tam eslesen oge icin ''), fulls[j] tam adlar,
+  // taken[j] tam eslemenin aldigi. Tek aday o; birden coksa pos(i, cands) konumundaki aday; yine belirsizse ya da
+  // ayni tam ad birden cok on eke duserse esleme yok (-1). Tam esleme her zaman kazanir (taken), ad bir kez alinir.
+  function prefixPick(names, fulls, taken, pos) {
+    var cands = [], pick = [], by = {};
+    for (var i = 0; i < names.length; i++) {
+      var p = truncPrefix(names[i]), c = [];
+      if (p) { for (var j = 0; j < fulls.length; j++) { if (!taken[j] && fulls[j].indexOf(p) === 0) { c.push(j); } } }
+      cands.push(c);
+    }
+    for (var k = 0; k < cands.length; k++) {
+      var ck = cands[k], hit = -1;
+      if (ck.length === 1) { hit = ck[0]; } else if (ck.length > 1) { var ps = pos(k, cands); if (ps >= 0 && ck.indexOf(ps) >= 0) { hit = ps; } }
+      pick.push(hit);
+      if (hit >= 0) { by[hit] = (by[hit] || 0) + 1; }
+    }
+    for (var q = 0; q < pick.length; q++) { if (pick[q] >= 0 && by[pick[q]] > 1) { pick[q] = -1; } }
+    return pick;
+  }
   // Gorunur hucreleri sira indeksine esler; ad + sayac bellege yazilir.
   function alignCells(s) {
     var out = [];
@@ -66297,6 +66703,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var names = memo(S.names, s), counts = memo(S.counts, s);
     var used = {};
     var matched = 0;
+    var p = pageOf(s);
+    // Canli bulgu 21.10 (More tam, hucre kisaltilmis): on ek hizalamasi yalniz taze rayla; bayat rayda bugunku gibi.
+    var tf = !!total && railFresh(s);
     if (total) {
       for (var i = 0; i < s.cells.length; i++) {
         var c = s.cells[i], hit = -1;
@@ -66308,47 +66717,92 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         out.push(hit);
         if (hit >= 0) { used[hit] = 1; matched++; }
       }
+      // Kisaltilmis hucre adi More'un (tam olabilen) secenek metnine on ekle; birden cok aday: bilinen sayfadaki konum.
+      // Sayfada tam esleme yok ve sayfa biliniyorsa asagidaki konum kurali bugunku gibi kazanir (on ek matched sayilmaz).
+      if (tf && (matched || !p)) {
+        var pn = [], fo = [], tk = [];
+        for (var f = 0; f < total; f++) { fo.push(clean(s.moreOpts[f].name)); tk.push(!!used[f]); }
+        for (var h = 0; h < s.cells.length; h++) { pn.push(out[h] >= 0 ? '' : s.cells[h].name); }
+        var pk = prefixPick(pn, fo, tk, function (x) { return p ? (p - 1) * 5 + x : -1; });
+        for (var g = 0; g < pk.length; g++) { if (out[g] < 0 && pk[g] >= 0) { out[g] = pk[g]; used[pk[g]] = 1; } }
+      }
     }
     // Secenek metni hucre adindan farkliysa (Bubble gosterim alani): bilinen sayfada konuma gore.
-    if (!matched) {
-      var p = pageOf(s);
+    if (!matched && (p || !total)) {
       out = [];
-      for (var j = 0; j < s.cells.length; j++) { out.push(p ? (p - 1) * 5 + j : (total ? -1 : j)); }
+      for (var j = 0; j < s.cells.length; j++) { out.push(p ? (p - 1) * 5 + j : j); }
     }
     for (var m = 0; m < out.length; m++) {
       var ix = out[m];
       if (ix < 0) { continue; }
-      names[ix] = s.cells[m].name;
+      // Taze rayda kisaltilmis hucre adi, on eki oldugu More metninin yerine bellege yazilmaz (ad More'un tam metni);
+      // bayat rayda ogrenilmis kisa ad da silinir. Bayat rayda bugunku gibi hucre adi yazilir.
+      if (tf && s.moreOpts[ix] && preOf(s.cells[m].name, s.moreOpts[ix].name)) { delete names[ix]; } else { names[ix] = s.cells[m].name; }
       if (s.cells[m].count != null) { counts[ix] = s.cells[m].count; }
     }
     return out;
+  }
+  // Kisaltilmis ad (name) baska bir metnin (full) on eki mi: ayni clean(), metnin kendisi degil.
+  function preOf(name, full) {
+    var pr = truncPrefix(name), f = clean(full);
+    return !!pr && f !== clean(name) && f.indexOf(pr) === 0;
+  }
+  // Sira indeksi -> Bubble adi (bn, bellegin anahtari), os_workspace kaydi (recs) ve gosterilen ad (disp). Tam ad
+  // esleme (bugunku kural) her zaman kazanir; yalniz railFresh iken kisaltilmis ad os_workspace tam adina on ekle
+  // eslenir ve gosterilen ad o tam addir. Birden cok aday: gercek surecler arasindaki konum (tam eslesen ya da adayi
+  // olan onceki ogeler) os_workspace sirasindaki konumla ayni olan.
+  function railMatch(s) {
+    var total = Math.max(s.moreOpts.length, s.cells.length);
+    var names = memo(S.names, s);
+    var rs = railFresh(s) ? railStages() : [];
+    var known = {}, fulls = [], seenN = {};
+    for (var r = 0; r < rs.length; r++) { var rn = clean(rs[r].name); known[rn] = rs[r]; fulls.push(rn); }
+    var bn = [], recs = [], disp = [], pn = [];
+    for (var i = 0; i < total; i++) {
+      var name = names[i] || (s.moreOpts[i] ? s.moreOpts[i].name : (s.cells[i] ? s.cells[i].name : ''));
+      var rec = name ? (known[name] || null) : null;
+      bn.push(name); recs.push(rec); disp.push(name); pn.push(rec ? '' : name);
+      if (rec) { seenN[name] = 1; }
+    }
+    if (rs.length) {
+      var taken = fulls.map(function (n) { return !!seenN[n]; });
+      // Konum yalniz iki liste ayni surecleri sayiyorsa anlamli (gercek oge sayisi = os_workspace surec sayisi); degilse belirsiz.
+      var pick = prefixPick(pn, fulls, taken, function (k, cands) {
+        var n = 0, all = 0;
+        for (var j = 0; j < total; j++) { if (bn[j] && (recs[j] || cands[j].length)) { all++; if (j < k) { n++; } } }
+        return all === rs.length ? n : -1;
+      });
+      for (var q = 0; q < total; q++) { if (!recs[q] && pick[q] >= 0) { recs[q] = rs[pick[q]]; disp[q] = fulls[pick[q]]; } }
+    }
+    return { total: total, bn: bn, recs: recs, disp: disp, rail: rs.length > 0 };
   }
   function stageModel(s) {
     s = s || S.snap;
     if (!s || !s.bar) { return []; }
     var total = Math.max(s.moreOpts.length, s.cells.length);
-    var names = memo(S.names, s), counts = memo(S.counts, s);
+    var counts = memo(S.counts, s);
     var align = alignCells(s);
     var cellAt = {};
     for (var a = 0; a < align.length; a++) { if (align[a] >= 0) { cellAt[align[a]] = s.cells[a]; } }
-    var rs = railFresh(s) ? railStages() : [];
-    var known = {};
-    for (var r = 0; r < rs.length; r++) { known[clean(rs[r].name)] = rs[r]; }
+    var m = railMatch(s);
     var cur = curStage(s);
     var out = [];
     for (var i = 0; i < total; i++) {
-      var name = names[i] || (s.moreOpts[i] ? s.moreOpts[i].name : (s.cells[i] ? s.cells[i].name : ''));
+      var name = m.bn[i];
       if (!name) { continue; }
       var cell = cellAt[i] || null;
       var count = (cell && cell.count != null) ? cell.count : (counts[i] != null ? counts[i] : null);
-      var rec = known[name] || null;
+      var rec = m.recs[i];
       // os_workspace surecleri 'olustur' (Create / YeniKayit) asamasini icermez: listede olmayan hucre Create'tir.
-      var create = !!(rs.length && !rec);
+      var create = !!(m.rail && !rec);
+      // name: gosterilen ad (kisaltilmissa os_workspace tam adi); bname: Bubble'in adi (hucre / More karsilastirmasi).
       out.push({
-        idx: i, ord: i + 1, name: name, count: count, cell: cell ? cell.node : null,
+        idx: i, ord: i + 1, name: m.disp[i], bname: name, count: count, cell: cell ? cell.node : null,
         current: !!cur && cur.idx === i, create: create, tipi: rec ? str(rec.tipi) : (create ? 'create' : ''), id: rec ? str(rec.id) : ''
       });
     }
+    // WSEDIT: Edit workspace satirlari icin son model (yalniz tutma disinda ve taze rayla; edit kipinin adlari girmez).
+    if (!wseHold()) { S.full = m.rail ? { sheet: sheetName(s), list: out } : null; }
     return out;
   }
   // Su anki surec: baglamdaki stage_id -> os_workspace adi; yoksa kabugun son basarili vekili; yoksa Bubble gostergesi.
@@ -66362,12 +66816,19 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       for (var i = 0; i < total; i++) { var nm = names[i] || (s.moreOpts[i] ? s.moreOpts[i].name : (s.cells[i] ? s.cells[i].name : '')); if (nm === name) { return i; } }
       return -1;
     }
-    if (S.cur && S.cur.stageId === c.stage_id && S.cur.idx >= 0) { return { name: S.cur.name, idx: S.cur.idx }; }
+    var m = s ? railMatch(s) : null;
+    // Bellekteki ad ray cevabindan once (kisaltilmis) yazilmis olabilir: os_workspace eslemesi varsa onun adi.
+    if (S.cur && S.cur.stageId === c.stage_id && S.cur.idx >= 0) { return { name: (m && m.recs[S.cur.idx] && m.disp[S.cur.idx]) || S.cur.name, idx: S.cur.idx }; }
     var rs = railFresh(s) ? railStages() : [];
-    for (var r = 0; r < rs.length; r++) { if (str(rs[r].id) === c.stage_id) { var n = clean(rs[r].name); return { name: n, idx: idxOf(n) }; } }
+    for (var r = 0; r < rs.length; r++) {
+      if (str(rs[r].id) !== c.stage_id) { continue; }
+      var n = clean(rs[r].name), ix = m ? m.recs.indexOf(rs[r]) : -1;
+      return { name: n, idx: ix >= 0 ? ix : idxOf(n) };
+    }
     if (s && s.cell >= 0) {
       var al = alignCells(s);
-      return { name: s.cells[s.cell].name, idx: al[s.cell] >= 0 ? al[s.cell] : idxOf(s.cells[s.cell].name) };
+      var ci = al[s.cell] >= 0 ? al[s.cell] : idxOf(s.cells[s.cell].name);
+      return { name: (m && ci >= 0 && m.disp[ci]) || s.cells[s.cell].name, idx: ci };
     }
     return null;
   }
@@ -66436,7 +66897,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }).then(function () {
       var s2 = snapshot();
       var a2 = alignCells(s2);
-      for (var j = 0; j < a2.length; j++) { if (a2[j] === st.idx || (a2[j] < 0 && s2.cells[j].name === st.name)) { return pxClick(s2.cells[j].node, 'cell') ? 'page' : ''; } }
+      for (var j = 0; j < a2.length; j++) { if (a2[j] === st.idx || (a2[j] < 0 && s2.cells[j].name === (st.bname || st.name))) { return pxClick(s2.cells[j].node, 'cell') ? 'page' : ''; } }
       return '';
     });
   }
@@ -66553,6 +67014,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     b.addEventListener('focusin', function () { peek(true); });
     b.addEventListener('focusout', function () { later('peek', function () { peek(false); }, T.hideDelay); });
     b.addEventListener('wheel', onPinchOut, { passive: false });
+    // os9c tooltip (yalniz tek ust cubukta etkili).
+    b.addEventListener('pointerover', onTipOver);
+    b.addEventListener('pointerout', onTipOut);
+    b.addEventListener('pointerdown', function () { tipHide(true); }, true);
     return b;
   }
   function peek(on) {
@@ -66584,19 +67049,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     } catch (e) { return false; }
   }
 
-  function paintBar() {
-    var b = S.bar;
-    if (!b) { return; }
-    var s = S.snap || snapshot();
-    var kind = viewKind();
-    var noProc = !!S.noProc[sheetKey(s)];
-    var focusKey = focusedKey(b);
-    clear(b);
-    b.setAttribute('data-pinned', (S.pinned || !hoverOk()) ? '1' : '0');
-    b.setAttribute('data-peek', S.peek ? '1' : '0');
-    b.setAttribute('data-classic', S.classic ? '1' : '0');
-
-    // Workspace secici
+  // Cubuk parcalari: pill (os9a) ve tek ust cubuk (os9c) ayni dugumleri kullanir.
+  function wsButton(s) {
     var ws = btn('octo-wsb-ws', S.chromeErr ? '' : 'ws-menu');
     if (!S.chromeErr) {
       ws.setAttribute('aria-haspopup', 'menu');
@@ -66611,26 +67065,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     lab.appendChild(el('span', 'octo-wsb-name', sheetName(s) || 'Workspace'));
     ws.appendChild(lab);
     if (!S.chromeErr) { ws.appendChild(octo.icon('chevron-down', 16, { className: 'octo-wsb-chev' })); }
-    b.appendChild(ws);
-
-    if (S.chromeErr) {
-      // Bubble menusu gizli / yok (editorde kaldirilmis): kabuk hicbir seyi gizlemez, yalniz durumu soyler.
-      b.appendChild(el('span', 'octo-wsb-sep'));
-      var ce = el('span', 'octo-wsb-chip is-warn', 'Menu hidden in Bubble');
-      ce.setAttribute('role', 'status');
-      b.appendChild(ce);
-      placeBar();
-      return;
-    }
-    if (viewingAs()) {
-      var va = btn('octo-wsb-chip is-as', s.can.person ? 'view-as' : '');
-      va.setAttribute('data-key', 'as');
-      va.appendChild(octo.icon('people', 14));
-      va.appendChild(el('span', '', s.person ? ('Viewing as ' + s.person) : 'Viewing as someone'));
-      b.appendChild(va);
-    }
-    b.appendChild(el('span', 'octo-wsb-sep'));
-
+    return ws;
+  }
+  function asChip(s) {
+    if (!viewingAs()) { return null; }
+    var va = btn('octo-wsb-chip is-as', s.can.person ? 'view-as' : '');
+    va.setAttribute('data-key', 'as');
+    va.appendChild(octo.icon('people', 14));
+    va.appendChild(el('span', '', s.person ? ('Viewing as ' + s.person) : 'Viewing as someone'));
+    return va;
+  }
+  function viewsGroup(s, kind, noProc) {
     var g = el('div', 'octo-wsb-views');
     g.setAttribute('role', 'group');
     g.setAttribute('aria-label', 'Views');
@@ -66702,14 +67147,82 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       nl.appendChild(octo.icon('plus', 16));
       g.appendChild(nl);
     }
-    b.appendChild(g);
-    b.appendChild(el('span', 'octo-wsb-sep'));
-    if (S.classic) {
-      var dn = btn('octo-wsb-done', 'classic-off');
-      dn.setAttribute('data-key', 'done');
-      dn.appendChild(el('span', '', 'Done'));
-      b.appendChild(dn);
+    return { g: g, mb: mb };
+  }
+  function doneBtn() {
+    var dn = btn('octo-wsb-done', 'classic-off');
+    dn.setAttribute('data-key', 'done');
+    dn.appendChild(el('span', '', 'Done'));
+    return dn;
+  }
+  function menuBtn(s, hdr) {
+    var mn = btn('octo-wsb-menu', 'menu', 'Menu');
+    mn.setAttribute('aria-haspopup', 'menu');
+    mn.setAttribute('aria-expanded', S.menu === 'menu' ? 'true' : 'false');
+    mn.setAttribute('data-key', 'menu');
+    if (!hdr) { mn.appendChild(octo.icon('apps', 18)); return mn; }
+    // os9c: avatar = sayfa kullanicisinin bas harfleri (Bubble kisi kutusu; yoksa kisi ikonu); baskasinin ekraninda halka.
+    mn.classList.add('is-av');
+    var av = el('span', 'octo-wsb-av');
+    av.setAttribute('aria-hidden', 'true');
+    var ini = initials(s.person);
+    if (ini) { av.textContent = ini; } else { av.appendChild(octo.icon('people', 16)); }
+    if (viewingAs()) { av.setAttribute('data-as', '1'); }
+    mn.appendChild(av);
+    return mn;
+  }
+  function initials(name) {
+    var p = clean(name).split(' ').filter(function (x) { return !!x; });
+    if (!p.length) { return ''; }
+    return (p[0].charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase();
+  }
+  // os9c (OCTO_WSH_SPEC 7): Edit birinci seviye; yalniz Bubble bu kullaniciya Edit Workspace veriyorsa.
+  function editCan() {
+    var wse = wsEdit();
+    try { return !!(wse && typeof wse.canEdit === 'function' && wse.canEdit()); } catch (e) { return false; }
+  }
+  function editBtn() {
+    if (!editCan() || S.classic) { return null; }
+    var eb = btn('octo-wsb-edit', 'edit', 'Edit workspace');
+    eb.setAttribute('data-key', 'edit');
+    eb.appendChild(octo.icon('pencil', 16));
+    eb.appendChild(el('span', 'octo-wsb-elab', 'Edit'));
+    return eb;
+  }
+
+  function paintBar() {
+    var b = S.bar;
+    if (!b) { return; }
+    // Odak anahtari kip degisiminden once (pill -> ust kipte odakli dugme silinir).
+    var focusKey = focusedKey(b);
+    hdrSync();
+    var s = S.snap || snapshot();
+    var kind = viewKind();
+    var noProc = !!S.noProc[sheetKey(s)];
+    b.setAttribute('data-pinned', (S.hdrMode || S.pinned || !hoverOk()) ? '1' : '0');
+    b.setAttribute('data-peek', S.peek ? '1' : '0');
+    b.setAttribute('data-classic', S.classic ? '1' : '0');
+    if (S.hdrMode) { paintHdr(s, kind, noProc, focusKey); return; }
+    clear(b);
+
+    // Workspace secici
+    b.appendChild(wsButton(s));
+    if (S.chromeErr) {
+      // Bubble menusu gizli / yok (editorde kaldirilmis): kabuk hicbir seyi gizlemez, yalniz durumu soyler.
+      b.appendChild(el('span', 'octo-wsb-sep'));
+      var ce = el('span', 'octo-wsb-chip is-warn', 'Menu hidden in Bubble');
+      ce.setAttribute('role', 'status');
+      b.appendChild(ce);
+      placeBar();
+      return;
     }
+    var va = asChip(s);
+    if (va) { b.appendChild(va); }
+    b.appendChild(el('span', 'octo-wsb-sep'));
+    var v = viewsGroup(s, kind, noProc);
+    b.appendChild(v.g);
+    b.appendChild(el('span', 'octo-wsb-sep'));
+    if (S.classic) { b.appendChild(doneBtn()); }
     if (hoverOk() && !S.classic) {
       var pin = btn('octo-wsb-pin', 'pin', 'Pin bar');
       pin.setAttribute('aria-pressed', S.pinned ? 'true' : 'false');
@@ -66717,14 +67230,42 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       pin.appendChild(octo.icon('pin', 16));
       b.appendChild(pin);
     }
-    var mn = btn('octo-wsb-menu', 'menu', 'Menu');
-    mn.setAttribute('aria-haspopup', 'menu');
-    mn.setAttribute('aria-expanded', S.menu === 'menu' ? 'true' : 'false');
-    mn.setAttribute('data-key', 'menu');
-    mn.appendChild(octo.icon('apps', 18));
-    b.appendChild(mn);
-    fitViews(g, mb);
+    b.appendChild(menuBtn(s, false));
+    fitViews(v.g, v.mb);
     placeBar();
+    restoreFocus(b, focusKey);
+  }
+  // Tek ust cubuk: sol ve sag bolge her boyamada yeniden kurulur; uygulama kapsulu kalicidir (seridin odagi).
+  function paintHdr(s, kind, noProc, focusKey) {
+    var b = S.bar;
+    zonesFix();
+    clear(S.zl);
+    clear(S.zr);
+    var wb = wsButton(s);
+    wb.setAttribute('aria-label', 'Workspace, ' + (sheetName(s) || 'Workspace'));
+    wb.setAttribute('data-tip', sheetName(s) || 'Workspace');
+    S.zl.appendChild(wb);
+    S.zl.appendChild(el('span', 'octo-wsb-sep'));
+    var v = viewsGroup(s, kind, noProc);
+    S.zl.appendChild(v.g);
+    var va = asChip(s);
+    if (va) { S.zr.appendChild(va); }
+    if (S.classic) { S.zr.appendChild(doneBtn()); }
+    var eb = editBtn();
+    if (eb) { S.zr.appendChild(el('span', 'octo-wsb-sep')); S.zr.appendChild(eb); }
+    S.zr.appendChild(menuBtn(s, true));
+    tipsOf(v.g);
+    tipsOf(S.zr);
+    placeHdr();
+    // Hicbir seviye sigmadi: bu genislikte pill (24 px genisleyince yeniden denenir; salinma yok).
+    if (!fitHdr(v.g, v.mb)) {
+      // Yalniz yeni ret bir kez boyatir (tutma surerken hdrSync kipi birakamaz; her karede boyama olmasin).
+      var nf = vwNow() - S.band.right, nk = fitKey();
+      if (nf !== S.noFit || nk !== S.noFitKey) { S.noFit = nf; S.noFitKey = nk; S.sig = ''; paintSoon(); }
+    }
+    labelTiles();
+    placeThumb();
+    S.tileSig = tileSig();   // gozlemcinin taban cizgisi: ayni degerin yeniden yazimi boyatmaz
     restoreFocus(b, focusKey);
   }
   // Olculen sigdirma (rayin fitTabs'i gibi): tasan listeler "+N" menusune.
@@ -66756,6 +67297,510 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     b.style.left = S.classic ? 'calc(50% + 140px)' : '50%';
     b.style.marginLeft = (-Math.round(w / 2)) + 'px';
   }
+  // ======================================================= tek ust cubuk (os9c)
+  // OCTO_WSH_SPEC. ?wsh=1 (ya da ?appbar=bottom) ile cubuk Bubble'in baslik bandinin yerinde sayfa basligi olur:
+  // ust kipte rayin seridi cubugun uygulama kapsulune benimsenir (rail.tabsHost), alt kipte serit hucrenin dibinde.
+  // Bubble'da hicbir sey gizlenmez: opak cubuk bandi orter, zil (bandin sagindaki Bubble denetimleri) acikta kalir.
+  function hdrWant() { return S.wsh && W.__OCTO_WSH_OFF !== true && S.mounted && !S.chromeErr && !!S.bar; }
+  // Ray yeniden kuruluyor (300 ms bosluk) ya da wsedit tutuyor: kip, bant ve ev sahibi oldugu gibi kalir (titreme yok).
+  function railGap() {
+    var M = railM();
+    if (!M || !M.mounted || M.pending) { return true; }
+    if (M.variant === 'a') { return !(M.row && isConn(M.row)); }
+    return !(M.wrapper && isConn(M.wrapper));
+  }
+  function vwNow() { return D.documentElement.clientWidth || W.innerWidth || 1280; }
+  // Kip karari: istek + gecerli bant + zil yeri + sigma. Degisirse uygulanir; TEK resize boyamanin sonunda (SPEC 10).
+  function hdrSync() {
+    var want = hdrWant(), h = 0, why = '';
+    if (!want) { why = !S.wsh ? 'flag' : (W.__OCTO_WSH_OFF === true ? 'off' : 'chrome'); }
+    else if (S.hdrMode && wseHold()) { return; }
+    else if (S.hdrMode && railGap() && gapHold()) { return; }
+    else {
+      h = bandTop();
+      if (h < 56 || h > 120) {
+        // Gecici olabilir (Bubble yeniden ciziyor): acik kip T.dropGrace boyunca eski bantla kalir.
+        if (S.hdrMode) {
+          if (!S.band.badAt) { S.band.badAt = now(); later('bandBad', function () { S.sig = ''; paintSoon(); }, T.dropGrace + 20); }
+          if (now() - S.band.badAt < T.dropGrace) { return; }
+        }
+        want = false;
+        why = 'band';
+      } else {
+        S.band.badAt = 0;
+        if (!S.hdrMode || !S.band.at) { bandScan(h); }
+        var room = vwNow() - S.band.right;
+        // Giriste zil olculemediyse (Bubble penceresi acik) kip acilmaz: cubuk zili ortmesin.
+        if (!S.hdrMode && !S.band.at) { want = false; why = 'busy'; }
+        else if (room < 640) { want = false; why = 'bell'; }
+        else if (S.noFit && room < S.noFit + 24 && fitKey() === S.noFitKey) { want = false; why = 'fit'; }
+        else { S.noFit = 0; S.noFitKey = ''; }
+      }
+    }
+    var mode = want ? ((S.appbar === 'bottom' && railCell()) ? 'bottom' : 'top') : '';
+    S.hdrWhy = why;
+    if (mode !== S.hdrMode) { if (hdrSet(mode, h)) { S.resizeDue = true; paintSoon(); } return; }
+    if (mode && h !== S.band.h) { bandH(h); bandScan(h); }
+  }
+  // Kipi uygular; resize gerekiyorsa true (cagiran atar: bosaltmada chromeOff ile birlikte tek olay).
+  function hdrSet(mode, h) {
+    var prev = S.hdrMode;
+    S.hdrMode = mode;
+    var b = S.bar;
+    if (mode) {
+      root().setAttribute(A_WSH, mode);
+      bandH(h);
+      if (b) { b.setAttribute('data-hdr', '1'); }
+    }
+    var moved = false;
+    if (mode === 'top') { zonesFix(); moved = stripSync(); } else { moved = stripSync(); if (mode) { zonesFix(); } }
+    if (!mode) { hdrClean(); }
+    S.fit = '';
+    S.fitSig = '';
+    if (S.board) { S.board.style.top = boardTop() + 'px'; }
+    S.sig = '';
+    trace('wsh:' + (mode || 'off') + (S.hdrWhy ? ':' + S.hdrWhy : ''));
+    return moved || prev === 'bottom' || mode === 'bottom';
+  }
+  function hdrClean() {
+    var r = root();
+    r.removeAttribute(A_WSH);
+    try { r.style.removeProperty('--octo-wsb-h'); if (!r.getAttribute('style')) { r.removeAttribute('style'); } } catch (e) { /* yut */ }
+    S.band.h = 0;
+    S.band.at = 0;
+    S.band.badAt = 0;
+    var b = S.bar;
+    if (b) {
+      b.removeAttribute('data-hdr');
+      b.removeAttribute('data-fit');
+      b.style.height = '';
+      b.style.right = '';
+      try { b.style.removeProperty('--octo-wsb-r'); } catch (e2) { /* yut */ }
+    }
+    tipHide(false);
+    if (S.thumb) { S.thumb.hidden = true; S.thumb.setAttribute('data-still', '1'); }
+    S.tileSig = '';
+    unlabelTiles();
+  }
+  // Saniyede bir (bandPoll) ve her tikte: bant yuksekligi, zil taramasi (T.bandEvery), rayin yeni seridi.
+  function hdrTick() {
+    if (!S.mounted) { return; }
+    if (!S.hdrMode) {
+      if (!hdrWant()) { return; }
+      var h0 = bandTop();
+      if (h0 < 56 || h0 > 120) { return; }
+      // Istenip reddedilmisti ya da kapatilmisti: bant duzeldi, kill switch kalkti, yer acildi ya da zil yeri degisti.
+      // Zil olculemiyordu (Bubble penceresi, kaydirma): yalniz olcum basarili olunca boyama (her saniye tam boyama olmasin).
+      if (S.hdrWhy === 'busy') { bandScan(h0); if (S.band.at) { S.sig = ''; paintSoon(); } return; }
+      if (S.hdrWhy !== 'bell' && S.hdrWhy !== 'fit') { S.sig = ''; paintSoon(); return; }
+      if (now() - S.band.at > T.bandEvery && bandScan(h0)) { S.sig = ''; paintSoon(); return; }
+      if (S.hdrWhy === 'fit' && (vwNow() - S.band.right >= S.noFit + 24 || fitKey() !== S.noFitKey)) { S.sig = ''; paintSoon(); }
+      return;
+    }
+    // Kill switch ya da bayrak kalkti: boyama kipi birakir.
+    if (!hdrWant()) { S.sig = ''; paintSoon(); return; }
+    if (wseHold()) { return; }
+    if (railGap()) { if (!gapHold()) { S.sig = ''; paintSoon(); } return; }
+    S.gapAt = 0;
+    // Tutma sirasinda sigmadiysa (boyama durmustu): tutma bitti, karar boyamada.
+    if (S.fitOk === false) { S.sig = ''; paintSoon(); return; }
+    if (bandTop() !== S.band.h) { S.sig = ''; paintSoon(); return; }
+    if (now() - S.band.at > T.bandEvery && bandScan(S.band.h)) { S.sig = ''; paintSoon(); }
+    // Ray yeniden kuruldu (yeni serit): ev sahibi yeniden uygulanir, gozlemci yeni seride.
+    var tb = stripEl();
+    if (tb && (tb !== S.stripObsRef || (S.hdrMode === 'top' && S.apps && tb.parentNode !== S.apps))) { if (stripSync()) { S.resizeDue = true; } S.sig = ''; paintSoon(); }
+  }
+  // Ray boslugu en cok T.dropGrace tutulur (ray yeniden kuramazsa kip bant suresiyle duser).
+  function gapHold() {
+    if (!S.gapAt) { S.gapAt = now(); later('gapHold', function () { S.sig = ''; paintSoon(); }, T.dropGrace + 20); }
+    return now() - S.gapAt < T.dropGrace;
+  }
+  // Sigma reddinin icerik anahtari: degisirse (Back to my view, Classic kapandi, baska workspace) yeniden denenir.
+  // Gorunum turu (zoom) anahtarda yok: pill'de her gorunum degisimi kipi acip kapatirdi (iki resize).
+  function fitKey() {
+    var s = S.snap;
+    return [sheetName(s), viewingAs() ? 1 : 0, S.classic ? 1 : 0, s ? s.lists.length : 0, editCan() ? 1 : 0].join('|');
+  }
+  function bandPoll() {
+    if (!S.armed || !S.mounted || !S.wsh) { return; }
+    try { hdrTick(); } catch (e) { logErr(e); }
+    later('bandPoll', bandPoll, T.bandPoll);
+  }
+
+  // ------------------------------------------------------------------ bant
+  // H = rayin akistaki ilk dugumunun belge ust kenari (Varyant A satir; B serit ya da sarmalayici). Cubuk ust
+  // kipte position:absolute (sayfa kayarsa bandla birlikte kayar, tablonun ustune binmez).
+  function bandTop() {
+    var M = railM();
+    if (!M) { return 0; }
+    var n = null;
+    if (M.variant === 'a' && M.row && isConn(M.row)) { n = M.row; }
+    else if (M.wrapper && isConn(M.wrapper)) {
+      var tb = M.parts ? M.parts.tabs : null;
+      n = (tb && isConn(tb) && tb.parentNode === M.wrapper.parentNode) ? tb : M.wrapper;
+    }
+    if (!n) { return 0; }
+    var r = null;
+    try { r = n.getBoundingClientRect(); } catch (e) { r = null; }
+    if (!r) { return 0; }
+    var sy = W.pageYOffset || (D.documentElement && D.documentElement.scrollTop) || 0;
+    return Math.round(r.top + sy);
+  }
+  function bandH(h) {
+    h = Math.round(h);
+    if (h === S.band.h) { return; }
+    S.band.h = h;
+    try { root().style.setProperty('--octo-wsb-h', h + 'px'); } catch (e) { /* yut */ }
+  }
+  var CTRL_SEL = 'button, a[href], input, select, textarea, [role="button"], .clickable-element';
+  function ctrlOf(n) {
+    for (var x = n, i = 0; x && x.nodeType === 1 && x !== D.body && i < 4; x = x.parentNode, i++) {
+      var hit = false;
+      try { hit = typeof x.matches === 'function' && x.matches(CTRL_SEL); } catch (e) { hit = false; }
+      if (hit) { return x; }
+    }
+    return null;
+  }
+  // Denetim (kap degil): kucuk ve bantta.
+  function bandCtrl(c, h) {
+    var r = null;
+    try { r = c.getBoundingClientRect(); } catch (e) { r = null; }
+    return !!r && r.width > 0 && r.width <= 240 && r.height <= h + 8 && r.top < h && r.bottom > 0;
+  }
+  // Bandin iki satiri, x1'den x0'a 16 px adim. Yigin boyunca: kabuk atlanir, genis katman (kap, saydam baslik grubu,
+  // perde) altina bakilir, ilk denetim fn'e verilir; kucuk denetim-disi oge (metin) noktayi orter.
+  function bandWalk(h, x0, x1, fn) {
+    if (!h || typeof D.elementsFromPoint !== 'function') { return; }
+    var vw = vwNow();
+    // Bant belgeye bagli (cubuk absolute), elementsFromPoint ekran koordinati: kaydirma payi dusulur.
+    var sy = W.pageYOffset || (D.documentElement && D.documentElement.scrollTop) || 0;
+    var ys = [Math.round(h * 0.35) - sy, Math.round(h * 0.65) - sy].filter(function (y) { return y >= 0; });
+    for (var yi = 0; yi < ys.length; yi++) {
+      for (var x = x1; x >= x0; x -= 16) {
+        var all = null;
+        try { all = D.elementsFromPoint(x, ys[yi]); } catch (e) { all = null; }
+        for (var j = 0; all && j < all.length; j++) {
+          var n = all[j];
+          if (n === D.body || n === D.documentElement) { break; }
+          if (own(n) || railOwn(n)) { continue; }
+          var c = ctrlOf(n);
+          if (c && bandCtrl(c, h)) { fn(c); break; }
+          var r = null;
+          try { r = n.getBoundingClientRect(); } catch (e2) { r = null; }
+          if (r && r.width > vw * 0.5) { continue; }
+          break;
+        }
+      }
+    }
+  }
+  // Bubble penceresi ya da tablonun katmani acikken bant okunmaz (perde zili gizler, yanlis olcum olurdu).
+  function bandBusy() {
+    if (tableLayer()) { return true; }
+    var all = null;
+    try { all = D.querySelectorAll('.bubble-element.Popup'); } catch (e) { all = null; }
+    for (var i = 0; all && i < all.length; i++) { if (shown(all[i], null) && all[i].getClientRects().length) { return true; } }
+    return false;
+  }
+  // Zil: bandin sag yarisindaki Bubble denetimleri acikta kalir; cubuk en soldakinin 8 px solunda biter.
+  // Cubugu daraltan sonuc (denetim bulundu) hemen; genisleten (denetim kayboldu) iki ardisik olcumle (en cok 1 sn arayla).
+  function bandScan(h) {
+    // Bubble penceresi acikken ya da bant ekran disindayken olculmez; damga yok (sonraki tik yeniden dener).
+    var sy = W.pageYOffset || (D.documentElement && D.documentElement.scrollTop) || 0;
+    if (bandBusy() || sy > h * 0.3) { return false; }
+    S.band.at = now();
+    var vw = vwNow();
+    var minL = Infinity;
+    bandWalk(h, vw * 0.5, vw - 6, function (c) { var l = c.getBoundingClientRect().left; if (l < minL) { minL = l; } });
+    var right = (minL < Infinity) ? Math.max(0, Math.round(vw - (minL - 8))) : 0;
+    if (right === S.band.right) { S.band.pend = -1; return false; }
+    if (right < S.band.right && S.band.pend !== right) { S.band.pend = right; S.band.at = now() - T.bandEvery + Math.min(1000, T.bandEvery); return false; }
+    S.band.pend = -1;
+    S.band.right = right;
+    trace('wsh:right');
+    return true;
+  }
+  // Teshis (kurucu oturumu): cubugun altinda kalan Bubble denetimleri (sinif + ilk 24 karakter; raporlara yazilmaz).
+  function bandCovered() {
+    var out = [], seen = [];
+    var r = S.bar ? S.bar.getBoundingClientRect() : null;
+    if (!r) { return out; }
+    bandWalk(S.band.h, r.left + 4, r.right - 4, function (c) {
+      if (seen.indexOf(c) >= 0 || out.length >= 8) { return; }
+      seen.push(c);
+      out.push({ cls: str(c.className).slice(0, 60), text: clean(c.textContent).slice(0, 24) });
+    });
+    return out;
+  }
+
+  // --------------------------------------------------------------- bolgeler
+  function zonesFix() {
+    var b = S.bar;
+    if (!b) { return; }
+    if (!S.zl) {
+      S.zl = el('div', 'octo-wsb-zl');
+      S.gap = el('span', 'octo-wsb-gap');
+      S.gap.setAttribute('aria-hidden', 'true');
+      S.zr = el('div', 'octo-wsb-zr');
+    }
+    var want = [S.zl, S.gap];
+    if (S.hdrMode === 'top') { want.push(ensureApps()); }
+    want.push(S.zr);
+    var kids = Array.prototype.slice.call(b.childNodes);
+    for (var i = 0; i < kids.length; i++) { if (want.indexOf(kids[i]) < 0) { b.removeChild(kids[i]); } }
+    // Kapsul yerinde kalir (yalniz digerleri onune / arkasina): seridin odagi ve dinleyicileri korunur.
+    for (var j = 0; j < want.length; j++) { if (b.childNodes[j] !== want[j]) { b.insertBefore(want[j], b.childNodes[j] || null); } }
+  }
+  // Classic'te de sol 0: Bubble cekmecesi (z 1504) cubugun solunu orter, sag bolge (Done, Menu) acikta kalir.
+  function placeHdr() {
+    var b = S.bar;
+    if (!b) { return; }
+    var right = Math.max(0, Math.min(S.band.right, vwNow() - 640));
+    var hs = S.band.h + 'px', rs = right + 'px';
+    if (b.style.height !== hs) { b.style.height = hs; }
+    if (b.style.right !== rs) { b.style.right = rs; b.style.setProperty('--octo-wsb-r', rs); }
+    if (b.style.left !== '0px') { b.style.left = '0px'; }
+    if (b.style.marginLeft) { b.style.marginLeft = ''; }
+  }
+  // title (tarayici ipucu) yerli tooltip'e tasinir: cift ipucu olmaz. Etiketi gizlenebilen gorunumler ad tasir.
+  function tipsOf(scope) {
+    var all = scope ? scope.querySelectorAll('button') : [];
+    for (var i = 0; i < all.length; i++) {
+      var t = all[i];
+      if (t.title) { t.setAttribute('data-tip', t.title); t.removeAttribute('title'); }
+      if (hasCls(t, 'octo-wsb-view') && !t.getAttribute('aria-label')) {
+        var lb = t.querySelector('.octo-wsb-vlab');
+        if (lb) { t.setAttribute('aria-label', textOf(lb)); }
+      }
+      if (hasCls(t, 'octo-wsb-view') && !t.getAttribute('data-tip')) { t.setAttribute('data-tip', t.getAttribute('aria-label') || ''); }
+    }
+  }
+
+  // ------------------------------------------------------- sigdirma merdiveni
+  var FITS = ['', 'compact', 'tight'];
+  function setFit(v) {
+    var b = S.bar;
+    if (!b || (b.getAttribute('data-fit') || '') === v) { return; }
+    if (v) { b.setAttribute('data-fit', v); } else { b.removeAttribute('data-fit'); }
+  }
+  function resetViews(g, more) {
+    var hid = g.querySelectorAll('[data-view="list"][hidden]');
+    for (var i = 0; i < hid.length; i++) { hid[i].hidden = false; }
+    more.hidden = true;
+    clear(more);
+  }
+  function hdrFits(g) { return g.scrollWidth <= g.clientWidth + 1 && S.zl.scrollWidth <= S.zl.clientWidth + 1; }
+  // Icerik imzasi: bolgelerin metni ve dugme sayisi, kapsuldeki kutucuklarin durumu (genislik bunlarla degisir).
+  function fitSig() {
+    var tb = stripEl();
+    var tiles = (tb && S.apps && tb.parentNode === S.apps) ? Array.prototype.map.call(tb.querySelectorAll('.octo-tabs-tab'), function (x) {
+      return (x.getAttribute('data-tab') || '') + ':' + (x.getAttribute('data-state') || '') + ':' + (x.getAttribute('aria-selected') || '');
+    }).join(',') : '';
+    var curv = S.zl.querySelector('[aria-current]');
+    return [S.zl.textContent, S.zr.textContent, S.zl.querySelectorAll('button').length, S.zr.querySelectorAll('button').length, tiles,
+      curv ? curv.getAttribute('data-key') : ''].join('|');
+  }
+  // Merdiven: imza ve cubuk genisligi degismedikce olculmez (seviye aynen uygulanir). Daralma hemen; genisleme
+  // ayni icerikte ancak daraldigi genislikten en az 24 px fazla yer varsa (histerezis). Hicbiri sigmazsa false.
+  function fitHdr(g, more) {
+    var bw = S.bar.clientWidth;
+    var sig = fitSig();
+    var cur = FITS.indexOf(S.fit);
+    if (cur < 0) { cur = 0; }
+    if (sig === S.fitSig && bw === S.fitW) { setFit(FITS[cur]); fitViews(g, more); return S.fitOk !== false; }
+    var need = -1;
+    for (var i = 0; i < FITS.length; i++) {
+      setFit(FITS[i]);
+      resetViews(g, more);
+      fitViews(g, more);
+      if (hdrFits(g)) { need = i; break; }
+    }
+    var ok = need >= 0;
+    if (!ok) { need = FITS.length - 1; }
+    if (need < cur && sig === S.fitSig && bw < S.fitDropW + 24) { need = cur; }
+    if (need > cur) { S.fitDropW = bw; }
+    if ((S.bar.getAttribute('data-fit') || '') !== FITS[need]) { setFit(FITS[need]); resetViews(g, more); fitViews(g, more); }
+    S.fit = FITS[need];
+    S.fitW = bw;
+    S.fitSig = sig;
+    S.fitOk = ok;
+    return ok;
+  }
+
+  // ------------------------------------------------------------ uygulama kapsulu
+  function ensureApps() {
+    if (S.apps) { return S.apps; }
+    var a = el('div', 'octo-wsb-apps');
+    var th = el('span', 'octo-wsb-thumb');
+    th.setAttribute('aria-hidden', 'true');
+    th.setAttribute('data-still', '1');
+    th.hidden = true;
+    a.appendChild(th);
+    S.apps = a;
+    S.thumb = th;
+    return a;
+  }
+  function stripEl() { var M = railM(); var tb = (M && M.parts) ? M.parts.tabs : null; return (tb && isConn(tb)) ? tb : null; }
+  function stripHost() { return (S.hdrMode === 'top' && S.apps && S.bar && S.apps.parentNode === S.bar && isConn(S.apps)) ? S.apps : null; }
+  // Serit kipe gore: ust kipte kapsul, degilse hucre (rayin kendi yeri). Tasidiysa true.
+  function stripSync() {
+    var r = rail();
+    var moved = false;
+    if (r && typeof r.tabsHost === 'function') {
+      try { moved = !!r.tabsHost(S.hdrMode === 'top' ? stripHost : null); } catch (e) { moved = false; }
+    }
+    var tb = stripEl();
+    if (tb) {
+      if (S.apps && tb.parentNode === S.apps) {
+        if (tb.getAttribute('aria-label') !== 'Apps') { S.stripAl = tb.getAttribute('aria-label') || 'Workspace'; tb.setAttribute('aria-label', 'Apps'); }
+      } else if (tb.getAttribute('aria-label') === 'Apps') { tb.setAttribute('aria-label', S.stripAl || 'Workspace'); }
+    }
+    if (!S.hdrMode) { unlabelTiles(); }
+    stripWatch();
+    bindStripWheel();
+    return moved;
+  }
+  // Seridin secimi ve durumu (rayin boyamasi) izlenir: thumb kayar, durum etiketleri tazelenir.
+  function stripWatch() {
+    var tb = S.hdrMode ? stripEl() : null;
+    if (tb === S.stripObsRef) { return; }
+    if (S.stripObs) { try { S.stripObs.disconnect(); } catch (e) { /* yut */ } S.stripObs = null; }
+    S.stripObsRef = tb;
+    if (!tb || typeof MutationObserver !== 'function') { return; }
+    S.stripObs = new MutationObserver(function () { stripSoon(); });
+    try { S.stripObs.observe(tb, { attributes: true, attributeFilter: ['aria-selected', 'data-state', 'hidden'], subtree: true, childList: true }); } catch (e2) { /* yut */ }
+  }
+  function stripSoon() {
+    if (S.stripT) { return; }
+    S.stripT = setTimeout(function () {
+      S.stripT = null;
+      if (!S.hdrMode) { return; }
+      labelTiles();
+      // Ray her boyamada ayni degeri de yazar (Start kutucugu): yalniz kutucuk imzasi degisince boyama.
+      var ts = tileSig();
+      if (ts === S.tileSig) { return; }
+      S.tileSig = ts;
+      // Kutucuk genislikleri degismis olabilir (spinner, Soon): merdiven ve thumb yeni boyamada.
+      S.sig = '';
+      paintSoon();
+    }, 0);
+  }
+  function tileSig() {
+    var tb = stripEl();
+    return tb ? Array.prototype.map.call(tb.querySelectorAll('.octo-tabs-tab'), function (x) {
+      return (x.getAttribute('data-tab') || '') + ':' + (x.getAttribute('data-state') || '') + ':' + (x.getAttribute('aria-selected') || '') + ':' + (x.hidden ? 1 : 0);
+    }).join(',') : '';
+  }
+  // Pinch-out rayin seridinde de; serit cubuktayken cubugun kendi dinleyicisi yeter (cift sayim yok).
+  function bindStripWheel() {
+    var tb = stripEl();
+    var want = (tb && S.board && !(S.bar && S.bar.contains(tb))) ? tb : null;
+    if (want === S.stripRef) { return; }
+    if (S.stripRef) { try { S.stripRef.removeEventListener('wheel', onPinchOut, { passive: false }); } catch (e) { /* yut */ } }
+    if (want) { try { want.addEventListener('wheel', onPinchOut, { passive: false }); } catch (e2) { /* yut */ } }
+    S.stripRef = want;
+  }
+  function placeThumb() {
+    var th = S.thumb, tb = stripEl();
+    if (!th) { return; }
+    var sel = (S.hdrMode === 'top' && tb && tb.parentNode === S.apps) ? tb.querySelector('.octo-tabs-tab[aria-selected="true"]') : null;
+    var r = (sel && sel.getClientRects().length) ? sel.getBoundingClientRect() : null;
+    if (!r || !r.width) { th.hidden = true; th.setAttribute('data-still', '1'); return; }
+    var cr = S.apps.getBoundingClientRect();
+    var tf = 'translateX(' + Math.round(r.left - cr.left) + 'px)', ws = Math.round(r.width) + 'px';
+    var was = th.hidden;
+    if (!was && th.style.transform === tf && th.style.width === ws) { return; }
+    if (was || noMo()) { th.setAttribute('data-still', '1'); }
+    th.style.width = ws;
+    th.style.transform = tf;
+    th.hidden = false;
+    // Ilk konumdan sonra gecis acilir (iki kare sonra; ilk cizimde kayma olmaz).
+    if (was && !noMo()) {
+      var go = function () { if (S.thumb && !S.thumb.hidden) { S.thumb.removeAttribute('data-still'); } };
+      try { if (typeof W.requestAnimationFrame === 'function') { W.requestAnimationFrame(function () { W.requestAnimationFrame(go); }); } else { setTimeout(go, 32); } } catch (e) { setTimeout(go, 32); }
+    }
+  }
+  // Hazir olmayan kutucuk durumunu adinda soyler (rozet aria-hidden). Kabugun yazdigi etiket isaretlidir.
+  var TILE_STATE = { unset: 'not set up', unlinked: 'not connected', loading: 'loading', error: 'error', soon: 'soon', off: 'unavailable' };
+  function tileLabel(b) {
+    var word = textOf(b.querySelector('.octo-tabs-word'));
+    var st = TILE_STATE[b.getAttribute('data-state') || ''];
+    return word ? (st ? (word + ', ' + st) : word) : '';
+  }
+  function labelTiles() {
+    var tb = S.hdrMode ? stripEl() : null;
+    if (!tb) { return; }
+    var all = tb.querySelectorAll('.octo-tabs-tab');
+    for (var i = 0; i < all.length; i++) {
+      var b = all[i];
+      var want = TILE_STATE[b.getAttribute('data-state') || ''] ? tileLabel(b) : '';
+      if (want) {
+        if (b.getAttribute('aria-label') !== want) { b.setAttribute('aria-label', want); }
+        b.setAttribute('data-wsh-al', '1');
+      } else if (b.getAttribute('data-wsh-al')) { b.removeAttribute('aria-label'); b.removeAttribute('data-wsh-al'); }
+    }
+  }
+  function unlabelTiles() {
+    var tb = stripEl();
+    var all = tb ? tb.querySelectorAll('[data-wsh-al]') : [];
+    for (var i = 0; i < all.length; i++) { all[i].removeAttribute('aria-label'); all[i].removeAttribute('data-wsh-al'); }
+  }
+
+  // ---------------------------------------------------------------- tooltip
+  // Yalniz hover olan aygitta: ilki T.tipDelay, bir onceki T.tipChain icinde kapandiysa aninda. Kelimesi gorunmeyen
+  // kutucuk, hazir olmayan kutucuk ve ikon-dugmeler (data-tip, gorunur etiket yok).
+  function visLabel(t) {
+    var spans = t.querySelectorAll('span');
+    // Avatarin bas harfleri etiket sayilmaz (Menu ipucu gosterilir).
+    for (var i = 0; i < spans.length; i++) { if (!hasCls(spans[i], 'octo-wsb-av') && clean(spans[i].textContent) && spans[i].getClientRects().length) { return true; } }
+    return false;
+  }
+  function tipText(t) {
+    if (hasCls(t, 'octo-tabs-tab')) {
+      var w = t.querySelector('.octo-tabs-word');
+      var hidden = !w || !w.getClientRects().length;
+      return (hidden || TILE_STATE[t.getAttribute('data-state') || '']) ? tileLabel(t) : '';
+    }
+    var d = t.getAttribute('data-tip');
+    return (d && !visLabel(t)) ? d : '';
+  }
+  function onTipOver(e) {
+    if (!S.hdrMode || !hoverOk() || (e.pointerType && e.pointerType !== 'mouse')) { return; }
+    var t = upTo(e.target, function (x) { return x.tagName === 'BUTTON'; }, S.bar);
+    if (!t || t === S.tipFor) { return; }
+    tipHide(true);
+    var txt = tipText(t);
+    if (!txt) { return; }
+    S.tipFor = t;
+    later('tip', function () { tipShow(t, txt); }, (now() - S.tipGone) < T.tipChain ? 0 : T.tipDelay);
+  }
+  function onTipOut(e) {
+    var to = e && e.relatedTarget;
+    if (S.tipFor && to && S.tipFor.contains(to)) { return; }
+    tipHide(true);
+  }
+  function tipShow(t, txt) {
+    if (!S.hdrMode || S.tipFor !== t || !isConn(t) || S.menu) { return; }
+    if (!S.tip) {
+      S.tip = el('div', 'octo-wsb-tip');
+      S.tip.id = TIP_ID;
+      S.tip.setAttribute('aria-hidden', 'true');
+      S.tip.hidden = true;
+    }
+    if (!isConn(S.tip)) { D.body.appendChild(S.tip); }
+    S.tip.textContent = txt;
+    S.tip.hidden = false;
+    var r = t.getBoundingClientRect(), br = S.bar.getBoundingClientRect();
+    var vw = D.documentElement.clientWidth || W.innerWidth || 1280;
+    var w = S.tip.offsetWidth || 80;
+    var left = Math.max(8, Math.min(vw - 8 - w, Math.round(r.left + r.width / 2 - w / 2)));
+    S.tip.style.left = left + 'px';
+    S.tip.style.top = Math.round(br.bottom + 6) + 'px';
+  }
+  function tipHide(mark) {
+    cancel('tip');
+    if (S.tip && !S.tip.hidden) { S.tip.hidden = true; if (mark) { S.tipGone = now(); } }
+    S.tipFor = null;
+  }
   function focusedKey(scope) {
     try {
       var a = D.activeElement;
@@ -66783,10 +67828,20 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.inertTap = false;
     if (inert) { return; }
     if (railSheet()) { try { e.preventDefault(); e.stopPropagation(); } catch (x) { /* yut */ } return; }
+    // os9c: kapsuldeki serit rayin kendi dinleyicileriyle calisir.
+    if (S.apps && S.apps.contains(e.target)) { return; }
     var t = upTo(e.target, function (x) { return x.hasAttribute && x.hasAttribute('data-act'); }, S.bar);
     if (!t || t.disabled) { return; }
     var a = t.getAttribute('data-act');
     var kb = e.detail === 0;
+    if (a === 'edit') {
+      var wse = wsEdit();
+      closeMenu(false);
+      // closeMenu cubugu yeniden boyar: dugme data-key ile yeniden bulunur (odak donusu ona).
+      var et = q1('[data-key="edit"]', S.bar) || t;
+      if (!(wse && typeof wse.editFrom === 'function' && wse.editFrom(et))) { toast('Could not open', true); }
+      return;
+    }
     if (a === 'ws-menu') { toggleMenu('ws', t); return; }
     if (a === 'views-menu') { toggleMenu('views', t); return; }
     if (a === 'stage-menu') { toggleMenu('stages', t); return; }
@@ -66812,10 +67867,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (t) { e.preventDefault(); e.stopPropagation(); if (t.getAttribute('aria-expanded') !== 'true') { t.click(); } focusFirstItem(); }
       return;
     }
+    if (k === 'Tab' && !e.shiftKey && S.hdrMode && tabOut(e)) { return; }
     if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'Home' && k !== 'End') { return; }
     var list = [];
     var all = S.bar.querySelectorAll('button');
-    for (var i = 0; i < all.length; i++) { if (!all[i].disabled && all[i].getClientRects().length) { list.push(all[i]); } }
+    for (var i = 0; i < all.length; i++) {
+      var x = all[i];
+      if (x.disabled || !x.getClientRects().length) { continue; }
+      // os9c: kapsul tek durak (secili kutucuk); kutucuklar arasinda rayin kendi oklari (tablist).
+      if (S.apps && S.apps.contains(x) && x.getAttribute('tabindex') !== '0') { continue; }
+      list.push(x);
+    }
     var at = list.indexOf(D.activeElement);
     if (at < 0) { return; }
     e.preventDefault();
@@ -66823,6 +67885,23 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     // Elle etkinlestirme: oklar yalniz odagi gezdirir (Bubble gezinmesi Enter / Space ile).
     var to = k === 'Home' ? 0 : (k === 'End' ? list.length - 1 : (at + (k === 'ArrowRight' ? 1 : -1) + list.length) % list.length);
     try { list[to].focus(); } catch (e2) { /* yut */ }
+  }
+  // os9c: cubuk govdenin sonunda; son dugmeden Tab acik panoya ya da rayin paneline (eski seritten tabloya yol gibi).
+  function tabOut(e) {
+    var btns = Array.prototype.filter.call(S.bar.querySelectorAll('button'), function (x) {
+      return !x.disabled && x.getClientRects().length && x.getAttribute('tabindex') !== '-1';
+    });
+    if (!btns.length || e.target !== btns[btns.length - 1]) { return false; }
+    var M = railM();
+    var pn = (M && M.parts && M.parts.panel && !M.parts.panel.hidden && isConn(M.parts.panel)) ? M.parts.panel : null;
+    var to = null;
+    if (pn) { to = pn.querySelector('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'); }
+    else if (boardOpen() && !S.zoom) { to = S.board.querySelector('.octo-wsb-lbtn[aria-pressed="true"], .octo-wsb-bbtn, .octo-wsb-card') || S.board; }
+    else { var w = wrapperEl(); to = w ? w.querySelector('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])') : null; }
+    if (!to) { return false; }
+    e.preventDefault();
+    try { to.focus({ preventScroll: true }); } catch (x) { /* yut */ }
+    return true;
   }
   function setPinned(on) {
     S.pinned = !!on;
@@ -66888,6 +67967,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var wse = wsEdit();
     if (wse && wse.own(t)) { return; }
     if (S.pop && S.pop.contains(t)) { return; }
+    // os9c: kapsuldeki kutucuk yeni bir panel acar; menu ustunde kalmaz.
+    if (S.apps && S.apps.contains(t)) { closeMenu(false); return; }
     if (S.bar && S.bar.contains(t)) { return; }
     closeMenu(false);
   }
@@ -67007,7 +68088,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (s.can.templates) { list.appendChild(item('Browse AI templates', 'templates', 'apps', { 'data-key': 'tpl' })); }
       // WSEDIT H2: View as, Edit workspace ve hesap maddeleri yerli (app-wsedit.js); modul yoksa os9a maddeleri.
       var wse = wsEdit();
-      if (!(wse && wse.menuItems(list, s, item, 'main'))) {
+      if (!(wse && wse.menuItems(list, s, item, 'main', { noEdit: !!S.hdrMode && !S.classic && editCan() }))) {
         if (s.can.person) { list.appendChild(item('View as', 'view-as', 'people', { 'data-key': 'viewas' })); }
         if (s.can.gear) { list.appendChild(item('Account menu', 'account', 'people', { 'data-key': 'acct' })); }
       }
@@ -67036,6 +68117,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var ar = (a && isConn(a) && !a.hidden) ? a.getBoundingClientRect() : br;
     var w = p.offsetWidth || 300;
     var left = Math.round(ar.left);
+    // os9c: sag bolgenin menusu (Menu avatari) dugmenin sagina hizali.
+    if (S.hdrMode && a && S.zr && S.zr.contains(a)) { left = Math.max(8, Math.round(ar.right - w)); }
     if (left + w > vw - 16) { left = Math.max(16, vw - 16 - w); }
     p.style.left = left + 'px';
   }
@@ -67252,13 +68335,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       try { cell.addEventListener('focusin', onCellFocusIn, true); } catch (e1) { /* yut */ }
       S.focusCell = cell;
     }
-    // Pinch-out rayin seridinde de (tablonun atasi degil; dinleyici, stil degil).
-    var strip = cell.querySelector('.octo-tabs');
-    if (strip && strip !== S.stripRef) {
-      if (S.stripRef) { try { S.stripRef.removeEventListener('wheel', onPinchOut, { passive: false }); } catch (e) { /* yut */ } }
-      try { strip.addEventListener('wheel', onPinchOut, { passive: false }); } catch (e2) { /* yut */ }
-      S.stripRef = strip;
-    }
+    // Pinch-out rayin seridinde de (tablonun atasi degil; dinleyici, stil degil). os9c: serit cubuktaysa cubugunku yeter.
+    bindStripWheel();
     // Ilk kurulumda gorunum: sayfa acilisindan T.bootGrace icinde ve kullanici tabloya dokunmadiysa pano.
     if (S.view == null) { S.view = (now() - S.bootAt <= T.bootGrace && !S.touched) ? 'board' : 'table'; trace('view:' + S.view); }
     S.board.hidden = S.view !== 'board';
@@ -67285,9 +68363,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     trace('board:detach');
   }
   function boardTop() {
+    // os9c: alt kipte serit tablonun altinda, ust kipte cubukta: pano hucrenin ustunden baslar. Kanca seridi
+    // tasiyamadiysa (serit hala hucrede) eski olcum: serit ortulmez.
+    if (S.hdrMode === 'bottom') { return 0; }
     var cell = railCell();
-    var st = cell ? cell.querySelector('.octo-tabs') : null;
-    if (!st || !isConn(st)) { return 44; }
+    var st = stripEl();
+    if (st && st.parentNode !== cell) { st = null; }
+    if (!st || !isConn(st)) { return S.hdrMode ? 0 : 44; }
     return Math.max(0, Math.round(st.offsetTop + st.offsetHeight));
   }
   function paintBoard() {
@@ -67311,7 +68393,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     ab.setAttribute('data-key', 'b:all');
     ab.appendChild(octo.icon('table', 16));
     ab.appendChild(el('span', '', 'All records'));
-    acts.appendChild(ab);
+    // os9c: tek ust cubukta All records cubukta (pano basliginda ikinci kopya yok).
+    if (!S.hdrMode) { acts.appendChild(ab); }
     var canNew = (!!(W.dynamicTable && typeof W.dynamicTable.create === 'function') || typeof W.bubble_fn_create === 'function') && !viewingAs();
     if (canNew) {
       var nr = btn('octo-wsb-bbtn', 'new-record');
@@ -67590,6 +68673,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var frames = grow ? [{ transform: tSmall, opacity: 0.6 }, { transform: 'none', opacity: 1 }] : [{ transform: 'none', opacity: 1 }, { transform: tSmall, opacity: 0.2 }];
     return anim(g, frames, T.zoomMs).then(function (a) { if (!grow) { cancelAnim(a); rmGhost(); } return a; });
   }
+  // Zoom basarisi icin: Bubble'in secili hucresi hedef surec mi (ad; kisaltilmis ad hedefin adlarina on ek). Vekil
+  // tiklamasinda KULLANILMAZ (hucre konumla bulunur).
+  function cellIs(name, x) {
+    if (name === x.bname || name === x.name) { return true; }
+    var p = truncPrefix(name);
+    return !!p && (str(x.bname).indexOf(p) === 0 || str(x.name).indexOf(p) === 0);
+  }
   function isCurrent(target) {
     var cur = curStage();
     return !!cur && cur.idx === target.idx && !!ctx().stage_id;
@@ -67604,7 +68694,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var st = stageModel(s);
     var target = null;
     if (typeof idxOrName === 'number') { target = st[idxOrName] || null; }
-    else { for (var i = 0; i < st.length; i++) { if (st[i].name === idxOrName) { target = st[i]; break; } } }
+    else { for (var i = 0; i < st.length; i++) { if (st[i].name === idxOrName || st[i].bname === idxOrName) { target = st[i]; break; } } }
     if (!target) { toast('Could not open', true); return Promise.resolve(false); }
     closeMenu(false);
     var c0 = ctx();
@@ -67628,7 +68718,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         var c = ctx();
         if (c.key === k0) { return false; }
         var sn = S.snap;
-        if (sn && sn.cell >= 0) { return sn.cells[sn.cell].name === target.name || (now() - S.zoom.t0) >= T.settleMs * 3; }
+        if (sn && sn.cell >= 0) { return cellIs(sn.cells[sn.cell].name, target) || (now() - S.zoom.t0) >= T.settleMs * 3; }
         return (now() - S.zoom.t0) >= T.settleMs;
       }, T.zoomWait);
       return Promise.all([grow, ready]).then(function (r) { return { ok: r[1], how: how }; });
@@ -67676,6 +68766,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function onWinKey(e) {
     var k = e && e.key;
     if (k !== 'Escape' && k !== 'Esc') { return; }
+    tipHide(false);
     if (e.defaultPrevented) { return; }
     if (S.menu) { e.preventDefault(); closeMenu(true); return; }
     if (S.classic) {
@@ -67800,6 +68891,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       paintBoard();
       if (S.menu) { paintMenu(); }
     } catch (e3) { logErr(e3); }
+    // os9c: kip degisiminin TEK resize'i boyama bittikten sonra (bolgeler dolu, pano yerinde).
+    if (S.resizeDue) { S.resizeDue = false; fireResize(); }
   }
   function logErr(e) { S.lastErr = 'error'; try { console.warn('[OCTO-WSBAR] ' + ((e && e.message) || String(e)).slice(0, 120)); } catch (x) { /* yut */ } }
 
@@ -67813,6 +68906,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (S.toast && S.toast.contains(n)) { return true; }
       if (S.scrim && S.scrim.contains(n)) { return true; }
       if (S.live && S.live.contains(n)) { return true; }
+      if (S.tip && S.tip.contains(n)) { return true; }
       // WSEDIT H5: modulun dugumleri de kabugun (gozlemci ve rayin ownNode'u saymaz).
       var wse = wsEdit();
       if (wse && wse.own(n)) { return true; }
@@ -67827,6 +68921,25 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function wseHold() {
     var w = wsEdit();
     try { return !!(w && w.holds()); } catch (e) { return false; }
+  }
+  // WSEDIT (canli bulgu 21.10): Edit workspace surec satirlari Bubble'da daha da kisa ('Veri...'). Yalniz gosterim:
+  // kisaltilmis satir, ayni konumdaki son model surecinin os_workspace tam adi (on ek tutarsa). Konum guvencesi: ayni
+  // tablo, satir sayisi modelinkine esit, kisaltilmamis her satir modelin adiyla ayni. Aksi halde Bubble metni aynen.
+  function fullNames(rows, sheet) {
+    var out = isArr(rows) ? rows.map(function (x) { return str(x); }) : [];
+    var F = S.full, d = railData();
+    if (!F || !F.sheet || (sheet && clean(sheet) !== F.sheet) || (d && clean(d.sheet.name) !== F.sheet)) { return out; }
+    var L = F.list;
+    if (L.length !== out.length) { return out; }
+    for (var i = 0; i < L.length; i++) {
+      var r = clean(out[i]);
+      if (L[i].idx !== i || (!truncPrefix(r) && r !== L[i].bname && r !== L[i].name)) { return out; }
+    }
+    for (var j = 0; j < L.length; j++) {
+      var p = truncPrefix(out[j]), x = L[j];
+      if (p && x.id && !x.create && !truncPrefix(x.name) && x.name.indexOf(p) === 0) { out[j] = x.name; }
+    }
+    return out;
   }
   // Gozlemci A: belge {childList, characterData}; tablonun, rayin ve kabugun kendi dugumlerindeki kayitlar sayilmaz.
   function railOwn(n) {
@@ -67874,6 +68987,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (S.armed) { return true; }
     S.flag = readFlag();
     if (!S.flag || W.__OCTO_WS_OFF === true) { return false; }
+    readSub();
     S.armed = true;
     S.bootAt = now();
     S.bootTries = 0;
@@ -67890,6 +69004,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     listen(W, 'popstate', function () { later('pop', tick, 0); });
     listen(W, 'gx:el-mounted', function () { later('gx', tick, 350); });
     listen(W, 'keydown', onWinKey);
+    listen(W, 'scroll', function () {
+      if (S.tip && !S.tip.hidden) { tipHide(false); }
+      if (S.hdrMode && S.menu) { placeMenu(); }   // cubuk absolute (sayfayla kayar), menu fixed: cubugu izler
+    }, { passive: true, capture: true });
+    // Rayin seridi ve paneli Esc'i durdurur (stopPropagation): tooltip yakalama evresinde kapanir.
+    listen(D, 'keydown', function (e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { tipHide(false); } }, true);
     listen(D, 'click', onDocClickCap, true);
     listen(D, 'pointerdown', onTouchTable, true);
     listen(D, 'keydown', onTouchTable, true);
@@ -67908,7 +69028,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   var resizeT = null;
   function onResize() {
     if (resizeT) { return; }
-    resizeT = setTimeout(function () { resizeT = null; if (!S.armed) { return; } tick(); if (S.mounted) { S.sig = ''; paintSoon(); placeMenu(); } }, 60);
+    resizeT = setTimeout(function () { resizeT = null; if (!S.armed) { return; } S.band.at = 0; tipHide(false); tick(); if (S.mounted) { S.sig = ''; paintSoon(); placeMenu(); } }, 60);
   }
   function shutdown() {
     unmount('shutdown', true);
@@ -67919,8 +69039,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     stopTimers();
     dropWaiters();
     S.armed = false;
-    S.counts = {}; S.names = {}; S.memoSig = {}; S.scannedAt = {}; S.noProc = {}; S.sheetSig = ''; S.sig = ''; S.snap = null; S.cur = null;
+    S.counts = {}; S.names = {}; S.memoSig = {}; S.scannedAt = {}; S.noProc = {}; S.sheetSig = ''; S.sig = ''; S.snap = null; S.cur = null; S.full = null;
     S.view = null; S.page = 0; S.chromeErr = ''; S.reopenTries = 0; S.dropAt = 0;
+    S.resizeDue = false; S.noFitKey = ''; S.gapAt = 0;
+    S.noFit = 0; S.fitSig = ''; S.fit = ''; S.fitDropW = 0; S.band.right = 0; S.band.pend = -1; S.band.at = 0;
     cardsDrop(true);
     return true;
   }
@@ -67967,6 +69089,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.sheetSig = sheetKey(S.snap);
     S.ctxKey = ctx().key;
     coveredCheck();
+    if (S.wsh) { later('bandPoll', bandPoll, T.bandPoll); }
     trace('mount' + (S.chromeErr ? ':' + S.chromeErr : ''));
     paintSoon();
     flush();
@@ -67974,6 +69097,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function unmount(why, hard) {
     if (!S.mounted && !S.bar && !S.board) { if (chromeOff()) { fireResize(); } return; }
     closeMenu(false);
+    // os9c: serit cubukla birlikte silinmesin; kip birakilir (resize asagida chromeOff ile tek olay).
+    var hdrMoved = S.hdrMode ? hdrSet('', 0) : false;
+    S.resizeDue = false;
+    S.gapAt = 0;
+    if (S.stripObs) { try { S.stripObs.disconnect(); } catch (e0) { /* yut */ } S.stripObs = null; S.stripObsRef = null; }
+    rm(S.tip); S.tip = null; S.tipFor = null;
     dropWaiters();
     abortScan();
     detachBoard();
@@ -67991,7 +69120,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (hard) { S.view = null; }
     var had = chromeOff();
     trace('unmount:' + (why || ''));
-    if (had) { fireResize(); }
+    if (had || hdrMoved) { fireResize(); }
   }
   // Cubugun altinda ne var (teshis): Bubble'in etkilesimli ogesi ya da rayin seridi.
   function coveredCheck() {
@@ -68062,6 +69191,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (M && (M.variant || '') !== S.variant) { S.variant = M.variant || ''; S.sig = ''; }
     var s = snapshot();
     S.snap = s;
+    // os9c: bant yuksekligi, zil taramasi, rayin yeni seridi.
+    if (S.wsh) { hdrTick(); }
     // WSEDIT H1b: Edit workspace / View as gecisi tutarken pano, tarama ve baglam mantigi susar (Bubble'in bari
     // modulun; edit kipinin sablon adlari sure bellegine yazilmaz).
     if (wseHold()) {
@@ -68121,7 +69252,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       s.cells.map(function (x) { return x.name + ':' + x.count + (x.selected ? '*' : ''); }).join('|'),
       s.moreOpts.map(function (x) { return x.name; }).join('|'),
       [!!s.can.addTable, !!s.can.addList, !!s.can.addStage, !!s.can.templates, !!s.can.gear, !!s.can.person].join(''),
-      s.flows ? (s.flows.num + '/' + s.flows.total) : ''].join('~');
+      s.flows ? (s.flows.num + '/' + s.flows.total) : '',
+      // os9c: kip ve Edit kapisi (Bubble kisi kutusunu ya da menu okumasini gec acabilir).
+      S.hdrMode + (S.hdrMode && editCan() ? ':e' : '')].join('~');
     if (sig !== S.sig) { S.sig = sig; paintSoon(); }
     checkWaiters();
     if (!S.scan) { scanMaybe(false); }
@@ -68142,7 +69275,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         addTable: !!s.can.addTable, addList: !!s.can.addList, addStage: !!s.can.addStage, templates: !!s.can.templates, gear: !!s.can.gear,
         person: !!s.can.person, flows: !!s.flows
       },
-      gutter: g, ctx: ctx().key ? 'set' : '', view: S.mounted ? viewKind() : '', last: S.lastErr, ticks: S.ticks || 0, trace: S.trace.slice(-16)
+      gutter: g, ctx: ctx().key ? 'set' : '', view: S.mounted ? viewKind() : '', last: S.lastErr, ticks: S.ticks || 0, trace: S.trace.slice(-16),
+      wsh: {
+        want: S.wsh, on: !!S.hdrMode, mode: S.hdrMode, why: S.hdrWhy, appbar: S.appbar, h: S.band.h, right: S.band.right, fit: S.fit,
+        adopted: !!(stripEl() && S.apps && stripEl().parentNode === S.apps), covered: S.hdrMode ? bandCovered() : []
+      }
     };
   }
 
@@ -68514,12 +69651,15 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function chromeStageId() {
     var s = S.snap;
     if (!s) { return null; }
-    var name = '';
-    if (s.cell >= 0 && s.cells[s.cell]) { name = s.cells[s.cell].name; }
+    var name = '', cix = -1;
+    if (s.cell >= 0 && s.cells[s.cell]) { name = s.cells[s.cell].name; cix = alignCells(s)[s.cell]; }
     else if (s.more) { for (var i = 0; i < s.moreOpts.length; i++) { if (s.moreOpts[i].index === s.moreSel) { name = s.moreOpts[i].name; break; } } }
     if (!name) { return ''; }
     var st = stageModel(s);
-    for (var k = 0; k < st.length; k++) { if (st[k].name === name && st[k].id) { return str(st[k].id); } }
+    for (var k = 0; k < st.length; k++) { if (st[k].bname === name && st[k].id) { return str(st[k].id); } }
+    // Canli bulgu 21.10: More'un tam metni os_workspace tam adiyla; kisaltilmis secili hucre hizalandigi konumdaki surec.
+    for (var k2 = 0; k2 < st.length; k2++) { if (st[k2].name === name && st[k2].id) { return str(st[k2].id); } }
+    if (cix >= 0 && truncPrefix(name)) { for (var k3 = 0; k3 < st.length; k3++) { if (st[k3].idx === cix && st[k3].id && cellIs(name, st[k3])) { return str(st[k3].id); } } }
     return null;
   }
   // Su anki ekran, guvenli okunabiliyorsa gorulen ekranlara eklenir (Board spec 2.8). Guvenli: tablo ekran degistirmiyor
@@ -69391,13 +70531,16 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     flush: flush,
     // WSEDIT H2: modul hesap maddelerini okuyunca acik menu yeniden boyanir.
     repaint: function () { S.dirty = true; flush(); },
+    // WSEDIT: kisaltilmis surec satiri adlarinin gosterim adi (fullNames yorumu); yalniz okuma.
+    fullNames: function (rows, sheet) { try { return fullNames(rows, sheet); } catch (e) { return isArr(rows) ? rows.slice() : []; } },
     active: function () { return S.mounted && !S.chromeErr; },
     state: function () {
       var cur = S.mounted ? curStage() : null;
       return {
         on: S.armed, mounted: S.mounted, view: S.mounted ? viewKind() : '', zoom: !!S.zoom, sheet: sheetName(),
         stage: cur ? cur.name : '', list: curListName(), menu: S.menu, classic: S.classic, pinned: S.pinned, scanning: !!S.scan,
-        noProc: !!S.noProc[sheetKey()], err: S.chromeErr, viewingAs: S.mounted ? viewingAs() : false
+        noProc: !!S.noProc[sheetKey()], err: S.chromeErr, viewingAs: S.mounted ? viewingAs() : false,
+        hdr: S.hdrMode, fit: S.fit
       };
     },
     snapshot: function () {
@@ -69907,7 +71050,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   // ---------------------------------------------------------- hesap menusu
   // app-wsbar.js paintMenu() 'menu' dalindan (kanca H2): part 'main' View as / Edit / hesap maddeleri, 'tail' Log out.
   // Saf cizim: okuma (prime) acilis basina bir kez, cizim bellekten.
-  function menuItems(list, s, item, part) {
+  // o.noEdit (os9c, OCTO_WSH_SPEC 7): tek ust cubukta Edit birinci seviye dugme; menude ayrica cizilmez.
+  function menuItems(list, s, item, part, o) {
     if (off() || !list || typeof item !== 'function') { return false; }
     var pu = pageUserId();
     if (S.items && S.itemsPU !== pu) { S.items = null; S.itemsSig = ''; S.gfFail = false; }
@@ -69940,7 +71084,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     if (!S.primedOpen && !S.priming && !classicOn() && (now() - S.itemsAt > T.primeAge || !gfShown())) { later('prime', prime, 0); }
     // Edit Workspace ve Done ayni Bubble dugmesi: yalniz etiket 'Edit Workspace' iken (WSE-R7).
-    if (it.edit && /^edit workspace$/i.test(it.edit.label)) { list.appendChild(item('Edit workspace', 'wse-edit', 'table', { 'data-key': 'wse:edit' })); }
+    if (it.edit && /^edit workspace$/i.test(it.edit.label) && !(o && o.noEdit)) { list.appendChild(item('Edit workspace', 'wse-edit', 'table', { 'data-key': 'wse:edit' })); }
     var keys = ['automations', 'exports', 'dashboard', 'docs', 'risk'];
     var extra = [];
     for (var k0 in it) { if (Object.prototype.hasOwnProperty.call(it, k0) && /^x\d+$/.test(k0)) { extra.push(k0); } }
@@ -69948,7 +71092,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     for (var i = 0; i < keys.length + extra.length; i++) {
       var k = i < keys.length ? keys[i] : extra[i - keys.length];
       if (!it[k]) { continue; }
-      if (!any) { list.appendChild(el('div', 'octo-wsb-div')); any = true; }
+      if (!any) {
+        // os9c: Edit cubuga cikinca liste ayracla baslayabilirdi; pill (noEdit yok) eskisi gibi.
+        var lc = list.lastElementChild;
+        if (!(o && o.noEdit) || (lc && !hasCls(lc, 'octo-wsb-div'))) { list.appendChild(el('div', 'octo-wsb-div')); }
+        any = true;
+      }
       var ui = ITEM_UI[k] || { label: it[k].label, icon: '' };
       var b = item(ui.label, 'wse-item', ui.icon, { 'data-item': k, 'data-key': 'wse:' + k });
       if (isTab(k)) {
@@ -70187,6 +71336,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
   function gateEdit() {
     if (off() || !barActive() || guest()) { return false; }
+    // Bellek baska sayfa kullanicisinin menusune aitse kullanilmaz (menuItems ile ayni kural; os9c Edit dugmesi).
+    if (S.items && S.itemsPU !== pageUserId()) { S.items = null; S.itemsSig = ''; S.gfFail = false; }
     if (editMode()) { return true; }
     if (S.items) { return !!(S.items.edit && /^edit workspace$/i.test(S.items.edit.label)); }
     return personEnabled();   // Edit Workspace ve kisi kutusu ayni rollerde (Editor, Agency)
@@ -70213,9 +71364,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       busy: '', busyKey: '', err: '', offAt: 0, barGoneAt: 0, quietUntil: 0, idOk: true, cur: -1, opener: null, popKey: '', popFrom: null
     };
     // Acan dugme: menu maddesi menuyle birlikte silinir (odak govdede); o zaman cubugun Menu dugmesi (WSE-A8).
-    var op = null;
-    try { op = D.activeElement; } catch (e0) { op = null; }
-    if (!op || op === D.body || op === D.documentElement || !isConn(op)) { op = S.openerHint || q1('[data-act="menu"]', D.getElementById('octo-wsbar')); }
+    // Acan dugme ipucu once (os9c Edit dugmesi: Safari tikta dugmeye odak vermez, odak tabloda kalabilir).
+    var op = (S.openerHint && isConn(S.openerHint)) ? S.openerHint : null;
+    if (!op) { try { op = D.activeElement; } catch (e0) { op = null; } }
+    if (!op || op === D.body || op === D.documentElement || !isConn(op)) { op = q1('[data-act="menu"]', D.getElementById('octo-wsbar')); }
     S.edit.opener = op;
     S.openerHint = null;
     root().setAttribute(A_EDIT, '1');
@@ -70406,14 +71558,34 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function learn(e, snap) {
     for (var i = 0; i < snap.cells.length; i++) { if (snap.cells[i].state) { e.status[snap.cells[i].name] = snap.cells[i].state; } }
   }
+  // Canli bulgu 21.10: Bubble edit kipinde surec adini daha da kisaltir ('Veri...'). Yalniz gosterim: barin modeli ayni
+  // konumda os_workspace tam adini veriyorsa (app-wsbar fullNames) o ad; yoksa Bubble metni. Vekiller Bubble adiyla.
+  function stageLabels(snap, names) {
+    var b = wsbar();
+    if (!b || typeof b.fullNames !== 'function') { return names; }
+    var sh = '';
+    for (var i = 0; i < snap.sheets.length; i++) { if (snap.sheets[i].idx === snap.cur) { sh = snap.sheets[i].name; break; } }
+    try {
+      var r = b.fullNames(names.slice(), sh);
+      return (Object.prototype.toString.call(r) === '[object Array]' && r.length === names.length) ? r : names;
+    } catch (e) { return names; }
+  }
   function stageList(e, snap) {
     var names = snap.more.length ? snap.more.slice() : snap.cells.map(function (c) { return c.name; });
+    var labels = stageLabels(snap, names);
     var vis = {};
     for (var i = 0; i < snap.cells.length; i++) { vis[snap.cells[i].name] = snap.cells[i]; }
     return names.map(function (n, ix) {
       var c = vis[n] || null;
-      return { name: n, ord: ix + 1, cell: c, state: c && c.state ? c.state : (e.status[n] || ''), dup: names.indexOf(n) !== names.lastIndexOf(n) };
+      return { name: n, label: str(labels[ix]) || n, ord: ix + 1, cell: c, state: c && c.state ? c.state : (e.status[n] || ''), dup: names.indexOf(n) !== names.lastIndexOf(n) };
     });
+  }
+  function stageLabel(name) {
+    var e = S.edit;
+    if (!e) { return name; }
+    var l = stageList(e, editSnap());
+    for (var i = 0; i < l.length; i++) { if (l[i].name === name) { return l[i].label; } }
+    return name;
   }
   function cellSig(snap) { return snap.cells.map(function (c) { return c.name; }).join('|'); }
   function barStep(dir) {
@@ -70621,25 +71793,25 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         li.setAttribute('data-kind', 'st');
         if (e.busy && e.busyKey.indexOf(key) === 0) { li.setAttribute('aria-busy', 'true'); }
         li.appendChild(el('span', 'octo-wse-ord', String(x.ord)));
-        var nm = el('span', 'octo-wse-name', x.name);
-        nm.title = x.name;
+        var nm = el('span', 'octo-wse-name', x.label);
+        nm.title = x.label;
         li.appendChild(nm);
         var st = (c && !e.scanning) || !x.cell ? x.state : '';
         li.appendChild(stat(st));
         var acts = el('span', 'octo-wse-acts');
         // Ayni adli iki surec: hucre adla bulunur, yanlis kayda yazilabilirdi; eylem yok, Classic menu (F13).
         if (x.dup) { acts.appendChild(rowBtn('classic', 'Classic menu', { 'data-key': key + ':c' })); li.appendChild(acts); ol.appendChild(li); return; }
-        var eb = rowBtn('st-edit', 'Edit', { 'data-name': x.name, 'data-key': key + ':e', 'aria-label': 'Edit ' + x.name });
+        var eb = rowBtn('st-edit', 'Edit', { 'data-name': x.name, 'data-key': key + ':e', 'aria-label': 'Edit ' + x.label });
         if (b) { eb.disabled = true; }
         acts.appendChild(eb);
         if (st === 'off') {
-          var sb = rowBtn('st-show', busyText(e, key + ':s', 'Show'), { 'data-name': x.name, 'data-key': key + ':s', 'aria-label': 'Show ' + x.name });
+          var sb = rowBtn('st-show', busyText(e, key + ':s', 'Show'), { 'data-name': x.name, 'data-key': key + ':s', 'aria-label': 'Show ' + x.label });
           if (b) { sb.disabled = true; }
           acts.appendChild(sb);
         }
         if (st === 'on') {
           // Surec icin onay Bubble'in kendi penceresi (tek onay; UX-12).
-          var hb = rowBtn('st-hide', 'Stop showing', { 'data-name': x.name, 'data-key': key + ':h', 'aria-label': 'Stop showing ' + x.name });
+          var hb = rowBtn('st-hide', 'Stop showing', { 'data-name': x.name, 'data-key': key + ':h', 'aria-label': 'Stop showing ' + x.label });
           if (b) { hb.disabled = true; }
           acts.appendChild(hb);
         }
@@ -70913,7 +72085,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         if (!(hit.add && shown(hit.add, null))) { note('Could not open', true); return false; }
         pxClick(hit.add, 'stage:add');
         return waitFor(function () { var c = findCell(name); return !!c && c.state === 'on'; }, T.saveWait).then(function (ok) {
-          if (ok) { e.status[name] = 'on'; say(name + ' shown'); } else { note('Could not save', true); }
+          if (ok) { e.status[name] = 'on'; say(stageLabel(name) + ' shown'); } else { note('Could not save', true); }
           return settleDom(T.editWait).then(function () { return ok; });
         });
       });
@@ -71041,7 +72213,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     trace('edit:close' + (viaDone ? ':done' : ''));
     var bar = D.getElementById('octo-wsbar');
     var mb = bar ? q1('[data-act="menu"]', bar) : null;
-    if (e.opener && isConn(e.opener)) { focusNode(e.opener); } else if (mb) { focusNode(mb); }
+    // Cubuk yeniden boyandiysa acan dugme kopuktur: ayni data-key ile yeniden bulunur (os9c Edit dugmesi).
+    var ok = (e.opener && e.opener.getAttribute) ? str(e.opener.getAttribute('data-key')).replace(/"/g, '') : '';
+    var again = (ok && bar && !isConn(e.opener)) ? q1('[data-key="' + ok + '"]', bar) : null;
+    if (e.opener && isConn(e.opener)) { focusNode(e.opener); } else if (again) { focusNode(again); } else if (mb) { focusNode(mb); }
     idleCheck();
     barTick();
   }
@@ -71333,6 +72508,15 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     viewAs: viewAs,
     own: own,
     openEdit: openEdit,
+    // os9c (OCTO_WSH_SPEC 7): cubugun Edit dugmesi. Kapi gateEdit'in aynisi; acan dugme odak donusu icin saklanir.
+    canEdit: gateEdit,
+    editFrom: function (anchor) {
+      if (off() || !gateEdit()) { return false; }
+      if (S.edit) { focusSheet(); return true; }
+      S.openerHint = (anchor && isConn(anchor)) ? anchor : null;
+      later('openEdit', openEdit, 0);
+      return true;
+    },
     closeEdit: doneEdit,
     prime: prime,
     shutdown: shutdown,
