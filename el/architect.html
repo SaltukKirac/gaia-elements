@@ -47986,6 +47986,327 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   #octo-wsb-board .octo-wsb-rec::after { transition: none; }
 }
 
+/* ==========================================================================
+   app-wsedit.css  -  OCTO WSEDIT (os9a eki v1). Sahip: CLIENT. OCTO_WSEDIT_SPEC.
+   Kurallar YALNIZ kabugun kendi kokleri (#octo-wse-*) ve modulun oznitelikleri (html[data-octo-wse-*])
+   altinda. Belirtecler her kokte yeniden bildirilir (os9a ile ayni degerler).
+   Bubble'a dokunan uc kural var, ucu de yalniz kipte ve yalniz oznitelik varken:
+   - data-octo-wse-gf: kabugun actigi Bubble kullanici menusu gorunmez (vekil tik calisir);
+   - data-octo-wse-pick: Bubble'in kisi kutusu (typeahead) secici kutusunun yuvasina tasinir;
+   - kutunun oneri listesi kabugun menu diliyle cizilir.
+   Tablonun atalarina HICBIR kural yok; transform / filter / backdrop-filter yok.
+   ========================================================================== */
+
+/* ------------------------------------------------ Bubble kullanici menusu (vekil sirasinda) */
+/* Kip acik VE Classic kapaliyken: oznitelik kalsa bile kip kalkinca ya da Classic acilinca menu gorunur (asla gorunmez acik kalmaz). */
+html[data-octo-ws="1"]:not([data-octo-ws-classic="1"])[data-octo-wse-gf="1"] .baUwqaD,
+html[data-octo-ws="1"]:not([data-octo-ws-classic="1"])[data-octo-wse-gf="1"] .baUwqaD * {
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ------------------------------------------------ View as: Bubble kisi kutusu yuvada
+   Kutu Bubble menusunun icinde (visibility: hidden atasi); torun visible ile geri gelir, fixed ile yuvaya. */
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ {
+  visibility: visible !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+  left: var(--octo-wse-px, -9999px) !important;
+  top: var(--octo-wse-py, -9999px) !important;
+  width: var(--octo-wse-pw, 260px) !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 40px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  z-index: 3 !important;
+  overflow: visible !important;
+}
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .twitter-typeahead {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  height: 40px !important;
+}
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ input,
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ input.tt-input {
+  visibility: visible !important;
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  height: 40px !important;
+  margin: 0 !important;
+  padding: 0 8px 0 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: #0f172a !important;
+  font: 400 14px/20px -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: 0 !important;
+  text-align: left !important;
+}
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-hint { display: none !important; }
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-dropdown-menu,
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-menu {
+  visibility: visible !important;
+  pointer-events: auto !important;
+  position: absolute !important;
+  top: 48px !important;
+  left: -40px !important;
+  right: -12px !important;
+  width: auto !important;
+  max-height: 46vh !important;
+  overflow: auto !important;
+  margin: 0 !important;
+  padding: 6px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 40px rgba(49, 46, 129, .16) !important;
+}
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 44px !important;
+  padding: 0 10px !important;
+  border-radius: 10px !important;
+  color: #0f172a !important;
+  font: 400 14px/20px -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  cursor: pointer !important;
+  background: transparent !important;
+}
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion:hover,
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-cursor,
+html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-under-cursor {
+  background: #f6f7f9 !important;
+}
+
+/* ------------------------------------------------ belirtecler */
+#octo-wse-sheet,
+#octo-wse-scrim,
+#octo-wse-pick,
+#octo-wse-note {
+  --octo-accent: #6366f1;
+  --octo-accent-soft: rgba(99, 102, 241, .10);
+  --octo-ink: #0f172a;
+  --octo-ink-2: #475569;
+  --octo-ink-3: #94a3b8;
+  --octo-ink-3t: #64748b;
+  --octo-line: #e2e8f0;
+  --octo-line-2: #eef2f7;
+  --octo-bg: #f8fafc;
+  --octo-surface: #ffffff;
+  --octo-field: #f6f7f9;
+  --octo-ok: #047857;
+  --octo-warn: #b45309;
+  --octo-r2: 10px;
+  --octo-r3: 12px;
+  --octo-r9: 999px;
+  --octo-sh-l: 0 16px 40px rgba(49, 46, 129, .16);
+  --octo-sh-xl: 0 24px 64px rgba(15, 23, 42, .22);
+  --octo-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+  color: var(--octo-ink);
+  font: 400 13px/18px var(--octo-font);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+#octo-wse-sheet *, #octo-wse-sheet *::before, #octo-wse-sheet *::after,
+#octo-wse-pick *, #octo-wse-pick *::before, #octo-wse-pick *::after,
+#octo-wse-note *, #octo-wse-note *::before, #octo-wse-note *::after { box-sizing: border-box; }
+#octo-wse-sheet button, #octo-wse-pick button, #octo-wse-note button,
+#octo-wse-sheet select, #octo-wse-sheet input {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+}
+#octo-wse-sheet button, #octo-wse-pick button, #octo-wse-note button { -webkit-appearance: none; appearance: none; }
+#octo-wse-sheet button:focus-visible, #octo-wse-pick button:focus-visible, #octo-wse-note button:focus-visible,
+#octo-wse-sheet select:focus-visible, #octo-wse-sheet input:focus-visible {
+  outline: 2px solid var(--octo-accent);
+  outline-offset: 2px;
+}
+#octo-wse-sheet[hidden], #octo-wse-scrim[hidden], #octo-wse-pick[hidden], #octo-wse-note[hidden] { display: none !important; }
+.octo-wse-sentinel { display: none !important; }
+
+/* ------------------------------------------------ View as secici kutusu */
+#octo-wse-pick {
+  position: fixed;
+  z-index: 1451;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  padding: 6px 6px 8px;
+  background: var(--octo-surface);
+  border: 1px solid var(--octo-line);
+  border-radius: 14px;
+  box-shadow: var(--octo-sh-l);
+}
+#octo-wse-pick .octo-wse-phead { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 6px 10px; }
+#octo-wse-pick .octo-wse-ptitle { color: var(--octo-ink-3t); font: 600 11px/16px var(--octo-font); letter-spacing: .06em; text-transform: uppercase; }
+#octo-wse-pick .octo-wse-pclose {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border: 0; border-radius: var(--octo-r9); background: transparent; color: var(--octo-ink-3t); cursor: pointer;
+}
+#octo-wse-pick .octo-wse-pclose:hover { background: var(--octo-field); color: var(--octo-ink); }
+#octo-wse-pick .octo-wse-slot {
+  display: flex; align-items: center; height: 40px; margin: 0 4px; padding: 0 12px;
+  background: var(--octo-field); border: 1px solid transparent; border-radius: var(--octo-r2); color: var(--octo-ink-3t);
+}
+#octo-wse-pick .octo-wse-phint { padding: 8px 14px 4px; color: var(--octo-ink-3t); font-size: 12px; }
+#octo-wse-pick .octo-wse-pback {
+  display: flex; align-items: center; gap: 10px; width: calc(100% - 8px); min-height: 44px; margin: 0 4px 6px; padding: 0 10px;
+  border: 0; border-radius: var(--octo-r2); background: transparent; color: var(--octo-accent); font-weight: 600; text-align: left; cursor: pointer;
+}
+#octo-wse-pick .octo-wse-pback:hover { background: var(--octo-accent-soft); }
+
+/* ------------------------------------------------ Menu iskeleti ve yeni sekme isareti (cubugun menusu icinde) */
+#octo-wsb-pop .octo-wse-mskel { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; color: var(--octo-ink-3t); }
+#octo-wsb-pop .octo-wse-skbar { flex: 0 0 16px; width: 16px; height: 16px; border-radius: 4px; background: var(--octo-line-2); }
+#octo-wsb-pop .octo-wse-sklab { font-size: 12px; }
+#octo-wsb-pop .octo-wse-ext { flex: 0 0 auto; margin-left: auto; color: var(--octo-ink-3); }
+
+/* ------------------------------------------------ Edit workspace sayfasi */
+#octo-wse-scrim { position: fixed; inset: 0; z-index: 1458; background: rgba(15, 23, 42, .24); }
+#octo-wse-sheet {
+  position: fixed;
+  z-index: 1459;
+  top: 72px;
+  left: 50%;
+  width: min(720px, calc(100vw - 48px));
+  max-height: calc(100vh - 120px);
+  margin-left: calc(min(720px, calc(100vw - 48px)) / -2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--octo-surface);
+  border: 1px solid var(--octo-line);
+  border-radius: 16px;
+  box-shadow: var(--octo-sh-xl);
+}
+#octo-wse-sheet:focus { outline: none; }
+#octo-wse-sheet .octo-wse-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding: 20px 20px 14px; border-bottom: 1px solid var(--octo-line-2);
+}
+#octo-wse-sheet .octo-wse-htext { min-width: 0; }
+#octo-wse-sheet .octo-wse-title { margin: 0; font: 600 18px/24px var(--octo-font); letter-spacing: -.01em; color: var(--octo-ink); }
+#octo-wse-sheet .octo-wse-title:focus { outline: none; }
+#octo-wse-sheet .octo-wse-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; color: var(--octo-ink-2); }
+#octo-wse-sheet .octo-wse-for { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--octo-r9); background: var(--octo-field); font-size: 12px; }
+#octo-wse-sheet .octo-wse-for.is-as { background: rgba(180, 83, 9, .10); color: var(--octo-warn); font-weight: 600; }
+#octo-wse-sheet .octo-wse-ws {
+  height: 32px; max-width: 280px; padding: 0 28px 0 10px; border: 1px solid var(--octo-line); border-radius: var(--octo-r2);
+  background: var(--octo-surface); color: var(--octo-ink); font-size: 13px; cursor: pointer;
+}
+#octo-wse-sheet .octo-wse-done {
+  flex: 0 0 auto; height: 36px; min-width: 72px; padding: 0 16px; border: 0; border-radius: var(--octo-r9);
+  background: var(--octo-accent); color: #ffffff; font-weight: 600; cursor: pointer;
+}
+#octo-wse-sheet .octo-wse-done:hover { background: #5458e8; }
+#octo-wse-sheet .octo-wse-done[disabled] { opacity: .6; cursor: default; }
+#octo-wse-sheet .octo-wse-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 8px 12px 16px; }
+#octo-wse-sheet .octo-wse-sec { padding: 10px 0 4px; }
+#octo-wse-sheet .octo-wse-sec + .octo-wse-sec { border-top: 1px solid var(--octo-line-2); margin-top: 6px; }
+#octo-wse-sheet .octo-wse-sech { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 0 8px; }
+#octo-wse-sheet .octo-wse-sect { margin: 0; color: var(--octo-ink-3t); font: 600 11px/16px var(--octo-font); letter-spacing: .06em; text-transform: uppercase; }
+#octo-wse-sheet .octo-wse-sadd {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: var(--octo-r9);
+  background: transparent; color: var(--octo-accent); font-weight: 600; cursor: pointer;
+}
+#octo-wse-sheet .octo-wse-sadd:hover { background: var(--octo-accent-soft); }
+#octo-wse-sheet .octo-wse-rows { list-style: none; margin: 0; padding: 0; }
+#octo-wse-sheet .octo-wse-row {
+  display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 8px; border-radius: var(--octo-r2);
+}
+#octo-wse-sheet .octo-wse-row:hover { background: var(--octo-bg); }
+#octo-wse-sheet .octo-wse-row[data-cur="1"] .octo-wse-name { font-weight: 600; }
+#octo-wse-sheet .octo-wse-row[data-cur="1"] .octo-wse-ord { color: var(--octo-accent); }
+#octo-wse-sheet .octo-wse-row[aria-busy="true"] { opacity: .7; }
+#octo-wse-sheet .octo-wse-rbtn[disabled], #octo-wse-sheet .octo-wse-sadd[disabled] { opacity: .45; cursor: default; }
+#octo-wse-sheet .octo-wse-ord { flex: 0 0 22px; color: var(--octo-ink-3); font: 500 12px/16px var(--octo-font); font-variant-numeric: tabular-nums; text-align: right; }
+#octo-wse-sheet .octo-wse-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--octo-ink); }
+#octo-wse-sheet .octo-wse-stat { flex: 0 0 76px; color: var(--octo-ink-3t); font-size: 12px; }
+#octo-wse-sheet .octo-wse-stat[data-on="0"] { color: var(--octo-ink-3); }
+#octo-wse-sheet .octo-wse-acts { flex: 0 0 196px; display: inline-flex; align-items: center; justify-content: flex-start; gap: 2px; }
+/* Eylem sutunu sabit: Edit dugmeleri ve durum metni hizada kalir; workspace satiri (uc dugme) kendi genisliginde. */
+#octo-wse-sheet .octo-wse-row[data-kind="sh"] .octo-wse-acts { flex: 0 0 auto; }
+#octo-wse-sheet .octo-wse-rbtn {
+  height: 32px; min-width: 44px; padding: 0 10px; border: 0; border-radius: var(--octo-r9);
+  background: transparent; color: var(--octo-ink-2); font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+#octo-wse-sheet .octo-wse-rbtn:hover { background: var(--octo-field); color: var(--octo-ink); }
+#octo-wse-sheet .octo-wse-rbtn.is-danger { color: var(--octo-ink-2); }
+#octo-wse-sheet .octo-wse-rbtn.is-spacer { display: inline-flex; align-items: center; visibility: hidden; pointer-events: none; }
+#octo-wse-sheet .octo-wse-rbtn[data-armed="1"] { background: rgba(180, 83, 9, .10); color: var(--octo-warn); font-weight: 600; }
+#octo-wse-sheet .octo-wse-rform { flex: 1 1 auto; min-width: 0; display: flex; }
+#octo-wse-sheet .octo-wse-rin {
+  flex: 1 1 auto; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid var(--octo-accent); border-radius: var(--octo-r2);
+  background: var(--octo-surface); color: var(--octo-ink); font-size: 14px;
+}
+#octo-wse-sheet .octo-wse-empty { padding: 10px 16px 12px; color: var(--octo-ink-3t); }
+#octo-wse-sheet .octo-wse-note-in { padding: 4px 16px 8px; color: var(--octo-ink-3t); font-size: 12px; }
+#octo-wse-sheet .octo-wse-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 16px 24px; color: var(--octo-ink-2); text-align: center; }
+#octo-wse-sheet .octo-wse-state.is-err { color: var(--octo-warn); }
+#octo-wse-sheet .octo-wse-stitle { font: 600 14px/20px var(--octo-font); color: var(--octo-ink); }
+#octo-wse-sheet .octo-wse-srow { display: flex; gap: 8px; }
+#octo-wse-sheet .octo-wse-sbtn {
+  height: 36px; padding: 0 14px; border: 1px solid var(--octo-line); border-radius: var(--octo-r9);
+  background: var(--octo-surface); color: var(--octo-ink); font-weight: 600; cursor: pointer;
+}
+#octo-wse-sheet .octo-wse-sbtn:hover { background: var(--octo-field); }
+#octo-wse-sheet .octo-wse-spin {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--octo-line); border-top-color: var(--octo-accent);
+  animation: octo-wse-spin 900ms linear infinite;
+}
+#octo-wse-sheet .octo-wse-skrow { height: 44px; margin: 4px 8px; border-radius: var(--octo-r2); background: var(--octo-bg); }
+#octo-wse-sheet .octo-wse-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@keyframes octo-wse-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #octo-wse-sheet .octo-wse-spin { animation: none; } }
+
+/* ------------------------------------------------ bildirim */
+#octo-wse-note {
+  position: fixed;
+  z-index: 1460;
+  left: 50%;
+  bottom: 24px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 14px;
+  background: var(--octo-ink);
+  color: #ffffff;
+  box-shadow: var(--octo-sh-l);
+  margin-left: -180px;
+  width: 360px;
+}
+#octo-wse-note > svg { flex: 0 0 auto; color: #ffffff; }
+#octo-wse-note .octo-wse-ntext { flex: 1 1 auto; min-width: 0; }
+#octo-wse-note .octo-wse-nbtn {
+  flex: 0 0 auto; height: 32px; padding: 0 12px; border: 0; border-radius: var(--octo-r9);
+  background: rgba(255, 255, 255, .14); color: #ffffff; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+#octo-wse-note .octo-wse-nbtn:hover { background: rgba(255, 255, 255, .22); }
+#octo-wse-note .octo-wse-nclose {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  border: 0; border-radius: var(--octo-r9); background: transparent; color: #ffffff; cursor: pointer;
+}
+#octo-wse-note .octo-wse-nclose:hover { background: rgba(255, 255, 255, .14); }
+#octo-wse-note[role="alert"] { background: #7c2d12; }
+
 </style>
 <script id="octo-shell-script">
 /* file: octo-core.js */
@@ -65886,7 +66207,12 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
       var ps = side.querySelector(SEL.person);
       var pin = ps ? (ps.querySelector('input.tt-input') || ps.querySelector('input')) : null;
       if (pin && shown(ps, side)) {
-        s.person = clean(pin.value);
+        // Kutu odakliyken (kisi yaziliyor) deger kisi adi degil: son bilinen ad kalir (cip 'Viewing as a' demesin).
+        var typing = false;
+        try { typing = D.activeElement === pin; } catch (e0) { typing = false; }
+        try { s.pu = str(octo.page.pageUser()); } catch (e1) { s.pu = ''; }
+        // Ayni sayfa kullanicisi icin (Bubble kisiye gecince ad tazelenir; INT-4).
+        s.person = (typing && S.snap && S.snap.person && S.snap.pu === s.pu) ? S.snap.person : clean(pin.value);
         if (!pin.disabled) { s.can.person = pin; }
       }
       s.company = textOf(side.querySelector(SEL.company));
@@ -66558,6 +66884,9 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   }
   function onDocDown(e) {
     var t = e && e.target;
+    // WSEDIT: modulun dugumune atilan olay (Bubble menusunu kapatan gizli nobetci) os9a menusunu kapatmaz.
+    var wse = wsEdit();
+    if (wse && wse.own(t)) { return; }
     if (S.pop && S.pop.contains(t)) { return; }
     if (S.bar && S.bar.contains(t)) { return; }
     closeMenu(false);
@@ -66676,12 +67005,17 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
         p.appendChild(el('div', 'octo-wsb-div'));
       }
       if (s.can.templates) { list.appendChild(item('Browse AI templates', 'templates', 'apps', { 'data-key': 'tpl' })); }
-      if (s.can.person) { list.appendChild(item('View as', 'view-as', 'people', { 'data-key': 'viewas' })); }
-      if (s.can.gear) { list.appendChild(item('Account menu', 'account', 'people', { 'data-key': 'acct' })); }
+      // WSEDIT H2: View as, Edit workspace ve hesap maddeleri yerli (app-wsedit.js); modul yoksa os9a maddeleri.
+      var wse = wsEdit();
+      if (!(wse && wse.menuItems(list, s, item, 'main'))) {
+        if (s.can.person) { list.appendChild(item('View as', 'view-as', 'people', { 'data-key': 'viewas' })); }
+        if (s.can.gear) { list.appendChild(item('Account menu', 'account', 'people', { 'data-key': 'acct' })); }
+      }
       var cl = item('Classic menu', 'classic', 'sidebar', { 'data-key': 'classic' });
       cl.setAttribute('role', 'menuitemcheckbox');
       cl.setAttribute('aria-checked', S.classic ? 'true' : 'false');
       list.appendChild(cl);
+      if (wse) { wse.menuItems(list, s, item, 'tail'); }
     }
     p.appendChild(list);
     placeMenu();
@@ -66731,6 +67065,9 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     var idx = Number(t.getAttribute('data-idx'));
     var name = t.getAttribute('data-name') || '';
     var kb = e.detail === 0;
+    // WSEDIT H3: modulun kendi eylemleri (wse-*); ele alindiysa menu kapanir.
+    var wse = wsEdit();
+    if (wse && wse.act(a, t)) { closeMenu(false); return; }
     if (a === 'add-table') {
       // Bubble'in '+ Add Table'i onaysiz hemen tablo yazar: iki adim.
       if (!S.blankAt || (now() - S.blankAt) >= T.blankConfirm) { S.blankAt = now(); paintMenu(); restoreFocus(S.pop, 'addtable'); return; }
@@ -66814,6 +67151,9 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   }
   // Personel ekranina gecis (Bubble'in arama kutusu, Editor / Agency): Classic acilir, kutu odaklanir.
   function viewAs() {
+    // WSEDIT H4: yerli secici (Bubble kisi kutusu secici kutusunda); acilmadiysa os9a yolu.
+    var wse = wsEdit();
+    if (wse && wse.viewAs(S.bar ? q1('[data-key="as"]', S.bar) : null)) { return true; }
     var s = snapshot();
     var inp = s.can.person;
     if (!inp) { toast('Could not open', true); return false; }
@@ -67393,7 +67733,7 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   // Yalniz pano acik, Classic ve menu kapaliyken; tablo basina bir kez + secenek listesi degisince + T.rescanAfter.
   function scanSig(s) { return s.moreOpts.map(function (o) { return o.name; }).join('|') || String(s.cells.length); }
   function scanMaybe(force) {
-    if (S.scan || S.zoom || S.classic || S.menu || !boardOpen()) { return; }
+    if (S.scan || S.zoom || S.classic || S.menu || !boardOpen() || wseHold()) { return; }
     var s = S.snap;
     if (!s || !s.bar || !s.next || s.prev) { return; }
     var k = sheetKey(s);
@@ -67473,8 +67813,20 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
       if (S.toast && S.toast.contains(n)) { return true; }
       if (S.scrim && S.scrim.contains(n)) { return true; }
       if (S.live && S.live.contains(n)) { return true; }
+      // WSEDIT H5: modulun dugumleri de kabugun (gozlemci ve rayin ownNode'u saymaz).
+      var wse = wsEdit();
+      if (wse && wse.own(n)) { return true; }
     } catch (e) { /* yut */ }
     return false;
+  }
+  // app-wsedit.js (OCTO_WSEDIT_SPEC 9): yoksa ya da kapaliysa (window.__OCTO_WSEDIT_OFF) null; kancalar etkisiz.
+  function wsEdit() {
+    var w = octo._wsedit;
+    return (w && W.__OCTO_WSEDIT_OFF !== true) ? w : null;
+  }
+  function wseHold() {
+    var w = wsEdit();
+    try { return !!(w && w.holds()); } catch (e) { return false; }
   }
   // Gozlemci A: belge {childList, characterData}; tablonun, rayin ve kabugun kendi dugumlerindeki kayitlar sayilmaz.
   function railOwn(n) {
@@ -67667,10 +68019,12 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     if (!wide()) { return { ok: false, hard: true, why: 'narrow' }; }
     if (!railArmed()) { return { ok: false, hard: true, why: 'rail' }; }
     if (guest()) { return { ok: false, hard: true, why: 'guest' }; }
-    if (editMode()) { return { ok: false, hard: true, why: 'edit' }; }
+    // WSEDIT H1: Edit workspace sayfasi Bubble'in edit kipini sahiplenirken (SA bos, tablo bos) kip geri alinmaz.
+    var hold = wseHold();
+    if (editMode() && !hold) { return { ok: false, hard: true, why: 'edit' }; }
     var c = ctx();
-    if (!c.key) { return { ok: false, hard: false, why: 'ctx' }; }
-    if (!tableVisible()) { return { ok: false, hard: false, why: 'table' }; }
+    if (!c.key && !hold) { return { ok: false, hard: false, why: 'ctx' }; }
+    if (!tableVisible() && !hold) { return { ok: false, hard: false, why: 'table' }; }
     var side = sideRoot();
     if (!side) { return { ok: true, err: 'bubble_hidden' }; }
     if (!shown(side, null)) {
@@ -67708,6 +68062,22 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     if (M && (M.variant || '') !== S.variant) { S.variant = M.variant || ''; S.sig = ''; }
     var s = snapshot();
     S.snap = s;
+    // WSEDIT H1b: Edit workspace / View as gecisi tutarken pano, tarama ve baglam mantigi susar (Bubble'in bari
+    // modulun; edit kipinin sablon adlari sure bellegine yazilmaz).
+    if (wseHold()) {
+      abortScan();
+      // Yalniz gecis kirasi (sayfa kapali, cubuk tiklanabilir): temel cizgiler ve boyama guncel kalir (INT-1).
+      var wk = wsEdit();
+      if (wk && typeof wk.holdKind === 'function' && wk.holdKind() === 'lease') {
+        var lsk = sheetKey(s);
+        if (lsk) { S.sheetSig = lsk; }
+        S.ctxKey = ctx().key;
+        S.sig = '';
+        paintSoon();
+      }
+      checkWaiters();
+      return;
+    }
     alignCells(s);
     var c = ctx();
     var sk = sheetKey(s);
@@ -68867,6 +69237,8 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
     shutdown: shutdown,
     tick: tick,
     flush: flush,
+    // WSEDIT H2: modul hesap maddelerini okuyunca acik menu yeniden boyanir.
+    repaint: function () { S.dirty = true; flush(); },
     active: function () { return S.mounted && !S.chromeErr; },
     state: function () {
       var cur = S.mounted ? curStage() : null;
@@ -68920,6 +69292,1914 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   } catch (e) { /* yut */ }
 
   boot();
+})();
+
+/* file: app-wsedit.js */
+/* ==========================================================================
+   app-wsedit.js  -  OCTO WSEDIT (os9a eki v1.1): hesap menusu, View as ve Edit workspace yeni cubukta.
+   Sahip: CLIENT. OCTO_WSEDIT_SPEC.
+
+   os9a (app-wsbar.js) bu isleri Bubble'in eski parcalarina birakiyordu: Account menu = Classic + disli,
+   View as = Classic + kisi kutusu, Bubble edit kipi = kip kendini geri alir. Bu modul ucunu de yeni
+   cubuga tasir:
+   - Menu'de yerli hesap maddeleri: Bubble kullanici menusu (GroupFocus bUwqD) cubugun menusu acik kaldikca
+     CSS ile gizli acik tutulur (kira), maddeleri okunur (Bubble'da gorunen = rol esligi), tik maddeye
+     KULLANICININ tikiyla ayni gorevde vekildir (yeni sekme acilislari tarayiciya takilmasin).
+   - View as: Bubble'in KENDI kisi kutusu (AutocompleteDropdown bUfIJ) CSS ile secici kutusuna tasinir;
+     kisi yazmak ve oneri secmek Bubble'in kendi typeahead'inde, gercek kullanici olayiyla.
+   - Edit workspace: Bubble edit kipine vekille girilir; kabugun sayfasi Bubble'in kip ogelerini okur
+     (surec / liste / workspace satirlari, +, -, kalem) ve eylemleri onlara vekil tiklar. Silme ve olusturma
+     formlari Bubble'in kendi acilir pencereleridir. Her eylem tek ucusludur; durum metni Bubble sakinlesince.
+
+   Bubble'da SIFIR degisiklik, sunucuda SIFIR degisiklik. Her yazim Bubble'in kendi is akisiyla. Tum uzak
+   metin textContent. Tablonun atalarina stil yazilmaz (html'e yalniz oznitelik ve CSS degiskeni).
+   app-wsbar.js kancalari (spec 9): holds() (dususler + tick susar), menuItems(main|tail), act(), viewAs(),
+   own(), API repaint(). window.__OCTO_WSEDIT_OFF === true iken hicbir kanca etki etmez (os9a birebir).
+
+   Harness dikisleri: octo._wsedit, window.__OCTO_WSEDIT_OFF, window.__octoNavigate (tam sayfa gecisi).
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var octo = window.octo;
+  if (!octo || !octo.bus || typeof octo.icon !== 'function') { return; }
+  if (octo._wsedit) { return; }
+
+  var D = document;
+  var W = window;
+  var A_GF = 'data-octo-wse-gf';       // kira: kabuk Bubble kullanici menusunu acik tutarken menu gorunmez
+  var A_PICK = 'data-octo-wse-pick';   // View as acikken: Bubble kisi kutusu secici kutusuna tasinir
+  var A_EDIT = 'data-octo-wse-edit';   // Edit workspace sayfasi acik
+  var SHEET_ID = 'octo-wse-sheet';
+  var SCRIM_ID = 'octo-wse-scrim';
+  var PICK_ID = 'octo-wse-pick';
+  var NOTE_ID = 'octo-wse-note';
+  var MIN_W = 900;
+
+  // Zamanlar (ms). Harness T_DEFAULT'u okur, hizlandirmak icin T'yi degistirir.
+  var T = {
+    gfWait: 3000, gfSettle: 250, gfHold: 60000, editWait: 5000, editGrace: 1500, popWait: 3000, saveWait: 4000,
+    settle: 600, pageStep: 350, confirmMs: 5000, confirmMin: 350, sheetWait: 15000, note: 6000, tick: 120, poll: 60, primeAge: 60000,
+    switchWait: 1200, zoomWait: 4000, suggestWait: 1500
+  };
+  var T_DEFAULT = {};
+  (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
+
+  // Bubble element id -> DOM sinifi (os9a ile ayni kural: her buyuk harften once 'a'). Kaynak: SM1_EK_HAM.txt.
+  function bc(id) { return '.' + String(id).replace(/([A-Z])/g, 'a$1'); }
+  var SEL = {
+    side: '#sideMenu, ' + bc('bUfHw'),
+    bar: '#stagebar, ' + bc('bUfHM'),
+    gear: bc('bWHgF0'),           // Icon ayarlar: WF bUwpF -> Show GroupFocus kullanici menu
+    gf: bc('bUwqD'),              // GroupFocus kullanici menu (sayfa kokunde, disliye yapisik; icerik yalniz acikken)
+    exportGf: bc('bUhXH'),        // GroupFocus export (Exports dugmesine yapisik)
+    person: bc('bUfIJ'),          // SearchBox set page user (AutocompleteDropdown, typeahead)
+    sheetRow: bc('bUfIf'),        // Group stage digertablolarinner (tik: WF bUfgN, SA = PU'nun Arama'si; bossa SA degismez)
+    sheetName: bc('bUfIl'),       // Text tablo adi (edit kipinde gizli; Bubble'in yazdigi, kabugun DEGIL)
+    sheetInput: bc('bWDmW'),      // Input S: tablo adi, auto-binding sheet.ad (yalniz edit kipi)
+    sheetTools: bc('bUfJK'),      // Group sheet duzenle toolbar (yalniz edit kipi)
+    sheetDel: bc('bUxES'),        // Icon feather edit sheet: DIKKAT tablo SILME penceresi (WF bUgEC)
+    sheetAdd: bc('bUxDc'),        // + addsheettouser (WF bUgDx, arka uc isi)
+    sheetRemove: bc('bUxDu'),     // - permissionedsheets REMOVE, onaysiz (WF bUgEJ)
+    lists: '#liste, ' + bc('bUfIn'),
+    listRow: bc('bUfJE'),
+    listName: bc('bUfJF'),
+    listTools: bc('bUfIr'),       // Group liste duzenle toolbar (yalniz edit kipi; veri = PU'nun kaydi)
+    listEdit: bc('bUxGc'),        // kalem: Popup Surec liste olustur duzenle (Liste, Duzenle)
+    listAdd: bc('bUxGE'),         // + liste kopyasi (NewThing, User = PU)
+    listRemove: bc('bUxEj'),      // - erisimi kaldir onayi (Popup sil emin misin)
+    addList: bc('bUfJX'),         // + Add list (Editor, acik tablo)
+    cellWrap: bc('bUmlm'),        // Group Surec&ListeAlanlarAksiyonlar (hucre)
+    cell: bc('bUfHX'),
+    cellName: bc('bUmlV'),
+    stageEdit: bc('bUxGn'),       // kalem: Popup Surec duzenle (ad, sira, sil)
+    stageAdd: bc('bUxGz'),        // + surec kopyasi (NewThing + createinnerstages)
+    stageRemove: bc('bUxGt'),     // - erisimi kaldir onayi
+    addStage: bc('bUfHq'),        // + Add stage (Editor)
+    prev: bc('bUwnB'),
+    next: bc('bWDdp'),
+    more: bc('bWCKq'),
+    editMarks: [bc('bWDmW'), bc('bUfJK'), bc('bUfIr'), bc('bUxGn')],
+    popup: '.bubble-element.Popup, ' + bc('bUfal') + ', ' + bc('bUfam')
+  };
+  // Kullanici menusu maddeleri: once sinif, yoksa metin (Haziran disa aktarimi). Eslenmeyen gorunur dugme
+  // genel madde olarak cizilir (Haziran sonrasi eklenen islev kaybolmasin).
+  var ITEMS = [
+    { key: 'edit', sel: bc('bWDmc'), re: /^(edit workspace|done)$/i },
+    { key: 'automations', sel: bc('bWDnL'), re: /^(automations|table)$/i },
+    { key: 'exports', sel: bc('bUhXF'), re: /^exports?$/i },
+    { key: 'dashboard', sel: bc('bUxFl'), re: /^dashboard$/i, tab: true },
+    { key: 'docs', sel: bc('bWHiV'), re: /^documentation$/i, tab: true },
+    { key: 'risk', sel: bc('bVBsu'), re: /^risk report$/i, tab: true },
+    { key: 'logout', sel: bc('bUxCH'), re: /^log ?out$/i }
+  ];
+  var ITEM_UI = {
+    automations: { label: 'Automations', icon: 'play' },
+    exports: { label: 'Exports', icon: 'archive' },
+    dashboard: { label: 'Dashboard', icon: 'chart' },
+    docs: { label: 'Documentation', icon: 'doc' },
+    risk: { label: 'Risk report', icon: 'alert' }
+  };
+
+  // ------------------------------------------------------------------ durum
+  var S = {
+    items: null, itemsAt: 0, itemsPU: '', itemsSig: '', gfFail: false, priming: null, gfOurs: false, gfAt: 0,
+    primedOpen: false, menuSeen: false, stopper: null, sentinel: null, gfOp: 0,
+    pick: null, edit: null, lease: null,
+    sheet: null, scrim: null, pickBox: null, note: null,
+    mo: null, moTimer: null, waiters: [], timers: {}, sig: '', editSig: '', trace: [], lastErr: '', liveText: ''
+  };
+
+  // ------------------------------------------------------------- yardimcilar
+  function str(v) { return (v == null) ? '' : String(v); }
+  function clean(v) { return str(v).replace(/\s+/g, ' ').trim().slice(0, 120); }
+  function el(tag, cls, t) { var n = D.createElement(tag); if (cls) { n.className = cls; } if (t != null) { n.textContent = String(t); } return n; }
+  function btn(cls, act, label) {
+    var b = D.createElement('button');
+    b.type = 'button';
+    if (cls) { b.className = cls; }
+    if (act) { b.setAttribute('data-act', act); }
+    if (label != null) { b.textContent = String(label); }
+    return b;
+  }
+  function clear(n) { if (!n) { return; } while (n.firstChild) { n.removeChild(n.firstChild); } }
+  function isConn(n) { try { return !!n && (n.isConnected === true || D.documentElement.contains(n)); } catch (e) { return false; } }
+  function rm(n) { try { if (n && n.parentNode) { n.parentNode.removeChild(n); } } catch (e) { /* yut */ } }
+  function now() { try { return W.performance.now(); } catch (e) { return Date.now(); } }
+  function trace(ev) { S.trace.push(ev); if (S.trace.length > 40) { S.trace.shift(); } }
+  function root() { return D.documentElement; }
+  function off() { return W.__OCTO_WSEDIT_OFF === true; }
+  function wide() { var w = W.innerWidth || (D.documentElement && D.documentElement.clientWidth) || 1280; return w >= MIN_W; }
+  function later(name, fn, ms) {
+    if (S.timers[name]) { try { clearTimeout(S.timers[name]); } catch (e) { /* yut */ } }
+    S.timers[name] = setTimeout(function () { S.timers[name] = null; fn(); }, ms || 0);
+  }
+  function cancel(name) { if (S.timers[name]) { try { clearTimeout(S.timers[name]); } catch (e) { /* yut */ } S.timers[name] = null; } }
+  function upTo(n, test, stop) {
+    for (var x = n; x && x !== stop && x.nodeType === 1; x = x.parentNode) { if (test(x)) { return x; } }
+    return null;
+  }
+  function hasCls(n, c) { return !!(n && n.classList && n.classList.contains(c)); }
+  function q1(sel, scope) { try { return (scope || D).querySelector(sel); } catch (e) { return null; } }
+  function qa(sel, scope) { try { return Array.prototype.slice.call((scope || D).querySelectorAll(sel)); } catch (e) { return []; } }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms || 0); }); }
+  function focusNode(n) { if (!n) { return; } try { n.focus({ preventScroll: true }); } catch (e) { try { n.focus(); } catch (e2) { /* yut */ } } }
+  function wsbar() { return octo._wsbar || null; }
+  function barActive() { var b = wsbar(); try { return !!(b && b.active()); } catch (e) { return false; } }
+  function barState() { var b = wsbar(); try { return (b && b.state()) || {}; } catch (e) { return {}; } }
+  function classicOn() { return root().getAttribute('data-octo-ws-classic') === '1'; }
+  function classicOff() { var b = wsbar(); try { if (b && classicOn()) { b.classic(false); } } catch (e) { /* yut */ } }
+  function repaintBar() { var b = wsbar(); try { if (b && typeof b.repaint === 'function') { b.repaint(); } } catch (e) { /* yut */ } }
+  function barTick() { var b = wsbar(); try { if (b && typeof b.tick === 'function') { b.tick(); } } catch (e) { /* yut */ } }
+  function pageUserId() { try { return str(octo.page.pageUser()); } catch (e) { return ''; } }
+  function selfId() { try { return str((octo.page.ids() || {}).user_id).trim(); } catch (e) { return ''; } }
+  function viewingAs() { var pu = pageUserId(), cu = selfId(); return !!(pu && cu && pu !== cu); }
+  function ctxKey() { var r = octo._rail; try { return (r && typeof r.readCtx === 'function') ? str((r.readCtx() || {}).key) : ''; } catch (e) { return ''; } }
+  // Rayin os_workspace tablo kimligi YALNIZ verisi su anki baglama aitken (ray baglam degisince veriyi sifirlar).
+  function railSheetId() {
+    var r = octo._rail;
+    try {
+      var M = r ? r.M : null, k = ctxKey();
+      return (M && k && M.key === k && M.data && M.data.sheet) ? str(M.data.sheet.id) : '';
+    } catch (e) { return ''; }
+  }
+
+  // ----------------------------------------------------------- Bubble okuma
+  // "Gorunur" = Bubble gizlememis (display zinciri). Kabugun visibility gizlemesi sayilmaz (os9a ile ayni).
+  function shown(n, stop) {
+    if (!n || !isConn(n)) { return false; }
+    for (var x = n; x && x.nodeType === 1 && x !== stop && x !== D.body && x !== D.documentElement; x = x.parentNode) {
+      var cs = null;
+      try { cs = W.getComputedStyle(x); } catch (e) { cs = null; }
+      if (cs && cs.display === 'none') { return false; }
+    }
+    return true;
+  }
+  function textOf(n) {
+    if (!n) { return ''; }
+    var t = clean(n.textContent);
+    var ti = clean(n.getAttribute && n.getAttribute('title'));
+    if (!ti) { var c = n.querySelector && n.querySelector('[title]'); ti = c ? clean(c.getAttribute('title')) : ''; }
+    return ti && ti.length >= t.length ? ti : t;
+  }
+  function sideRoot() { return q1(SEL.side); }
+  function barRoot() { return q1(SEL.bar); }
+  function groupItem(n, stop) { return upTo(n, function (x) { return hasCls(x, 'group-item'); }, stop); }
+  function shownIn(sel, scope) { var n = q1(sel, scope); return (n && shown(n, null)) ? n : null; }
+  function editMode() {
+    var side = sideRoot(), bar = barRoot();
+    for (var i = 0; i < SEL.editMarks.length; i++) {
+      var all = qa(SEL.editMarks[i], side).concat(bar ? qa(SEL.editMarks[i], bar) : []);
+      for (var j = 0; j < all.length; j++) { if (shown(all[j], null)) { return true; } }
+    }
+    return false;
+  }
+  function guest() { var side = sideRoot(); var g = side ? q1(bc('bWAxa'), side) : null; return !!g && shown(g, null); }
+  function personBox() { var side = sideRoot(); var b = side ? q1(SEL.person, side) : null; return (b && shown(b, side)) ? b : null; }
+  function personInput() { var b = personBox(); return b ? (q1('input.tt-input', b) || q1('input', b)) : null; }
+  function personEnabled() { var i = personInput(); return !!i && !i.disabled; }
+  function personName() { var i = personInput(); return i ? clean(i.value) : ''; }
+  function suggestions() { var b = personBox(); return b ? qa('.tt-suggestion', b) : []; }
+  function visiblePopups() {
+    var out = [];
+    var all = qa(SEL.popup);
+    for (var i = 0; i < all.length; i++) {
+      if (!shown(all[i], null)) { continue; }
+      var r = null;
+      try { r = all[i].getBoundingClientRect(); } catch (e) { r = null; }
+      if (r && r.width > 0 && r.height > 0) { out.push(all[i]); }
+    }
+    return out;
+  }
+  function popupOpen() { return visiblePopups().length > 0; }
+
+  // ------------------------------------------------------------------ vekil
+  function pxClick(n, tag) {
+    if (!n) { return false; }
+    try { n.click(); trace('px:' + (tag || 'click')); return true; } catch (e) { return false; }
+  }
+  function fire(n, type) {
+    var ev;
+    try { ev = new Event(type, { bubbles: true, cancelable: true }); } catch (e) { ev = D.createEvent('Event'); ev.initEvent(type, true, true); }
+    try { n.dispatchEvent(ev); } catch (e2) { /* yut */ }
+  }
+  function mouseFire(n, type) {
+    var ev;
+    try { ev = new MouseEvent(type, { bubbles: true, cancelable: true, view: W }); } catch (e) { ev = D.createEvent('MouseEvents'); ev.initEvent(type, true, true); }
+    try { n.dispatchEvent(ev); } catch (e2) { /* yut */ }
+  }
+  // Input S (auto-binding): yerel deger ayarlayicisi + input / change / blur, TEK yazim.
+  function writeInput(inp, v) {
+    try {
+      var d = Object.getOwnPropertyDescriptor(W.HTMLInputElement.prototype, 'value');
+      if (d && d.set) { d.set.call(inp, v); } else { inp.value = v; }
+    } catch (e) { try { inp.value = v; } catch (e2) { return false; } }
+    fire(inp, 'input');
+    fire(inp, 'change');
+    try { inp.blur(); } catch (e3) { /* yut */ }
+    fire(inp, 'blur');
+    trace('px:input');
+    return true;
+  }
+  // Tam sayfa gecisi (Bubble ChangePage(index, kisi) ile ayni: [/version-x]/app/<id>); harness dikisi __octoNavigate.
+  function pathNow() {
+    try { return (typeof W.__octoUrlPath === 'string') ? W.__octoUrlPath : String((W.location && W.location.pathname) || ''); } catch (e) { return ''; }
+  }
+  function navTo(id) {
+    if (!id) { return false; }
+    var m = /^(.*?)\/app(?:\/|$)/.exec(pathNow());
+    var url = (m ? m[1] : '') + '/app/' + encodeURIComponent(id);
+    trace('nav');
+    try { if (typeof W.__octoNavigate === 'function') { W.__octoNavigate(url); return true; } } catch (e) { /* yut */ }
+    try { W.location.assign(url); return true; } catch (e2) { return false; }
+  }
+
+  // Bekleme: gozlemci her turda waiters'i dener; zaman asiminda false.
+  function waitFor(test, ms) {
+    return new Promise(function (resolve) {
+      var w = { test: test, resolve: resolve, until: now() + ms };
+      S.waiters.push(w);
+      checkWaiters();
+      if (S.waiters.indexOf(w) >= 0) { later('waitPoll', pollWaiters, T.poll); }
+    });
+  }
+  function pollWaiters() {
+    if (!S.waiters.length) { return; }
+    checkWaiters();
+    if (S.waiters.length) { later('waitPoll', pollWaiters, T.poll); }
+  }
+  function checkWaiters() {
+    var keep = [];
+    for (var i = 0; i < S.waiters.length; i++) {
+      var w = S.waiters[i], ok = false;
+      try { ok = !!w.test(); } catch (e) { ok = false; }
+      if (ok) { w.resolve(true); } else if (now() >= w.until) { w.resolve(false); } else { keep.push(w); }
+    }
+    S.waiters = keep;
+  }
+
+  // ------------------------------------------- Bubble kullanici menusu (kira)
+  function gfRoot() { return q1(SEL.gf); }
+  function gfShown() { var g = gfRoot(); return !!g && shown(g, null); }
+  function readGf() {
+    var g = gfRoot();
+    if (!g || !shown(g, null)) { return null; }
+    var out = {}, used = [], extra = 0;
+    for (var i = 0; i < ITEMS.length; i++) {
+      var it = ITEMS[i];
+      var node = q1(it.sel, g);
+      if (node && shown(node, g)) { out[it.key] = { node: node, label: clean(node.textContent) }; used.push(node); }
+    }
+    var all = qa('button, [role="button"], .clickable-element, .bubble-element.Button', g);
+    for (var j = 0; j < all.length; j++) {
+      var b = all[j];
+      if (!shown(b, g)) { continue; }
+      var dup = false;
+      for (var u = 0; u < used.length; u++) { if (used[u] === b || used[u].contains(b) || b.contains(used[u])) { dup = true; break; } }
+      if (dup) { continue; }
+      var t = clean(b.textContent);
+      if (!t) { continue; }
+      var hit = null;
+      for (var k = 0; k < ITEMS.length; k++) { if (!out[ITEMS[k].key] && ITEMS[k].re.test(t)) { hit = ITEMS[k].key; break; } }
+      // Eslenmeyen gorunur dugme (Haziran sonrasi eklenmis olabilir): genel madde.
+      if (!hit) { hit = 'x' + (extra++); }
+      out[hit] = { node: b, label: t };
+      used.push(b);
+    }
+    return out;
+  }
+  function count(o) { var n = 0; for (var k in o) { if (Object.prototype.hasOwnProperty.call(o, k)) { n++; } } return n; }
+  // Kira: oznitelik YALNIZ kabugun actigi menu acik kaldikca; CSS ayrica kipe ve Classic kapaliya bagli.
+  function leaseOn() {
+    S.gfOurs = true;
+    S.gfAt = now();
+    if (!classicOn()) { root().setAttribute(A_GF, '1'); }
+    stopper(true);
+    later('gfHold', gfHoldEnd, T.gfHold);
+  }
+  // Emniyet tavani: menu ya da export paneli hala acikken kapatmak kullanicinin isini bozar, yeniden kurulur.
+  function gfHoldEnd() {
+    if (menuOpen() || shownIn(SEL.exportGf)) { later('gfHold', gfHoldEnd, T.gfHold); return; }
+    trace('gf:hold');
+    gfClose();
+  }
+  function leaseOff() {
+    S.gfOurs = false;
+    root().removeAttribute(A_GF);
+    stopper(false);
+    cancel('gfHold');
+  }
+  // Kabugun menusu acik ve kira varken: menude basilan fare / dokunma Bubble'in dis tik dinleyicisine ulasmaz
+  // (gizli menu acik kalir, madde tiki kullanici tikiyla ayni gorevde vekil olur).
+  function stopEv(e) { if (S.gfOurs) { try { e.stopPropagation(); } catch (x) { /* yut */ } } }
+  function stopper(on) {
+    var p = D.getElementById('octo-wsb-pop');
+    var evs = ['mousedown', 'pointerdown', 'touchstart', 'mouseup', 'pointerup', 'click'];
+    if (on) {
+      if (S.stopper === p || !p) { return; }
+      stopper(false);
+      for (var i = 0; i < evs.length; i++) { try { p.addEventListener(evs[i], stopEv, false); } catch (e) { /* yut */ } }
+      S.stopper = p;
+      return;
+    }
+    var q = S.stopper;
+    S.stopper = null;
+    if (!q) { return; }
+    for (var j = 0; j < evs.length; j++) { try { q.removeEventListener(evs[j], stopEv, false); } catch (e2) { /* yut */ } }
+  }
+  function gfOpen() {
+    if (gfShown()) { if (!S.gfOurs) { leaseOn(); } return Promise.resolve(true); }
+    var side = sideRoot();
+    var gear = side ? q1(SEL.gear, side) : null;
+    if (!gear) { return Promise.resolve(false); }
+    leaseOn();
+    pxClick(gear, 'gear');
+    observe(true);
+    return waitFor(function () { var r = readGf(); return !!r && count(r) > 0; }, T.gfWait).then(function (ok) {
+      // Gec acilan menu (zaman asimindan sonra) acik kalmasin: kisa bir sure izlenir, cubugun menusu yoksa kapanir.
+      if (!ok) { trace('gf:none'); if (!gfShown()) { leaseOff(); } S.gfLateUntil = now() + T.gfWait * 2; }
+      return ok;
+    });
+  }
+  function sentinel() {
+    if (!S.sentinel || !isConn(S.sentinel)) {
+      S.sentinel = el('div', 'octo-wse-sentinel');
+      S.sentinel.setAttribute('aria-hidden', 'true');
+      S.sentinel.hidden = true;
+      D.body.appendChild(S.sentinel);
+    }
+    return S.sentinel;
+  }
+  // GroupFocus disari tikla kapanir: kabugun kendi gizli dugumunde mousedown + click (Bubble'in dis tik dinleyicisi).
+  // Kapanmazsa da kira biter: gizli acik menu yerine gorunur menu (asla gorunmez kalmaz).
+  function gfClose() {
+    cancel('gfClose');
+    if (!gfShown()) { if (!shownIn(SEL.exportGf)) { leaseOff(); } return Promise.resolve(true); }
+    var t = sentinel();
+    stopper(false);
+    mouseFire(t, 'mousedown');
+    mouseFire(t, 'mouseup');
+    mouseFire(t, 'click');
+    return waitFor(function () { return !gfShown(); }, 600).then(function (ok) {
+      if (!shownIn(SEL.exportGf)) { leaseOff(); }
+      trace(ok ? 'gf:closed' : 'gf:stuck');
+      return ok;
+    });
+  }
+  function labelsOf(r) {
+    var o = {};
+    for (var k in r) { if (Object.prototype.hasOwnProperty.call(r, k)) { o[k] = { label: r[k].label }; } }
+    return o;
+  }
+  function sigOf(o) { var a = []; for (var k in o) { if (Object.prototype.hasOwnProperty.call(o, k)) { a.push(k + ':' + o[k].label); } } return a.join('|'); }
+  // Menu acilisi basina BIR okuma; Classic acikken okuma yok (Bubble menusu gorunur acilirdi).
+  function prime() {
+    if (S.priming) { return S.priming; }
+    if (classicOn()) { return Promise.resolve(false); }
+    var pu = pageUserId();
+    S.primedOpen = true;
+    trace('prime');
+    S.priming = gfOpen().then(function (ok) {
+      var r = ok ? readGf() : null;
+      if (r && count(r)) {
+        var sg = sigOf(labelsOf(r));
+        var changed = sg !== S.itemsSig || !S.items;
+        S.items = labelsOf(r); S.itemsAt = now(); S.itemsPU = pu; S.gfFail = false; S.itemsSig = sg;
+        // Menu hala acikken gizli menu acik kalir (madde tiki es zamanli); kapandiysa kapanir (suren islem yoksa).
+        if (!menuOpen() && !S.gfOp) { gfClose(); }
+        if (changed) { repaintBar(); }
+      } else {
+        if (!S.items) { S.gfFail = true; }
+        if (!S.gfOp) { gfClose(); }
+        repaintBar();
+      }
+      S.priming = null;
+      return !!r;
+    }, function () { S.priming = null; S.gfFail = !S.items; leaseOff(); repaintBar(); return false; });
+    return S.priming;
+  }
+  function menuOpen() { var st = barState(); return st.menu === 'menu'; }
+  // Madde tiki: canli dugum varsa AYNI gorevde vekil; yoksa yeni sekme maddesi hic acilmaz (tarayici engellerdi).
+  function itemAct(key) {
+    var meta = null;
+    for (var i = 0; i < ITEMS.length; i++) { if (ITEMS[i].key === key) { meta = ITEMS[i]; break; } }
+    var r = gfShown() ? readGf() : null;
+    var hit = r ? r[key] : null;
+    if (key === 'edit') { return false; }
+    if (hit) {
+      pxClick(hit.node, 'gf:' + key);
+      if (key !== 'exports') { later('gfClose', function () { gfClose(); }, T.gfSettle); }
+      return true;
+    }
+    if (meta && meta.tab) { gfClose(); note('Could not open', true); return false; }
+    gfAct(key, null).then(function (ok) { if (!ok) { note('Could not open', true); } });
+    return true;
+  }
+  // Gozlemci islem surerken gizli menuyu kapatmasin (S.gfOp).
+  // guard: tiktan hemen once tekrar sorulur (kullanici bu arada vazgectiyse vekil yok; WSE-A1).
+  function gfAct(key, labelRe, guard) {
+    S.gfOp++;
+    return gfOpen().then(function (ok) {
+      S.gfOp = Math.max(0, S.gfOp - 1);
+      var r = ok ? readGf() : null;
+      var hit = r ? r[key] : null;
+      if (hit && labelRe && !labelRe.test(hit.label)) { trace('gf:label'); hit = null; }
+      if (hit && guard && !guard()) { trace('gf:cancel'); hit = null; }
+      if (!hit) { gfClose(); return false; }
+      pxClick(hit.node, 'gf:' + key);
+      if (key !== 'exports') { later('gfClose', function () { gfClose(); }, T.gfSettle); }
+      return true;
+    }, function () { S.gfOp = Math.max(0, S.gfOp - 1); return false; });
+  }
+
+  // ---------------------------------------------------------- hesap menusu
+  // app-wsbar.js paintMenu() 'menu' dalindan (kanca H2): part 'main' View as / Edit / hesap maddeleri, 'tail' Log out.
+  // Saf cizim: okuma (prime) acilis basina bir kez, cizim bellekten.
+  function menuItems(list, s, item, part) {
+    if (off() || !list || typeof item !== 'function') { return false; }
+    var pu = pageUserId();
+    if (S.items && S.itemsPU !== pu) { S.items = null; S.itemsSig = ''; S.gfFail = false; }
+    var it = S.items;
+    if (part === 'tail') {
+      if (it && it.logout) { list.appendChild(el('div', 'octo-wsb-div')); list.appendChild(item('Log out', 'wse-item', '', { 'data-item': 'logout', 'data-key': 'wse:logout' })); }
+      return true;
+    }
+    S.menuSeen = true;
+    observe(true);
+    // Menu acildi: secici (ayni yerde, ayni katmanda) kapanir (INT-2).
+    if (S.pick) { later('pickMenu', function () { closePick(false); }, 0); }
+    var can = !!(s && s.can);
+    if (viewingAs()) { list.appendChild(item('Back to my view', 'wse-back', 'home', { 'data-key': 'wse:back' })); }
+    if (can && s.can.person) { list.appendChild(item('View as', 'wse-viewas', 'people', { 'data-key': 'wse:viewas' })); }
+    // Classic acikken Bubble menusu gorunur ve kapali: yerli hesap maddeleri yerine os9a yolu (INT-3).
+    if (!it || classicOn()) {
+      if (S.gfFail || classicOn()) {
+        // Okuma olmadi ya da Classic acik: os9a yolu (Classic + disli) yedek; olu madde yok.
+        if (can && s.can.gear) { list.appendChild(item('Account menu', 'account', 'people', { 'data-key': 'acct' })); }
+      } else {
+        var sk = el('div', 'octo-wse-mskel');
+        sk.setAttribute('role', 'status');
+        sk.appendChild(el('span', 'octo-wse-skbar'));
+        sk.appendChild(el('span', 'octo-wse-sklab', 'Loading'));
+        list.appendChild(sk);
+        if (!S.primedOpen) { later('prime', prime, 0); }
+      }
+      return true;
+    }
+    if (!S.primedOpen && !S.priming && !classicOn() && (now() - S.itemsAt > T.primeAge || !gfShown())) { later('prime', prime, 0); }
+    // Edit Workspace ve Done ayni Bubble dugmesi: yalniz etiket 'Edit Workspace' iken (WSE-R7).
+    if (it.edit && /^edit workspace$/i.test(it.edit.label)) { list.appendChild(item('Edit workspace', 'wse-edit', 'table', { 'data-key': 'wse:edit' })); }
+    var keys = ['automations', 'exports', 'dashboard', 'docs', 'risk'];
+    var extra = [];
+    for (var k0 in it) { if (Object.prototype.hasOwnProperty.call(it, k0) && /^x\d+$/.test(k0)) { extra.push(k0); } }
+    var any = false;
+    for (var i = 0; i < keys.length + extra.length; i++) {
+      var k = i < keys.length ? keys[i] : extra[i - keys.length];
+      if (!it[k]) { continue; }
+      if (!any) { list.appendChild(el('div', 'octo-wsb-div')); any = true; }
+      var ui = ITEM_UI[k] || { label: it[k].label, icon: '' };
+      var b = item(ui.label, 'wse-item', ui.icon, { 'data-item': k, 'data-key': 'wse:' + k });
+      if (isTab(k)) {
+        b.appendChild(octo.icon('external', 14, { className: 'octo-wse-ext' }));
+        b.setAttribute('aria-label', ui.label + ', opens in a new tab');
+      }
+      list.appendChild(b);
+    }
+    return true;
+  }
+  function isTab(k) { for (var i = 0; i < ITEMS.length; i++) { if (ITEMS[i].key === k) { return !!ITEMS[i].tab; } } return false; }
+  // app-wsbar.js onPopClick() (kanca H3): yalniz bu modulun eylemleri; true donerse menu kapanir.
+  function act(a, node) {
+    if (off()) { return false; }
+    // Classic menu secildi: gizli acik Bubble menusu Classic'te gorunur olurdu, once kapanir (INT-8).
+    if (a === 'classic' && S.gfOurs) { gfClose(); return false; }
+    if (a === 'wse-viewas') { var mb = q1('[data-act="menu"]', D.getElementById('octo-wsbar')); later('viewAs', function () { viewAs(mb); }, 0); return true; }
+    if (a === 'wse-back') { backToMine(); return true; }
+    if (a === 'wse-edit') { S.openerHint = q1('[data-act="menu"]', D.getElementById('octo-wsbar')); later('openEdit', openEdit, 0); return true; }
+    if (a === 'wse-item') {
+      var k = node && node.getAttribute ? node.getAttribute('data-item') : '';
+      if (k) { itemAct(k); }
+      return true;
+    }
+    return false;
+  }
+  function backToMine() {
+    var cu = selfId();
+    if (!cu) { note('Could not open', true); return false; }
+    say('Back to my view');
+    return navTo(cu);
+  }
+
+  // -------------------------------------------------------------- View as
+  // Bubble'in kisi kutusu (typeahead) secici kutusuna CSS ile tasinir: arama ve oneri secimi Bubble'in kendi
+  // dinleyicileriyle, gercek kullanici olayiyla. Basari = YALNIZ sayfa kullanicisi degisti (Bubble ChangePage).
+  function buildPick() {
+    var p = el('div', 'octo-wse-pick');
+    p.id = PICK_ID;
+    p.setAttribute('role', 'dialog');
+    p.setAttribute('aria-label', 'View as');
+    p.hidden = true;
+    p.addEventListener('click', onPickClick);
+    p.addEventListener('keydown', onPickKey);
+    return p;
+  }
+  function viewAs(anchor) {
+    if (off()) { return false; }
+    // Sayfa acikken os9a'nin Classic yolu da calismasin (sayfa gorunurken classic(true) yok; INT-6).
+    if (S.edit) { focusSheet(); return true; }
+    if (!barActive()) { return false; }
+    classicOff();
+    if (!personEnabled()) { return false; }
+    if (S.pick) { closePick(true); return true; }
+    mountNodes();
+    var inp = personInput();
+    S.pick = {
+      anchor: anchor || null, key: (anchor && anchor.getAttribute) ? (anchor.getAttribute('data-key') || '') : '',
+      pu: pageUserId(), orig: inp ? inp.value : '', at: now(), typedAt: 0
+    };
+    paintPick();
+    root().setAttribute(A_PICK, '1');
+    placePick();
+    observe(true);
+    listen(true);
+    if (inp) { try { inp.addEventListener('input', onBoxInput, false); } catch (e) { /* yut */ } }
+    later('pickFocus', function () {
+      var i2 = personInput();
+      if (i2) { focusNode(i2); try { if (typeof i2.select === 'function') { i2.select(); } } catch (e) { /* yut */ } }
+    }, 30);
+    trace('pick:open');
+    return true;
+  }
+  function onBoxInput() { if (S.pick) { S.pick.typedAt = now(); later('pickHint', paintHint, T.suggestWait); paintHint(); } }
+  function paintHint() {
+    var h = S.pickBox ? q1('.octo-wse-phint', S.pickBox) : null;
+    if (!h || !S.pick) { return; }
+    var inp = personInput();
+    var typed = inp ? clean(inp.value) : '';
+    var t = 'Find a teammate';
+    if (S.pick.typedAt && typed && typed !== clean(S.pick.orig) && !suggestions().length && (now() - S.pick.typedAt) >= T.suggestWait) { t = 'No suggestions'; }
+    if (h.textContent !== t) { h.textContent = t; }
+  }
+  function paintPick() {
+    var p = S.pickBox;
+    if (!p) { return; }
+    clear(p);
+    var head = el('div', 'octo-wse-phead');
+    head.appendChild(el('div', 'octo-wse-ptitle', 'View as'));
+    var x = btn('octo-wse-pclose', 'pick-close');
+    x.setAttribute('aria-label', 'Close');
+    x.appendChild(octo.icon('close', 16));
+    head.appendChild(x);
+    p.appendChild(head);
+    // Geri donus kutunun USTUNDE: Bubble'in oneri listesi kutunun altina acilir ve onu ortmez.
+    if (viewingAs()) {
+      var back = btn('octo-wse-pback', 'pick-back');
+      back.appendChild(octo.icon('home', 16));
+      back.appendChild(el('span', '', 'Back to my view'));
+      p.appendChild(back);
+    }
+    var slot = el('div', 'octo-wse-slot');
+    slot.appendChild(octo.icon('search', 16, { className: 'octo-wse-sico' }));
+    slot.setAttribute('aria-hidden', 'true');
+    p.appendChild(slot);
+    var hint = el('div', 'octo-wse-phint', 'Find a teammate');
+    hint.setAttribute('role', 'status');
+    p.appendChild(hint);
+    p.hidden = false;
+  }
+  function pickAnchor() {
+    var a = S.pick ? S.pick.anchor : null;
+    var bar = D.getElementById('octo-wsbar');
+    // Cubuk yeniden boyandiysa capa kopuktur: ayni data-key ile (yoksa Menu dugmesi) yeniden bulunur.
+    if (S.pick && (!a || !isConn(a))) { a = S.pick.anchor = (S.pick.key && q1('[data-key="' + S.pick.key.replace(/"/g, '') + '"]', bar)) || q1('[data-act="menu"]', bar); }
+    return a;
+  }
+  function placePick() {
+    var p = S.pickBox;
+    if (!p || p.hidden || !S.pick) { return; }
+    var a = pickAnchor();
+    var bar = D.getElementById('octo-wsbar');
+    var br = bar ? bar.getBoundingClientRect() : { bottom: 52, left: 0 };
+    var ar = (a && isConn(a)) ? a.getBoundingClientRect() : br;
+    var vw = D.documentElement.clientWidth || W.innerWidth || 1280;
+    var w = p.offsetWidth || 320;
+    var left = Math.round(ar.left);
+    if (left + w > vw - 16) { left = Math.max(16, vw - 16 - w); }
+    p.style.top = Math.round(br.bottom + 6) + 'px';
+    p.style.left = left + 'px';
+    var slot = q1('.octo-wse-slot', p);
+    var sr = slot ? slot.getBoundingClientRect() : null;
+    var st = root().style;
+    if (sr && sr.width > 0) {
+      st.setProperty('--octo-wse-px', Math.round(sr.left + 34) + 'px');
+      st.setProperty('--octo-wse-py', Math.round(sr.top) + 'px');
+      st.setProperty('--octo-wse-pw', Math.max(80, Math.round(sr.width - 40)) + 'px');
+    }
+  }
+  function closePick(focusBack) {
+    if (!S.pick) { return; }
+    var pk = S.pick;
+    var a = pickAnchor();
+    S.pick = null;
+    root().removeAttribute(A_PICK);
+    var st = root().style;
+    try { st.removeProperty('--octo-wse-px'); st.removeProperty('--octo-wse-py'); st.removeProperty('--octo-wse-pw'); } catch (e) { /* yut */ }
+    var inp = personInput();
+    if (inp) {
+      try { inp.removeEventListener('input', onBoxInput, false); } catch (e1) { /* yut */ }
+      // Secim olmadan kapandi: kutunun degeri (sayfa kullanicisinin adi) geri yazilir; olay yok (sorgu acilmasin).
+      if (pageUserId() === pk.pu) { try { inp.value = pk.orig; } catch (e2) { /* yut */ } }
+      try { if (D.activeElement === inp) { inp.blur(); } } catch (e3) { /* yut */ }
+    }
+    cancel('pickHint');
+    if (S.pickBox) { S.pickBox.hidden = true; clear(S.pickBox); }
+    if (focusBack && a && isConn(a)) { focusNode(a); }
+    trace('pick:close');
+    idleCheck();
+  }
+  function onPickClick(e) {
+    var t = upTo(e.target, function (x) { return x.hasAttribute && x.hasAttribute('data-act'); }, S.pickBox);
+    if (!t) { var inp = personInput(); if (inp) { focusNode(inp); } return; }
+    var a = t.getAttribute('data-act');
+    if (a === 'pick-close') { closePick(true); return; }
+    if (a === 'pick-back') { closePick(false); backToMine(); }
+  }
+  function onPickKey(e) {
+    var k = e && e.key;
+    if (k === 'Escape' || k === 'Esc') { e.preventDefault(); e.stopPropagation(); closePick(true); }
+  }
+  function pickTick() {
+    if (!S.pick) { return; }
+    if (!barActive() || !personEnabled()) { closePick(false); return; }
+    var pu = pageUserId();
+    if (pu && pu !== S.pick.pu) {
+      // Bubble kisinin ekranina gecti (bUgNb: SA temizle + ChangePage): secici kapanir, ekran kurulana kadar kira.
+      closePick(false);
+      afterSwitch(pu);
+      return;
+    }
+    paintHint();
+    placePick();
+  }
+  // Ayni sayfada ChangePage sayfa yuklemesini yeniden kosturmayabilir (SA bos kalir): kira suresince os9a dusmez;
+  // baglam bos kalirsa kisinin ilk tablosu acilir (Bubble sayfa yuklemesi adim 4'un karsiligi).
+  function afterSwitch(pu) {
+    S.lease = { until: now() + T.zoomWait, why: 'switch' };
+    trace('switch');
+    var nm = '';
+    waitFor(function () { return !!ctxKey(); }, T.switchWait).then(function (ok) {
+      if (ok) { return true; }
+      var rows = sheetRows();
+      var first = rows[0] || null;
+      if (!first) { return false; }
+      pxClick(first, 'sheet:first');
+      return waitFor(function () { return !!ctxKey(); }, T.switchWait);
+    }).then(function () {
+      S.lease = null;
+      nm = personName();
+      say(pageUserId() === selfId() ? 'Back to my view' : (nm ? (nm + '\'s view') : 'View changed'));
+      barTick();
+      idleCheck();
+    });
+    return pu;
+  }
+
+  // ------------------------------------------------------- Edit workspace
+  function buildSheet() {
+    var sc = el('div', 'octo-wse-scrim');
+    sc.id = SCRIM_ID;
+    sc.hidden = true;
+    var s = el('section', 'octo-wse-sheet');
+    s.id = SHEET_ID;
+    s.setAttribute('role', 'dialog');
+    s.setAttribute('aria-modal', 'true');
+    s.setAttribute('aria-labelledby', 'octo-wse-title');
+    s.setAttribute('tabindex', '-1');
+    s.hidden = true;
+    s.addEventListener('click', onSheetClick);
+    s.addEventListener('change', onSheetChange);
+    s.addEventListener('keydown', onSheetKey);
+    s.addEventListener('focusout', function (ev) { if (hasCls(ev.target, 'octo-wse-ws')) { later('selCommit', selCommit, 0); } });
+    return { scrim: sc, sheet: s };
+  }
+  function mountNodes() {
+    if (!S.sheet) { var b = buildSheet(); S.sheet = b.sheet; S.scrim = b.scrim; }
+    if (!S.pickBox) { S.pickBox = buildPick(); }
+    if (!S.note) {
+      S.note = el('div', 'octo-wse-note');
+      S.note.id = NOTE_ID;
+      S.note.setAttribute('role', 'status');
+      S.note.hidden = true;
+    }
+    [S.scrim, S.sheet, S.pickBox, S.note].forEach(function (n) { if (!isConn(n)) { D.body.appendChild(n); } });
+  }
+  function gateEdit() {
+    if (off() || !barActive() || guest()) { return false; }
+    if (editMode()) { return true; }
+    if (S.items) { return !!(S.items.edit && /^edit workspace$/i.test(S.items.edit.label)); }
+    return personEnabled();   // Edit Workspace ve kisi kutusu ayni rollerde (Editor, Agency)
+  }
+  // Gizli menu kaydirdikca satir yukleyebilir: sona kaydirilir (stil degil), satir sayisi sabitlenince geri.
+  function loadRows() {
+    var side = sideRoot();
+    if (!side || side.scrollHeight <= side.clientHeight + 2) { return Promise.resolve(true); }
+    var top = side.scrollTop;
+    try { side.scrollTop = side.scrollHeight; } catch (e) { return Promise.resolve(true); }
+    return wait(T.pageStep).then(function () { try { side.scrollTop = top; } catch (e2) { /* yut */ } return true; });
+  }
+  function openEdit() {
+    if (S.edit) { focusSheet(); return Promise.resolve(true); }
+    if (!gateEdit()) { note('Could not open editor', true); return Promise.resolve(false); }
+    if (S.pick) { closePick(false); }
+    classicOff();
+    var st = barState();
+    mountNodes();
+    // holds() bu satirdan itibaren dogru: Bubble kipi ilk tikte acar, os9a ayni anda dusmesin (WSE-R6).
+    S.edit = {
+      phase: 'opening', sheet: clean(st.sheet), sheetId: railSheetId(), pu: pageUserId(), cu: selfId(), puName: personName(),
+      ctx0: ctxKey(), at: now(), status: {}, scanned: false, scanning: false, scanP: null, armed: null, rename: null,
+      busy: '', busyKey: '', err: '', offAt: 0, barGoneAt: 0, quietUntil: 0, idOk: true, cur: -1, opener: null, popKey: '', popFrom: null
+    };
+    // Acan dugme: menu maddesi menuyle birlikte silinir (odak govdede); o zaman cubugun Menu dugmesi (WSE-A8).
+    var op = null;
+    try { op = D.activeElement; } catch (e0) { op = null; }
+    if (!op || op === D.body || op === D.documentElement || !isConn(op)) { op = S.openerHint || q1('[data-act="menu"]', D.getElementById('octo-wsbar')); }
+    S.edit.opener = op;
+    S.openerHint = null;
+    root().setAttribute(A_EDIT, '1');
+    inertBar(true);
+    S.scrim.hidden = false;
+    S.sheet.hidden = false;
+    paintSheet(true);
+    focusSheet();
+    observe(true);
+    listen(true);
+    trace('edit:open');
+    return startOpen(S.edit);
+  }
+  // Kipi ac ve tabloyu yeniden sec; Try again ayni sayfada bunu yeniden kosar (sayfa kapanmaz; WSE-A7).
+  function startOpen(e0) {
+    var on = editMode() ? Promise.resolve(true) : gfAct('edit', /^edit workspace$/i, function () { return S.edit === e0; }).then(function (ok) { return ok ? waitFor(editMode, T.editWait) : false; });
+    return on.then(function (ok) {
+      if (S.edit !== e0) { return false; }
+      if (!ok) { e0.phase = 'error'; e0.err = 'Could not open editor'; paintSheet(true); return false; }
+      return restoreSheet(e0);
+    });
+  }
+  // Edit kipinde Bubble SA'yi temizler: acik tablo yeniden secilir. Kimlik: edit kipindeki satir adi (Input S),
+  // kabul = o satirin liste RG'si gorunur (Bubble yalniz SA.sheet altinda gosterir) VE rayin tablo kimligi tutar.
+  function restoreSheet(e0) {
+    e0.phase = 'restoring';
+    paintSheet(true);
+    // Edit kipi ogeleri, sirket geneli tablo listesi gelmeden gorunebilir: once satirlar yuklenir ve sakinlesir (F10).
+    return loadRows().then(function () { return settleDom(T.editWait); }).then(function () {
+      var cands = [];
+      var rows = sheetRows();
+      for (var i = 0; i < rows.length; i++) { if (sheetNameOf(rows[i]) === e0.sheet) { cands.push(i); } }
+      e0.idOk = cands.length <= 1;
+      function tryAt(ci) {
+        if (ci >= cands.length || S.edit !== e0) { return Promise.resolve(false); }
+        var row = sheetRows()[cands[ci]];
+        if (!row || sheetNameOf(row) !== e0.sheet) { return tryAt(ci + 1); }
+        pxClick(row, 'sheet');
+        // Kabul: tiklanan satir acik oldu (dugum ayni ya da ayni adli satir; ayni adlilarda ayrica ray kimligi).
+        return waitFor(function () { var c = curIndex(); var rr = c >= 0 ? sheetRows()[c] : null; return !!rr && (rr === row || sheetNameOf(rr) === e0.sheet); }, T.editWait).then(function (ok) {
+          if (!ok) { return tryAt(ci + 1); }
+          if (cands.length <= 1 || !e0.sheetId) { return true; }
+          // Ayni adli birden cok satir: rayin YENI baglama ait verisi gelince kimlik karsilastirilir; tutmazsa sonraki aday.
+          return waitFor(function () { return !!railSheetId(); }, T.editWait).then(function (got) {
+            if (got && railSheetId() === e0.sheetId) { e0.idOk = true; return true; }
+            return tryAt(ci + 1);
+          });
+        });
+      }
+      return tryAt(0);
+    }).then(function () {
+      if (S.edit !== e0) { return false; }
+      e0.phase = 'open';
+      e0.cur = curIndex();
+      quiet(e0);
+      paintSheet(true);
+      return scanStages(e0).then(function () { return true; });
+    });
+  }
+  function focusSheet() {
+    if (!S.sheet) { return; }
+    var t = q1('#octo-wse-title', S.sheet);
+    focusNode(t || S.sheet);
+  }
+  function holds() {
+    if (off()) { return false; }
+    if (S.edit) { return true; }
+    return !!(S.lease && now() < S.lease.until);
+  }
+
+  // Bubble edit kipi DOM'u: tablolar (sirketin tumu), acik tablonun liste sablonlari, barin surec sablonlari.
+  function sheetRows() {
+    var side = sideRoot();
+    return side ? qa(SEL.sheetRow, side) : [];
+  }
+  // Ad: edit kipinde Bubble'in gorunur Input S'si (verisi o satirin tablosu; gizli metin yeniden kullanilan
+  // hucrede bayat kalabilir, F1); kip disinda Bubble'in metni.
+  function sheetNameOf(row) {
+    var inp = q1(SEL.sheetInput, row);
+    if (inp && shown(inp, null)) { return clean(inp.value); }
+    var t = textOf(q1(SEL.sheetName, row));
+    if (t) { return t; }
+    return inp ? clean(inp.value) : '';
+  }
+  // Input S ile Bubble'in metni ayrisiyorsa satir kimligi supheli: yikici eylem yok, Classic menu (F1).
+  function nameMismatch(row) {
+    var inp = q1(SEL.sheetInput, row);
+    if (!(inp && shown(inp, null))) { return false; }
+    var t = textOf(q1(SEL.sheetName, row));
+    return !!t && t !== clean(inp.value);
+  }
+  // Bubble'in KENDI tablo adi metni (kabugun yazdigi Input S degil): adlandirma dogrulamasi bundan.
+  function bubbleNameOf(row) { return textOf(q1(SEL.sheetName, row)); }
+  // Acik tablo = liste RG'si (ya da Add list) gorunen satir; Bubble bunlari yalniz SA.sheet altinda gosterir.
+  function curIndex() {
+    var side = sideRoot();
+    var rows = sheetRows();
+    for (var i = 0; i < rows.length; i++) {
+      var gi = groupItem(rows[i], side);
+      if (!gi) { continue; }
+      var lrg = q1(SEL.lists, gi), al = q1(SEL.addList, gi);
+      if ((lrg && shown(lrg, side)) || (al && shown(al, side))) { return i; }
+    }
+    return -1;
+  }
+  function toolsOf(row, toolSel) {
+    var t = q1(toolSel, row);
+    if (!t) { var gi = groupItem(row, sideRoot()); t = gi ? q1(toolSel, gi) : null; }
+    return t;
+  }
+  function stateOf(add, remove) { if (add && shown(add, null)) { return 'off'; } if (remove && shown(remove, null)) { return 'on'; } return ''; }
+  function editSnap() {
+    var side = sideRoot(), bar = barRoot();
+    var e = { sheets: [], lists: [], cells: [], more: [], addList: null, addStage: null, prev: null, next: null, bar: false, cur: -1 };
+    var rows = sheetRows();
+    var names = {};
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var name = sheetNameOf(r);
+      if (!name) { continue; }
+      var tools = toolsOf(r, SEL.sheetTools);
+      var add = tools ? q1(SEL.sheetAdd, tools) : null, rem = tools ? q1(SEL.sheetRemove, tools) : null, del = tools ? q1(SEL.sheetDel, tools) : null;
+      var inp = q1(SEL.sheetInput, r);
+      e.sheets.push({ name: name, idx: i, node: r, input: (inp && shown(inp, null)) ? inp : null, add: add, remove: rem, del: (del && shown(del, null)) ? del : null, state: stateOf(add, rem), odd: nameMismatch(r) });
+      names[name] = (names[name] || 0) + 1;
+    }
+    e.cur = curIndex();
+    for (var d = 0; d < e.sheets.length; d++) { e.sheets[d].dup = names[e.sheets[d].name] > 1; }
+    var lrgs = side ? qa(SEL.lists, side) : [];
+    var lrg = null;
+    for (var j = 0; j < lrgs.length; j++) { if (shown(lrgs[j], side)) { lrg = lrgs[j]; break; } }
+    if (lrg) {
+      var lrows = qa(SEL.listRow, lrg);
+      for (var k = 0; k < lrows.length; k++) {
+        var lr = lrows[k];
+        if (!shown(lr, side)) { continue; }
+        var ln = textOf(q1(SEL.listName, lr));
+        if (!ln) { continue; }
+        var lgi = groupItem(lr, lrg) || lr.parentNode;
+        var lt = lgi ? q1(SEL.listTools, lgi) : null;
+        var la = lt ? q1(SEL.listAdd, lt) : null, lm = lt ? q1(SEL.listRemove, lt) : null, le = lt ? q1(SEL.listEdit, lt) : null;
+        e.lists.push({ name: ln, node: lr, add: la, remove: lm, edit: (le && shown(le, null)) ? le : null, state: stateOf(la, lm) });
+      }
+      var sgi = groupItem(lrg, side);
+      var al = sgi ? q1(SEL.addList, sgi) : null;
+      if (al && shown(al, side)) { e.addList = al; }
+    }
+    if (bar && shown(bar, null)) {
+      e.bar = true;
+      var wraps = qa(SEL.cellWrap, bar);
+      for (var m = 0; m < wraps.length; m++) {
+        var wrap = wraps[m];
+        if (!shown(wrap, bar)) { continue; }
+        var cell = q1(SEL.cell, wrap);
+        var cn = cell ? textOf(q1(SEL.cellName, cell)) : '';
+        if (!cn) { continue; }
+        var sa = q1(SEL.stageAdd, wrap), sr = q1(SEL.stageRemove, wrap), se = q1(SEL.stageEdit, wrap);
+        e.cells.push({ name: cn, node: wrap, cell: cell, add: sa, remove: sr, edit: (se && shown(se, null)) ? se : null, state: stateOf(sa, sr) });
+      }
+      var mo = q1('select' + SEL.more, bar) || q1(SEL.more + ' select', bar);
+      if (mo && shown(mo, bar)) {
+        for (var o = 0; o < mo.options.length; o++) {
+          var op = mo.options[o];
+          var ot = clean(op.textContent || op.label);
+          if (op.disabled || !ot || (o === 0 && (op.value === '' || /^more$/i.test(ot)))) { continue; }
+          e.more.push(ot);
+        }
+      }
+      var pv = q1(SEL.prev, bar), nx = q1(SEL.next, bar);
+      e.prev = (pv && shown(pv, bar)) ? pv : null;
+      e.next = (nx && shown(nx, bar)) ? nx : null;
+      var as = q1(SEL.addStage, bar);
+      if (as && shown(as, bar)) { e.addStage = as; }
+    }
+    return e;
+  }
+  function domSig(snap) {
+    return [snap.cur, snap.sheets.map(function (x) { return x.name + ':' + x.state; }).join('|'), snap.lists.map(function (x) { return x.name + ':' + x.state; }).join('|'),
+      snap.cells.map(function (x) { return x.name + ':' + x.state; }).join('|'), snap.more.join('|')].join('~');
+  }
+  // Bubble'in satir ici aramalari yuklenirken '+' kisa sure gorunur: durum yalniz DOM sakinlesince (WSE-R2).
+  function quiet(e0) { e0.quietUntil = now() + T.settle; later('quiet', function () { if (S.edit === e0) { paintSheet(true); } }, T.settle + 20); }
+  function calm(e0) { return now() >= e0.quietUntil; }
+  function settleDom(ms) {
+    var last = domSig(editSnap()), at = now();
+    return waitFor(function () { var sg = domSig(editSnap()); if (sg !== last) { last = sg; at = now(); } return now() - at >= T.settle; }, ms || T.editWait);
+  }
+  function learn(e, snap) {
+    for (var i = 0; i < snap.cells.length; i++) { if (snap.cells[i].state) { e.status[snap.cells[i].name] = snap.cells[i].state; } }
+  }
+  function stageList(e, snap) {
+    var names = snap.more.length ? snap.more.slice() : snap.cells.map(function (c) { return c.name; });
+    var vis = {};
+    for (var i = 0; i < snap.cells.length; i++) { vis[snap.cells[i].name] = snap.cells[i]; }
+    return names.map(function (n, ix) {
+      var c = vis[n] || null;
+      return { name: n, ord: ix + 1, cell: c, state: c && c.state ? c.state : (e.status[n] || ''), dup: names.indexOf(n) !== names.lastIndexOf(n) };
+    });
+  }
+  function cellSig(snap) { return snap.cells.map(function (c) { return c.name; }).join('|'); }
+  function barStep(dir) {
+    var snap = editSnap();
+    var n = dir > 0 ? snap.next : snap.prev;
+    if (!n) { return Promise.resolve(false); }
+    var sig = cellSig(snap);
+    pxClick(n, dir > 0 ? 'next' : 'prev');
+    return wait(T.pageStep).then(function () { return cellSig(editSnap()) !== sig; });
+  }
+  function toFirst(max) {
+    var snap = editSnap();
+    if (!snap.prev || max <= 0) { return Promise.resolve(true); }
+    return barStep(-1).then(function (moved) { return moved ? toFirst(max - 1) : true; });
+  }
+  function pagesOf(snap) { return Math.max(1, Math.ceil(Math.max(snap.more.length, snap.cells.length) / 5)); }
+  // Bar 5'erli sayfali: durum (+/-) yalniz gorunur hucrelerde. Sayfa bir kez taranir (her adimda sakinlik), sayfa 1'e donulur.
+  function scanStages(e0) {
+    if (e0.scanP) { return e0.scanP; }
+    e0.scanP = scanRun(e0).then(function (r) { e0.scanP = null; e0.scanning = false; return r; }, function () { e0.scanP = null; e0.scanning = false; return false; });
+    return e0.scanP;
+  }
+  function scanRun(e0) {
+    return settleDom(T.editWait).then(function () {
+      var snap = editSnap();
+      learn(e0, snap);
+      if (!snap.next && !snap.prev) { e0.scanned = true; if (S.edit === e0) { paintSheet(false); } return true; }
+      e0.scanning = true;
+      var pages = pagesOf(snap) + 1;
+      function fwd(left) {
+        if (S.edit !== e0 || left <= 0) { return Promise.resolve(true); }
+        return barStep(1).then(function (moved) {
+          if (!moved) { return true; }
+          return settleDom(T.editWait).then(function () { learn(e0, editSnap()); return fwd(left - 1); });
+        });
+      }
+      return toFirst(pages).then(function () { return settleDom(T.editWait); }).then(function () { learn(e0, editSnap()); return fwd(pages); })
+        .then(function () { return toFirst(pages); }).then(function () {
+          e0.scanned = true;
+          e0.scanning = false;
+          if (S.edit === e0) { quiet(e0); paintSheet(false); }
+          return true;
+        });
+    });
+  }
+  // Hedef surecin hucresi gorunur sayfada degilse: sayfa 1, sonra ileri (hucre adi ile). Dugum bekleme boyunca TUTULMAZ.
+  function findCell(name) { var snap = editSnap(); for (var i = 0; i < snap.cells.length; i++) { if (snap.cells[i].name === name) { return snap.cells[i]; } } return null; }
+  function withStage(name) {
+    var hit = findCell(name);
+    if (hit) { return Promise.resolve(true); }
+    var snap = editSnap();
+    var pages = pagesOf(snap) + 1;
+    function fwd(left) {
+      if (findCell(name) || left <= 0) { return Promise.resolve(!!findCell(name)); }
+      return barStep(1).then(function (moved) { return moved ? fwd(left - 1) : !!findCell(name); });
+    }
+    return toFirst(pages).then(function () { return fwd(pages); }).then(function (ok) { return ok ? settleDom(T.editWait).then(function () { return !!findCell(name); }) : false; });
+  }
+
+  // --------------------------------------------------------------- boyama
+  function rowBtn(act, label, extra) {
+    var b = btn('octo-wse-rbtn', act, label);
+    if (extra) { for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) { b.setAttribute(k, String(extra[k])); } } }
+    return b;
+  }
+  // Hiza: Edit olmayan satirda ayni genislikte gorunmez yer tutucu (Show / Stop showing ayni sutunda kalir).
+  function spacer() { var sp = el('span', 'octo-wse-rbtn is-spacer', 'Edit'); sp.setAttribute('aria-hidden', 'true'); return sp; }
+  function armed(e, key) { return !!(e.armed && e.armed.key === key && (now() - e.armed.at) < T.confirmMs); }
+  function stat(state) {
+    if (!state) { return el('span', 'octo-wse-stat is-none'); }
+    var s = el('span', 'octo-wse-stat', state === 'on' ? 'Shown' : 'Not shown');
+    s.setAttribute('data-on', state === 'on' ? '1' : '0');
+    return s;
+  }
+  function section(title, act, actLabel, busy) {
+    var sec = el('section', 'octo-wse-sec');
+    var h = el('div', 'octo-wse-sech');
+    h.appendChild(el('h3', 'octo-wse-sect', title));
+    if (act) {
+      var a = btn('octo-wse-sadd', act);
+      a.setAttribute('data-key', 'sec:' + act);
+      a.appendChild(octo.icon('plus', 16));
+      a.appendChild(el('span', '', actLabel));
+      if (busy) { a.disabled = true; }
+      h.appendChild(a);
+    }
+    sec.appendChild(h);
+    return sec;
+  }
+  function paintSheet(force) {
+    var s = S.sheet, e = S.edit;
+    if (!s || !e) { return; }
+    var snap = (e.phase === 'open') ? editSnap() : null;
+    var c = snap ? calm(e) : false;
+    var sig = JSON.stringify([e.phase, e.err, e.busy, e.busyKey, e.armed ? e.armed.key : '', e.rename ? e.rename.idx : -1, e.scanning ? 1 : 0, c ? 1 : 0, e.idOk ? 1 : 0,
+      snap ? [domSig(snap), stageList(e, snap).map(function (x) { return x.state; }).join(''), !!snap.addList, !!snap.addStage,
+        snap.sheets.map(function (x) { return (x.del ? 'd' : '') + (x.input ? 'i' : ''); }).join('')] : 0]);
+    if (!force && sig === S.sig) { return; }
+    S.sig = sig;
+    var fk = focusKey(s);
+    var riNow = q1('.octo-wse-rin', s);
+    var keepRename = (e.rename && riNow) ? riNow.value : null;
+    clear(s);
+    // Baslik
+    var head = el('header', 'octo-wse-head');
+    var ht = el('div', 'octo-wse-htext');
+    var h2 = el('h2', 'octo-wse-title', 'Edit workspace');
+    h2.id = 'octo-wse-title';
+    h2.setAttribute('tabindex', '-1');
+    ht.appendChild(h2);
+    var sub = el('div', 'octo-wse-sub');
+    if (e.puName) { sub.appendChild(el('span', 'octo-wse-for' + (e.pu && e.cu && e.pu !== e.cu ? ' is-as' : ''), 'For ' + e.puName)); }
+    if (snap && snap.sheets.length) {
+      var sel = D.createElement('select');
+      sel.className = 'octo-wse-ws';
+      sel.setAttribute('aria-label', 'Workspace');
+      sel.setAttribute('data-key', 'ws');
+      if (e.busy || e.scanning) { sel.disabled = true; }
+      var hasCur = false;
+      snap.sheets.forEach(function (x) {
+        // Secilebilir yalniz sayfa kullanicisinin sahip oldugu tablo (Bubble SA'yi yalniz onun Arama'siyla kurar).
+        if (x.state === 'off' && x.idx !== snap.cur) { return; }
+        var o = D.createElement('option');
+        o.value = String(x.idx);
+        o.textContent = x.name;
+        if (x.idx === snap.cur) { o.selected = true; hasCur = true; }
+        sel.appendChild(o);
+      });
+      if (!hasCur) {
+        var ph = D.createElement('option');
+        ph.value = '';
+        ph.textContent = 'Pick a workspace';
+        ph.selected = true;
+        sel.insertBefore(ph, sel.firstChild);
+      }
+      sub.appendChild(sel);
+    }
+    ht.appendChild(sub);
+    head.appendChild(ht);
+    var done = btn('octo-wse-done', 'done', e.busy === 'closing' ? 'Closing' : 'Done');
+    done.setAttribute('data-key', 'done');
+    if (e.busy === 'closing') { done.setAttribute('aria-busy', 'true'); }
+    // Acilis / yeniden secim ya da bir eylem surerken Done yok (yarim kip ve yarim yazim kalmasin; WSE-A1, A2).
+    if (e.busy || e.phase === 'opening' || e.phase === 'restoring') { done.disabled = true; }
+    head.appendChild(done);
+    s.appendChild(head);
+
+    var body = el('div', 'octo-wse-body');
+    if (e.phase === 'opening' || e.phase === 'restoring') {
+      body.setAttribute('aria-busy', 'true');
+      var ld = el('div', 'octo-wse-state');
+      ld.setAttribute('role', 'status');
+      ld.appendChild(el('span', 'octo-wse-spin'));
+      ld.appendChild(el('div', 'octo-wse-stitle', 'Opening editor'));
+      body.appendChild(ld);
+      for (var q = 0; q < 3; q++) { body.appendChild(el('div', 'octo-wse-skrow')); }
+    } else if (e.phase === 'error') {
+      var er = el('div', 'octo-wse-state is-err');
+      er.setAttribute('role', 'alert');
+      er.appendChild(octo.icon('alert', 24));
+      er.appendChild(el('div', 'octo-wse-stitle', e.err || 'Could not open editor'));
+      var row = el('div', 'octo-wse-srow');
+      var rb = btn('octo-wse-sbtn', 'retry', 'Try again');
+      rb.setAttribute('data-key', 'retry');
+      row.appendChild(rb);
+      var cb = btn('octo-wse-sbtn', 'classic', 'Classic menu');
+      cb.setAttribute('data-key', 'classic');
+      row.appendChild(cb);
+      er.appendChild(row);
+      body.appendChild(er);
+    } else {
+      paintSections(body, e, snap, c);
+    }
+    s.appendChild(body);
+    var live = el('div', 'octo-wse-live');
+    live.setAttribute('aria-live', 'polite');
+    live.id = 'octo-wse-live';
+    live.textContent = S.liveText || '';
+    s.appendChild(live);
+    restoreFocus(s, fk);
+    if (keepRename != null) { var ri = q1('.octo-wse-rin', s); if (ri) { ri.value = keepRename; } }
+  }
+  function busyText(e, key, label) { return (e.busy && e.busyKey === key) ? 'Saving' : label; }
+  function paintSections(body, e, snap, c) {
+    var cur = null;
+    for (var i = 0; i < snap.sheets.length; i++) { if (snap.sheets[i].idx === snap.cur) { cur = snap.sheets[i]; break; } }
+    var b = !!e.busy;
+    var viewing = !!(e.pu && e.cu && e.pu !== e.cu);
+    // Surecler ve listeler yalniz acik (gosterilen) tablo icin; gosterilmeyen tablo icin once Show.
+    var gate = !cur ? 'Pick a workspace above' : (cur.state === 'off' ? 'Show this workspace first' : '');
+    // Surecler
+    var sec = section('Processes', (!gate && snap.addStage) ? 'st-add' : '', 'Add process', b);
+    var stages = stageList(e, snap);
+    if (gate) {
+      sec.appendChild(el('div', 'octo-wse-empty', gate));
+    } else if (!snap.bar) {
+      sec.appendChild(el('div', 'octo-wse-empty', 'Pick a workspace above'));
+    } else if (!stages.length) {
+      sec.appendChild(el('div', 'octo-wse-empty', 'No processes yet'));
+    } else {
+      var ol = el('ol', 'octo-wse-rows');
+      stages.forEach(function (x, i) {
+        var key = 'st:' + i;
+        var li = el('li', 'octo-wse-row');
+        li.setAttribute('data-kind', 'st');
+        if (e.busy && e.busyKey.indexOf(key) === 0) { li.setAttribute('aria-busy', 'true'); }
+        li.appendChild(el('span', 'octo-wse-ord', String(x.ord)));
+        var nm = el('span', 'octo-wse-name', x.name);
+        nm.title = x.name;
+        li.appendChild(nm);
+        var st = (c && !e.scanning) || !x.cell ? x.state : '';
+        li.appendChild(stat(st));
+        var acts = el('span', 'octo-wse-acts');
+        // Ayni adli iki surec: hucre adla bulunur, yanlis kayda yazilabilirdi; eylem yok, Classic menu (F13).
+        if (x.dup) { acts.appendChild(rowBtn('classic', 'Classic menu', { 'data-key': key + ':c' })); li.appendChild(acts); ol.appendChild(li); return; }
+        var eb = rowBtn('st-edit', 'Edit', { 'data-name': x.name, 'data-key': key + ':e', 'aria-label': 'Edit ' + x.name });
+        if (b) { eb.disabled = true; }
+        acts.appendChild(eb);
+        if (st === 'off') {
+          var sb = rowBtn('st-show', busyText(e, key + ':s', 'Show'), { 'data-name': x.name, 'data-key': key + ':s', 'aria-label': 'Show ' + x.name });
+          if (b) { sb.disabled = true; }
+          acts.appendChild(sb);
+        }
+        if (st === 'on') {
+          // Surec icin onay Bubble'in kendi penceresi (tek onay; UX-12).
+          var hb = rowBtn('st-hide', 'Stop showing', { 'data-name': x.name, 'data-key': key + ':h', 'aria-label': 'Stop showing ' + x.name });
+          if (b) { hb.disabled = true; }
+          acts.appendChild(hb);
+        }
+        li.appendChild(acts);
+        ol.appendChild(li);
+      });
+      sec.appendChild(ol);
+      if (e.scanning || !c) { var sc = el('div', 'octo-wse-note-in', 'Checking processes'); sc.setAttribute('role', 'status'); sec.appendChild(sc); }
+      if (viewing && snap.addStage) { sec.appendChild(el('div', 'octo-wse-note-in', 'New items start with you')); }
+    }
+    body.appendChild(sec);
+    // Listeler
+    var lsec = section('Lists', (!gate && snap.addList) ? 'ls-add' : '', 'New list', b);
+    if (gate) {
+      lsec.appendChild(el('div', 'octo-wse-empty', gate));
+    } else if (!snap.lists.length) {
+      lsec.appendChild(el('div', 'octo-wse-empty', 'No lists yet'));
+    } else {
+      var ul = el('ol', 'octo-wse-rows');
+      var lnames = snap.lists.map(function (x) { return x.name; });
+      snap.lists.forEach(function (x, i) {
+        var key = 'ls:' + i;
+        var li = el('li', 'octo-wse-row');
+        li.setAttribute('data-kind', 'ls');
+        if (e.busy && e.busyKey.indexOf(key) === 0) { li.setAttribute('aria-busy', 'true'); }
+        li.appendChild(el('span', 'octo-wse-ord'));
+        var nm = el('span', 'octo-wse-name', x.name);
+        nm.title = x.name;
+        li.appendChild(nm);
+        var st = c ? x.state : '';
+        li.appendChild(stat(st));
+        var acts = el('span', 'octo-wse-acts');
+        if (lnames.indexOf(x.name) !== lnames.lastIndexOf(x.name)) { acts.appendChild(rowBtn('classic', 'Classic menu', { 'data-key': key + ':c' })); li.appendChild(acts); ul.appendChild(li); return; }
+        // Liste penceresi PU'nun kaydini acar: yalniz sahip olunan listede Edit (WSE-R9).
+        if (x.edit && st === 'on') { var eb = rowBtn('ls-edit', 'Edit', { 'data-idx': i, 'data-name': x.name, 'data-key': key + ':e', 'aria-label': 'Edit ' + x.name }); if (b) { eb.disabled = true; } acts.appendChild(eb); }
+        else { acts.appendChild(spacer()); }
+        if (st === 'off') { var sb = rowBtn('ls-show', busyText(e, key + ':s', 'Show'), { 'data-idx': i, 'data-name': x.name, 'data-key': key + ':s', 'aria-label': 'Show ' + x.name }); if (b) { sb.disabled = true; } acts.appendChild(sb); }
+        if (st === 'on') { var hb = rowBtn('ls-hide', 'Stop showing', { 'data-idx': i, 'data-name': x.name, 'data-key': key + ':h', 'aria-label': 'Stop showing ' + x.name }); if (b) { hb.disabled = true; } acts.appendChild(hb); }
+        li.appendChild(acts);
+        ul.appendChild(li);
+      });
+      lsec.appendChild(ul);
+    }
+    body.appendChild(lsec);
+    // Workspaces: edit kipinde Bubble sirketin TUM tablolarini listeler; her satir kendi Bubble dugumune (sira + ad).
+    var wsec = section('Workspaces', '', '', b);
+    if (!snap.sheets.length) {
+      wsec.appendChild(el('div', 'octo-wse-empty', 'No workspaces yet'));
+    } else {
+      var wl = el('ol', 'octo-wse-rows');
+      snap.sheets.forEach(function (x) {
+        var key = 'sh:' + x.idx;
+        var li = el('li', 'octo-wse-row');
+        li.setAttribute('data-kind', 'sh');
+        if (x.idx === snap.cur) { li.setAttribute('data-cur', '1'); }
+        if (e.busy && e.busyKey.indexOf(key) === 0) { li.setAttribute('aria-busy', 'true'); }
+        var mark = el('span', 'octo-wse-ord');
+        if (x.idx === snap.cur) { mark.appendChild(octo.icon('check', 14)); mark.setAttribute('aria-label', 'Open'); }
+        li.appendChild(mark);
+        if (e.rename && e.rename.idx === x.idx) {
+          var form = el('span', 'octo-wse-rform');
+          var inp = D.createElement('input');
+          inp.type = 'text';
+          inp.className = 'octo-wse-rin';
+          inp.value = e.rename.value != null ? e.rename.value : x.name;
+          inp.setAttribute('aria-label', 'Workspace name');
+          inp.setAttribute('data-key', key + ':in');
+          inp.maxLength = 120;
+          form.appendChild(inp);
+          li.appendChild(form);
+          var ra = el('span', 'octo-wse-acts');
+          ra.appendChild(rowBtn('sh-save', e.busy === 'saving' ? 'Saving' : 'Save', { 'data-key': key + ':save' }));
+          ra.appendChild(rowBtn('sh-cancel', 'Cancel', { 'data-key': key + ':cancel' }));
+          li.appendChild(ra);
+          wl.appendChild(li);
+          return;
+        }
+        var nm = el('span', 'octo-wse-name', x.name);
+        nm.title = x.name;
+        li.appendChild(nm);
+        var st = c ? x.state : '';
+        li.appendChild(stat(st));
+        var acts = el('span', 'octo-wse-acts');
+        // Ayni adli tablo ve acik satirin kimligi dogrulanamadiysa: yikici eylem yok, Classic menu (WSE-R1).
+        var unsure = (x.dup && x.idx === snap.cur && !e.idOk) || x.odd;
+        if (x.input && !unsure) { var rn = rowBtn('sh-rename', 'Rename', { 'data-idx': x.idx, 'data-key': key + ':r', 'aria-label': 'Rename ' + x.name }); if (b) { rn.disabled = true; } acts.appendChild(rn); }
+        if (st === 'off') { var sb = rowBtn('sh-show', busyText(e, key + ':s', 'Show'), { 'data-idx': x.idx, 'data-key': key + ':s', 'aria-label': 'Show ' + x.name }); if (b) { sb.disabled = true; } acts.appendChild(sb); }
+        if (st === 'on' && !unsure) {
+          var arm = armed(e, key + ':h');
+          var hb = rowBtn('sh-hide', arm ? 'Stop showing?' : busyText(e, key + ':h', 'Stop showing'), { 'data-idx': x.idx, 'data-key': key + ':h', 'aria-label': (arm ? 'Confirm stop showing ' : 'Stop showing ') + x.name });
+          if (arm) { hb.setAttribute('data-armed', '1'); }
+          if (b) { hb.disabled = true; }
+          acts.appendChild(hb);
+        }
+        if (x.del && !unsure) {
+          var armd = armed(e, key + ':d');
+          var db = rowBtn('sh-delete', armd ? 'Delete workspace?' : 'Delete', { 'data-idx': x.idx, 'data-key': key + ':d', 'aria-label': (armd ? 'Confirm delete ' : 'Delete ') + x.name });
+          db.classList.add('is-danger');
+          if (armd) { db.setAttribute('data-armed', '1'); }
+          if (b) { db.disabled = true; }
+          acts.appendChild(db);
+        }
+        if (unsure) { var cl = rowBtn('classic', 'Classic menu', { 'data-key': key + ':c' }); acts.appendChild(cl); }
+        li.appendChild(acts);
+        wl.appendChild(li);
+      });
+      wsec.appendChild(wl);
+    }
+    body.appendChild(wsec);
+  }
+  function focusKey(scope) {
+    try { var a = D.activeElement; if (a && scope && scope.contains(a)) { return a.getAttribute('data-key') || (a.id === 'octo-wse-title' ? '#title' : ''); } } catch (e) { /* yut */ }
+    return '';
+  }
+  function restoreFocus(scope, key) {
+    if (!key || !scope) { return; }
+    var n = key === '#title' ? q1('#octo-wse-title', scope) : q1('[data-key="' + key.replace(/"/g, '') + '"]', scope);
+    if (n && !n.disabled) { focusNode(n); return; }
+    // Dugum yeniden cizimde kalktiysa (durum degisti, sakinlik): ayni satirin ilk etkin dugmesi, yoksa baslik (WSE-A3).
+    var m = /^((?:st|ls|sh):\d+:)/.exec(key);
+    if (m) {
+      var all = qa('[data-key^="' + m[1] + '"]', scope);
+      for (var i = 0; i < all.length; i++) { if (!all[i].disabled && all[i].tagName !== 'SPAN') { focusNode(all[i]); return; } }
+    }
+    focusNode(q1('#octo-wse-title', scope));
+  }
+
+  // --------------------------------------------------------------- eylemler
+  // Klavyeyle (oklar) degisen secim hemen Bubble'a gitmez: Enter ya da odak cikisinda (Windows Chrome'da ok tusu
+  // change atar; WSE-A13). Fareyle secim hemen.
+  function onSheetChange(ev) {
+    var t = ev.target;
+    if (!t || !hasCls(t, 'octo-wse-ws') || !S.edit || t.value === '') { return; }
+    if (now() - (S.selKeyAt || 0) < 250) { S.selPending = t.value; return; }
+    pickSheet(Number(t.value));
+  }
+  function selCommit() {
+    if (S.selPending == null || !S.edit) { S.selPending = null; return; }
+    var v = S.selPending;
+    S.selPending = null;
+    pickSheet(Number(v));
+  }
+  // Workspace secimi: basari = o satirin liste RG'si gorunur oldu (Bubble SA'yi kurdu); yoksa eski baslik kalir.
+  function pickSheet(idx) {
+    var e = S.edit;
+    if (!e || e.busy) { return; }
+    var row = sheetRows()[idx];
+    if (!row) { return; }
+    var name = sheetNameOf(row);
+    e.busy = 'sheet';
+    e.busyKey = 'ws';
+    e.armed = null;
+    e.rename = null;
+    paintSheet(true);
+    pxClick(row, 'sheet');
+    waitFor(function () { return curIndex() === idx; }, T.editWait).then(function (ok) {
+      if (S.edit !== e || e.busyKey !== 'ws') { return; }
+      e.busy = ''; e.busyKey = '';
+      if (!ok) { paintSheet(true); note('Could not open', true); return; }
+      e.sheet = name;
+      e.status = {};
+      e.scanned = false;
+      e.cur = idx;
+      e.idOk = true;
+      quiet(e);
+      paintSheet(true);
+      say(name + ' opened');
+      // Eski tarama bitince yeni tablonun barini tara (kalan sayfa butcesiyle yarim kalmasin; WSE-A5).
+      (e.scanP || Promise.resolve(true)).then(function () { if (S.edit === e) { scanStages(e); } });
+    });
+  }
+  function onSheetClick(ev) {
+    var t = upTo(ev.target, function (x) { return x.hasAttribute && x.hasAttribute('data-act'); }, S.sheet);
+    if (!t || t.disabled || !S.edit) { return; }
+    var e = S.edit;
+    var a = t.getAttribute('data-act');
+    var name = t.getAttribute('data-name') || '';
+    var key = t.getAttribute('data-key') || '';
+    var idx = Number(t.getAttribute('data-idx'));
+    if (a === 'done') { doneEdit(); return; }
+    if (a === 'retry') { if (e.busy) { return; } return retryOpen(e); }
+    if (a === 'classic') { classicFallback(); return; }
+    // Tek ucus: bir eylem surerken (ya da Bubble henuz sakinlesmeden) yeni eylem yok (WSE-R2).
+    if (e.phase !== 'open' || e.busy) { return; }
+    if (a === 'sh-cancel') { e.rename = null; paintSheet(true); restoreFocus(S.sheet, key.replace(':cancel', ':r')); return; }
+    if (a === 'sh-save') { saveRename(); return; }
+    if (a === 'st-add') { return run(e, 'sec:st-add', popupAct(function () { return editSnap().addStage; }, 'add:stage')); }
+    if (a === 'ls-add') { return run(e, 'sec:ls-add', popupAct(function () { return editSnap().addList; }, 'add:list')); }
+    if (a === 'st-edit') { return run(e, key, stageAct(name, 'edit')); }
+    if (a === 'st-show') { return run(e, key, stageAct(name, 'add')); }
+    if (a === 'st-hide') { return run(e, key, stageAct(name, 'remove')); }
+    if (a === 'ls-edit') { return run(e, key, listAct(name, 'edit')); }
+    if (a === 'ls-show') { return run(e, key, listAct(name, 'add')); }
+    if (a === 'ls-hide') { return run(e, key, listAct(name, 'remove')); }
+    if (a === 'sh-rename') {
+      e.armed = null;
+      cancel('disarm');
+      e.rename = { idx: idx, name: sheetNameOf(sheetRows()[idx] || null), value: null };
+      paintSheet(true);
+      later('rfocus', function () { var ri = q1('.octo-wse-rin', S.sheet); if (ri) { focusNode(ri); try { ri.select(); } catch (x) { /* yut */ } } }, 0);
+      return;
+    }
+    if (a === 'sh-show') { return run(e, key, sheetAct(idx, 'add')); }
+    if (a === 'sh-hide') { if (!confirmStep(e, key, ev)) { return; } return run(e, key, sheetAct(idx, 'remove')); }
+    if (a === 'sh-delete') { if (!confirmStep(e, key, ev)) { return; } return run(e, key, sheetAct(idx, 'del')); }
+  }
+  // Iki adim (yalniz Bubble'in onay sormadigi ve geri donussuz isler): ilk tik dugmeyi kurar, ikinci tik vekil.
+  // Cift tik ve tus tekrari onay sayilmaz: onaylayan tik tek tik (detail <= 1) ve kurulumdan en az T.confirmMin sonra (WSE-A4).
+  function confirmStep(e, key, ev) {
+    if (armed(e, key)) {
+      if ((ev && ev.detail > 1) || (now() - e.armed.at) < T.confirmMin) { return false; }
+      e.armed = null;
+      return true;
+    }
+    e.armed = { key: key, at: now() };
+    paintSheet(true);
+    restoreFocus(S.sheet, key);
+    later('disarm', function () {
+      if (!(S.edit === e && e.armed && e.armed.key === key)) { return; }
+      // Odak kurulu dugmedeyse geri ona; kullanici baska yere gectiyse odak oynatilmaz (WSE-A12).
+      var had = false;
+      try { had = !!D.activeElement && D.activeElement.getAttribute('data-key') === key; } catch (x) { had = false; }
+      e.armed = null;
+      paintSheet(true);
+      if (had) { restoreFocus(S.sheet, key); }
+    }, T.confirmMs + 20);
+    return false;
+  }
+  // Eylem sarmalayici: satir kilitli (Saving, dugmeler kapali); sonuc gelince ya da zaman asiminda acilir.
+  function run(e, key, startFn) {
+    e.busy = 'act';
+    e.busyKey = key;
+    paintSheet(true);
+    var p;
+    try { p = startFn(); } catch (x) { p = Promise.resolve(false); }
+    return Promise.resolve(p).then(function (r) { done(); return r; }, function () { done(); return false; });
+    function done() {
+      if (S.edit !== e || e.busyKey !== key) { return; }
+      e.busy = ''; e.busyKey = '';
+      quiet(e);
+      paintSheet(true);
+      if (!popupOpen()) { restoreFocus(S.sheet, key); }
+    }
+  }
+  // Bubble penceresi: tiktan once gorunen pencereler kaydedilir; YENI bir pencere gorunurse basari (WSE-R15).
+  function popupAct(nodeFn, tag) {
+    return function () {
+      var before = visiblePopups();
+      var n = nodeFn();
+      if (!n) { note('Could not open', true); return Promise.resolve(false); }
+      pxClick(n, tag);
+      return waitFor(function () { var now2 = visiblePopups(); for (var i = 0; i < now2.length; i++) { if (before.indexOf(now2[i]) < 0) { return true; } } return false; }, T.popWait).then(function (ok) {
+        if (!ok) { note('Could not open', true); return false; }
+        if (S.edit) { S.edit.popKey = S.edit.busyKey; S.edit.popFrom = now(); }
+        return true;
+      });
+    };
+  }
+  function stageAct(name, what) {
+    return function () {
+      var e = S.edit;
+      // Tarama barin sayfasini oynatir: eylem onun bitmesini bekler (iki sayfa gezgini yarismasin).
+      var ready = e.scanP || Promise.resolve(true);
+      return ready.then(function () { return withStage(name); }).then(function (found) {
+        if (!found) { note('Could not open', true); return false; }
+        // Dugum ayni gorevde yeniden okunur, ad ve ikon dogrulanir (WSE-R2, WSE-R5).
+        var hit = findCell(name);
+        if (!hit) { note('Could not open', true); return false; }
+        if (what === 'edit') { return popupAct(function () { var h = findCell(name); return h ? h.edit : null; }, 'stage:edit')(); }
+        if (what === 'remove') { return popupAct(function () { var h = findCell(name); return (h && h.remove && shown(h.remove, null)) ? h.remove : null; }, 'stage:remove')(); }
+        if (!(hit.add && shown(hit.add, null))) { note('Could not open', true); return false; }
+        pxClick(hit.add, 'stage:add');
+        return waitFor(function () { var c = findCell(name); return !!c && c.state === 'on'; }, T.saveWait).then(function (ok) {
+          if (ok) { e.status[name] = 'on'; say(name + ' shown'); } else { note('Could not save', true); }
+          return settleDom(T.editWait).then(function () { return ok; });
+        });
+      });
+    };
+  }
+  function findList(name) { var snap = editSnap(); for (var i = 0; i < snap.lists.length; i++) { if (snap.lists[i].name === name) { return snap.lists[i]; } } return null; }
+  function listAct(name, what) {
+    return function () {
+      var x = findList(name);
+      if (!x) { note('Could not open', true); return Promise.resolve(false); }
+      if (what === 'edit') { return popupAct(function () { var h = findList(name); return (h && h.state === 'on') ? h.edit : null; }, 'list:edit')(); }
+      if (what === 'remove') { return popupAct(function () { var h = findList(name); return (h && h.remove && shown(h.remove, null)) ? h.remove : null; }, 'list:remove')(); }
+      if (!(x.add && shown(x.add, null))) { note('Could not open', true); return Promise.resolve(false); }
+      pxClick(x.add, 'list:add');
+      return waitFor(function () { var h = findList(name); return !!h && h.state === 'on'; }, T.saveWait).then(function (ok) {
+        if (ok) { say(name + ' shown'); } else { note('Could not save', true); }
+        return settleDom(T.editWait).then(function () { return ok; });
+      });
+    };
+  }
+  // Workspace satiri: dugum sira ile, ad AYNI gorevde dogrulanir.
+  function sheetAt(idx, name) {
+    var snap = editSnap();
+    for (var i = 0; i < snap.sheets.length; i++) { if (snap.sheets[i].idx === idx && (!name || snap.sheets[i].name === name)) { return snap.sheets[i]; } }
+    return null;
+  }
+  function sheetAct(idx, what) {
+    return function () {
+      var x0 = sheetAt(idx);
+      if (!x0) { note('Could not open', true); return Promise.resolve(false); }
+      var nm = x0.name;
+      if (what === 'del') {
+        // Bubble'in silme onayi DeleteSheet + RefreshPage kosar: sayfa yenilenir, oturum burada biter (spec 6.3).
+        return popupAct(function () { var h = sheetAt(idx, nm); return h ? h.del : null; }, 'sheet:delete')();
+      }
+      var x = sheetAt(idx, nm);
+      var n = x ? (what === 'add' ? x.add : x.remove) : null;
+      if (!(n && shown(n, null))) { note('Could not open', true); return Promise.resolve(false); }
+      pxClick(n, 'sheet:' + what);
+      var want = what === 'add' ? 'on' : 'off';
+      // addsheettouser bir arka uc isi (saniyeler): Show daha uzun bekler, sure dolmadan yanlis hata yok (F12).
+      return waitFor(function () { var h = sheetAt(idx, nm); return !!h && h.state === want; }, what === 'add' ? T.sheetWait : T.saveWait).then(function (ok) {
+        if (ok) { say(want === 'on' ? (nm + ' shown') : (nm + ' hidden')); } else { note('Could not save', true); }
+        return settleDom(T.editWait).then(function () { return ok; });
+      });
+    };
+  }
+  // Ad: Bubble Input S'ye TEK yazim; dogrulama YALNIZ Bubble'in tablo adi metninden (kabugun yazdigi kutu sayilmaz).
+  function saveRename() {
+    var e = S.edit;
+    if (!e || !e.rename || e.busy) { return Promise.resolve(false); }
+    var ri = q1('.octo-wse-rin', S.sheet);
+    var v = clean(ri ? ri.value : '');
+    var idx = e.rename.idx, old = e.rename.name;
+    if (!v) { if (ri) { focusNode(ri); } return Promise.resolve(false); }
+    if (v === old) { e.rename = null; paintSheet(true); return Promise.resolve(true); }
+    var x = sheetAt(idx, old);
+    var inp = x ? x.input : null;
+    if (!inp) { e.rename = null; paintSheet(true); note('Could not save', true); return Promise.resolve(false); }
+    e.rename.value = v;
+    e.busy = 'saving';
+    e.busyKey = 'sh:' + idx + ':save';
+    paintSheet(true);
+    writeInput(inp, v);
+    var bk = e.busyKey;
+    return waitFor(function () { var row = sheetRows()[idx]; return !!row && bubbleNameOf(row) === v; }, T.saveWait).then(function (ok) {
+      if (S.edit !== e || e.busyKey !== bk) { return ok; }
+      e.busy = ''; e.busyKey = '';
+      e.rename = null;
+      if (ok) { if (idx === e.cur) { e.sheet = v; } paintSheet(true); say('Saved'); restoreFocus(S.sheet, 'sh:' + idx + ':r'); }
+      else { paintSheet(true); note('Could not confirm', true); }
+      return ok;
+    });
+  }
+  // Done: Bubble'in Done'u kipi kapatir ve seni KENDI sayfana goturur, acik ekrani (SA) temizlemez (WSE-R3):
+  // baskasinin ekranindan gelindiyse kendi satirin yeniden secilir; donus tek tik bildirimle.
+  function doneEdit() {
+    var e = S.edit;
+    if (!e || e.busy || e.phase === 'opening' || e.phase === 'restoring') { return Promise.resolve(false); }
+    if (e.phase === 'error' || !editMode()) { finishEdit(e, false); return Promise.resolve(true); }
+    e.busy = 'closing';
+    e.busyKey = 'done';
+    paintSheet(true);
+    var kDone = ctxKey();
+    return gfAct('edit', /^done$/i, function () { return S.edit === e; }).then(function (ok) { return ok ? waitFor(function () { return !editMode(); }, T.editWait) : false; }).then(function (ok) {
+      if (S.edit !== e) { return ok; }
+      if (!ok) { e.busy = ''; e.busyKey = ''; paintSheet(true); note('Could not close editor', true); return false; }
+      var was = !!(e.pu && e.cu && e.pu !== e.cu);
+      if (!was) { finishEdit(e, true); return true; }
+      // Kira: SA kendi ekranina gecene kadar os9a dusmez.
+      S.lease = { until: now() + T.editWait * 2, why: 'done' };
+      finishEdit(e, false);
+      return waitFor(function () { return pageUserId() === e.cu; }, T.editWait).then(function () {
+        // Bubble sayfa yuklemesini yeniden kosturduysa SA zaten senin ekranin: tik yok.
+        return settleDom(T.editWait);
+      }).then(function () {
+        var k0 = ctxKey();
+        if (k0 && k0 !== kDone) { return true; }
+        var row = null, rows = sheetRows();
+        for (var i = 0; i < rows.length; i++) { if (sheetNameOf(rows[i]) === e.sheet) { row = rows[i]; break; } }
+        if (!row) { row = rows[0] || null; }
+        if (!row) { return false; }
+        pxClick(row, 'sheet:mine');
+        return waitFor(function () { var k = ctxKey(); return !!k && k !== k0; }, T.editWait);
+      }).then(function (ok2) {
+        S.lease = null;
+        barTick();
+        if (ok2) { note('Back on your view', false, { label: 'View as ' + (e.puName || 'them'), fn: function () { navTo(e.pu); } }); }
+        else { note('Could not close editor', true); }
+        idleCheck();
+        return ok2;
+      });
+    });
+  }
+  function finishEdit(e, viaDone) {
+    if (!e) { return; }
+    S.edit = null;
+    S.sig = '';
+    root().removeAttribute(A_EDIT);
+    inertBar(false);
+    if (S.sheet) { S.sheet.hidden = true; clear(S.sheet); }
+    if (S.scrim) { S.scrim.hidden = true; }
+    cancel('disarm');
+    cancel('quiet');
+    trace('edit:close' + (viaDone ? ':done' : ''));
+    var bar = D.getElementById('octo-wsbar');
+    var mb = bar ? q1('[data-act="menu"]', bar) : null;
+    if (e.opener && isConn(e.opener)) { focusNode(e.opener); } else if (mb) { focusNode(mb); }
+    idleCheck();
+    barTick();
+  }
+  // Try again ayni sayfada: sayfa kapanmaz, holds birakilmaz (os9a arada dusup Bubble kipini gostermez; WSE-A7).
+  function retryOpen(e) {
+    if (S.edit !== e) { return Promise.resolve(false); }
+    e.phase = 'opening';
+    e.err = '';
+    paintSheet(true);
+    focusSheet();
+    trace('edit:retry');
+    return startOpen(e);
+  }
+  // Sayfa acikken cubuk ve menusu scrim'in altinda: odak oraya dusmesin (INT-6). Ikisi de govdenin cocugu, tablonun atasi degil.
+  function inertBar(on) {
+    var ids = ['octo-wsbar', 'octo-wsb-pop'];
+    for (var i = 0; i < ids.length; i++) {
+      var n = D.getElementById(ids[i]);
+      if (!n) { continue; }
+      try { if (on) { n.setAttribute('inert', ''); n.setAttribute('data-wse-inert', '1'); } else if (n.getAttribute('data-wse-inert') === '1') { n.removeAttribute('inert'); n.removeAttribute('data-wse-inert'); } } catch (e) { /* yut */ }
+    }
+  }
+  // Sayfa icinden Classic: sayfa kapanir (holds biter); Bubble kipi aciksa os9a kendini geri alir ve Bubble'in
+  // kendi edit kipi (Done disli altinda) gorunur. Sayfa gorunurken classic(true) ASLA (R6).
+  function classicFallback() {
+    var e = S.edit;
+    var ek = editMode();
+    if (e) { finishEdit(e, false); }
+    if (S.pick) { closePick(false); }
+    if (ek) { return; }
+    var b = wsbar();
+    try { if (b) { b.classic(true); } } catch (x) { /* yut */ }
+  }
+  function onSheetKey(ev) {
+    var k = ev && ev.key;
+    var e = S.edit;
+    if (!e) { return; }
+    // Tus tekrari bir eylemi tekrar etmez (WSE-A4).
+    if (ev.repeat && (k === 'Enter' || k === ' ' || k === 'Spacebar')) { ev.preventDefault(); ev.stopPropagation(); return; }
+    if (hasCls(ev.target, 'octo-wse-ws')) {
+      if (k === 'Enter') { ev.preventDefault(); ev.stopPropagation(); selCommit(); return; }
+      if (k !== 'Tab' && k !== 'Escape' && k !== 'Esc') { S.selKeyAt = now(); }
+    }
+    if (k === 'Enter' && hasCls(ev.target, 'octo-wse-rin')) { ev.preventDefault(); ev.stopPropagation(); saveRename(); return; }
+    if (k === 'Escape' || k === 'Esc') {
+      // Esc yalniz satir ici kutuyu ve kurulu onayi kapatir; sayfayi Done kapatir (yarim Bubble kipi kalmasin).
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (e.rename) { var rk = 'sh:' + e.rename.idx + ':r'; e.rename = null; paintSheet(true); restoreFocus(S.sheet, rk); return; }
+      if (e.armed) { var ak = e.armed.key; e.armed = null; paintSheet(true); restoreFocus(S.sheet, ak); return; }
+      var dn = q1('[data-act="done"]', S.sheet);
+      if (dn) { focusNode(dn); }
+      return;
+    }
+    if (k === 'Tab') {
+      // Odak sayfada kalir (aria-modal); Bubble penceresi acikken tuzak susar (form ona ait).
+      if (popupOpen()) { return; }
+      var all = qa('button:not([disabled]), select:not([disabled]), input', S.sheet).filter(function (n) { return n.getClientRects().length > 0; });
+      if (!all.length) { return; }
+      var first = all[0], last = all[all.length - 1];
+      var ae = D.activeElement;
+      if (ev.shiftKey && (ae === first || !S.sheet.contains(ae) || ae === q1('#octo-wse-title', S.sheet))) { ev.preventDefault(); focusNode(last); }
+      else if (!ev.shiftKey && (ae === last || !S.sheet.contains(ae))) { ev.preventDefault(); focusNode(first); }
+    }
+  }
+
+  // ---------------------------------------------------------- bildirim / ses
+  // Hata bildirimi kendiliginden kaybolur; eylemli bildirim (Back on your view) kapatilana kadar kalir (UX-18).
+  function note(text, withClassic, action) {
+    mountNodes();
+    // Classic zaten aciksa 'Classic menu' dugmesi bir sey yapmazdi (INT-3).
+    if (withClassic && classicOn() && !S.edit) { withClassic = false; }
+    var n = S.note;
+    clear(n);
+    n.setAttribute('role', withClassic ? 'alert' : 'status');
+    n.appendChild(octo.icon(withClassic ? 'alert' : 'check', 16));
+    n.appendChild(el('span', 'octo-wse-ntext', text));
+    if (action && action.label) {
+      var b = btn('octo-wse-nbtn', 'note-act', action.label);
+      b.addEventListener('click', function () { n.hidden = true; try { action.fn(); } catch (x) { /* yut */ } });
+      n.appendChild(b);
+    }
+    if (withClassic) {
+      var c = btn('octo-wse-nbtn', 'note-classic', 'Classic menu');
+      c.addEventListener('click', function () { n.hidden = true; classicFallback(); });
+      n.appendChild(c);
+    }
+    if (action) {
+      var x = btn('octo-wse-nclose', 'note-close');
+      x.setAttribute('aria-label', 'Close');
+      x.appendChild(octo.icon('close', 14));
+      x.addEventListener('click', function () { n.hidden = true; });
+      n.appendChild(x);
+    }
+    n.hidden = false;
+    if (withClassic) { S.lastErr = text; }
+    trace('note');
+    if (action) { cancel('note'); } else { later('note', function () { if (S.note) { S.note.hidden = true; } }, T.note); }
+  }
+  function say(text) {
+    S.liveText = text;
+    var l = S.sheet ? q1('#octo-wse-live', S.sheet) : null;
+    var wl = D.getElementById('octo-wsb-live');
+    var tgt = (l && S.edit) ? l : wl;
+    if (!tgt) { return; }
+    tgt.textContent = '';
+    later('say', function () { tgt.textContent = text; }, 30);
+  }
+
+  // ------------------------------------------------------------ gozlem / omur
+  function own(n) {
+    if (!n) { return false; }
+    try {
+      if (S.sheet && S.sheet.contains(n)) { return true; }
+      if (S.scrim && S.scrim.contains(n)) { return true; }
+      if (S.pickBox && S.pickBox.contains(n)) { return true; }
+      if (S.note && S.note.contains(n)) { return true; }
+      if (S.sentinel && S.sentinel.contains(n)) { return true; }
+    } catch (e) { /* yut */ }
+    return false;
+  }
+  function onMutate(recs) {
+    if (S.moTimer) { return; }
+    if (recs && recs.length) {
+      var rel = false;
+      var w = D.getElementById('dynamic-table-wrapper');
+      for (var i = 0; i < recs.length; i++) {
+        var t = recs[i] && recs[i].target;
+        if (!t || own(t)) { continue; }
+        try { if (w && (t === w || w.contains(t))) { continue; } } catch (e) { /* yut */ }
+        rel = true;
+        break;
+      }
+      if (!rel) { return; }
+    }
+    S.moTimer = setTimeout(function () { S.moTimer = null; tickE(); }, T.tick);
+  }
+  // Gozlemci yalniz sayfa, secici, kira ya da menu okuma surerken; html'in kip oznitelikleri de izlenir (R5).
+  function observe(on) {
+    if (on) {
+      if (S.mo || typeof MutationObserver !== 'function') { later('tickE', tickE, T.tick); return; }
+      S.mo = new MutationObserver(onMutate);
+      try { S.mo.observe(D.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-octo-ws', 'data-octo-ws-classic'] }); } catch (e) { S.mo = null; }
+      later('tickE', tickE, T.tick);
+      return;
+    }
+    if (S.mo) { try { S.mo.disconnect(); } catch (e2) { /* yut */ } S.mo = null; }
+    if (S.moTimer) { try { clearTimeout(S.moTimer); } catch (e3) { /* yut */ } S.moTimer = null; }
+    cancel('tickE');
+  }
+  function busy() { return !!(S.edit || S.pick || S.gfOurs || S.priming || S.waiters.length || (S.lease && now() < S.lease.until) || S.menuSeen); }
+  function idleCheck() { if (!busy()) { observe(false); listen(false); } }
+  // Kipten dusus (os9a cubugu kalkti, dar ekran, misafir, bayrak): her sey kendi haline, Done vekili YOK (R5).
+  function teardown(why) {
+    trace('teardown:' + why);
+    if (S.edit) { finishEdit(S.edit, false); }
+    if (S.pick) { closePick(false); }
+    S.lease = null;
+    if (S.gfOurs) { leaseOff(); }
+  }
+  function tickE() {
+    checkWaiters();
+    if (off()) { teardown('off'); idleCheck(); return; }
+    var wsOn = root().getAttribute('data-octo-ws') === '1';
+    if (!wide() || guest()) { teardown(!wide() ? 'narrow' : 'guest'); idleCheck(); return; }
+    // Kira: Classic acilinca oznitelik kalkar (CSS de Classic'te gizlemez); cubugun menusu kapandiysa gizli menu kapanir.
+    if (S.gfOurs) {
+      if (classicOn()) { root().removeAttribute(A_GF); }
+      var mo = menuOpen();
+      if (!mo && !S.priming && !S.gfOp && !S.timers.gfClose && !shownIn(SEL.exportGf)) { gfClose(); }
+      if (!gfShown() && !shownIn(SEL.exportGf) && !S.priming && !S.gfOp) { leaseOff(); }
+    }
+    if (S.menuSeen && !menuOpen()) {
+      S.menuSeen = false; S.primedOpen = false;
+      // Okuma basarisizligi kalici degil: menu kapaninca bir sonraki acilis yeniden dener (F3).
+      if (!S.items) { S.gfFail = false; }
+    }
+    // Zaman asimindan sonra gec acilan Bubble menusu: cubugun menusu yoksa kapanir (F3).
+    if (!S.gfOurs && S.gfLateUntil && now() < S.gfLateUntil && !classicOn() && gfShown() && !menuOpen() && !S.gfOp) { S.gfLateUntil = 0; leaseOn(); gfClose(); }
+    if (S.pick) { pickTick(); }
+    var e = S.edit;
+    if (e) {
+      if (!wsOn || !barActive()) {
+        if (!e.barGoneAt) { e.barGoneAt = now(); later('barGone', tickE, T.editGrace + 20); }
+        else if (now() - e.barGoneAt >= T.editGrace && e.phase !== 'opening') { teardown('bar'); idleCheck(); return; }
+      } else { e.barGoneAt = 0; }
+      if (e.phase === 'open' && !e.busy) {
+        if (!editMode()) {
+          if (!e.offAt) { e.offAt = now(); later('editGrace', tickE, T.editGrace + 20); }
+          else if (now() - e.offAt >= T.editGrace) { finishEdit(e, false); idleCheck(); return; }
+        } else { e.offAt = 0; }
+        if (e.armed && (now() - e.armed.at) >= T.confirmMs) { e.armed = null; }
+      }
+      if (e.phase === 'open') {
+        var snapT = editSnap();
+        var sg = domSig(snapT);
+        if (sg !== S.editSig) { S.editSig = sg; if (!e.scanning) { quiet(e); } }
+        // Gorunur hucrelerin durumu sakinlikte bellege yazilir: sayfa disina cikan surec bayat kalmaz (WSE-A6).
+        else if (!e.scanning && !e.busy && calm(e)) { learn(e, snapT); }
+        // Bubble penceresi acikken sayfa modal degil (ekran okuyucu Bubble formuna ulasir; F4).
+        if (S.sheet) { var am = popupOpen() ? 'false' : 'true'; if (S.sheet.getAttribute('aria-modal') !== am) { S.sheet.setAttribute('aria-modal', am); } }
+        // Bubble penceresi kapandi: odak acan dugmeye doner (R9).
+        if (e.popKey && !popupOpen() && now() - (e.popFrom || 0) > 100) { var pk = e.popKey; e.popKey = ''; restoreFocus(S.sheet, pk); }
+      }
+      if (!e.scanning) { paintSheet(false); }
+    }
+    if (S.waiters.length) { later('waitPoll', pollWaiters, T.poll); }
+    idleCheck();
+  }
+  // Belge dinleyicileri yalniz secici ya da sayfa acikken.
+  var L = { on: false };
+  function onDocDown(ev) {
+    if (!S.pick) { return; }
+    var t = ev && ev.target;
+    if (own(t)) { return; }
+    // Capaya (cip / Menu) basmak secicinin kendi ac / kapa tikidir: dis tik sayilmaz.
+    var an = pickAnchor();
+    try { if (an && an.contains(t)) { return; } } catch (e) { /* yut */ }
+    var box = personBox();
+    if (box && box.contains(t)) { return; }
+    closePick(false);
+  }
+  function onFocusIn(ev) {
+    if (!S.pick) { return; }
+    var t = ev && ev.target;
+    if (own(t)) { return; }
+    var box = personBox();
+    if (box && box.contains(t)) { return; }
+    var an = pickAnchor();
+    try { if (an && an.contains(t)) { return; } } catch (e) { /* yut */ }
+    closePick(false);
+  }
+  function onWinKey(ev) {
+    var k = ev && ev.key;
+    if (k !== 'Escape' && k !== 'Esc') { return; }
+    if (S.pick) {
+      // Bubble kutusu odakliyken Esc da secici kapatir (typeahead kendi listesini kapatir).
+      ev.preventDefault();
+      closePick(true);
+    }
+  }
+  function onResize() { if (S.pick) { placePick(); } if (S.edit || S.pick) { later('tickE', tickE, 60); } }
+  function listen(on) {
+    if (on === L.on) { return; }
+    L.on = on;
+    var f = on ? 'addEventListener' : 'removeEventListener';
+    try { D[f]('mousedown', onDocDown, true); D[f]('focusin', onFocusIn, true); W[f]('keydown', onWinKey, false); W[f]('resize', onResize, false); } catch (e) { /* yut */ }
+  }
+  function shutdown() {
+    teardown('shutdown');
+    leaseOff();
+    observe(false);
+    listen(false);
+    for (var k in S.timers) { if (Object.prototype.hasOwnProperty.call(S.timers, k)) { cancel(k); } }
+    var w = S.waiters; S.waiters = [];
+    for (var i = 0; i < w.length; i++) { try { w[i].resolve(false); } catch (e) { /* yut */ } }
+    [S.sheet, S.scrim, S.pickBox, S.note, S.sentinel].forEach(rm);
+    S.sheet = S.scrim = S.pickBox = S.note = S.sentinel = null;
+    S.items = null; S.itemsAt = 0; S.itemsPU = ''; S.itemsSig = ''; S.gfFail = false; S.priming = null; S.sig = ''; S.editSig = ''; S.liveText = '';
+    S.menuSeen = false; S.primedOpen = false; S.lease = null;
+    root().removeAttribute(A_PICK);
+    root().removeAttribute(A_EDIT);
+    root().removeAttribute(A_GF);
+    return true;
+  }
+
+  function diag() {
+    var g = gfRoot();
+    var r = readGf();
+    var snap = editSnap();
+    var un = [];
+    if (r) { for (var k in r) { if (Object.prototype.hasOwnProperty.call(r, k) && /^x\d+$/.test(k)) { un.push(r[k].label); } } }
+    return {
+      off: off(), bar: barActive(), gf: { node: !!g, shown: gfShown(), ours: S.gfOurs, attr: root().hasAttribute(A_GF), items: r ? Object.keys(r) : null, unmapped: un },
+      items: S.items ? Object.keys(S.items) : null, gfFail: S.gfFail,
+      person: { box: !!personBox(), enabled: personEnabled(), suggestions: suggestions().length },
+      edit: { mode: editMode(), sheet: S.edit ? S.edit.phase : '', sheets: snap.sheets.length, cur: snap.cur, lists: snap.lists.length, cells: snap.cells.length, more: snap.more.length, popup: popupOpen() },
+      pick: !!S.pick, lease: !!(S.lease && now() < S.lease.until), last: S.lastErr, trace: S.trace.slice(-16)
+    };
+  }
+
+  // ================================================================= API
+  var api = {
+    holds: holds,
+    // Tutmanin turu: 'edit' (sayfa acik; edit kipi anahtarlari sahte degisim uretir) ya da 'lease' (gecis kirasi; INT-1).
+    holdKind: function () { if (off()) { return ''; } if (S.edit) { return 'edit'; } return (S.lease && now() < S.lease.until) ? 'lease' : ''; },
+    menuItems: menuItems,
+    act: act,
+    viewAs: viewAs,
+    own: own,
+    openEdit: openEdit,
+    closeEdit: doneEdit,
+    prime: prime,
+    shutdown: shutdown,
+    state: function () {
+      var e = S.edit;
+      return {
+        gf: S.gfOurs, items: S.items ? Object.keys(S.items) : null, gfFail: S.gfFail, pick: !!S.pick, lease: !!(S.lease && now() < S.lease.until),
+        edit: e ? e.phase : '', sheet: e ? e.sheet : '', busy: e ? e.busy : '', armed: e && e.armed ? e.armed.key : '', scanned: e ? e.scanned : false,
+        err: e ? e.err : '', idOk: e ? e.idOk : true
+      };
+    },
+    diag: diag,
+    SEL: SEL,
+    T: T,
+    T_DEFAULT: T_DEFAULT
+  };
+  try {
+    Object.defineProperty(octo, '_wsedit', { value: api, writable: false, enumerable: false, configurable: true });
+  } catch (e) { /* yut */ }
 })();
 
 </script>
