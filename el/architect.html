@@ -66708,12 +66708,15 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var tf = !!total && railFresh(s);
     if (total) {
       for (var i = 0; i < s.cells.length; i++) {
-        var c = s.cells[i], hit = -1;
+        var c = s.cells[i], hit = -1, two = false;
         for (var k = 0; k < total; k++) {
           if (used[k]) { continue; }
           var nm = names[k] || s.moreOpts[k].name;
-          if (nm === c.name) { hit = k; break; }
+          if (nm === c.name) { if (hit < 0) { hit = k; } else { two = true; break; } }
         }
+        // Ayni adli secenekler (inceleme 21.10, sira araligi): bilinen sayfada konumdaki; sayfa bilinmiyorsa hizalama
+        // yok (ilkini tahmin etmez; sayac bilinmez, vekil More ile).
+        if (two) { var at = p ? (p - 1) * 5 + i : -1; hit = (at >= 0 && at < total && !used[at] && (names[at] || s.moreOpts[at].name) === c.name) ? at : -1; }
         out.push(hit);
         if (hit >= 0) { used[hit] = 1; matched++; }
       }
@@ -66747,32 +66750,99 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var pr = truncPrefix(name), f = clean(full);
     return !!pr && f !== clean(name) && f.indexOf(pr) === 0;
   }
-  // Sira indeksi -> Bubble adi (bn, bellegin anahtari), os_workspace kaydi (recs) ve gosterilen ad (disp). Tam ad
-  // esleme (bugunku kural) her zaman kazanir; yalniz railFresh iken kisaltilmis ad os_workspace tam adina on ekle
-  // eslenir ve gosterilen ad o tam addir. Birden cok aday: gercek surecler arasindaki konum (tam eslesen ya da adayi
-  // olan onceki ogeler) os_workspace sirasindaki konumla ayni olan.
+  // os_workspace order'i (sayi degilse NaN: sinir vermez, sinirla karsilastirilamaz).
+  function ordOf(r) { var v = r ? r.order : null; var n = (v == null || v === '') ? NaN : Number(v); return isFinite(n) ? n : NaN; }
+  // Canli bulgu 21.10 (ayni onekli / ayni adli asamalar, sira araligi): adaylar (cands[i], os_workspace indeksleri; ex[i]
+  // tam ad adaylari) -> tek surec ya da -1. 1) Tek aday: o; ayni surec birden cok on ekin tek adayiysa hicbiri (bugunku
+  // kural); ayni tam ad iki hucredeyse ikisi de o (cardsMap eslemez, sinir vermez). 2) Sira araligi: Bubble'in cubugu
+  // surecleri os_workspace order'ina gore artan listeler (eslenenlerin order'i azaliyorsa adim yok). Birden cok adayli oge,
+  // en yakin TEK eslenmis onceki ogenin order'indan kesin buyuk ve sonrakininkinden kesin kucuk alinmamis adaylara iner
+  // (Create / eslenmeyen komsu sinir vermez). Sinira ESIT order'li aday varsa karar yok: esit order'lar siralanmis
+  // sayilmaz. Tek aday kalirsa o (bir kez alinir); sifir ya da birden cok: eslesme yok. Yeni eslesme komsularin sinirini
+  // daraltir: degisiklik bitene kadar tekrar. 3) Kalan on ekler: pos(k) (bugunku konum kurali), surec alinmamissa.
+  function rangePick(cands, ex, ords, pos) {
+    var n = cands.length, pick = [], claim = {}, by = {}, i;
+    for (i = 0; i < n; i++) { pick.push(cands[i].length === 1 ? cands[i][0] : -1); if (pick[i] >= 0 && !ex[i]) { by[pick[i]] = (by[pick[i]] || 0) + 1; } }
+    for (i = 0; i < n; i++) { if (pick[i] >= 0 && !ex[i] && by[pick[i]] > 1) { claim[pick[i]] = 1; pick[i] = -1; } }
+    var cnt = {};
+    for (i = 0; i < n; i++) { if (pick[i] >= 0) { claim[pick[i]] = 1; cnt[pick[i]] = (cnt[pick[i]] || 0) + 1; } }
+    function uord(j) { return (pick[j] >= 0 && cnt[pick[j]] === 1) ? ords[pick[j]] : NaN; }
+    function bound(k, d) { for (var j = k + d; j >= 0 && j < n; j += d) { var o = uord(j); if (!isNaN(o)) { return o; } } return NaN; }
+    var last = -Infinity, moved = true, rp = [];
+    for (i = 0; i < n; i++) { var u = uord(i); if (!isNaN(u)) { if (u < last) { moved = false; break; } last = u; } }
+    while (moved) {
+      moved = false;
+      for (i = 0; i < n; i++) {
+        if (pick[i] >= 0 || cands[i].length < 2) { continue; }
+        var lo = bound(i, -1), hi = bound(i, 1), keep = [], tie = false;
+        for (var c = 0; c < cands[i].length; c++) {
+          var r = cands[i][c], o = ords[r];
+          if (claim[r]) { continue; }
+          if (isNaN(o) ? (!isNaN(lo) || !isNaN(hi)) : (o === lo || o === hi)) { tie = true; continue; }
+          if ((isNaN(lo) || o > lo) && (isNaN(hi) || o < hi)) { keep.push(r); }
+        }
+        if (!tie && keep.length === 1) { pick[i] = keep[0]; claim[keep[0]] = 1; cnt[keep[0]] = 1; rp.push(i); moved = true; }
+      }
+    }
+    // Tutarlilik (inceleme 21.10): varsayim (artan order, bire bir) tutuyorsa eslenmemis her cok adayli ogenin son
+    // sinirlar icinde (esitler dahil) alinmamis bir adayi vardir. Yoksa varsayim bozuktur (sira degismis, bayat order):
+    // aralik eslemeleri geri alinir, bugunku guvenli davranis.
+    for (i = 0; i < n && rp.length; i++) {
+      if (pick[i] >= 0 || cands[i].length < 2) { continue; }
+      var lo2 = bound(i, -1), hi2 = bound(i, 1), can = false;
+      for (var c2 = 0; c2 < cands[i].length && !can; c2++) {
+        var o2 = ords[cands[i][c2]];
+        if (!claim[cands[i][c2]] && (isNaN(o2) || ((isNaN(lo2) || o2 >= lo2) && (isNaN(hi2) || o2 <= hi2)))) { can = true; }
+      }
+      if (!can) {
+        for (var b = 0; b < rp.length; b++) { delete claim[pick[rp[b]]]; delete cnt[pick[rp[b]]]; pick[rp[b]] = -1; }
+        rp = [];
+      }
+    }
+    for (i = 0; i < n; i++) {
+      if (pick[i] >= 0 || ex[i] || cands[i].length < 2) { continue; }
+      var ps = pos(i);
+      if (ps >= 0 && cands[i].indexOf(ps) >= 0 && !claim[ps]) { pick[i] = ps; claim[ps] = 1; }
+    }
+    return pick;
+  }
+  // Sira indeksi -> Bubble adi (bn, bellegin anahtari), os_workspace kaydi (recs) ve gosterilen ad (disp). Yalniz
+  // railFresh iken: tam ad esleme her zaman kazanir; kisaltilmis ad, tam eslesmenin adini tasimayan os_workspace
+  // adlarina on ektir ve gosterilen ad o tam addir. Birden cok aday (on ek ya da ayni adli surecler): rangePick (sira
+  // araligi, sonra on ekte bugunku konum kurali). Aralikla ayrilamayan ayni adli oge gercek surectir (Create degil) ama
+  // kimligi bilinmez (id '', kart eslenmez; tur adaylarda ortaksa o).
   function railMatch(s) {
     var total = Math.max(s.moreOpts.length, s.cells.length);
     var names = memo(S.names, s);
     var rs = railFresh(s) ? railStages() : [];
-    var known = {}, fulls = [], seenN = {};
-    for (var r = 0; r < rs.length; r++) { var rn = clean(rs[r].name); known[rn] = rs[r]; fulls.push(rn); }
-    var bn = [], recs = [], disp = [], pn = [];
+    var byName = Object.create(null), seenN = Object.create(null), fulls = [], ords = [];
+    for (var r = 0; r < rs.length; r++) { var rn = clean(rs[r].name); fulls.push(rn); ords.push(ordOf(rs[r])); (byName[rn] = byName[rn] || []).push(r); }
+    var bn = [], recs = [], disp = [], cands = [], ex = [];
     for (var i = 0; i < total; i++) {
       var name = names[i] || (s.moreOpts[i] ? s.moreOpts[i].name : (s.cells[i] ? s.cells[i].name : ''));
-      var rec = name ? (known[name] || null) : null;
-      bn.push(name); recs.push(rec); disp.push(name); pn.push(rec ? '' : name);
-      if (rec) { seenN[name] = 1; }
+      var e = (name && byName[name]) ? byName[name].slice() : [];
+      bn.push(name); recs.push(null); disp.push(name); cands.push(e); ex.push(e.length > 0);
+      if (e.length) { seenN[name] = 1; }
     }
     if (rs.length) {
-      var taken = fulls.map(function (n) { return !!seenN[n]; });
+      for (var k = 0; k < total; k++) {
+        var p = ex[k] ? '' : truncPrefix(bn[k]);
+        if (!p) { continue; }
+        for (var j = 0; j < fulls.length; j++) { if (!seenN[fulls[j]] && fulls[j].indexOf(p) === 0) { cands[k].push(j); } }
+      }
       // Konum yalniz iki liste ayni surecleri sayiyorsa anlamli (gercek oge sayisi = os_workspace surec sayisi); degilse belirsiz.
-      var pick = prefixPick(pn, fulls, taken, function (k, cands) {
+      var pick = rangePick(cands, ex, ords, function (x) {
         var n = 0, all = 0;
-        for (var j = 0; j < total; j++) { if (bn[j] && (recs[j] || cands[j].length)) { all++; if (j < k) { n++; } } }
+        for (var j2 = 0; j2 < total; j2++) { if (bn[j2] && cands[j2].length) { all++; if (j2 < x) { n++; } } }
         return all === rs.length ? n : -1;
       });
-      for (var q = 0; q < total; q++) { if (!recs[q] && pick[q] >= 0) { recs[q] = rs[pick[q]]; disp[q] = fulls[pick[q]]; } }
+      for (var q = 0; q < total; q++) {
+        if (pick[q] >= 0) { recs[q] = rs[pick[q]]; if (!ex[q]) { disp[q] = fulls[pick[q]]; } continue; }
+        if (!ex[q]) { continue; }
+        var tp = str(rs[cands[q][0]].tipi);
+        for (var t = 1; t < cands[q].length; t++) { if (str(rs[cands[q][t]].tipi) !== tp) { tp = ''; break; } }
+        recs[q] = { id: '', name: fulls[cands[q][0]], tipi: tp };
+      }
     }
     return { total: total, bn: bn, recs: recs, disp: disp, rail: rs.length > 0 };
   }
@@ -66812,9 +66882,18 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!c.stage_id) { return null; }
     var total = s ? Math.max(s.moreOpts.length, s.cells.length) : 0;
     var names = s ? memo(S.names, s) : {};
-    function idxOf(name) {
-      for (var i = 0; i < total; i++) { var nm = names[i] || (s.moreOpts[i] ? s.moreOpts[i].name : (s.cells[i] ? s.cells[i].name : '')); if (nm === name) { return i; } }
-      return -1;
+    // Ada gore konum (inceleme 21.10, sira araligi): baska bir kimlige cozulmus oge o surec degildir; ad birden cok
+    // ogede kalirsa belirsiz (-1), ilkini tahmin etmez.
+    function idxOf(name, sid) {
+      var hit = -1;
+      for (var i = 0; i < total; i++) {
+        var nm = names[i] || (s.moreOpts[i] ? s.moreOpts[i].name : (s.cells[i] ? s.cells[i].name : ''));
+        if (nm !== name) { continue; }
+        if (sid && m && m.recs[i] && str(m.recs[i].id) && str(m.recs[i].id) !== sid) { continue; }
+        if (hit >= 0) { return -1; }
+        hit = i;
+      }
+      return hit;
     }
     var m = s ? railMatch(s) : null;
     // Bellekteki ad ray cevabindan once (kisaltilmis) yazilmis olabilir: os_workspace eslemesi varsa onun adi.
@@ -66823,7 +66902,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     for (var r = 0; r < rs.length; r++) {
       if (str(rs[r].id) !== c.stage_id) { continue; }
       var n = clean(rs[r].name), ix = m ? m.recs.indexOf(rs[r]) : -1;
-      return { name: n, idx: ix >= 0 ? ix : idxOf(n) };
+      return { name: n, idx: ix >= 0 ? ix : idxOf(n, c.stage_id) };
     }
     if (s && s.cell >= 0) {
       var al = alignCells(s);
@@ -69653,9 +69732,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!s) { return null; }
     var name = '', cix = -1;
     if (s.cell >= 0 && s.cells[s.cell]) { name = s.cells[s.cell].name; cix = alignCells(s)[s.cell]; }
-    else if (s.more) { for (var i = 0; i < s.moreOpts.length; i++) { if (s.moreOpts[i].index === s.moreSel) { name = s.moreOpts[i].name; break; } } }
+    // More'un secili secenegi sira indeksidir (inceleme 21.10: ayni adli surecler adla ayrilmaz).
+    else if (s.more) { for (var i = 0; i < s.moreOpts.length; i++) { if (s.moreOpts[i].index === s.moreSel) { name = s.moreOpts[i].name; cix = i; break; } } }
     if (!name) { return ''; }
     var st = stageModel(s);
+    // Ayni adli surecler (canli bulgu 21.10, sira araligi): secili hucrenin hizalandigi konumdaki surec once.
+    if (cix >= 0) { for (var k0 = 0; k0 < st.length; k0++) { if (st[k0].idx === cix && cellIs(name, st[k0])) { return st[k0].id ? str(st[k0].id) : null; } } }
     for (var k = 0; k < st.length; k++) { if (st[k].bname === name && st[k].id) { return str(st[k].id); } }
     // Canli bulgu 21.10: More'un tam metni os_workspace tam adiyla; kisaltilmis secili hucre hizalandigi konumdaki surec.
     for (var k2 = 0; k2 < st.length; k2++) { if (st[k2].name === name && st[k2].id) { return str(st[k2].id); } }
@@ -70080,13 +70162,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
   function httpOrigin() { try { return /^https?:$/.test(String(W.location.protocol)); } catch (e) { return false; } }
   function cardsTid() { var t = gmStatus(); var tb = t && t.stats && t.stats.table; return tb ? str(tb.id) : ''; }
-  // Esleme: sutunun os_workspace id'si var, Create degil, adi tek (ayni adli iki surec eslenmez).
+  // Esleme: sutunun os_workspace id'si var ve Create degil. Kartlar _surec kimligiyle gruplanir: ayni adli baska surec
+  // engel degil (canli bulgu 21.10, sira araligi); iki sutun ayni id'ye cozulduyse ikisi de eslenmez.
   function cardsMap(st) {
-    var out = {}, seen = {}, dup = {}, seen2 = {};
-    var rs = railFresh() ? railStages() : [];
-    for (var r = 0; r < rs.length; r++) { var n = clean(rs[r].name); if (seen[n]) { dup[n] = 1; } seen[n] = 1; }
-    for (var k = 0; k < st.length; k++) { if (seen2[st[k].name]) { dup[st[k].name] = 1; } seen2[st[k].name] = 1; }
-    for (var j = 0; j < st.length; j++) { var x = st[j]; if (x.id && !x.create && !dup[x.name]) { out[j] = true; } }
+    var out = {}, seen = {};
+    for (var k = 0; k < st.length; k++) { var d = str(st[k].id); if (d) { seen[d] = (seen[d] || 0) + 1; } }
+    for (var j = 0; j < st.length; j++) { var x = st[j]; if (x.id && !x.create && seen[str(x.id)] === 1) { out[j] = true; } }
     return out;
   }
   function cardsDrawable() {
@@ -70174,14 +70255,16 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
   // Tavan: saatte en cok 2 * T.recCap kosu (12 yenileme = 24 WU, 0B); yeni yenileme bir cift kosuya yer ister.
   function cardsRoom() { return cardsCalls1h() + 2 <= 2 * T.recCap; }
+  // Sayac imzasinin anahtari: sira + ad (canli bulgu 21.10: ayni adli iki sutun birbirinin sayacini ezmesin).
+  function cntKey(x) { return x.idx + '|' + x.name; }
   // Bubble sayac imzasi: bilinen iki sayi farkliysa degisti; null -> sayi (tarama ogrenimi) degisim sayilmaz.
   function cntChanged(ent, st) {
     var ch = false;
     for (var i = 0; i < st.length; i++) {
       var x = st[i];
       if (x.count == null) { continue; }
-      var o = ent.cnt[x.name];
-      if (o == null) { ent.cnt[x.name] = x.count; continue; }
+      var o = ent.cnt[cntKey(x)];
+      if (o == null) { ent.cnt[cntKey(x)] = x.count; continue; }
       if (o !== x.count) { ch = true; }
     }
     return ch;
@@ -70276,7 +70359,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     for (var mk in maps) { if (Object.prototype.hasOwnProperty.call(maps, mk)) { idTo[st[mk].id] = 1; nMap++; } }
     var K = Math.min(T.perCol, Math.floor(500 / Math.max(1, nMap)));
     var cnt = {};
-    for (var c = 0; c < st.length; c++) { if (st[c].count != null) { cnt[st[c].name] = st[c].count; } }
+    for (var c = 0; c < st.length; c++) { if (st[c].count != null) { cnt[cntKey(st[c])] = st[c].count; } }
     var liveChg = gmLive();
     var live = function () { return seq === S.cards.seq; };
     C.ctrl = ctrl;
