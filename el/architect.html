@@ -48214,11 +48214,23 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
 }
 
 /* Icerik: pano ve rayin paneli hucrenin ustunden (serit artik orada degil). */
-/* Panel yalniz serit gercekten hucreden ciktiysa ust kenarda (kanca basarisizsa serit ortulmez). */
+/* Panel yalniz serit gercekten hucreden ciktiysa ust kenarda (kanca basarisizsa serit ortulmez).
+   'strip' bandi (Bubble basligi yok): ust kenar seridin yerini tutan bos dugumun alti (--octo-wsb-slot; yoksa 0). */
 html[data-octo-wsh="top"] #octo-rail-row > .octo-rail-cell:not(:has(> .octo-tabs)) > .octo-tabs-panel,
-html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs-panel { top: 0; }
+html[data-octo-wsh="bottom"] #octo-rail-row > .octo-rail-cell > .octo-tabs-panel { top: var(--octo-wsb-slot, 0px); }
 @supports not selector(:has(*)) {
-  html[data-octo-wsh="top"] #octo-rail-row > .octo-rail-cell > .octo-tabs-panel { top: 0; }
+  html[data-octo-wsh="top"] #octo-rail-row > .octo-rail-cell > .octo-tabs-panel { top: var(--octo-wsb-slot, 0px); }
+}
+/* Bos dugum (kabugun, tablonun kardesi): yalniz yukseklik (JS satir ici, olculen serit); icerik ve isaretci yok. */
+div.octo-wsb-slot[data-wsh-slot] {
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
 }
 html[data-octo-wsh] #octo-wsb-toast { top: calc(var(--octo-wsb-h, 64px) + 12px); }
 
@@ -66344,8 +66356,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     waiters: [], wheel: null, barWheel: null, gfSeen: false, blankAt: 0, findQ: '',
     lastErr: '', trace: [], covered: '', full: null,
     // os9c tek ust cubuk
-    wsh: false, appbar: 'top', hdrMode: '', hdrWhy: '', band: { h: 0, right: 0, at: 0, badAt: 0, pend: -1 }, fit: '', fitW: 0, fitSig: '', fitDropW: 0, fitOk: true, noFit: 0, noFitKey: '', gapAt: 0, resizeDue: false, tileSig: '',
-    zl: null, gap: null, zr: null, apps: null, thumb: null, stripObs: null, stripObsRef: null, stripT: null, stripAl: '',
+    wsh: false, appbar: 'top', hdrMode: '', hdrWhy: '', band: { h: 0, right: 0, at: 0, badAt: 0, pend: -1, src: '', aside: 0 }, fit: '', fitW: 0, fitSig: '', fitDropW: 0, fitOk: true, noFit: 0, noFitKey: '', gapAt: 0, resizeDue: false, tileSig: '',
+    zl: null, gap: null, zr: null, apps: null, thumb: null, stripObs: null, stripObsRef: null, stripT: null, stripAl: '', slot: null, slotH: 0,
     tip: null, tipFor: null, tipGone: -1e9
   };
 
@@ -67339,7 +67351,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     // Hicbir seviye sigmadi: bu genislikte pill (24 px genisleyince yeniden denenir; salinma yok).
     if (!fitHdr(v.g, v.mb)) {
       // Yalniz yeni ret bir kez boyatir (tutma surerken hdrSync kipi birakamaz; her karede boyama olmasin).
-      var nf = vwNow() - S.band.right, nk = fitKey();
+      var nf = vwNow() - rightRes(S.band.src, S.band.h), nk = fitKey();
       if (nf !== S.noFit || nk !== S.noFitKey) { S.noFit = nf; S.noFitKey = nk; S.sig = ''; paintSoon(); }
     }
     labelTiles();
@@ -67391,13 +67403,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function vwNow() { return D.documentElement.clientWidth || W.innerWidth || 1280; }
   // Kip karari: istek + gecerli bant + zil yeri + sigma. Degisirse uygulanir; TEK resize boyamanin sonunda (SPEC 10).
   function hdrSync() {
-    var want = hdrWant(), h = 0, why = '';
+    var want = hdrWant(), h = 0, why = '', src = 'band';
     if (!want) { why = !S.wsh ? 'flag' : (W.__OCTO_WSH_OFF === true ? 'off' : 'chrome'); }
     else if (S.hdrMode && wseHold()) { return; }
     else if (S.hdrMode && railGap() && gapHold()) { return; }
     else {
-      h = bandTop();
-      if (h < 56 || h > 120) {
+      // 'strip' bandinda ray yeniden kurulduysa bos dugum once yeni hucreye (olcum onun alt kenarini okur).
+      if (S.hdrMode && slotSync(false)) { S.resizeDue = true; }
+      var be = bandEff();
+      h = be.h;
+      src = be.src;
+      if (!be.ok) {
         // Gecici olabilir (Bubble yeniden ciziyor): acik kip T.dropGrace boyunca eski bantla kalir.
         if (S.hdrMode) {
           if (!S.band.badAt) { S.band.badAt = now(); later('bandBad', function () { S.sig = ''; paintSoon(); }, T.dropGrace + 20); }
@@ -67407,8 +67423,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         why = 'band';
       } else {
         S.band.badAt = 0;
+        if (src === 'strip') { S.slotH = be.sh; }
         if (!S.hdrMode || !S.band.at) { bandScan(h); }
-        var room = vwNow() - S.band.right;
+        var room = vwNow() - rightRes(src, h);
         // Giriste zil olculemediyse (Bubble penceresi acik) kip acilmaz: cubuk zili ortmesin.
         if (!S.hdrMode && !S.band.at) { want = false; why = 'busy'; }
         else if (room < 640) { want = false; why = 'bell'; }
@@ -67418,13 +67435,19 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     var mode = want ? ((S.appbar === 'bottom' && railCell()) ? 'bottom' : 'top') : '';
     S.hdrWhy = why;
-    if (mode !== S.hdrMode) { if (hdrSet(mode, h)) { S.resizeDue = true; paintSoon(); } return; }
-    if (mode && h !== S.band.h) { bandH(h); bandScan(h); }
+    if (mode !== S.hdrMode) { if (hdrSet(mode, h, src)) { S.resizeDue = true; paintSoon(); } return; }
+    if (mode && (h !== S.band.h || src !== S.band.src)) {
+      // Kaynak degisti (Bubble basligi sonradan geldi ya da gitti): bos dugum eklenir / kalkar, tablo yeniden olcer.
+      if (src !== S.band.src) { S.band.src = src; if (slotSync(false)) { S.resizeDue = true; } if (S.board) { S.board.style.top = boardTop() + 'px'; } }
+      bandH(h);
+      bandScan(h);
+    }
   }
   // Kipi uygular; resize gerekiyorsa true (cagiran atar: bosaltmada chromeOff ile birlikte tek olay).
-  function hdrSet(mode, h) {
+  function hdrSet(mode, h, src) {
     var prev = S.hdrMode;
     S.hdrMode = mode;
+    S.band.src = mode ? (src || 'band') : '';
     var b = S.bar;
     if (mode) {
       root().setAttribute(A_WSH, mode);
@@ -67432,14 +67455,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (b) { b.setAttribute('data-hdr', '1'); }
     }
     var moved = false;
+    // 'strip' bandi: bos dugum serit ayrilmadan once yerine girer, kip kalkarken serit donmeden once cikar (tablo kipirdamaz).
+    var slotMoved = slotSync(!!mode);
     if (mode === 'top') { zonesFix(); moved = stripSync(); } else { moved = stripSync(); if (mode) { zonesFix(); } }
+    if (mode) { slotMoved = slotSync(false) || slotMoved; }
     if (!mode) { hdrClean(); }
     S.fit = '';
     S.fitSig = '';
     if (S.board) { S.board.style.top = boardTop() + 'px'; }
     S.sig = '';
-    trace('wsh:' + (mode || 'off') + (S.hdrWhy ? ':' + S.hdrWhy : ''));
-    return moved || prev === 'bottom' || mode === 'bottom';
+    trace('wsh:' + (mode || 'off') + (S.hdrWhy ? ':' + S.hdrWhy : '') + (S.band.src === 'strip' ? ':strip' : ''));
+    return moved || slotMoved || prev === 'bottom' || mode === 'bottom';
   }
   function hdrClean() {
     var r = root();
@@ -67448,6 +67474,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.band.h = 0;
     S.band.at = 0;
     S.band.badAt = 0;
+    S.band.src = '';
+    S.band.aside = 0;
+    S.slotH = 0;
     var b = S.bar;
     if (b) {
       b.removeAttribute('data-hdr');
@@ -67466,14 +67495,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!S.mounted) { return; }
     if (!S.hdrMode) {
       if (!hdrWant()) { return; }
-      var h0 = bandTop();
-      if (h0 < 56 || h0 > 120) { return; }
+      var be0 = bandEff();
+      if (!be0.ok) { return; }
+      var h0 = be0.h;
       // Istenip reddedilmisti ya da kapatilmisti: bant duzeldi, kill switch kalkti, yer acildi ya da zil yeri degisti.
       // Zil olculemiyordu (Bubble penceresi, kaydirma): yalniz olcum basarili olunca boyama (her saniye tam boyama olmasin).
       if (S.hdrWhy === 'busy') { bandScan(h0); if (S.band.at) { S.sig = ''; paintSoon(); } return; }
       if (S.hdrWhy !== 'bell' && S.hdrWhy !== 'fit') { S.sig = ''; paintSoon(); return; }
       if (now() - S.band.at > T.bandEvery && bandScan(h0)) { S.sig = ''; paintSoon(); return; }
-      if (S.hdrWhy === 'fit' && (vwNow() - S.band.right >= S.noFit + 24 || fitKey() !== S.noFitKey)) { S.sig = ''; paintSoon(); }
+      // 'strip': rayin sag sutunu daraldi (Collapse) ya da genisledi; zil ayirmasi degismese de yer degisir.
+      if (S.hdrWhy === 'bell' && be0.src === 'strip' && vwNow() - rightRes('strip', h0) >= 640) { S.sig = ''; paintSoon(); return; }
+      if (S.hdrWhy === 'fit' && (vwNow() - rightRes(be0.src, h0) >= S.noFit + 24 || fitKey() !== S.noFitKey)) { S.sig = ''; paintSoon(); }
       return;
     }
     // Kill switch ya da bayrak kalkti: boyama kipi birakir.
@@ -67481,13 +67513,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (wseHold()) { return; }
     if (railGap()) { if (!gapHold()) { S.sig = ''; paintSoon(); } return; }
     S.gapAt = 0;
+    // 'strip' bandi: ray yeniden kurulduysa (yeni hucre) bos dugum yeniden yerine; tablo yeniden olcer (tek resize).
+    if (slotSync(false)) { S.resizeDue = true; S.sig = ''; paintSoon(); }
     // Tutma sirasinda sigmadiysa (boyama durmustu): tutma bitti, karar boyamada.
     if (S.fitOk === false) { S.sig = ''; paintSoon(); return; }
-    if (bandTop() !== S.band.h) { S.sig = ''; paintSoon(); return; }
+    var be1 = bandEff();
+    if (be1.h !== S.band.h || be1.src !== S.band.src) { S.sig = ''; paintSoon(); return; }
+    if (S.band.src === 'strip' && asideRes(S.band.h) !== S.band.aside) { S.sig = ''; paintSoon(); return; }
     if (now() - S.band.at > T.bandEvery && bandScan(S.band.h)) { S.sig = ''; paintSoon(); }
     // Ray yeniden kuruldu (yeni serit): ev sahibi yeniden uygulanir, gozlemci yeni seride.
     var tb = stripEl();
-    if (tb && (tb !== S.stripObsRef || (S.hdrMode === 'top' && S.apps && tb.parentNode !== S.apps))) { if (stripSync()) { S.resizeDue = true; } S.sig = ''; paintSoon(); }
+    if (tb && (tb !== S.stripObsRef || (S.hdrMode === 'top' && S.apps && tb.parentNode !== S.apps))) { if (stripSync()) { S.resizeDue = true; } if (slotSync(false)) { S.resizeDue = true; } S.sig = ''; paintSoon(); }
   }
   // Ray boslugu en cok T.dropGrace tutulur (ray yeniden kuramazsa kip bant suresiyle duser).
   function gapHold() {
@@ -67509,21 +67545,109 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   // ------------------------------------------------------------------ bant
   // H = rayin akistaki ilk dugumunun belge ust kenari (Varyant A satir; B serit ya da sarmalayici). Cubuk ust
   // kipte position:absolute (sayfa kayarsa bandla birlikte kayar, tablonun ustune binmez).
-  function bandTop() {
+  function bandNode() {
     var M = railM();
-    if (!M) { return 0; }
-    var n = null;
-    if (M.variant === 'a' && M.row && isConn(M.row)) { n = M.row; }
-    else if (M.wrapper && isConn(M.wrapper)) {
-      var tb = M.parts ? M.parts.tabs : null;
-      n = (tb && isConn(tb) && tb.parentNode === M.wrapper.parentNode) ? tb : M.wrapper;
+    if (!M) { return null; }
+    if (M.variant === 'a' && M.row && isConn(M.row)) { return M.row; }
+    if (M.wrapper && isConn(M.wrapper)) {
+      var tb = M.parts ? M.parts.tabs : null, p = M.wrapper.parentNode;
+      if (tb && isConn(tb) && tb.parentNode === p) { return tb; }
+      // 'strip' bandinda seridin yerini tutan bos dugum sarmalayicinin onunde (Varyant B).
+      return (S.slot && S.slot.parentNode === p) ? S.slot : M.wrapper;
     }
-    if (!n) { return 0; }
+    return null;
+  }
+  function docTop(n) {
     var r = null;
     try { r = n.getBoundingClientRect(); } catch (e) { r = null; }
-    if (!r) { return 0; }
+    if (!r) { return null; }
     var sy = W.pageYOffset || (D.documentElement && D.documentElement.scrollTop) || 0;
-    return Math.round(r.top + sy);
+    return { top: Math.round(r.top + sy), bottom: Math.round(r.bottom + sy), h: Math.round(r.height) };
+  }
+  function bandTop() {
+    var n = bandNode();
+    var r = n ? docTop(n) : null;
+    return r ? r.top : 0;
+  }
+  // OCTO_WSH_SPEC 3 (canli bulgu 21.10, version-test): sayfada Bubble basligi yoksa (H < 24: ustte yalniz kenar
+  // boslugu) ve rayin seridi icerigin en ustundeyse bant seridin yeridir: H = seridin alt kenari (44..120). Serit
+  // cubuga ya da alt bara gidince yerini kabugun bos dugumu (.octo-wsb-slot) tutar; olcum o dugumden devam eder.
+  var SLOT_TOP = 24;
+  function slotTop(h) {
+    var M = railM();
+    if (!M) { return null; }
+    var tb = (M.parts && M.parts.tabs && isConn(M.parts.tabs)) ? M.parts.tabs : null, n = null;
+    if (M.variant === 'a') {
+      if (!M.cell || !isConn(M.cell)) { return null; }
+      var f = M.cell.firstElementChild;
+      n = (f && (f === tb || f === S.slot)) ? f : null;
+    } else {
+      var bn = bandNode();
+      n = (bn && (bn === tb || bn === S.slot)) ? bn : null;
+    }
+    var r = n ? docTop(n) : null;
+    if (!r || r.h <= 0 || Math.abs(r.top - h) > 2) { return null; }
+    return r;
+  }
+  // {h, src, ok, sh}: src 'band' (Bubble basligi, 56..120) ya da 'strip' (baslik yok; sh = seridin / bos dugumun yuksekligi).
+  function bandEff() {
+    var h = bandTop();
+    if (h >= 56 && h <= 120) { return { h: h, src: 'band', ok: true, sh: 0 }; }
+    if (h >= 0 && h < SLOT_TOP) {
+      var s = slotTop(h);
+      if (s && s.bottom >= 44 && s.bottom <= 120) { return { h: s.bottom, src: 'strip', ok: true, sh: s.h }; }
+    }
+    return { h: h, src: 'band', ok: false, sh: 0 };
+  }
+  // 'strip' bandi: rayin sag sutunu (satirin kendi dugumu; bandWalk onu atlar) bandin icinden basliyorsa cubuk onun
+  // 8 px solunda biter. Sag kenardan ayirma (px); sutun yoksa ya da bandin altindan basliyorsa 0.
+  function asideRes(h) {
+    var M = railM(), a = M ? M.aside : null;
+    if (!a || !isConn(a)) { return 0; }
+    var r = null;
+    try { r = a.getBoundingClientRect(); } catch (e) { r = null; }
+    if (!r || r.width < 1 || r.height < 1) { return 0; }
+    var sy = W.pageYOffset || (D.documentElement && D.documentElement.scrollTop) || 0;
+    if (Math.round(r.top + sy) >= h) { return 0; }
+    return Math.max(0, Math.round(vwNow() - r.left + 8));
+  }
+  // Cubugun sag ayirmasi: zil; 'strip' bandinda zil ile rayin sag sutunundan buyugu (640 px kurali kalan genislige).
+  function rightRes(src, h) { return src === 'strip' ? Math.max(S.band.right, asideRes(h)) : S.band.right; }
+  // Bos dugum: 'strip' bandinda serit yerinden ayrildiginda (ust kip: kapsulde; alt kip: hucrenin dibinde) seridin
+  // eski yerinde, olculen yukseklikte. Satira, hucreye, tabloya stil yazilmaz (yeni dugum; pano gibi). pre: serit
+  // henuz hucrede ama birazdan ayrilacak (kip acilirken dugum seridin onune girer, tablo kipirdamaz). DOM degistiyse true.
+  function slotSync(pre) {
+    var M = railM(), p = null, before = null;
+    if (S.hdrMode && S.band.src === 'strip' && S.slotH > 0 && M && M.mounted && !M.pending && M.wrapper && isConn(M.wrapper)) {
+      var w = M.wrapper, tb = stripEl();
+      var host = (M.variant === 'a') ? ((M.cell && w.parentNode === M.cell) ? M.cell : null) : w.parentNode;
+      var inHost = !!(host && tb && tb.parentNode === host);
+      var out = (S.hdrMode === 'bottom') ? inHost : (!!(tb && S.apps && tb.parentNode === S.apps) || (!!pre && inHost));
+      if (host && out) { p = host; before = inHost ? tb : w; }
+    }
+    var r = root(), ch = false;
+    if (!p) {
+      if (S.slot && S.slot.parentNode) { rm(S.slot); ch = true; }
+      try { if (r.style.getPropertyValue('--octo-wsb-slot')) { r.style.removeProperty('--octo-wsb-slot'); if (!r.getAttribute('style')) { r.removeAttribute('style'); } } } catch (e) { /* yut */ }
+      return ch;
+    }
+    if (!S.slot) {
+      S.slot = el('div', 'octo-wsb-slot');
+      S.slot.setAttribute('aria-hidden', 'true');
+      S.slot.setAttribute('data-wsh-slot', '1');
+    }
+    var hs = S.slotH + 'px';
+    if (S.slot.style.height !== hs) { S.slot.style.height = hs; ch = true; }
+    if (S.slot.parentNode !== p || S.slot.nextSibling !== before) { p.insertBefore(S.slot, before); ch = true; }
+    // Rayin paneli bos dugumun altindan (CSS degiskeni; yalniz degisince).
+    try { if (r.style.getPropertyValue('--octo-wsb-slot') !== hs) { r.style.setProperty('--octo-wsb-slot', hs); } } catch (e2) { /* yut */ }
+    return ch;
+  }
+  // Gozlemciden (mikro gorev): ray geri geldiyse bos dugum ayni karede yerine; tablo yeniden olcer (tek resize).
+  // Ray bosluktayken ya da wsedit tutarken dokunulmaz (tik ve hdrSync de tutar).
+  function slotFast() {
+    if (railGap() || wseHold()) { return; }
+    if (slotSync(false)) { S.resizeDue = true; S.sig = ''; paintSoon(); }
   }
   function bandH(h) {
     h = Math.round(h);
@@ -67633,10 +67757,15 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function placeHdr() {
     var b = S.bar;
     if (!b) { return; }
-    var right = Math.max(0, Math.min(S.band.right, vwNow() - 640));
+    // 'strip' bandi: rayin sag sutunu da ayrilir; alt cizgi zilin altina uzanir ama sutunun soluna kadar.
+    var as = (S.band.src === 'strip') ? asideRes(S.band.h) : 0;
+    S.band.aside = as;
+    var right = Math.max(0, Math.min(Math.max(S.band.right, as), vwNow() - 640));
     var hs = S.band.h + 'px', rs = right + 'px';
+    var hr = (as ? Math.max(0, right - (as - 8)) : right) + 'px';
     if (b.style.height !== hs) { b.style.height = hs; }
-    if (b.style.right !== rs) { b.style.right = rs; b.style.setProperty('--octo-wsb-r', rs); }
+    if (b.style.right !== rs) { b.style.right = rs; }
+    if (b.style.getPropertyValue('--octo-wsb-r') !== hr) { b.style.setProperty('--octo-wsb-r', hr); }
     if (b.style.left !== '0px') { b.style.left = '0px'; }
     if (b.style.marginLeft) { b.style.marginLeft = ''; }
   }
@@ -68444,8 +68573,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function boardTop() {
     // os9c: alt kipte serit tablonun altinda, ust kipte cubukta: pano hucrenin ustunden baslar. Kanca seridi
     // tasiyamadiysa (serit hala hucrede) eski olcum: serit ortulmez.
-    if (S.hdrMode === 'bottom') { return 0; }
     var cell = railCell();
+    // 'strip' bandi: bos dugum seridin yerinde (cubugun altinda); pano onun altindan baslar (ortmez, bosluk birakmaz).
+    if (S.slot && cell && S.slot.parentNode === cell) { return Math.max(0, Math.round(S.slot.offsetTop + S.slot.offsetHeight)); }
+    if (S.hdrMode === 'bottom') { return 0; }
     var st = stripEl();
     if (st && st.parentNode !== cell) { st = null; }
     if (!st || !isConn(st)) { return S.hdrMode ? 0 : 44; }
@@ -68986,6 +69117,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (S.scrim && S.scrim.contains(n)) { return true; }
       if (S.live && S.live.contains(n)) { return true; }
       if (S.tip && S.tip.contains(n)) { return true; }
+      if (S.slot && S.slot.contains(n)) { return true; }
       // WSEDIT H5: modulun dugumleri de kabugun (gozlemci ve rayin ownNode'u saymaz).
       var wse = wsEdit();
       if (wse && wse.own(n)) { return true; }
@@ -69033,6 +69165,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     return false;
   }
   function onMutate(recs) {
+    // 'strip' bandi: ray yeniden kurulunca bos dugum gozlemcide (boyamadan once) yeni hucreye; tik beklenmez.
+    if (S.hdrMode && S.band.src === 'strip') { slotFast(); }
     if (S.moTimer) { return; }
     if (recs && recs.length) {
       var w = wrapperEl();
@@ -69121,7 +69255,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.counts = {}; S.names = {}; S.memoSig = {}; S.scannedAt = {}; S.noProc = {}; S.sheetSig = ''; S.sig = ''; S.snap = null; S.cur = null; S.full = null;
     S.view = null; S.page = 0; S.chromeErr = ''; S.reopenTries = 0; S.dropAt = 0;
     S.resizeDue = false; S.noFitKey = ''; S.gapAt = 0;
-    S.noFit = 0; S.fitSig = ''; S.fit = ''; S.fitDropW = 0; S.band.right = 0; S.band.pend = -1; S.band.at = 0;
+    S.noFit = 0; S.fitSig = ''; S.fit = ''; S.fitDropW = 0; S.band.right = 0; S.band.pend = -1; S.band.at = 0; S.band.src = ''; S.band.aside = 0;
     cardsDrop(true);
     return true;
   }
@@ -69182,6 +69316,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.gapAt = 0;
     if (S.stripObs) { try { S.stripObs.disconnect(); } catch (e0) { /* yut */ } S.stripObs = null; S.stripObsRef = null; }
     rm(S.tip); S.tip = null; S.tipFor = null;
+    rm(S.slot); S.slot = null; S.slotH = 0;
     dropWaiters();
     abortScan();
     detachBoard();
@@ -69357,6 +69492,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       gutter: g, ctx: ctx().key ? 'set' : '', view: S.mounted ? viewKind() : '', last: S.lastErr, ticks: S.ticks || 0, trace: S.trace.slice(-16),
       wsh: {
         want: S.wsh, on: !!S.hdrMode, mode: S.hdrMode, why: S.hdrWhy, appbar: S.appbar, h: S.band.h, right: S.band.right, fit: S.fit,
+        src: S.hdrMode ? S.band.src : bandEff().src, slot: !!(S.slot && isConn(S.slot)), aside: S.band.aside,
         adopted: !!(stripEl() && S.apps && stripEl().parentNode === S.apps), covered: S.hdrMode ? bandCovered() : []
       }
     };
