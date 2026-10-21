@@ -15,8 +15,7 @@
   - One config object at the top of the script: window.AITHIA_PRICING (env, Paddle client-side keys per environment,
     price ids per environment, maxMailboxes, successPath, fromSlug). A Bubble page header may define
     window.AITHIA_PRICING before this element mounts; its fields override the defaults, so ids change without a
-    redeploy. prices is { live: {...}, sandbox: {...} }; the older flat { focus: {...}, ... } shape is still read and
-    applies to both environments. env is sandbox under /version-test; ?paddle=sandbox counts only off gaiasphere.io,
+    redeploy (shapes: AITHIA_PRICING_PAGE.md section 2). env is sandbox under /version-test; ?paddle=sandbox counts only off gaiasphere.io,
     under /version-test, or with the test flag (the live host ignores it).
   - Amounts are never typed into the markup. They come from Paddle.PricePreview at runtime (localized by Paddle) and
     are cached per plan, period and quantity. A failed preview is remembered per key until Try again, so a bad id is
@@ -460,10 +459,12 @@
     return m?m[1].toLowerCase():'';
   }
   function emptyIds(){return {focus:{month:'',year:''},compose:{month:'',year:''},coordinate:{month:'',year:''}};}
+  /* 21.10 Paddle sandbox ids (public), gaiasphere.io only */
+  var q='pri_01m5f8',SBX=/(^|\.)gaiasphere\.io$/i.test(location.hostname||'')?{t:'test_548fcd4e885df13713774879e65',p:{focus:{month:q+'dza2jmdr6fbjjs138z9d',year:q+'dzfw8jjse1y8r6xw9wb1'},compose:{month:q+'dzwc8dcf30btjmv3nww9',year:q+'e028te9nvyy44yvsnnpg'},coordinate:{month:q+'e0ev6w2dg3v5axja0yjd',year:q+'e0mf8nrqj7krvrbag9pv'}}}:null;
   var DEFAULTS={
     env:autoEnv(),
-    tokens:{live:'',sandbox:''},
-    prices:{live:emptyIds(),sandbox:emptyIds()},
+    tokens:{live:'',sandbox:SBX?SBX.t:''},
+    prices:{live:emptyIds(),sandbox:SBX?SBX.p:emptyIds()},
     maxMailboxes:1,
     successPath:'/app',
     fromSlug:slugFromUrl()
