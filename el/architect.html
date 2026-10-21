@@ -30208,23 +30208,33 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (ch && /^[A-Za-z0-9._-]{1,40}$/.test(ch) && ch !== 'main') q += '&gxel=' + encodeURIComponent(ch);
       return 'https://gaiasphere.io' + (vt ? '/version-test' : '') + '/aithia' + q;
     }
-    // os_mail_status -> 'ok' (paket var) | 'required' | 'open' (sunucu AITHIA'yi bilmiyor / kopru yok: duvar acik)
-    function _gflPayAsk(fresh){
+    // os_mail_status -> 'ok' (paket var) | 'required' | 'open' (bu sunucuda AITHIA yok: duvar acik) | 'retry'
+    // 21.10 (PAY-CLOSED): the wall stays open ONLY when the server says it has no AITHIA (the live server today answers
+    // unknown_action, a disabled module unavailable). A timeout or any other failure is 'retry': the gate asks once more
+    // with a longer wait (a sleeping free Render instance wakes in ~25 s), then shows "Try again"; nothing is committed.
+    // Before this a sleeping dev server let a setup through without a package (21.10, 15:32 UTC).
+    var _GFL_PAY_ABSENT = /^(unknown_action|unavailable|not_enabled|disabled)$/;
+    function _gflPayAsk(fresh, ms){
+      var wait = Math.max(5000, Number(ms) || 20000);
       return new Promise(function(resolve){
         var done = false;
         function fin(r){ if (done) return; done = true; resolve(r); }
+        setTimeout(function(){ fin({ v: 'retry', plan: '', why: 'no_answer' }); }, wait + 3000);   // the bridge never called back
         try {
           window._gadTrigRequest('aithia_setup_status', fresh ? { fresh: true } : {}, function(res){
             var d = (res && res.data && typeof res.data === 'object') ? res.data : (res || {});
             var st = String((res && res.status) || d.status || '').toUpperCase();
             var code = String(d.error_code || (res && res.error_code) || '');
-            if (st !== 'SUCCESS' || code) { fin({ v: 'open', plan: '', why: code || st || 'no_status' }); return; }
+            if (st !== 'SUCCESS' || code) {
+              if (_GFL_PAY_ABSENT.test(code)) { fin({ v: 'open', plan: '', why: code }); return; }
+              fin({ v: 'retry', plan: '', why: code || ((res && res.timeout) ? 'timeout' : '') || st || 'no_status' }); return;
+            }
             var pk = d.plan && d.plan.package ? String(d.plan.package) : '';
             if (pk) { fin({ v: 'ok', plan: pk }); return; }
             if (d.state === 'plan_required') { fin({ v: 'required', plan: '', billing: (d.billing && d.billing.sirket) ? d.billing : null }); return; }
-            fin({ v: 'open', plan: '', why: 'no_state' });
-          }, 20000);
-        } catch(e){ fin({ v: 'open', plan: '', why: 'send_failed' }); }
+            fin({ v: 'retry', plan: '', why: 'no_state' });
+          }, wait);
+        } catch(e){ fin({ v: 'retry', plan: '', why: 'send_failed' }); }
       });
     }
     function _gflPayStopWatch(){
@@ -30273,11 +30283,24 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (s.pay.state === 'ok') return false;
       if (s.pay.state === 'checking') return true;
       if (s.pay.state === 'required') { _gflPayRecheck(s, 'button'); return true; }
-      s.pay.state = 'checking'; s.pay.resume = which || 'go';
+      // 'error' (PAY-CLOSED): the person pressed Try again, the check runs from the start
+      s.pay.state = 'checking'; s.pay.resume = which || 'go'; s.pay.waking = false;
       _gadFlagshipPrimaryLabel();
       _gflPayAsk(false).then(function(r){
+        if (r.v !== 'retry' || _gadFlagshipSession !== s) return r;
+        _gflPayLog('check failed (' + r.why + '), asking once more with a longer wait');
+        s.pay.waking = true; _gadFlagshipPrimaryLabel();
+        return _gflPayAsk(true, 45000);
+      }).then(function(r){
         if (_gadFlagshipSession !== s) return;
+        s.pay.waking = false;
         _gflPayLog('check ->', r.v, r.plan || r.why || '', '| slug', ctx.slug);
+        if (r.v === 'retry') {
+          s.pay.state = 'error'; s.pay.why = r.why;
+          try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_check_failed', { slug: ctx.slug, why: String(r.why || '') }); } catch(e){}
+          _gadFlagshipPrimaryLabel();
+          return;
+        }
         if (r.v === 'required') {
           s.pay.state = 'required'; s.pay.billing = r.billing || null;
           try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_shown', { slug: ctx.slug }); } catch(e){}
@@ -30300,14 +30323,20 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (st === 'ok' && !s.pay.justPaid) st = '';
       if (go && st !== 'required' && go.getAttribute('data-act') === 'aithia-pay') go.removeAttribute('data-act');
       if (go && st !== 'checking') go.removeAttribute('aria-busy');
-      if (st !== 'checking' && st !== 'required' && st !== 'ok') { el.hidden = true; el.textContent = ''; el.className = 'gfl-pay'; return; }
+      if (st !== 'checking' && st !== 'required' && st !== 'ok' && st !== 'error') { el.hidden = true; el.textContent = ''; el.className = 'gfl-pay'; return; }
       el.hidden = false; el.textContent = ''; el.className = 'gfl-pay' + (st === 'ok' ? ' is-ok' : '');
       var t = document.createElement('p'); t.className = 'gfl-pay-t';
       var d = document.createElement('p'); d.className = 'gfl-pay-d';
       el.appendChild(t); el.appendChild(d);
+      if (st === 'error') {   // PAY-CLOSED: the check failed twice; nothing was started
+        t.textContent = 'We could not check your AITHIA package.';
+        d.textContent = 'Nothing was started. Try again in a moment.';
+        if (go) { go.textContent = 'Try again'; go.disabled = false; }
+        return;
+      }
       if (st === 'checking') {
         t.textContent = 'Checking your AITHIA package...';
-        d.textContent = 'This takes a few seconds.';
+        d.textContent = s.pay.waking ? 'Still checking. This can take up to a minute.' : 'This takes a few seconds.';
         if (go) { go.textContent = 'Checking...'; go.disabled = true; go.setAttribute('aria-busy', 'true'); }
         return;
       }
