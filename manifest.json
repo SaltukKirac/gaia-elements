@@ -1,16 +1,16 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "dev",
-    "rev":  55,
-    "updated":  "2026-10-21T12:53:56Z",
+    "rev":  56,
+    "updated":  "2026-10-21T13:00:06Z",
     "elements":  {
                      "aithia-pricing":  {
-                                            "commit":  "f1d4f376bf90e49f1d2aaa0a6ca2b6748356e728",
+                                            "commit":  "606dd8ab9eb67a257ca58ad740a4720255313291",
                                             "path":  "el/aithia-pricing.html",
-                                            "blob":  "62f5671aec757ba75da9827f075278ed0af93358",
-                                            "bytes":  61076,
+                                            "blob":  "730f84b45e040b31d5fee47f521f6c18d308ab62",
+                                            "bytes":  61404,
                                             "title":  "AITHIA pricing page (public, /aithia)",
-                                            "updated":  "2026-10-21T12:05:34Z"
+                                            "updated":  "2026-10-21T13:00:06Z"
                                         },
                      "architect":  {
                                        "commit":  "05bb59441134e871c379cbe2e9c2a7e8328d67c7",
