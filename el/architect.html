@@ -66510,23 +66510,30 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (typeof W.__octoWsQuery === 'string') { return W.__octoWsQuery; }
     try { return String((W.location && W.location.search) || ''); } catch (e) { return ''; }
   }
-  // ?ws=1|on kipi sekme oturumu boyunca acar (Bubble ChangePage sorguyu dusurur), ?ws=0|off kapatir.
+  // Kurucu 22.10 (kriz): Bubble sol menuyu ve alt sureç barini gizledi; yeni gorunum HERKESE varsayilan.
+  // ?ws=0|off sekme oturumu boyunca vazgecer (octo_ws '0'), ?ws=1|on vazgecmeyi kaldirir. Harness eski
+  // 'bayrak yoksa kapali' davranisini window.__octoWsDefaultOff = true ile ister.
   function readFlag() {
     var m = /[?&]ws=(1|on|0|off)(?=&|#|$)/i.exec(wsQuery());
     if (m) {
       var v = m[1].toLowerCase();
-      if (v === '1' || v === 'on') { ssSet(FLAG_KEY, '1'); } else { ssDel(FLAG_KEY); }
+      ssSet(FLAG_KEY, (v === '1' || v === 'on') ? '1' : '0');
     }
-    return ssGet(FLAG_KEY) === '1';
+    var cur = ssGet(FLAG_KEY);
+    if (cur === '1') { return true; }
+    if (cur === '0') { return false; }
+    return W.__octoWsDefaultOff !== true;
   }
-  // os9c: ?wsh=1|0 ve ?appbar=bottom|top (alt bar tek ust cubugu da acar); sekme oturumu boyunca.
+  // os9c: tek ust cubuk ?ws=1 kipinin varsayilani (kurucu 22.10). ?wsh=0|off sekme oturumu boyunca vazgecer
+  // (octo_wsh '0', pill), ?wsh=1|on vazgecmeyi kaldirir; ?appbar=bottom|top (alt bar tek ust cubugu da acar).
   function readSub() {
     var q = wsQuery();
     var m = /[?&]wsh=(1|on|0|off)(?=&|#|$)/i.exec(q);
-    if (m) { if (/^(1|on)$/i.test(m[1])) { ssSet(WSH_KEY, '1'); } else { ssDel(WSH_KEY); ssDel(APPBAR_KEY); } }
+    var off = ssGet(WSH_KEY) === '0';
+    if (m) { off = !/^(1|on)$/i.test(m[1]); ssSet(WSH_KEY, off ? '0' : '1'); if (off) { ssDel(APPBAR_KEY); } }
     var a = /[?&]appbar=(bottom|top|0|off)(?=&|#|$)/i.exec(q);
-    if (a) { if (/^bottom$/i.test(a[1])) { ssSet(APPBAR_KEY, 'bottom'); ssSet(WSH_KEY, '1'); } else { ssDel(APPBAR_KEY); } }
-    S.wsh = ssGet(WSH_KEY) === '1';
+    if (a) { if (/^bottom$/i.test(a[1])) { ssSet(APPBAR_KEY, 'bottom'); ssSet(WSH_KEY, '1'); off = false; } else { ssDel(APPBAR_KEY); } }
+    S.wsh = !off;
     S.appbar = ssGet(APPBAR_KEY) === 'bottom' ? 'bottom' : 'top';
   }
 
@@ -67464,7 +67471,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     b.style.marginLeft = (-Math.round(w / 2)) + 'px';
   }
   // ======================================================= tek ust cubuk (os9c)
-  // OCTO_WSH_SPEC. ?wsh=1 (ya da ?appbar=bottom) ile cubuk Bubble'in baslik bandinin yerinde sayfa basligi olur:
+  // OCTO_WSH_SPEC. ?ws=1 kipinde (varsayilan; ?wsh=0 vazgecer) cubuk Bubble'in baslik bandinin yerinde sayfa basligi olur:
   // ust kipte rayin seridi cubugun uygulama kapsulune benimsenir (rail.tabsHost), alt kipte serit hucrenin dibinde.
   // Bubble'da hicbir sey gizlenmez: opak cubuk bandi orter, zil (bandin sagindaki Bubble denetimleri) acikta kalir.
   function hdrWant() { return S.wsh && W.__OCTO_WSH_OFF !== true && S.mounted && !S.chromeErr && !!S.bar; }
