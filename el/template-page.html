@@ -3002,9 +3002,10 @@ html #gxRail.gxr3 .gx3-burger{display:none}
       + lockup(apps)
       // 14.09 F3: a flagship's pricing link carries the product (?from=<slug>) so the pricing page can hand the
       // same intent to setup; see_pricing matches a[href^="/pricing"] for that reason.
-      // 20.10 (AITHIA-PAYWALL): the AITHIA mail cards (inbox-chief-of-staff*) price on /aithia, not the Gaia /pricing;
+      // 20.10 (AITHIA-PAYWALL): the AITHIA mail cards (inbox-chief-of-staff*) do not price on the Gaia /pricing;
+      // 22.10: their link is the in-page #aithia-packages (the Bubble /aithia page does not exist: 404 on live and test).
       // under /version-test the link stays under /version-test (a relative /pricing jumped to the live site).
-      + '<div class="cta-row"><button class="btn btn-primary" id="useBtn">'+ctaLabel+'</button><a class="btn-link" data-gx-pricing="1" href="'+(/^\/version-test(\/|$)/.test(location.pathname)?'/version-test':'')+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?'/aithia':'/pricing')+(fs&&_gxCurSlug?'?from='+encodeURIComponent(_gxCurSlug):'')+'"'+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?' data-ax-packages="1"':'')+'>'+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?'See the packages':L.seePricing)+'</a></div>'
+      + '<div class="cta-row"><button class="btn btn-primary" id="useBtn">'+ctaLabel+'</button><a class="btn-link" data-gx-pricing="1" href="'+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?'#aithia-packages':((/^\/version-test(\/|$)/.test(location.pathname)?'/version-test':'')+'/pricing'+(fs&&_gxCurSlug?'?from='+encodeURIComponent(_gxCurSlug):'')))+'"'+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?' data-ax-packages="1"':'')+'>'+((fs&&/^inbox-chief-of-staff(-|$)/.test(_gxCurSlug||''))?'See the packages':L.seePricing)+'</a></div>'
       + (fs&&fs.act.headline?'<div class="meta"><span class="tag instant">'+esc(fs.act.headline)+'</span></div>':(tags?'<div class="meta">'+tags+'</div>':''))
       + '</div></section>';
     // 20.10 AITHIA product page (the prototype's story in the page's tokens): Ask Aithia example, the three packages

@@ -6059,9 +6059,10 @@
       if (isSlugConnected(slug)) {
         // Zaten bağlı — yenile
         refreshConnectedAccounts();
-      } else if (_hubConnIds(slug).length) {
+      } else if (_hubConnDev() && _hubConnIds(slug).length) {
         _hubConnOpenAsk('reconnect');   // 19.10 (W2-4): stale accounts are removed first, then the sign-in opens
       } else {
+        // canliya cikis 22.10: kapali kanalda (main) eski hesap silinmez, dogrudan giris acilir (W2-4 oncesi yol)
         window.gaiaConnectApp(slug);
       }
     };
@@ -6112,6 +6113,11 @@
       }
     }
     /* HUB-CONN-PURE-END */
+    // canliya cikis 22.10: uretim sunucusunda os_drop_* / os_conn_disconnect yok; sunucu (96370cc) canliya cikinca kapi kalkar.
+    // Serit (Disconnect / Reconnect + onay satiri) yalniz dev kanalinda; test rayin arrDev'i ile ayni. Ana Connect dugmesi her kanalda.
+    function _hubConnDev() {
+      try { return (window.__octoArrDev === true) || ((window.__gxEl || {}).channel === 'dev'); } catch (_e) { return false; }
+    }
     var _hubConnBusy = null;   // {slug, op} while the server call runs (one at a time, page wide)
     var _hubConnAsk = null;    // {slug, op} while the confirm row is open
     function _hubConnSlug() {
@@ -6146,7 +6152,7 @@
       if (btn && slug) { btn.className = 'hub-conn-btn ' + (connected ? 'connected' : 'disconnected'); btn.textContent = connected ? '● Connected' : (stale ? 'Reconnect' : 'Connect'); }
       if (!strip) return;
       var busy = !!(_hubConnBusy && _hubConnBusy.slug === slug);
-      var show = !!slug && (busy || stale || (connected && _hubConnIds(slug).length > 0));
+      var show = _hubConnDev() && !!slug && (busy || stale || (connected && _hubConnIds(slug).length > 0));
       strip.style.display = show ? '' : 'none';
       if (!show) return;
       var anyBusy = !!_hubConnBusy;
@@ -6239,7 +6245,7 @@
     }
     function _hubConnOpenAsk(op) {
       var slug = _hubConnSlug();
-      if (!slug || _hubConnBusy) return;
+      if (!slug || _hubConnBusy || !_hubConnDev()) return;
       if (op === 'reconnect' && _hubConnAuthOpen()) { _hubConnToast('busy_auth', _hubConnName(slug)); return; }
       _hubConnAsk = { slug: slug, op: op };
       _hubPaintConn();
@@ -30202,9 +30208,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var _GFL_PAY_RE = /^inbox-chief-of-staff(-|$)/;
     var _gflPayWatch = null;
     function _gflPayLog(){ try { console.log.apply(console, ['%c[PAYWALL]', 'color:#6366f1;font-weight:bold'].concat([].slice.call(arguments))); } catch(e){} }
+    // 22.10 (PAY-LIVE-OFF): the wall runs only on Bubble's test version. The production server has no AITHIA ops yet: a
+    // live aithia_setup_status never answers (measured 22.10: TIMEOUT after 30 s, the platform-ops default is HTTP 400 with
+    // no error_code), so the closed wall (PAY-CLOSED) would stop every live AITHIA setup. When the production server and
+    // the live Paddle catalog ship, set window.__AITHIA_PAY_LIVE = true (Bubble page header) or drop this line.
     function _gflPayApplies(ctx){
       if (!ctx || !_GFL_PAY_RE.test(String(ctx.slug || ''))) return false;
       try { if (/[?&]aithia_pay=0(&|#|$)/.test(location.search || '')) return false; } catch(e){}
+      try { if (!/^\/version-test(\/|$)/.test(location.pathname || '') && window.__AITHIA_PAY_LIVE !== true) return false; } catch(e){}
       return typeof window._gadTrigRequest === 'function';
     }
     function _gflPayPlanName(p){ p = String(p || ''); return p ? 'AITHIA ' + p.charAt(0).toUpperCase() + p.slice(1) : 'AITHIA'; }
@@ -54704,7 +54715,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (loading) { return; }
     if (!M.ds.loaded && c && c.err) { body.appendChild(errRow(function () { cardRefresh('data'); })); return; }
     for (var i = 0; i < list.length; i++) { body.appendChild(dsRow(list[i])); }
-    body.appendChild(dropDataRows());
+    // canliya cikis 22.10: uretim sunucusunda os_drop_* / os_conn_disconnect yok; sunucu (96370cc) canliya cikinca kapi kalkar.
+    // Drop files satiri yalniz dev kanalinda (arrDev); kapaliyken satir ve istek yok.
+    if (arrDev()) { body.appendChild(dropDataRows()); }
   };
   // Tekrar denemekle degismeyen kodlar (SERVER_CONTRACT 23, 25, 27): is hatasi ya da istegin bad_request cevabi.
   // Try again ayni cevabi verirdi; kart kisa bir durma satiri cizer (Run again ve Know your data yerinde kalir).
@@ -61713,6 +61726,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   // Yenileme (spec 2.1): sayfa deposundaki drop_id ile kopru os_drop_status -> grant -> /session; eksik tutamaclar
   // icin needs_files. M.drop doluysa (Home ikinci kez acildi) yalniz from guncellenir.
   function dropResume(where) {
+    // canliya cikis 22.10: uretim sunucusunda os_drop_* / os_conn_disconnect yok; sunucu (96370cc) canliya cikinca kapi kalkar.
+    // Kapali kanalda (main) sayfa deposundaki birakma devam ettirilmez: os_drop_status ve jobs karti yok; kayit dev icin kalir.
+    if (!arrDev()) { return; }
     var from = where === 'home' ? 'home' : 'data';
     if (M.drop) { if (where === 'home') { M.drop.from = from; } dropArm(M.drop); return; }
     var raw = ssGet(DROP_SS);
