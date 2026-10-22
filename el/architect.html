@@ -67235,7 +67235,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     ws.appendChild(ico);
     var lab = el('span', 'octo-wsb-lab');
     lab.appendChild(el('span', 'octo-wsb-eyebrow', 'Workspace'));
-    lab.appendChild(el('span', 'octo-wsb-name', sheetName(s) || 'Workspace'));
+    lab.appendChild(el('span', 'octo-wsb-name', sheetName(s) || 'Choose workspace'));
     ws.appendChild(lab);
     if (!S.chromeErr) { ws.appendChild(octo.icon('chevron-down', 16, { className: 'octo-wsb-chev' })); }
     return ws;
@@ -69448,8 +69448,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var hold = wseHold();
     if (editMode() && !hold) { return { ok: false, hard: true, why: 'edit' }; }
     var c = ctx();
-    if (!c.key && !hold) { return { ok: false, hard: false, why: 'ctx' }; }
-    if (!tableVisible() && !hold) { return { ok: false, hard: false, why: 'table' }; }
+    // Kriz 22.10: Bubble sol menuyu gizledi; tablo secili degilken de cubuk kurulur (Workspace secicisiyle tablo
+    // secilir), yeter ki Bubble'in gizli menusunde en az bir workspace olsun. Hic workspace yoksa eski bekleme.
+    var noCtx = !c.key && !hold;
+    if (noCtx && !(snapshot().sheets.length > 0)) { return { ok: false, hard: false, why: 'ctx' }; }
+    if (!noCtx && !tableVisible() && !hold) { return { ok: false, hard: false, why: 'table' }; }
     var side = sideRoot();
     if (!side) { return { ok: true, err: 'bubble_hidden' }; }
     if (!shown(side, null)) {
