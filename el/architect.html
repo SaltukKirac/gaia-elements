@@ -30213,14 +30213,14 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     var _GFL_PAY_RE = /^inbox-chief-of-staff(-|$)/;
     var _gflPayWatch = null;
     function _gflPayLog(){ try { console.log.apply(console, ['%c[PAYWALL]', 'color:#6366f1;font-weight:bold'].concat([].slice.call(arguments))); } catch(e){} }
-    // 22.10 (PAY-LIVE-OFF): the wall runs only on Bubble's test version. The production server has no AITHIA ops yet: a
-    // live aithia_setup_status never answers (measured 22.10: TIMEOUT after 30 s, the platform-ops default is HTTP 400 with
-    // no error_code), so the closed wall (PAY-CLOSED) would stop every live AITHIA setup. When the production server and
-    // the live Paddle catalog ship, set window.__AITHIA_PAY_LIVE = true (Bubble page header) or drop this line.
+    // 22.10 (PAY-LIVE-ON): the wall runs on live too. The production server carries octo_aithia since PR #8 (08d9aea):
+    // with AITHIA_ENABLED unset it answers aithia_setup_status 'unavailable' in ~3 s (measured 22.10), which keeps the
+    // wall open; AITHIA_ENABLED=1 turns the live wall on. Emergency switch: window.__AITHIA_PAY_LIVE = false (Bubble page
+    // header) keeps the live wall off. Before PR #8 a live request never answered (PAY-LIVE-OFF, 7c2e3c4).
     function _gflPayApplies(ctx){
       if (!ctx || !_GFL_PAY_RE.test(String(ctx.slug || ''))) return false;
       try { if (/[?&]aithia_pay=0(&|#|$)/.test(location.search || '')) return false; } catch(e){}
-      try { if (!/^\/version-test(\/|$)/.test(location.pathname || '') && window.__AITHIA_PAY_LIVE !== true) return false; } catch(e){}
+      try { if (!/^\/version-test(\/|$)/.test(location.pathname || '') && window.__AITHIA_PAY_LIVE === false) return false; } catch(e){}
       return typeof window._gadTrigRequest === 'function';
     }
     function _gflPayPlanName(p){ p = String(p || ''); return p ? 'AITHIA ' + p.charAt(0).toUpperCase() + p.slice(1) : 'AITHIA'; }
