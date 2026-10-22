@@ -47492,6 +47492,17 @@ html[data-octo-ws="1"] #stagebar, html[data-octo-ws="1"] .baUfaHaM { transition:
 /* Bubble'in "menuyu ac" dugmesi (Button N, Group os icinde) kipte olu kalirdi. */
 html[data-octo-ws="1"] .baVczaM { visibility: hidden !important; pointer-events: none !important; }
 html[data-octo-ws="1"] [data-octo-ws-gutter="1"] { margin-left: 0 !important; }
+/* ACIL-MOB (22.10 gece): kurucu Bubble menusunu ve barini opacity 0 ile gizledi. 900 px altinda kip kurulmaz;
+   menu (< 450'de tam ekran, z 1504) gorunmez halde ekrani kaplar, telefon bembeyaz kalir. Kip kurulu degilken
+   dar ekranda Bubble'in kendi menusu, bari ve ac dugmesi geri gorunur. Telefon varyanti (os9m) kurulunca
+   html[data-octo-ws] / [data-octo-ws-m] yazilir ve bu kural susar. Bilincli SAPMA: kok disi tek kural. */
+@media (max-width: 899.98px) {
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) #sideMenu,
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baUfaHw,
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) #stagebar,
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baUfaHaM,
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baVczaM { opacity: 1 !important; }
+}
 /* Classic menu: Bubble menusu sol kenarda cekmece (kendi z'si 1504), bar altta; menuyu kapatan ok gizli
    (kapatilirsa Done sonrasi gorunmez kalirdi). */
 html[data-octo-ws-classic="1"] #sideMenu, html[data-octo-ws-classic="1"] .baUfaHw { box-shadow: 12px 0 40px rgba(15, 23, 42, .18) !important; }
