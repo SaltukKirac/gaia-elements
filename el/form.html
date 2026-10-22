@@ -4867,6 +4867,96 @@
         });
       }
 
+      // === UPLOAD-WAIT (22.10.2026): yükleme sürerken aksiyon / Save beklemeye alınır, bitince kendiliğinden sürer ===
+      // Eskiden aksiyon hemen gönderiliyordu: Dropzone'da yüklenmekte olan ya da adresi Bubble'dan forma henüz gelmemiş
+      // dosyalar (bdf_setUploaderUrls) claim'e girmiyordu. Bekleme iki parça: (1) Dropzone'da sırada / yüklenen dosya
+      // ya da dahili yolda okunan dosya, (2) yüklenen dosyanın adresi gelmedi; (2) en çok BDF_UPLOAD_SYNC_GRACE_MS sürer
+      // (Bubble iş akışı hiç çağırmazsa takılmasın). İlerleme BDF_UPLOAD_STALL_MS boyunca durursa bekleme bırakılır.
+      const BDF_UPLOAD_SYNC_GRACE_MS = 10000;
+      const BDF_UPLOAD_STALL_MS = 120000;
+
+      function bdf_trackUploadsFor(dz, fieldKey) {
+        try {
+          if (!dz || dz.__bdfUploadTracked || typeof dz.on !== "function") return;
+          dz.__bdfUploadTracked = true;
+          dz.on("success", () => {
+            BDF.__upDoneAt = BDF.__upDoneAt || {};
+            BDF.__upDoneAt[fieldKey] = Date.now();
+          });
+          dz.on("uploadprogress", () => { BDF.__upProgressAt = Date.now(); });
+        } catch (_) { }
+      }
+
+      function bdf_pendingUploadStatus() {
+        let files = Number(BDF.__internalReads || 0);
+        let syncing = false;
+        try {
+          const root = document.getElementById("bdf-root") || document;
+          const now = Date.now();
+          Array.from(root.querySelectorAll(".bubble-uploader-host")).forEach((host) => {
+            const key = String(host.dataset.bdfFieldKey || "").trim();
+            const dz = bdf_findDropzoneInstance(host);
+            if (!dz) return;
+            bdf_trackUploadsFor(dz, key);
+            (dz.files || []).forEach((f) => {
+              if (f && (f.status === "added" || f.status === "queued" || f.status === "uploading")) files += 1;
+            });
+            const doneAt = Number((BDF.__upDoneAt || {})[key] || 0);
+            const syncAt = Number((BDF.__upSyncAt || {})[key] || 0);
+            if (doneAt && syncAt < doneAt && (now - doneAt) < BDF_UPLOAD_SYNC_GRACE_MS) syncing = true;
+          });
+        } catch (_) { }
+        return { files, syncing, busy: files > 0 || syncing };
+      }
+
+      function bdf_uploadWaitLabel() {
+        const w = BDF.__uploadWait;
+        if (!w) return "";
+        return w.files > 0 ? `Uploading ${w.files} file${w.files === 1 ? "" : "s"}...` : "Finishing upload...";
+      }
+
+      // true: istek beklemeye alındı, çağıran durmalı. Bekleme sürerken gelen yeni istek öncekinin yerine geçer.
+      function bdf_deferUntilUploadsSettle(run, what) {
+        const st = bdf_pendingUploadStatus();
+        if (!st.busy) return false;
+        const fresh = !BDF.__uploadWait;
+        if (fresh) BDF.__uploadWait = { files: st.files, changedAt: Date.now() };
+        BDF.__uploadWait.run = run;
+        if (fresh) {
+          const n = st.files;
+          bdf_showToast(n > 0
+            ? `Waiting for ${n} file${n === 1 ? "" : "s"} to finish uploading. ${what} will continue after that.`
+            : `Finishing the upload. ${what} will continue after that.`, "info");
+          console.log("[BDF] upload-wait start", { what, files: n, syncing: st.syncing });
+          const tick = () => {
+            const w = BDF.__uploadWait;
+            if (!w) return;
+            const s = bdf_pendingUploadStatus();
+            if (s.busy) {
+              if (s.files !== w.files) { w.files = s.files; w.changedAt = Date.now(); }
+              const lastMove = Math.max(w.changedAt, Number(BDF.__upProgressAt || 0));
+              if (Date.now() - lastMove > BDF_UPLOAD_STALL_MS) {
+                BDF.__uploadWait = null;
+                updateActionBarUi();
+                bdf_showToast("Uploads stopped responding. Check the files and try again.", "err");
+                console.warn("[BDF] upload-wait gave up (no progress)", { files: s.files, syncing: s.syncing });
+                return;
+              }
+              updateActionBarUi();
+              w.timer = setTimeout(tick, 400);
+              return;
+            }
+            BDF.__uploadWait = null;
+            updateActionBarUi();
+            console.log("[BDF] upload-wait done, continuing", { what });
+            try { w.run(); } catch (e) { console.warn("[BDF] upload-wait run", e); }
+          };
+          BDF.__uploadWait.timer = setTimeout(tick, 400);
+        }
+        updateActionBarUi();
+        return true;
+      }
+
       function bdf_canPickFolders() {
         try {
           if (!("webkitdirectory" in document.createElement("input"))) return false;
@@ -5044,6 +5134,7 @@
         bdf_bindExternalUploaderDomDebug(mountEl);
         bdf_bindExternalUploaderHostObserver(mountEl);
         bdf_syncExternalUploaderHostHeight(mountEl);
+        bdf_trackUploadsFor(bdf_findDropzoneInstance(mountEl), key); // UPLOAD-WAIT: yükleme bitişi baştan izlensin
 
         try {
           console.log("[BDF] External uploader mounted to field", {
@@ -5911,16 +6002,20 @@
         const hasOptions = Array.isArray(actionOptions) && actionOptions.length > 0;
         syncDefaultActionLabelFromData();
         const safeSelectedName = String(selectedActionName || getDefaultActionLabel()).trim() || getDefaultActionLabel();
+        const uploadWaitLabel = bdf_uploadWaitLabel(); // UPLOAD-WAIT: aksiyon yüklemenin bitmesini bekliyor
+        const actionBusy = Boolean(isWaitingForServerRefresh) || Boolean(uploadWaitLabel);
         if (actionTriggerBtn) {
-          actionTriggerBtn.disabled = isWaitingForServerRefresh;
-          actionTriggerBtn.classList.toggle("is-loading", Boolean(isWaitingForServerRefresh));
-          actionTriggerBtn.textContent = isWaitingForServerRefresh ? "Loading…" : safeSelectedName;
+          actionTriggerBtn.disabled = actionBusy;
+          actionTriggerBtn.classList.toggle("is-loading", actionBusy);
+          actionTriggerBtn.textContent = isWaitingForServerRefresh ? "Loading…" : (uploadWaitLabel || safeSelectedName);
+          if (uploadWaitLabel) actionTriggerBtn.setAttribute("aria-busy", "true");
+          else actionTriggerBtn.removeAttribute("aria-busy");
         }
         // Create mode (yeni kayıt) → #2383e2 renk teması
         const _isCreateMode = !hasExistingBubbleData();
         if (actionSplit) actionSplit.classList.toggle("is-create", _isCreateMode);
         if (actionChevronBtn) {
-          actionChevronBtn.disabled = isWaitingForServerRefresh || !hasOptions;
+          actionChevronBtn.disabled = actionBusy || !hasOptions;
           actionChevronBtn.style.display = hasOptions ? "inline-flex" : "none";
         }
         if (actionEmptyMsg) {
@@ -5954,6 +6049,7 @@
           openActionMenu();
           return;
         }
+        if (bdf_deferUntilUploadsSettle(triggerSelectedAction, "Your action")) return;
         triggeredActionUniqueId = selectedActionId || "";
         emit("onActionTrigger", {
           selectedActionId,
@@ -5969,6 +6065,7 @@
 
       function triggerWithoutAction() {
         if (_bdfBlockActionIfTestMode()) return; // test modu: gerçek kayıt oluşturma yok
+        if (bdf_deferUntilUploadsSettle(triggerWithoutAction, "Creating the record")) return;
         selectedActionId = "";
         selectedActionName = "Create";
         triggeredActionUniqueId = "";
@@ -13036,6 +13133,11 @@
           openActionMenu();
           return;
         }
+        // UPLOAD-WAIT: elle kaydet yükleme bitene dek bekler (otomatik kayıt beklemez; adres gelince yeniden kaydeder).
+        if (!autosave && !forceSubmit && bdf_deferUntilUploadsSettle(() => runSubmitFlow({ autosave, forceSubmit, trigger, modeHint }), "Saving")) {
+          traceAutosave("runSubmitFlow:deferred-uploads-pending", { trigger });
+          return;
+        }
         if (!state.config || !Array.isArray(state.config.fields)) {
           pendingSubmitUntilConfigReady = {
             autosave,
@@ -15913,7 +16015,7 @@
               });
             };
 
-            const handleFiles = async (fileList) => {
+            const handleFilesNow = async (fileList) => {
               const files = Array.from(fileList);
               // 30.07: sabit 10 → bdf_getDefaultExternalMaxFiles (varsayılan 30, Bubble input'la ezilebilir).
               // Şema ui.maxFiles verdiyse yine o kazanır.
@@ -16025,6 +16127,16 @@
                 files: filePayload,
                 rawFiles: (state.fileBuffers[field.key] || []).map((file) => file.raw)
               });
+            };
+
+            // UPLOAD-WAIT: dahili yolda dosya okunurken (sıkıştırma + base64) aksiyon / Save beklesin.
+            const handleFiles = async (fileList) => {
+              BDF.__internalReads = Number(BDF.__internalReads || 0) + 1;
+              try {
+                return await handleFilesNow(fileList);
+              } finally {
+                BDF.__internalReads = Math.max(0, Number(BDF.__internalReads || 0) - 1);
+              }
             };
 
             const setDropActive = (active) => {
@@ -17681,6 +17793,8 @@
 
           const field = (state.config?.fields || []).find((f) => f && (f.key === key || String(f.label || f.fieldName || "").trim() === key));
           if (!field || !bdf_isUploadLikeFieldType(field.type)) return;
+          BDF.__upSyncAt = BDF.__upSyncAt || {}; // UPLOAD-WAIT: yüklenen dosyanın adresi forma ulaştı
+          BDF.__upSyncAt[field.key] = Date.now();
 
           const allowMultiple = (typeof state.externalUploaderAllowMultipleByField?.[key] !== "undefined")
             ? Boolean(state.externalUploaderAllowMultipleByField[key])
