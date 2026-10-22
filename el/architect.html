@@ -12627,7 +12627,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var _od = { assistant_id: '', sheet_id: '', stage_id: String(_oa.stage_id || ''), list_id: String(_oa.list_id || ''),
           action_mode: state.lastActionMode || _oa.action_mode || '', workspace_label: state.lastWorkspaceLabel || _oa.workspace_label || '',
           process_name: _oa.process_name || '', trigger_id: String(_oa.trigger_id || ''), from_path: String(location.pathname || ''),
-          flagship: !!(window._gadFlagshipArrival && window._gadFlagshipArrival.confirmed), ts: Date.now() };
+          flagship: !!(window._gadFlagshipArrival && window._gadFlagshipArrival.confirmed), ts: Date.now(),
+          // os8q (22.10): the confirmed flagship's slug; the rail opens the Mail tab (desk) after an AITHIA mail card
+          slug: (window._gadFlagshipArrival && window._gadFlagshipArrival.confirmed) ? String(window._gadFlagshipArrival.slug || '').slice(0, 80) : '' };
         try { sessionStorage.setItem('octo_rail_setup_pending', JSON.stringify(_od)); } catch (_s) {}
         window.dispatchEvent(new CustomEvent('octo:agent-created', { detail: _od }));
       } catch (_oe) {}
@@ -45847,6 +45849,84 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 .octo-tabs-panel[data-phone="1"] .octo-tabs-mail-bubble { max-width: 92%; }
 .octo-tabs-panel[data-phone="1"] .octo-tabs-mail-prov { max-width: 30%; }
 
+/* os8q Mail desk (MAIL_CALISANI_SENARYO 3): Desk | Ask Aithia switch, mailbox line, alerts, Today chips, sections, activity.
+   Shell rules: only .octo-tabs-* roots, no transform / filter / contain, 44 px targets, tokens from .octo-tabs-panel. */
+.octo-tabs-mail-sw { flex: 0 0 auto; display: flex; gap: 4px; margin: 12px 16px 0; padding: 4px; border-radius: var(--octo-r9); background: var(--octo-field); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-sw-b {
+  flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 0;
+  padding: 0 12px; border: 0; border-radius: var(--octo-r9); background: transparent; color: var(--octo-ink-2);
+  font: 600 13px/18px var(--octo-font); cursor: pointer;
+}
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-sw-b[aria-selected="true"] { background: var(--octo-surface); color: var(--octo-ink); box-shadow: var(--octo-sh-s), inset 0 0 0 1px var(--octo-line); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-sw-b:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-sw-n { height: 20px; padding: 0 7px; background: var(--octo-accent); color: #fff; box-shadow: none; font: 700 11px/20px var(--octo-font); }
+.octo-tabs-mail-dk { gap: 12px; padding: 0 0 16px; }
+.octo-tabs-mail-dk-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-width: 0; padding: 4px 16px 0; }
+.octo-tabs-mail-dk-mb { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.octo-tabs-mail-dk-mbt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--octo-ink); font: 600 14px/20px var(--octo-font); }
+.octo-tabs-mail-dk-st { display: inline-flex; align-items: center; gap: 6px; color: var(--octo-ink-2); font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-dk-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--octo-ok); }
+.octo-tabs-mail-dk-st[data-st="paused"] .octo-tabs-mail-dk-dot { background: var(--octo-ink-3); }
+.octo-tabs-mail-dk-st[data-st="off"] { color: var(--octo-warn); }
+.octo-tabs-mail-dk-st[data-st="off"] .octo-tabs-mail-dk-dot { background: var(--octo-warn); }
+.octo-tabs-mail-dk-ck { color: var(--octo-ink-3t); }
+.octo-tabs-mail-dk-alerts { display: flex; flex-direction: column; gap: 6px; margin: 0 16px; }
+.octo-tabs-mail-dk-alert { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 44px; padding: 6px 6px 6px 12px; border-radius: var(--octo-r2); background: rgba(180, 83, 9, .06); box-shadow: inset 0 0 0 1px rgba(180, 83, 9, .28); color: var(--octo-warn); font: 600 13px/18px var(--octo-font); }
+.octo-tabs-mail-dk-alt { flex: 1 1 auto; min-width: 0; }
+.octo-tabs-mail-dk-stale { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 16px; }
+.octo-tabs-mail-dk-stale > .octo-rail-err { padding: 0; }
+.octo-tabs-mail-dk-first { display: flex; align-items: center; gap: 12px; margin: 0 16px; padding: 14px 16px; border-radius: var(--octo-r3); background: var(--octo-bg); box-shadow: inset 0 0 0 1px var(--octo-line); }
+.octo-tabs-mail-dk-ftx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.octo-tabs-mail-dk-ft { color: var(--octo-ink); font: 600 14px/20px var(--octo-font); }
+.octo-tabs-mail-dk-fd { color: var(--octo-ink-2); font: 400 13px/18px var(--octo-font); }
+.octo-tabs-mail-dk-today { display: flex; flex-direction: column; gap: 8px; margin: 0 16px; padding: 12px; border-radius: var(--octo-r3); background: var(--octo-bg); box-shadow: inset 0 0 0 1px var(--octo-line); }
+.octo-tabs-mail-dk-tt { color: var(--octo-accent); font: 700 11px/16px var(--octo-font); letter-spacing: .08em; text-transform: uppercase; }
+.octo-tabs-mail-dk-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--octo-r9);
+  background: var(--octo-surface); box-shadow: inset 0 0 0 1px var(--octo-line); color: var(--octo-ink-2); font: 500 13px/18px var(--octo-font); cursor: pointer;
+}
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-chip:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-chip.is-zero { color: var(--octo-ink-3t); }
+.octo-tabs-mail-dk-cn { color: var(--octo-ink); font: 700 15px/20px var(--octo-font); font-variant-numeric: tabular-nums; }
+.octo-tabs-mail-dk-chip.is-zero .octo-tabs-mail-dk-cn { color: var(--octo-ink-3t); }
+.octo-tabs-mail-dk-sect { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin: 0 16px; }
+.octo-tabs-mail-dk-sect > .octo-rail-muted { font: 500 13px/18px var(--octo-font); }
+.octo-tabs-mail-dk-h { display: flex; align-items: center; gap: 6px; color: var(--octo-ink-2); font: 600 12px/16px var(--octo-font); }
+.octo-tabs-mail-dk-ht { flex: 0 1 auto; min-width: 0; }
+.octo-tabs-mail-dk-hn { color: var(--octo-ink-3t); font-variant-numeric: tabular-nums; }
+.octo-tabs-mail-dk-list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.octo-tabs-mail-dk-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; padding: 10px 6px 10px 12px; border-radius: var(--octo-r2); background: var(--octo-surface); box-shadow: inset 0 0 0 1px var(--octo-line); }
+.octo-tabs-mail-dk-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.octo-tabs-mail-dk-top { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.octo-tabs-mail-dk-who { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--octo-ink); font: 600 13px/18px var(--octo-font); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-pill { flex: 0 0 auto; height: 20px; padding: 0 7px; font: 600 11px/20px var(--octo-font); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-pill.is-warn { color: var(--octo-warn); box-shadow: inset 0 0 0 1px rgba(180, 83, 9, .35); }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-pill.is-ok { color: var(--octo-ok); box-shadow: inset 0 0 0 1px rgba(21, 128, 61, .35); }
+.octo-tabs-mail-dk-when { margin-left: auto; flex: 0 0 auto; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); font-variant-numeric: tabular-nums; }
+.octo-tabs-mail-dk-subj { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--octo-ink); font: 500 13px/18px var(--octo-font); }
+.octo-tabs-mail-dk-line { color: var(--octo-ink-2); font: 400 13px/18px var(--octo-font); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.octo-tabs-mail-dk-next { display: flex; align-items: baseline; gap: 6px; min-width: 0; color: var(--octo-ink); font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-dk-next > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.octo-tabs-mail-dk-nk { flex: 0 0 auto; color: var(--octo-accent); font: 700 11px/16px var(--octo-font); letter-spacing: .06em; text-transform: uppercase; }
+.octo-tabs-mail-dk-acts { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-acts .octo-rail-btn { min-height: 44px; height: 44px; min-width: 44px; padding: 0 10px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-acts .octo-rail-btn.is-link { padding: 0 8px; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-more { align-self: flex-start; min-height: 44px; }
+.octo-tabs-mail-dk-act { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 6px 2px; }
+.octo-tabs-mail-dk-ai { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: var(--octo-r1); background: var(--octo-bg); color: var(--octo-accent); }
+.octo-tabs-mail-dk-act[data-kind="failed"] .octo-tabs-mail-dk-ai { color: var(--octo-warn); }
+.octo-tabs-mail-dk-ab { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.octo-tabs-mail-dk-at { color: var(--octo-ink); font: 500 13px/18px var(--octo-font); overflow-wrap: anywhere; }
+.octo-tabs-mail-dk-am { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--octo-ink-3t); font: 500 12px/16px var(--octo-font); }
+.octo-tabs-mail-dk-sep { margin: 0 4px; }
+.octo-tabs-mail-dk .octo-tabs-mail-fu { margin: 0 16px; padding: 12px; border: 0; border-radius: var(--octo-r3); box-shadow: inset 0 0 0 1px var(--octo-line); }
+.octo-tabs-mail-dk-askbox { display: flex; flex-direction: column; gap: 8px; margin: 4px 16px 0; padding-top: 12px; border-top: 1px solid var(--octo-hair); }
+.octo-tabs-mail-dk-askbox .octo-tabs-mail-sugg { max-width: none; margin: 0; }
+:is(#octo-rail, .octo-tabs, .octo-tabs-panel) .octo-tabs-mail-dk-chat { align-self: flex-start; min-height: 44px; }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-mail-dk-row { flex-wrap: wrap; }
+.octo-tabs-panel[data-phone="1"] .octo-tabs-mail-dk-acts { flex: 1 0 100%; justify-content: flex-end; }
+
 /* Pasif sekme: tek kaynagin kurulum karti */
 .octo-tabs-setup {
   width: 100%;
@@ -52523,6 +52603,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   };
   T.mineBusy = 60000; T.mineIdle = 300000; T.mineBusyWin = 600000; T.mineRepoll = 5000; T.mineRetry = 4000; T.mineAfter = 6000; T.mineUndo = 8000; T.mineMove = 600; T.mineSearch = 500; T.mineSearchMax = 6000; T.mineNoJump = 120000; T.mineNeg = 1800000; // mytasks
   T.mailFreshPoll = 3000; T.mailFreshTries = 20; // mail: after OAuth the status is re-read with fresh:true every 3 s, at most 20 times (OCTO_TABS_SPEC 12)
+  // os8q desk (MAIL_CALISANI_SENARYO 3): re-read every 60 s while the Mail tab is open, every 30 s while the first emails
+  // are being read (at most 10 min); after a setup the rail waits up to 20 s for the Mail tab to become selectable.
+  T.mailDeskEvery = 60000; T.mailDeskFirst = 30000; T.mailDeskFirstMax = 600000; T.mailGoTries = 20; T.mailGoPoll = 1000;
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
 
@@ -57558,6 +57641,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var job = { tb: tb, aid: aid, ts: (A.d && typeof A.d.ts === 'number') ? A.d.ts : 0 };
     var c = readCtx();
     if (!c.key) { return; }
+    // os8q: an AITHIA mail assistant was just set up: its desk (Mail tab) opens once the tab is real.
+    mailGoAfterSetup(A.d && typeof A.d.slug === 'string' ? A.d.slug : '');
     if (c.key !== M.key) { M.afterAgent = job; load(c); return; }
     refreshWs('agent').then(function () { afterAgent(job); }, function () {});
   }
@@ -62205,7 +62290,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       ui: null,                                        // composer nodes kept across repaints (live region)
       hist: { st: '', n: 0, h: 0, err: '' },           // os8n history read: '' | loading | done | error, pages, generation
       fu: { rows: [], on: null, busy: false, err: '', at: 0, seq: 0, checked: '' },   // os8n follow-up list (Coordinate)
-      track: {}                                        // os8n Track reply state per proposed action id
+      track: {},                                       // os8n Track reply state per proposed action id
+      // os8q desk: st '' | loading | ok | error; ok once = the server has the desk (old servers never answer it: chat only)
+      desk: { st: '', ok: false, off: false, d: null, err: '', seq: 0, timer: null, t0: 0, open: {} },
+      view: '',                                        // os8q: '' (not decided) | desk | chat
+      swFocus: ''                                      // os8q: the view button to focus after a key move re-draw
     };
   }
   function mailT() { return tvOf('mail'); }
@@ -62348,7 +62437,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     t.serr = '';
     if (s === 'ready' && t.pend && M.tab === 'mail') { mailResume(t); }
     // os8n: a status that answers ready while the tab is open reads the history (once) and the follow-up list (when stale).
-    if (s === 'ready' && M.tab === 'mail') { mailHistLoad(t); mailFuLoad(t, false); }
+    if (s === 'ready' && M.tab === 'mail') { mailHistLoad(t); mailFuLoad(t, false); mailDeskLoad(t, false); }
     return mailStatusSig(t) !== was;
   }
   // Entering the tab: status is re-read when stale (a failed read waits for Try again); a request parked by
@@ -62358,7 +62447,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!t.serr || t.st) { mailStatus(false); }
     if (t.pend && mailReady()) { mailResume(t); }
     // os8n: no turns in memory (page refresh, workspace change) -> the newest conversation; the follow-up list when stale.
-    if (mailReady()) { mailHistLoad(t); mailFuLoad(t, false); }
+    if (mailReady()) { mailHistLoad(t); mailFuLoad(t, false); mailDeskLoad(t, false); }
     t.stick = true;
     mailDirty(t);
   }
@@ -62367,6 +62456,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function mailLeave(t) {
     t.gen++;
     mailClearTimer(t);
+    mailDeskStop(t);
     if (t.req) {
       if (t.req.id) { t.pend = t.req; } else { t.err = ''; }
       t.req = null; t.stage = '';
@@ -62378,6 +62468,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     t.gen++;
     mailClearTimer(t);
     mailClearFresh(t);
+    mailDeskStop(t);
     t.req = null; t.pend = null; t.stage = '';
   }
   function mailResume(t) {
@@ -63006,7 +63097,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   // ------------------------------------------------ panel: passive states (setup card) and the chat
   function panelMail(st) {
     var t = mailT();
-    if (st === 'ready') { panelMailChat(t); return; }
+    if (st === 'ready') { if (mailDeskView(t)) { panelMailDesk(t); } else { panelMailChat(t); } return; }
     panelMailSetup(t, st);
   }
   function panelMailSetup(t, st) {
@@ -63094,7 +63185,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var ui = t.ui;
     // The chat is already on screen: only the thread is rebuilt. The composer, its textarea and the role=status line
     // stay the same nodes (screen readers keep the live region, the caret stays, typing is never interrupted).
-    if (M.panelView === 'mail' && ui && ui.label === label && ui.box.parentNode === body && isConn(ui.form)) {
+    // os8q: a desk that appears or goes (first ok answer) rebuilds once, for the Desk | Ask Aithia switch.
+    if (M.panelView === 'mail' && ui && ui.label === label && ui.box.parentNode === body && isConn(ui.form) && ui.sw === !!t.desk.ok) {
       M.panelSig = sig;
       keepFocus(M.parts.panel, function () {
         var keep = body.scrollTop || 0;
@@ -63119,12 +63211,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (label) { barAdd(el('span', 'octo-tabs-mail-prov', label)); }
       var box = el('div', 'octo-tabs-mail');
       box.setAttribute('data-stage', mailStageAttr(t));
+      if (t.desk.ok) { box.appendChild(mailViewSw(t)); }   // os8q: back to the desk
       var fuEl = mailFuShow(t) ? mailFuEl(t) : null;
       if (fuEl) { box.appendChild(fuEl); }
       var log = mailThreadEl(t);
       box.appendChild(log);
       box.appendChild(mailComposer(t));
-      t.ui.box = box; t.ui.log = log; t.ui.fu = fuEl; t.ui.label = label;
+      t.ui.box = box; t.ui.log = log; t.ui.fu = fuEl; t.ui.label = label; t.ui.sw = !!t.desk.ok;
       body.appendChild(box);
       if (t.stick) { body.scrollTop = body.scrollHeight; t.stick = false; }
       else { body.scrollTop = keep; }
@@ -63465,9 +63558,502 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     foot.appendChild(stl);
     foot.appendChild(el('div', 'octo-tabs-mail-trust', 'Draft only. You send.'));
     f.appendChild(foot);
-    t.ui = { form: f, ta: ta, sb: sb, stl: stl, row: row, ctx: cx, ctxMid: t.ctx ? t.ctx.mid : '', busy: !!t.req, grow: grow, box: null, log: null, fu: null, label: '' };
+    t.ui = { form: f, ta: ta, sb: sb, stl: stl, row: row, ctx: cx, ctxMid: t.ctx ? t.ctx.mid : '', busy: !!t.req, grow: grow, box: null, log: null, fu: null, label: '', sw: false };
     batch(grow);
     return f;
+  }
+
+  // ------------------------------------------------ desk (os_mail_desk, os8q 22.10)
+  /* The mail employee's desk (MAIL_CALISANI_SENARYO.md 3-5): Today counts, alerts, Needs you, Drafts ready, Deadlines,
+     Waiting for a reply (Coordinate, the os8n list), Recent activity; Ask Aithia is the second view (Desk | Ask Aithia).
+     The desk appears only after the first ok os_mail_desk answer: an old server (or any failure before that) keeps
+     today's chat exactly. Desk rows are mail text (sender, subject, short record fields): octo.request {retry:false}
+     into memory, never octo.live / sessionStorage. Re-read every T.mailDeskEvery while the tab is open, every
+     T.mailDeskFirst while the first emails are read (T.mailDeskFirstMax at most). Rows link out only through
+     MAIL_URL_RE; Ask puts the row's message id into the composer's context chip (the os_mail_ask context_message_id). */
+  var MAIL_DESK_ROWS = 5, MAIL_DESK_MAX = 20;
+  var MAIL_DESK_SECTS = [
+    ['needs_you', 'Needs you', 'Nothing needs you now', 'bell'],
+    ['drafts', 'Drafts ready', 'No drafts waiting', 'doc'],
+    ['deadlines', 'Deadlines', 'No deadlines', 'calendar'],
+    ['activity', 'Recent activity', 'No activity yet', 'list']
+  ];
+  var MAIL_PRIO = { now: ['Now', 'is-warn'], today: ['Today', ''], 'this week': ['This week', ''] };
+  var MAIL_DRAFT_PILL = { ready: 'Draft ready', 'needs review': 'Review draft', failed: 'Draft failed' };
+  var MAIL_ALERTS = {
+    not_connected: 'Mailbox not connected', failed_runs: 'emails not read', draft_failed: 'drafts failed',
+    deadline_today: 'due today', deadline_past: 'past due', overdue_reply: 'replies overdue'
+  };
+  var MAIL_ACT_ICON = { read: 'mail', drafted: 'doc', labeled: 'pin', deadline: 'calendar', failed: 'alert' };
+
+  function mailDeskView(t) { return !!t.desk.ok && t.view !== 'chat'; }
+  // Waiting for a reply on the desk: Coordinate and either the os8n list is on or the desk counted waiting rows.
+  function mailDeskWaitOn(t) { return mailFuOn(t) && (mailFuShow(t) || (!!t.desk.d && t.desk.d.counts.waiting !== null)); }
+  function mailDeskStop(t) {
+    var k = t && t.desk;
+    if (k && k.timer) { try { clearTimeout(k.timer); } catch (e) { /* yut */ } k.timer = null; }
+  }
+  function mailDeskCount(v) { var n = num(v); return n === null ? 0 : Math.max(0, Math.min(99999, Math.floor(n))); }
+  function mailDeskIso(v) { var s = str(v); return /^\d{4}-\d{2}-\d{2}T/.test(s) && !isNaN(Date.parse(s)) ? s : ''; }
+  function mailDeskCut(v, n) { var s = str(v).replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1) + String.fromCharCode(8230) : s; }
+  function mailDeskItem(r) {
+    if (!isObj(r)) { return null; }
+    var rid = str(r.record_id), mid = str(r.message_id);
+    if (!MAIL_ID_RE.test(rid) && !MAIL_ID_RE.test(mid)) { return null; }
+    var url = str(r.open_url);
+    return {
+      rid: MAIL_ID_RE.test(rid) ? rid : '', mid: MAIL_ID_RE.test(mid) ? mid : '',
+      who: mailDeskCut(r.from_name || r.from_email, 60), subject: mailDeskCut(r.subject, 140) || 'No subject',
+      at: mailDeskIso(r.received_at), prio: str(r.priority).toLowerCase(), cat: mailDeskCut(r.category, 40),
+      ask: mailDeskCut(r.ask, 160), why: mailDeskCut(r.why, 160), next: mailDeskCut(r.next_step, 120),
+      draft: str(r.draft_status).toLowerCase(), due: mailDeskCut(r.due_text, 80),
+      url: MAIL_URL_RE.test(url) ? url : ''
+    };
+  }
+  function mailDeskList(a, fn) {
+    var out = [];
+    if (Object.prototype.toString.call(a) !== '[object Array]') { return out; }
+    for (var i = 0; i < a.length && out.length < MAIL_DESK_MAX; i++) { var x = fn(a[i]); if (x) { out.push(x); } }
+    return out;
+  }
+  function mailDeskAct(r) {
+    if (!isObj(r)) { return null; }
+    var at = mailDeskIso(r.at), kind = str(r.kind).toLowerCase();
+    if (!at) { return null; }
+    var rid = str(r.record_id);
+    return {
+      at: at, kind: MAIL_ACT_ICON[kind] ? kind : 'read', rid: MAIL_ID_RE.test(rid) ? rid : '',
+      who: mailDeskCut(r.from_name, 60), subject: mailDeskCut(r.subject, 140), summary: mailDeskCut(r.summary, 120),
+      prio: str(r.priority).toLowerCase()
+    };
+  }
+  // One os_mail_desk answer into t.desk.d (every remote string cut and kept for textContent only).
+  function mailDeskData(t, d) {
+    d = isObj(d) ? d : {};
+    var c = isObj(d.counts) ? d.counts : {};
+    var mb = isObj(d.mailbox) ? d.mailbox : {};
+    var fb = isObj(d.first_batch) ? d.first_batch : null;
+    var alerts = mailDeskList(d.alerts, function (a) {
+      if (!isObj(a) || !MAIL_ALERTS[str(a.kind)]) { return null; }
+      return { kind: str(a.kind), n: mailDeskCount(a.count) };
+    });
+    var state = str(d.state) || 'ready';
+    // SERVER_CONTRACT 34.8: auth_required travels in data.state (connected may be null); last_check_at is the time the
+    // worker last wrote a row (Last read), not the trigger's poll time.
+    t.desk.d = {
+      state: state,
+      app: str(mb.app).toLowerCase(), email: mailDeskCut(mb.email, 80), connected: mb.connected !== false && state !== 'auth_required',
+      paused: mb.paused === true, checked: mailDeskIso(mb.last_check_at),
+      counts: {
+        read: mailDeskCount(c.read_today), needs_you: mailDeskCount(c.needs_you), drafts: mailDeskCount(c.drafts_ready),
+        deadlines: mailDeskCount(c.deadlines), waiting: c.waiting === null || c.waiting === undefined ? null : mailDeskCount(c.waiting),
+        failed: mailDeskCount(c.failed_today), read7: mailDeskCount(c.read_7d)
+      },
+      alerts: alerts,
+      needs_you: mailDeskList(d.needs_you, mailDeskItem),
+      drafts: mailDeskList(d.drafts, mailDeskItem),
+      deadlines: mailDeskList(d.deadlines, mailDeskItem),
+      activity: mailDeskList(d.activity, mailDeskAct),
+      first: fb ? { st: str(fb.state), done: mailDeskCount(fb.done), total: mailDeskCount(fb.total) } : null
+    };
+  }
+  function mailDeskFirstRun(t) {
+    var d = t.desk.d;
+    return !!d && d.state === 'first_run';   // a quiet week is ready with empty lists, not a first run
+  }
+  function mailDeskArm(t) {
+    mailDeskStop(t);
+    if (M.tab !== 'mail' || !t.desk.ok) { return; }
+    var first = mailDeskFirstRun(t) && (now() - (t.desk.t0 || now())) < T.mailDeskFirstMax;
+    var g = M.gen, tg = t.gen;
+    t.desk.timer = setTimeout(function () {
+      t.desk.timer = null;
+      if (g !== M.gen || tg !== t.gen || M.tab !== 'mail') { return; }
+      mailDeskLoad(t, true);
+    }, first ? T.mailDeskFirst : T.mailDeskEvery);
+  }
+  // force: a timer or Try again re-read; without it an answer younger than T.stale is kept (tab round trips).
+  function mailDeskLoad(t, force) {
+    var sid = sheetId();
+    var k = t.desk;
+    if (!idOk(sid) || !mailReady() || k.st === 'loading' || k.off) { return; }
+    if (!force && k.ok && k.at && (now() - k.at) < T.stale) { mailDeskArm(t); return; }
+    if (!k.t0) { k.t0 = now(); }
+    k.st = 'loading'; k.seq++;
+    var seq = k.seq, g = M.gen, tg = t.gen;
+    M.seq++;
+    octo.request('os_mail_desk', { sheet_id: sid, limit: MAIL_DESK_ROWS }, { retry: false, cacheKey: 'os_mail_desk|' + sid + '|' + M.seq }).then(function (d) {
+      if (g !== M.gen || tg !== t.gen || k.seq !== seq) { return; }
+      var src = str(d && d.source), ds0 = str(d && d.state);
+      // 34.8: no AITHIA assistant in this workspace (source none) or no package (plan_required, lists empty): the chat
+      // only, read again on the next entry (an assistant may be set up meanwhile).
+      if (src === 'none' || ds0 === 'plan_required') {
+        mailDeskStop(t);
+        k.st = 'none'; k.ok = false; k.d = null; k.err = ''; k.at = 0;
+        if (t.view === 'desk') { t.view = ''; }
+        if (ds0 === 'plan_required' && t.st && t.st.state === 'ready') { mailStatus(true); }
+        mailDirty(t);
+        return;
+      }
+      mailDeskData(t, d);
+      var first = !k.ok;
+      k.st = 'ok'; k.ok = true; k.err = ''; k.at = now();
+      // First desk on this tab: it becomes the view unless the person is already in a conversation.
+      if (first && t.view === '') { t.view = t.req || str(t.draft).trim() ? 'chat' : 'desk'; }
+      var ds = t.desk.d.state;
+      if ((ds === 'auth_required' || ds === 'no_mailbox' || ds === 'plan_required') && t.st && t.st.state === 'ready') { mailStatus(true); }
+      mailDeskArm(t);
+      mailDirty(t);
+    }, function (err) {
+      if (g !== M.gen || tg !== t.gen || k.seq !== seq) { return; }
+      var code = str(err && err.code) || 'provider_error';
+      k.st = 'error'; k.err = code;
+      // An old server (the op is unknown): no desk on this tab, no second read until a reload (os8n history rule).
+      if (!k.ok && (code === 'bad_request' || code === 'unavailable')) { k.off = true; }
+      if (code === 'not_connected' || code === 'auth_required') { mailStatus(true); }
+      // Before the first ok answer nothing changes on screen (today's chat); after it the stale desk stays with a note.
+      if (k.ok) { mailDeskArm(t); }
+      mailDirty(t);
+    });
+  }
+  function mailDeskWhen(iso) {
+    var ms = Date.parse(iso);
+    if (isNaN(ms)) { return ''; }
+    var d = new Date(ms), n = new Date();
+    var hm = (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+    if (d.toDateString() === n.toDateString()) { return hm; }
+    var days = Math.round((new Date(n.toDateString()) - new Date(d.toDateString())) / 86400000);
+    var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (days > 0 && days < 7) { return DOW[d.getDay()] + ' ' + hm; }
+    return MON[d.getMonth()] + ' ' + d.getDate();
+  }
+  // Desk | Ask Aithia (role=tablist, roving tabindex, ArrowLeft / ArrowRight / Home / End).
+  function mailViewSw(t) {
+    var sw = el('div', 'octo-tabs-mail-sw');
+    sw.setAttribute('role', 'tablist');
+    sw.setAttribute('aria-label', 'Mail views');
+    var cur = mailDeskView(t) ? 'desk' : 'chat';
+    var V = [['desk', 'Desk'], ['chat', 'Ask Aithia']];
+    var bs = [];
+    for (var i = 0; i < V.length; i++) {
+      (function (v) {
+        var b = D.createElement('button');
+        b.type = 'button';
+        b.className = 'octo-tabs-mail-sw-b';
+        b.setAttribute('role', 'tab');
+        b.setAttribute('data-act', 'mail-view-' + v[0]);
+        b.setAttribute('aria-selected', cur === v[0] ? 'true' : 'false');
+        b.tabIndex = cur === v[0] ? 0 : -1;
+        b.appendChild(el('span', '', v[1]));
+        var nb = (v[0] === 'desk' && t.desk.d) ? t.desk.d.counts.needs_you : 0;
+        if (nb) { var badge = el('span', 'octo-rail-pill octo-tabs-mail-sw-n', String(nb)); badge.setAttribute('aria-label', nb + ' need you'); b.appendChild(badge); }
+        b.addEventListener('click', function () { mailSetView(t, v[0]); });
+        b.addEventListener('keydown', function (e) {
+          var k = e && e.key, to = '';
+          if (k === 'ArrowRight' || k === 'ArrowLeft') { to = v[0] === 'desk' ? 'chat' : 'desk'; }
+          else if (k === 'Home') { to = 'desk'; } else if (k === 'End') { to = 'chat'; }
+          if (!to) { return; }
+          e.preventDefault();
+          t.swFocus = to;
+          mailSetView(t, to);
+        });
+        // a key move re-draws the panel: focus lands on the new button once it is in the page
+        if (t.swFocus === v[0]) { t.swFocus = ''; batch(function () { focusNode(b); }); }
+        bs.push(b);
+        sw.appendChild(b);
+      })(V[i]);
+    }
+    return sw;
+  }
+  function mailSetView(t, v) {
+    if (v !== 'desk' && v !== 'chat') { return; }
+    if (t.view === v) { return; }
+    t.view = v;
+    if (v === 'chat') { t.stick = true; }
+    if (v === 'desk') { mailDeskLoad(t, false); }
+    mailDirty(t);
+  }
+  // Ask about one desk row: the chat view with the row's email as the context chip (os_mail_ask context_message_id).
+  function mailDeskAsk(t, it) {
+    t.view = 'chat';
+    t.stick = true;
+    if (it && it.mid) { mailSetCtx({ mid: it.mid, subject: it.subject }); } else { mailDirty(t); }
+  }
+  function mailDeskSuggest(t, q) {
+    t.view = 'chat';
+    t.stick = true;
+    if (t.req) { mailDirty(t); return; }
+    t.draft = q;
+    mailSend(null);
+  }
+  function mailDeskPill(text, cls) { return el('span', 'octo-rail-pill octo-tabs-mail-dk-pill' + (cls ? ' ' + cls : ''), text); }
+  function mailDeskRowEl(t, it, sect) {
+    var row = el('div', 'octo-tabs-mail-dk-row');
+    row.setAttribute('role', 'listitem');
+    if (it.rid) { row.setAttribute('data-rid', it.rid); }
+    var main = el('div', 'octo-tabs-mail-dk-main');
+    var top = el('div', 'octo-tabs-mail-dk-top');
+    top.appendChild(el('span', 'octo-tabs-mail-dk-who', it.who || 'Email'));
+    var pr = MAIL_PRIO[it.prio];
+    if (pr && sect !== 'deadlines') { top.appendChild(mailDeskPill(pr[0], pr[1])); }
+    if (MAIL_DRAFT_PILL[it.draft] && sect !== 'drafts') { top.appendChild(mailDeskPill(MAIL_DRAFT_PILL[it.draft], it.draft === 'failed' ? 'is-warn' : 'is-ok')); }
+    if (sect === 'drafts' && it.draft === 'needs review') { top.appendChild(mailDeskPill('Review', '')); }
+    var when = it.at ? mailDeskWhen(it.at) : '';
+    if (when) { top.appendChild(el('span', 'octo-tabs-mail-dk-when', when)); }
+    main.appendChild(top);
+    main.appendChild(el('div', 'octo-tabs-mail-dk-subj', it.subject));
+    var line = sect === 'deadlines' ? (it.due || it.ask) : (it.ask || it.why);
+    if (line) { main.appendChild(el('div', 'octo-tabs-mail-dk-line', line)); }
+    if (it.next && sect === 'needs_you') {
+      var nx = el('div', 'octo-tabs-mail-dk-next');
+      nx.appendChild(el('span', 'octo-tabs-mail-dk-nk', 'Next'));
+      nx.appendChild(el('span', '', it.next));
+      main.appendChild(nx);
+    }
+    row.appendChild(main);
+    var acts = el('div', 'octo-tabs-mail-dk-acts');
+    if (it.url) {
+      var a = el('a', 'octo-rail-btn is-link octo-tabs-mail-dk-open');
+      a.href = it.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.setAttribute('data-act', 'mail-dk-open');
+      a.setAttribute('aria-label', 'Open email');
+      a.title = 'Open email';
+      a.appendChild(octo.icon('external', 16));
+      acts.appendChild(a);
+    }
+    if (it.mid) {
+      var ab = btn('is-ghost octo-tabs-mail-dk-ask', 'Ask about this email', 'Ask', 'mail-dk-ask');
+      ab.setAttribute('data-mid', it.mid);
+      ab.addEventListener('click', function () { mailDeskAsk(t, it); });
+      acts.appendChild(ab);
+    }
+    row.appendChild(acts);
+    return row;
+  }
+  function mailDeskActEl(a) {
+    var row = el('div', 'octo-tabs-mail-dk-act');
+    row.setAttribute('role', 'listitem');
+    row.setAttribute('data-kind', a.kind);
+    var ic = el('span', 'octo-tabs-mail-dk-ai');
+    ic.appendChild(octo.icon(MAIL_ACT_ICON[a.kind] || 'mail', 14));
+    row.appendChild(ic);
+    var body = el('div', 'octo-tabs-mail-dk-ab');
+    body.appendChild(el('div', 'octo-tabs-mail-dk-at', a.summary || a.subject || 'Email'));
+    // sender and subject stay separate nodes (data strings, never joined into one sentence)
+    var meta = [a.who, a.summary ? a.subject : ''].filter(function (x) { return !!x; });
+    if (meta.length) {
+      var am = el('div', 'octo-tabs-mail-dk-am');
+      for (var i = 0; i < meta.length; i++) {
+        if (i) { var dot = el('span', 'octo-tabs-mail-dk-sep', String.fromCharCode(183)); dot.setAttribute('aria-hidden', 'true'); am.appendChild(dot); }
+        am.appendChild(el('span', '', meta[i]));
+      }
+      body.appendChild(am);
+    }
+    row.appendChild(body);
+    row.appendChild(el('span', 'octo-tabs-mail-dk-when', mailDeskWhen(a.at)));
+    return row;
+  }
+  function mailDeskSect(t, s) {
+    var d = t.desk.d, key = s[0];
+    var rows = d[key] || [];
+    var box = el('section', 'octo-tabs-mail-dk-sect');
+    box.setAttribute('data-sect', key);
+    box.setAttribute('aria-label', s[1]);
+    var head = el('div', 'octo-tabs-mail-dk-h');
+    head.appendChild(octo.icon(s[3], 16));
+    head.appendChild(el('span', 'octo-tabs-mail-dk-ht', s[1]));
+    var cnt = key === 'activity' ? null : d.counts[key === 'needs_you' ? 'needs_you' : key];
+    if (cnt) { head.appendChild(el('span', 'octo-tabs-mail-dk-hn', String(cnt))); }
+    box.appendChild(head);
+    if (!rows.length) { box.appendChild(muted(s[2])); return box; }
+    var open = !!t.desk.open[key];
+    var list = el('div', 'octo-tabs-mail-dk-list');
+    list.setAttribute('role', 'list');
+    var max = open ? rows.length : Math.min(rows.length, MAIL_DESK_ROWS);
+    for (var i = 0; i < max; i++) { list.appendChild(key === 'activity' ? mailDeskActEl(rows[i]) : mailDeskRowEl(t, rows[i], key)); }
+    box.appendChild(list);
+    if (rows.length > MAIL_DESK_ROWS) {
+      var mb = btn('is-link octo-tabs-mail-dk-more', open ? 'Show less' : 'Show all', open ? 'Show less' : 'Show all', 'mail-dk-more');
+      mb.setAttribute('data-sect', key);
+      mb.setAttribute('aria-expanded', open ? 'true' : 'false');
+      mb.addEventListener('click', function () { t.desk.open[key] = !t.desk.open[key]; mailDirty(t); });
+      box.appendChild(mb);
+    }
+    return box;
+  }
+  // Today: counts as chips; a chip scrolls to its section (a zero count is drawn muted, still a button).
+  function mailDeskToday(t) {
+    var d = t.desk.d, c = d.counts;
+    var box = el('div', 'octo-tabs-mail-dk-today');
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Today');
+    box.appendChild(el('div', 'octo-tabs-mail-dk-tt', 'Today'));
+    var chips = el('div', 'octo-tabs-mail-dk-chips');
+    var C = [['read', c.read, 'read', ''], ['needs_you', c.needs_you, 'need you', 'needs_you'], ['drafts', c.drafts, 'drafts', 'drafts'], ['deadlines', c.deadlines, 'due', 'deadlines']];
+    if (mailDeskWaitOn(t)) { C.push(['waiting', c.waiting === null ? t.fu.rows.length : c.waiting, 'waiting', mailFuShow(t) ? 'waiting' : '']); }
+    for (var i = 0; i < C.length; i++) {
+      (function (x) {
+        var b = D.createElement('button');
+        b.type = 'button';
+        b.className = 'octo-tabs-mail-dk-chip' + (x[1] ? '' : ' is-zero');
+        b.setAttribute('data-act', 'mail-dk-chip');
+        b.setAttribute('data-k', x[0]);
+        b.appendChild(el('span', 'octo-tabs-mail-dk-cn', String(x[1] || 0)));
+        b.appendChild(el('span', '', x[2]));
+        b.addEventListener('click', function () {
+          var to = x[3] ? M.parts.pbody.querySelector('[data-sect="' + x[3] + '"]') : null;
+          if (to) { try { to.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* yut */ } }
+        });
+        chips.appendChild(b);
+      })(C[i]);
+    }
+    box.appendChild(chips);
+    return box;
+  }
+  function mailDeskHead(t) {
+    var d = t.desk.d;
+    var h = el('div', 'octo-tabs-mail-dk-head');
+    var who = el('div', 'octo-tabs-mail-dk-mb');
+    who.appendChild(mailMark(''));
+    who.appendChild(el('span', 'octo-tabs-mail-dk-mbt', d.email || mailLabel(t.st) || 'Mailbox'));
+    h.appendChild(who);
+    var st = el('div', 'octo-tabs-mail-dk-st');
+    var off = !d.connected, paused = d.paused;
+    st.setAttribute('data-st', off ? 'off' : (paused ? 'paused' : 'on'));
+    st.appendChild(el('i', 'octo-tabs-mail-dk-dot'));
+    st.appendChild(el('span', '', off ? 'Not connected' : (paused ? 'Paused' : 'Working')));
+    if (d.checked && !off) { st.appendChild(el('span', 'octo-tabs-mail-dk-ck', 'Last read ' + mailDeskWhen(d.checked))); }
+    h.appendChild(st);
+    return h;
+  }
+  function mailDeskAlertsEl(t) {
+    var d = t.desk.d;
+    var list = d.alerts.slice();
+    if (!d.connected && !list.some(function (a) { return a.kind === 'not_connected'; })) { list.unshift({ kind: 'not_connected', n: 0 }); }
+    if (!list.length) { return null; }
+    var box = el('div', 'octo-tabs-mail-dk-alerts');
+    box.setAttribute('role', 'status');
+    for (var i = 0; i < list.length; i++) {
+      var a = list[i];
+      var r = el('div', 'octo-tabs-mail-dk-alert');
+      r.setAttribute('data-kind', a.kind);
+      r.appendChild(octo.icon(a.kind === 'not_connected' ? 'plug' : 'alert', 16));
+      r.appendChild(el('span', 'octo-tabs-mail-dk-alt', a.kind === 'not_connected' ? MAIL_ALERTS.not_connected : (a.n + ' ' + MAIL_ALERTS[a.kind])));
+      if (a.kind === 'not_connected') {
+        var tk = (t.st && t.st.slug) || d.app || 'gmail';
+        var cb = withIcon(btn('is-primary', 'Reconnect', 'Reconnect', 'mail-dk-reconnect'), 'plug');
+        cb.setAttribute('data-tk', tk);
+        if (M.conn && M.conn.tk === tk) { cb.disabled = true; }
+        cb.addEventListener('click', function () { startConnect(tk); });
+        r.appendChild(cb);
+      }
+      box.appendChild(r);
+    }
+    return box;
+  }
+  // Suggested questions follow the desk: what is waiting decides what is offered first (fixed English strings).
+  function mailDeskQs(t) {
+    var c = t.desk.d.counts, q = [];
+    if (c.needs_you) { q.push(['bell', 'What needs my reply today?']); }
+    if (c.deadlines) { q.push(['calendar', 'What is due this week?']); }
+    if (mailDeskWaitOn(t)) { q.push(['people', 'Who is waiting on me?']); }
+    if (c.drafts) { q.push(['doc', 'Which drafts are ready?']); }
+    q.push(['doc', 'Summarize this week in email']);
+    return q.slice(0, 3);
+  }
+  function mailDeskAskEl(t) {
+    var box = el('div', 'octo-tabs-mail-dk-askbox');
+    var head = el('div', 'octo-tabs-mail-dk-h');
+    head.appendChild(octo.icon('chat', 16));
+    head.appendChild(el('span', 'octo-tabs-mail-dk-ht', 'Ask Aithia'));
+    box.appendChild(head);
+    var g = el('div', 'octo-tabs-mail-sugg');
+    g.setAttribute('role', 'group');
+    g.setAttribute('aria-label', 'Suggested questions');
+    var Q = mailDeskQs(t);
+    for (var i = 0; i < Q.length; i++) {
+      (function (q) {
+        var sb = D.createElement('button');
+        sb.type = 'button';
+        sb.className = 'octo-tabs-mail-sg';
+        sb.setAttribute('data-act', 'mail-dk-suggest');
+        var ic = el('span', 'octo-tabs-mail-sg-i');
+        ic.appendChild(octo.icon(q[0], 16));
+        sb.appendChild(ic);
+        sb.appendChild(el('span', 'octo-tabs-mail-sg-t', q[1]));
+        sb.appendChild(octo.icon('chevron-right', 16));
+        sb.disabled = !!t.req;
+        sb.addEventListener('click', function () { mailDeskSuggest(t, q[1]); });
+        g.appendChild(sb);
+      })(Q[i]);
+    }
+    box.appendChild(g);
+    var go = withIcon(btn('is-ghost octo-tabs-mail-dk-chat', 'Ask your own question', 'Ask your own question', 'mail-view-chat'), 'chat');
+    go.addEventListener('click', function () { mailSetView(t, 'chat'); batch(function () { var ta = M.parts.pbody && M.parts.pbody.querySelector('[data-k="mail-ask"]'); if (ta) { focusNode(ta); } }); });
+    box.appendChild(go);
+    box.appendChild(el('div', 'octo-tabs-mail-trust', 'Draft only. You send.'));
+    return box;
+  }
+  function panelMailDesk(t) {
+    var k = t.desk, d = k.d;
+    var label = mailLabel(t.st);
+    var sig = 'mail-desk|' + t.ver + '|' + label + '|' + k.seq + '|' + k.st + '|' + (t.req ? 1 : 0) + '|' + (M.conn ? M.conn.tk : '');
+    if (M.panelSig === sig) { return; }
+    keepFocus(M.parts.panel, function () {
+      var keep = panelReset('mail-desk', sig);
+      barTitle('Mail desk');
+      if (label) { barAdd(el('span', 'octo-tabs-mail-prov', label)); }
+      var box = el('div', 'octo-tabs-mail octo-tabs-mail-dk');
+      box.setAttribute('data-desk', mailDeskFirstRun(t) ? 'first_run' : 'ready');
+      box.appendChild(mailViewSw(t));
+      box.appendChild(mailDeskHead(t));
+      var al = mailDeskAlertsEl(t);
+      if (al) { box.appendChild(al); }
+      if (k.st === 'error') {
+        var er = el('div', 'octo-tabs-mail-dk-stale');
+        er.appendChild(muted('Could not refresh desk'));
+        er.appendChild(errRow(function () { mailDeskLoad(t, true); }));
+        box.appendChild(er);
+      }
+      if (mailDeskFirstRun(t)) {
+        var fr = el('div', 'octo-tabs-mail-dk-first');
+        fr.setAttribute('role', 'status');
+        fr.appendChild(spin());
+        var ft = el('div', 'octo-tabs-mail-dk-ftx');
+        ft.appendChild(el('div', 'octo-tabs-mail-dk-ft', 'Reading your newest emails'));
+        var fb = d.first;
+        ft.appendChild(el('div', 'octo-tabs-mail-dk-fd', (fb && fb.st === 'running' && fb.total) ? (fb.done + ' of ' + fb.total + ' done') : 'New emails appear here soon.'));
+        fr.appendChild(ft);
+        box.appendChild(fr);
+      } else {
+        box.appendChild(mailDeskToday(t));
+      }
+      box.appendChild(mailDeskSect(t, MAIL_DESK_SECTS[0]));
+      box.appendChild(mailDeskSect(t, MAIL_DESK_SECTS[1]));
+      box.appendChild(mailDeskSect(t, MAIL_DESK_SECTS[2]));
+      if (mailFuShow(t)) { var fu = mailFuEl(t); fu.setAttribute('data-sect', 'waiting'); box.appendChild(fu); }
+      box.appendChild(mailDeskSect(t, MAIL_DESK_SECTS[3]));
+      box.appendChild(mailDeskAskEl(t));
+      M.parts.pbody.appendChild(box);
+      M.parts.pbody.scrollTop = keep;
+    });
+  }
+  // After a setup (Architect OCTO-RAIL-GAD-HOOK marker slug inbox-chief-of-staff*): open the Mail tab once it is real.
+  // A workspace reload after the setup (load bumps M.gen) does not end the wait; a newer call, a shutdown or another
+  // tab the person picked meanwhile does.
+  var mailGoTok = 0;
+  function mailGoAfterSetup(slug) {
+    if (!/^inbox-chief-of-staff(-|$)/.test(str(slug))) { return; }
+    var n = 0, tok = ++mailGoTok;
+    (function go() {
+      if (tok !== mailGoTok || !M.armed || M.tab !== 'table') { return; }
+      if (M.mounted && mailOk() && selectTab('mail')) { trace('mail:after-setup'); return; }
+      if (++n > T.mailGoTries) { return; }
+      setTimeout(go, T.mailGoPoll);
+    })();
   }
   // ---- mail end
 
@@ -64837,6 +65423,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     openKnow: openKnow,
     selectTab: selectTab,
     tabState: tabState,
+    mailGoAfterSetup: mailGoAfterSetup,   // os8q: the after-setup Mail tab step (harness)
     previewUrl: previewUrl,
     arrResolve: arrResolve,
     linksWrite: linksWrite,
@@ -67282,10 +67869,15 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     va.appendChild(el('span', '', s.person ? ('Viewing as ' + s.person) : 'Viewing as someone'));
     return va;
   }
+  // Kriz 22.10 (3eeb76b tablosuz kurulum): tablo secilmedi (baglam yok, Bubble'da secili tablo yok, wsedit tutmuyor).
+  function noTable(s) { return !sheetName(s) && !ctx().key && !wseHold(); }
   function viewsGroup(s, kind, noProc) {
     var g = el('div', 'octo-wsb-views');
     g.setAttribute('role', 'group');
     g.setAttribute('aria-label', 'Views');
+    // Tablo yokken gorunum dugmesi yok (Processes bos menu, All records 'Could not open' verirdi): tek eylem Workspace
+    // secicisi. Grup gizli kalir; sigdirma yardimcilari ayni dugumlerle calisir.
+    if (noTable(s)) { g.hidden = true; var mb0 = btn('octo-wsb-more', 'views-menu', 'More views'); mb0.hidden = true; g.appendChild(mb0); return { g: g, mb: mb0, none: true }; }
     if (!noProc) {
       var pb = btn('octo-wsb-view', 'view');
       pb.setAttribute('data-view', 'board');
@@ -67425,8 +68017,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     var va = asChip(s);
     if (va) { b.appendChild(va); }
-    b.appendChild(el('span', 'octo-wsb-sep'));
     var v = viewsGroup(s, kind, noProc);
+    if (!v.none) { b.appendChild(el('span', 'octo-wsb-sep')); }
     b.appendChild(v.g);
     b.appendChild(el('span', 'octo-wsb-sep'));
     if (S.classic) { b.appendChild(doneBtn()); }
@@ -67452,8 +68044,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     wb.setAttribute('aria-label', 'Workspace, ' + (sheetName(s) || 'Workspace'));
     wb.setAttribute('data-tip', sheetName(s) || 'Workspace');
     S.zl.appendChild(wb);
-    S.zl.appendChild(el('span', 'octo-wsb-sep'));
     var v = viewsGroup(s, kind, noProc);
+    if (!v.none) { S.zl.appendChild(el('span', 'octo-wsb-sep')); }
     S.zl.appendChild(v.g);
     var va = asChip(s);
     if (va) { S.zr.appendChild(va); }
@@ -69600,7 +70192,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     try { var all = D.querySelectorAll('[' + A_GUTTER + ']'); for (var i = 0; i < all.length; i++) { g.push(str(all[i].className).slice(0, 60)); } } catch (e) { g = []; }
     var pc = S.armed ? preconditions() : { ok: false, why: 'flag' };
     return {
-      flag: ssGet(FLAG_KEY) === '1', armed: S.armed, mounted: S.mounted, variant: S.variant, pre: pc.ok ? (pc.err || 'ok') : pc.why,
+      // kriz 22.10: flag = son boot'ta okunan etkin bayrak (varsayilan acik dahil), yalniz octo_ws '1' degil
+      flag: S.flag, armed: S.armed, mounted: S.mounted, variant: S.variant, pre: pc.ok ? (pc.err || 'ok') : pc.why,
       rail: !!(railM() && railM().mounted), board: !!S.board, covered: S.covered,
       chrome: {
         side: s.side, sideShown: s.sideShown, bar: s.bar, sheets: s.sheets.length, sheet: s.sheet, lists: s.lists.length, cells: s.cells.length,
