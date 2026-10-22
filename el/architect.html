@@ -67218,7 +67218,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (typeof W.__octoWsQuery === 'string') { return W.__octoWsQuery; }
     try { return String((W.location && W.location.search) || ''); } catch (e) { return ''; }
   }
-  // Kurucu 22.10 (kriz): Bubble sol menuyu ve alt sureç barini gizledi; yeni gorunum HERKESE varsayilan.
+  // Kurucu 22.10 (kriz): Bubble sol menuyu ve alt surec barini gizledi; yeni gorunum HERKESE varsayilan.
   // ?ws=0|off sekme oturumu boyunca vazgecer (octo_ws '0'), ?ws=1|on vazgecmeyi kaldirir. Harness eski
   // 'bayrak yoksa kapali' davranisini window.__octoWsDefaultOff = true ile ister.
   function readFlag() {
@@ -67337,12 +67337,94 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     return !!r && r.width > 0 && r.height > 0 && shown(w, null);
   }
 
+  // Canli bulgu 22.10 (testeksper2, Dosyalar): More secicisi ve sayfa oklari Haziran ihracinin sinifini TASIMIYOR
+  // (More yalniz 'bubble-element Dropdown dropdown-chevron', oklar 'clickable-element bubble-element Icon <yeni>');
+  // More bulunamayinca surec listesi gorunur 5 hucreye inerdi. Sinif ilk tercih (baska Bubble surumlerinde olabilir),
+  // yoksa YAPIDAN. Hucre ici = SEL.cell icinde ya da hucre tasiyan RG hucresi (group-item) / RepeatingGroup icinde
+  // (hucre basina oklar, telefon secicisi, edit ikonu). Belirsizse null (tahmin yok).
+  var STUB_RE = /^["']?(PLACEHOLDER|BLANK)/;
+  function optStub(op) { return STUB_RE.test(str(op && op.value)); }
+  function matchSel(n, sel) {
+    try { var f = n.matches || n.msMatchesSelector || n.webkitMatchesSelector; return !!f && f.call(n, sel); } catch (e) { return false; }
+  }
+  function inCells(n, bar) {
+    for (var x = n; x && x !== bar && x.nodeType === 1; x = x.parentNode) {
+      if (matchSel(x, SEL.cell)) { return true; }
+      if ((hasCls(x, 'group-item') || hasCls(x, 'RepeatingGroup')) && q1(SEL.cell, x)) { return true; }
+    }
+    return false;
+  }
+  function boxOf(n) {
+    var r = null;
+    try { r = n.getBoundingClientRect(); } catch (e) { r = null; }
+    return (r && r.width > 0 && r.height > 0) ? r : null;
+  }
+  // More: hucre disindaki ilk gorunur <select>, secenekleri surec listesine benziyorsa (PLACEHOLDER / BLANK secenegi
+  // ya da hucre adiyla ortusen metin; kisaltilmis hucre adi on ek).
+  function moreFind(bar, cells) {
+    var all = null;
+    try { all = bar.querySelectorAll('select'); } catch (e) { all = null; }
+    for (var i = 0; all && i < all.length; i++) {
+      var m = all[i], hit = false;
+      if (inCells(m, bar) || !shown(m, bar)) { continue; }
+      for (var o = 0; o < m.options.length && !hit; o++) {
+        var op = m.options[o], ot = clean(op.textContent || op.label);
+        if (optStub(op)) { hit = true; }
+        for (var c = 0; c < cells.length && !hit && ot; c++) { if (ot === cells[c].name || preOf(cells[c].name, ot)) { hit = true; } }
+      }
+      if (hit) { return m; }
+    }
+    return null;
+  }
+  // Sayfa oklari: barda hucre disi, gorunur, ikon boyutunda (<= 80 x 64 px), hucre satirinda tiklanir ogeler (en
+  // icteki; More'u, bir hucreyi ya da secici tasiyan, Add stage olan sayilmaz). Kutusu ilk gorunur hucrenin solunda
+  // olan Onceki; son hucrenin saginda (More sagdaysa onun solunda) olan Sonraki. Birden cok aday: null.
+  function pagerFind(bar, cells, more) {
+    var out = { prev: null, next: null };
+    var L = Infinity, Rt = -Infinity, Tp = Infinity, Bt = -Infinity;
+    for (var i = 0; i < cells.length; i++) {
+      var r = boxOf(cells[i].node);
+      if (!r) { continue; }
+      L = Math.min(L, r.left); Rt = Math.max(Rt, r.right); Tp = Math.min(Tp, r.top); Bt = Math.max(Bt, r.bottom);
+    }
+    if (!(Rt > L)) { return out; }
+    var mr = more ? boxOf(more) : null;
+    var mL = (mr && mr.left >= Rt - 1) ? mr.left : Infinity;
+    var all = null;
+    try { all = bar.querySelectorAll('.clickable-element, button'); } catch (e) { all = null; }
+    var cand = [];
+    for (var j = 0; all && j < all.length; j++) {
+      var n = all[j];
+      if (more && (n === more || n.contains(more) || more.contains(n))) { continue; }
+      if (inCells(n, bar) || q1(SEL.cell, n) || q1('select', n)) { continue; }
+      if (upTo(n, function (x) { return matchSel(x, SEL.addStage); }, bar) || !shown(n, bar)) { continue; }
+      var b = boxOf(n);
+      if (!b || b.width > 80 || b.height > 64) { continue; }
+      var cy = b.top + b.height / 2;
+      if (cy < Tp - 16 || cy > Bt + 16) { continue; }
+      cand.push({ n: n, b: b });
+    }
+    // En icteki: baska bir adayi kapsayan aday duser (tik icteki ogeden kabarcikla yukari cikar).
+    var pv = [], nx = [];
+    for (var a = 0; a < cand.length; a++) {
+      var wraps = false;
+      for (var z = 0; z < cand.length && !wraps; z++) { if (z !== a && cand[a].n.contains(cand[z].n)) { wraps = true; } }
+      if (wraps) { continue; }
+      var cb = cand[a].b;
+      if (cb.right <= L + 1) { pv.push(cand[a].n); } else if (cb.left >= Rt - 1 && cb.right <= mL + 1) { nx.push(cand[a].n); }
+    }
+    out.prev = pv.length === 1 ? pv[0] : null;
+    out.next = nx.length === 1 ? nx[0] : null;
+    return out;
+  }
+
   function snapshot() {
     var side = sideRoot();
     var bar = barRoot();
     var s = {
       side: !!side, sideShown: !!side && shown(side, null), bar: false, sheets: [], sheet: -1, lists: [], list: -1, listsHidden: true,
       cells: [], cell: -1, more: null, moreOpts: [], moreSel: -1, prev: null, next: null,
+      how: { more: 'none', prev: 'none', next: 'none' },   // bulma yolu (diag): class | structure | none
       can: { addTable: null, addList: null, addStage: null, templates: null, gear: null, person: null },
       flows: null, company: '', person: ''
     };
@@ -67420,21 +67502,31 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         s.cells.push({ name: cn, node: c, count: cc ? numOf(cc) : null, selected: csel });
         if (csel && s.cell < 0) { s.cell = s.cells.length - 1; }
       }
-      // More: barin kendi secicisi; hucre icindeki telefon secicisi (Dropdown X) DEGIL.
+      // More: barin kendi secicisi; hucre icindeki telefon secicisi (Dropdown X) DEGIL. Sinif yoksa yapidan (moreFind).
       var mo = q1('select' + SEL.more, bar) || q1(SEL.more + ' select', bar);
-      if (mo && shown(mo, bar)) {
+      if (mo && shown(mo, bar)) { s.how.more = 'class'; } else { mo = moreFind(bar, s.cells); if (mo) { s.how.more = 'structure'; } }
+      if (mo) {
         s.more = mo;
         s.moreSel = mo.selectedIndex;
         for (var o = 0; o < mo.options.length; o++) {
           var op = mo.options[o];
           var ot = clean(op.textContent || op.label);
-          if (op.disabled || (o === 0 && (op.value === '' || /^more$/i.test(ot)))) { continue; }
+          // Canli deger bicimi '"PLACEHOLDER...' / '"BLANK_...' / '"<Bubble id>"': yer tutucu, bos secenek ve bos metin atlanir.
+          if (op.disabled || !ot || optStub(op) || (o === 0 && (op.value === '' || /^more$/i.test(ot)))) { continue; }
           s.moreOpts.push({ name: ot, index: o });
         }
       }
+      // Oklar: sinif DOM'da varsa o karar verir (gizliyse null); yoksa yapidan (pagerFind).
       var pv = bar.querySelector(SEL.prev), nx = bar.querySelector(SEL.next);
       s.prev = (pv && shown(pv, bar)) ? pv : null;
       s.next = (nx && shown(nx, bar)) ? nx : null;
+      if (pv) { s.how.prev = 'class'; }
+      if (nx) { s.how.next = 'class'; }
+      if (!pv || !nx) {
+        var pg = pagerFind(bar, s.cells, s.more);
+        if (!pv && pg.prev) { s.prev = pg.prev; s.how.prev = 'structure'; }
+        if (!nx && pg.next) { s.next = pg.next; s.how.next = 'structure'; }
+      }
       var as = bar.querySelector(SEL.addStage);
       if (as && shown(as, bar)) { s.can.addStage = as; }
     }
@@ -70285,6 +70377,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       chrome: {
         side: s.side, sideShown: s.sideShown, bar: s.bar, sheets: s.sheets.length, sheet: s.sheet, lists: s.lists.length, cells: s.cells.length,
         more: s.moreOpts.length, prev: !!s.prev, next: !!s.next, edit: !!editMode(), guest: guest(),
+        how: { more: s.how.more, prev: s.how.prev, next: s.how.next },   // canli bulgu 22.10: class | structure | none
         addTable: !!s.can.addTable, addList: !!s.can.addList, addStage: !!s.can.addStage, templates: !!s.can.templates, gear: !!s.can.gear,
         person: !!s.can.person, flows: !!s.flows
       },
