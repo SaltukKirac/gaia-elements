@@ -72642,6 +72642,43 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!b || typeof b.barParts !== 'function') { return null; }
     try { var r = b.barParts(bar, cells); return (r && typeof r === 'object') ? r : null; } catch (e) { return null; }
   }
+  // Inceleme 22.10 (canli bulgu 21.10 + More artik yapidan bulunuyor): edit kipinde Bubble hucre adini kisaltir ('Veri...'),
+  // More secenekleri tam ad. Satirlar More adiyla; hucre More'daki tam adla eslenmezse durum bos kalir, Edit / Show / Stop
+  // showing 'Could not open' derdi. Hucrenin tam adi (full): More'da tam esleme once; yoksa kisaltilmis ad ('...' / U+2026
+  // sonlu) More metnine on ek. Sayfa kaydirmasi More'da tekil, tam eslesen gorunur hucrelerden (hepsi ayni kaydirmayi
+  // vermeli); kaydirma biliniyorsa aday o konumda olmali, bilinmiyorsa tek aday. Aday yok / birden cok, More'da ayni adli
+  // iki secenek ya da ayni tam ad iki hucreye duserse esleme yok: hucre adi kalir (yanlis surece yazmaz). More yoksa hucre
+  // adi (bugunku gibi).
+  function truncPrefix(v) {
+    var m = /^(.*?)(?:\.\.\.|\u2026)$/.exec(clean(v));
+    return (m && /\S/.test(m[1])) ? m[1] : '';
+  }
+  function fullCells(cells, more) {
+    var i, j;
+    for (i = 0; i < cells.length; i++) { cells[i].full = cells[i].name; }
+    if (!more.length || !cells.length) { return; }
+    var cnt = Object.create(null), taken = Object.create(null), by = Object.create(null), off = null, bad = false;
+    for (j = 0; j < more.length; j++) { cnt[more[j]] = (cnt[more[j]] || 0) + 1; }
+    for (i = 0; i < cells.length; i++) {
+      var n = cells[i].name;
+      if (cnt[n]) { taken[n] = 1; }
+      if (cnt[n] === 1) { var d = more.indexOf(n) - i; if (off === null) { off = d; } else if (off !== d) { bad = true; } }
+    }
+    if (bad) { off = null; }
+    var pick = [];
+    for (i = 0; i < cells.length; i++) {
+      var p = cnt[cells[i].name] ? '' : truncPrefix(cells[i].name), hit = '';
+      if (p) {
+        var c = [];
+        for (j = 0; j < more.length; j++) { if (!taken[more[j]] && more[j].indexOf(p) === 0) { c.push(j); } }
+        if (off !== null) { c = (c.indexOf(off + i) >= 0) ? [off + i] : []; }
+        if (c.length === 1 && cnt[more[c[0]]] === 1) { hit = more[c[0]]; }
+      }
+      pick.push(hit);
+      if (hit) { by[hit] = (by[hit] || 0) + 1; }
+    }
+    for (i = 0; i < cells.length; i++) { if (pick[i] && by[pick[i]] === 1) { cells[i].full = pick[i]; } }
+  }
   function editSnap() {
     var side = sideRoot(), bar = barRoot();
     var e = { sheets: [], lists: [], cells: [], more: [], addList: null, addStage: null, prev: null, next: null, bar: false, cur: -1, how: { more: 'none', prev: 'none', next: 'none' } };
@@ -72714,6 +72751,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
           e.more.push(ot);
         }
       }
+      fullCells(e.cells, e.more);
       var as = q1(SEL.addStage, bar);
       if (as && shown(as, bar)) { e.addStage = as; }
     }
@@ -72731,7 +72769,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     return waitFor(function () { var sg = domSig(editSnap()); if (sg !== last) { last = sg; at = now(); } return now() - at >= T.settle; }, ms || T.editWait);
   }
   function learn(e, snap) {
-    for (var i = 0; i < snap.cells.length; i++) { if (snap.cells[i].state) { e.status[snap.cells[i].name] = snap.cells[i].state; } }
+    for (var i = 0; i < snap.cells.length; i++) { if (snap.cells[i].state) { e.status[snap.cells[i].full] = snap.cells[i].state; } }
   }
   // Canli bulgu 21.10: Bubble edit kipinde surec adini daha da kisaltir ('Veri...'). Yalniz gosterim: barin modeli ayni
   // konumda os_workspace tam adini veriyorsa (app-wsbar fullNames) o ad; yoksa Bubble metni. Vekiller Bubble adiyla.
@@ -72749,7 +72787,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var names = snap.more.length ? snap.more.slice() : snap.cells.map(function (c) { return c.name; });
     var labels = stageLabels(snap, names);
     var vis = {};
-    for (var i = 0; i < snap.cells.length; i++) { vis[snap.cells[i].name] = snap.cells[i]; }
+    for (var i = 0; i < snap.cells.length; i++) { vis[snap.cells[i].full] = snap.cells[i]; }
     return names.map(function (n, ix) {
       var c = vis[n] || null;
       return { name: n, label: str(labels[ix]) || n, ord: ix + 1, cell: c, state: c && c.state ? c.state : (e.status[n] || ''), dup: names.indexOf(n) !== names.lastIndexOf(n) };
@@ -72807,7 +72845,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     });
   }
   // Hedef surecin hucresi gorunur sayfada degilse: sayfa 1, sonra ileri (hucre adi ile). Dugum bekleme boyunca TUTULMAZ.
-  function findCell(name) { var snap = editSnap(); for (var i = 0; i < snap.cells.length; i++) { if (snap.cells[i].name === name) { return snap.cells[i]; } } return null; }
+  // Satir adi (More'un tam adi ya da More yoksa hucre adi) hucrenin full adiyla (fullCells) bulunur.
+  function findCell(name) { var snap = editSnap(); for (var i = 0; i < snap.cells.length; i++) { if (snap.cells[i].full === name) { return snap.cells[i]; } } return null; }
   function withStage(name) {
     var hit = findCell(name);
     if (hit) { return Promise.resolve(true); }
