@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "dev",
-    "rev":  61,
-    "updated":  "2026-10-22T08:28:52Z",
+    "rev":  62,
+    "updated":  "2026-10-22T09:20:07Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "606dd8ab9eb67a257ca58ad740a4720255313291",
@@ -13,12 +13,12 @@
                                             "updated":  "2026-10-21T13:00:06Z"
                                         },
                      "architect":  {
-                                       "commit":  "7ade0d799c1ea253b08865563e035a937f86fb13",
+                                       "commit":  "e2aea9bbf0b7244e33f1a906bc52299ee7b81b89",
                                        "path":  "el/architect.html",
-                                       "blob":  "21ef8b3f28ba51b195453711ff4a74cf86b2ab63",
-                                       "bytes":  4025743,
+                                       "blob":  "0453d1173f25ecf5657725b55aa13eaa4dcdb1da",
+                                       "bytes":  4027478,
                                        "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-10-22T08:28:52Z"
+                                       "updated":  "2026-10-22T09:20:07Z"
                                    },
                      "form":  {
                                   "commit":  "9df438953f0f057028f83a37c85805f8f7121993",
@@ -63,12 +63,12 @@
                                    "updated":  "2026-10-21T12:30:54Z"
                                },
                      "template-page":  {
-                                           "commit":  "f1d4f376bf90e49f1d2aaa0a6ca2b6748356e728",
+                                           "commit":  "e2aea9bbf0b7244e33f1a906bc52299ee7b81b89",
                                            "path":  "el/template-page.html",
-                                           "blob":  "ad0a8447ac3f896080eb44e4e67323458d97c609",
-                                           "bytes":  286311,
+                                           "blob":  "ea4781cce9230c7fff12a9102a770d9e64326336",
+                                           "bytes":  286439,
                                            "title":  "Template detail page (public, /template/\u003cslug\u003e)",
-                                           "updated":  "2026-10-21T12:05:34Z"
+                                           "updated":  "2026-10-22T09:20:07Z"
                                        },
                      "templates-button":  {
                                               "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
