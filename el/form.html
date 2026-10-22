@@ -4707,13 +4707,37 @@
         } catch (_) { }
       }
 
+      // Bubble MultiFileUploader = Dropzone.js (22.10.2026 canlı DOM): örnek .dropzone öğesinin `dropzone` alanında,
+      // gizli dosya input'u ise BODY'nin altında (hiddenInputContainer), yükleyicinin içinde DEĞİL. Input her
+      // seçimden sonra yeniden kurulur; her seferinde örnekten taze okunmalı.
+      function bdf_findDropzoneInstance(rootEl) {
+        try {
+          if (!rootEl) return null;
+          const cands = [rootEl].concat(Array.from(rootEl.querySelectorAll ? rootEl.querySelectorAll(".dropzone, .dz-clickable") : []));
+          for (const el of cands) {
+            const dz = el && el.dropzone;
+            if (dz && typeof dz.addFile === "function") return dz;
+          }
+        } catch (_) { }
+        return null;
+      }
+
+      function bdf_findExternalUploaderInput(mountEl) {
+        if (!mountEl) return null;
+        const inner = mountEl.querySelector && mountEl.querySelector('input[type="file"]');
+        if (inner) return inner;
+        const dz = bdf_findDropzoneInstance(mountEl);
+        const hidden = dz && dz.hiddenFileInput;
+        return hidden && hidden.nodeType === 1 && hidden.isConnected ? hidden : null;
+      }
+
       function bdf_tryAssignDroppedFilesToExternalUploaderInput(mountEl, filesLike) {
         try {
           if (!mountEl) return false;
           const files = Array.from(filesLike || []).filter(Boolean);
           if (!files.length) return false;
 
-          const input = mountEl.querySelector && mountEl.querySelector('input[type="file"]');
+          const input = bdf_findExternalUploaderInput(mountEl);
           if (!input) return false;
 
           // Programatik files ataması her tarayıcıda garanti değil; mümkünse DataTransfer ile deneyelim.
@@ -16104,11 +16128,37 @@
             let folderRow = null;
             if (allowMultiple) {
               // Bubble uploader henüz bu alana taşınmadıysa input gelene kadar kısa süre bekle (en çok ~10 sn).
-              const feedExternalUploader = (files) => {
+              // Alanın dosya sınırı Dropzone'a vermeden ÖNCE uygulanır: sonradan bdf_applyUrlLimit kırparsa fazlası
+              // boşuna yüklenir ve eski dosyalar düşebilir.
+              const feedExternalUploader = (files, noteFor) => {
                 requestExternalUploaderInteraction({ autoOpenPicker: false, showPreparingToast: false });
                 let tries = 0;
                 const attempt = () => {
-                  if (bdf_tryAssignDroppedFilesToExternalUploaderInput(externalMount, files)) return;
+                  if (bdf_findExternalUploaderInput(externalMount)) {
+                    const dz = bdf_findDropzoneInstance(externalMount);
+                    const max = bdf_readInt(state.externalUploaderMaxFilesByField[field.key], maxFiles);
+                    let room = max - (state.fileBuffers[field.key] || []).length;
+                    try { if (dz) room -= dz.getQueuedFiles().length + dz.getUploadingFiles().length; } catch (_) { }
+                    try {
+                      const dzMax = Number(dz && dz.options && dz.options.maxFiles);
+                      if (dzMax > 0) room = Math.min(room, dzMax - dz.getAcceptedFiles().length);
+                    } catch (_) { }
+                    const batch = files.slice(0, Math.max(0, room));
+                    if (!batch.length) {
+                      bdf_showToast(`This field already has the most files it accepts (${max}).`, "err");
+                      return;
+                    }
+                    if (bdf_tryAssignDroppedFilesToExternalUploaderInput(externalMount, batch)) {
+                      const left = files.length - batch.length;
+                      if (left) {
+                        bdf_showToast(`${noteFor(batch.length)} ${left} not added: this field accepts up to ${max} files.`, "err");
+                        console.warn(`[BDF] folder cap: "${field.key}" ${left} dosya ${max} sınırına takıldı`);
+                      } else {
+                        bdf_showToast(noteFor(batch.length), "info");
+                      }
+                      return;
+                    }
+                  }
                   tries += 1;
                   if (tries > 40) {
                     bdf_showToast("The uploader isn't ready yet. Please try again.", "err");
@@ -16135,13 +16185,21 @@
                 const from = picked.folders.length === 1
                   ? ` from ${picked.folders[0]}`
                   : (picked.folders.length > 1 ? ` from ${picked.folders.length} folders` : "");
-                let msg = `Adding ${usable.length} file${usable.length === 1 ? "" : "s"}${from}.`;
-                if (skipped) msg += ` ${skipped} skipped (unsupported type).`;
-                if (picked.truncated) msg += ` Only the first ${BDF_FOLDER_MAX_SCAN} files were read.`;
-                bdf_showToast(msg, "info");
+                // sent < usable.length yalnız Bubble uploader yolunda (sınır orada, vermeden önce uygulanır).
+                const noteFor = (sent) => {
+                  const count = sent < usable.length ? `${sent} of ${usable.length} files` : `${usable.length} file${usable.length === 1 ? "" : "s"}`;
+                  let msg = `Adding ${count}${from}.`;
+                  if (skipped) msg += ` ${skipped} skipped (unsupported type).`;
+                  if (picked.truncated) msg += ` Only the first ${BDF_FOLDER_MAX_SCAN} files were read.`;
+                  return msg;
+                };
                 console.log("[BDF] folder files", { field: field.key, folders: picked.folders, count: usable.length, skipped, truncated: picked.truncated });
-                if (hasExternalUploader) feedExternalUploader(usable);
-                else handleFiles(usable);
+                if (hasExternalUploader) {
+                  feedExternalUploader(usable, noteFor);
+                } else {
+                  bdf_showToast(noteFor(usable.length), "info");
+                  handleFiles(usable);
+                }
               };
 
               // Yakalama aşaması: klasör içeren bırakma Bubble uploader'ın kendi işleyicisine ve aşağıdaki olağan
