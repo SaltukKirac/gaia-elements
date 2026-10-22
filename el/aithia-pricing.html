@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AITHIA | Your AI email colleague</title>
+<meta name="description" content="AITHIA is your AI email colleague. Find the context, prepare the reply, follow through. One subscription with no per-email charges. Choose Focus, Compose or Coordinate.">
+<!--
+  AITHIA pricing and checkout page (public, /aithia). Element name: aithia-pricing (element-deploy/elements.json).
+  The loader injects this whole document with template.innerHTML, so every style rule is scoped under #aithia and
+  the html/head/body wrappers are dropped by the browser. Design tokens: the shared --gx-* set (MARKA_UI_DILI.md
+  section 2); the older Apple variable set is not used here.
+
+  How it works
+  - One config object at the top of the script: window.AITHIA_PRICING (env, Paddle client-side keys per environment,
+    price ids per environment, maxMailboxes, successPath, fromSlug). A Bubble page header may define
+    window.AITHIA_PRICING before this element mounts; its fields override the defaults, so ids change without a
+    redeploy (shapes: AITHIA_PRICING_PAGE.md section 2). env is sandbox under /version-test; ?paddle=sandbox counts only off gaiasphere.io,
+    under /version-test, or with the test flag (the live host ignores it).
+  - Amounts come only from Paddle.PricePreview (cached per plan, period, quantity; a failed key is remembered until
+    Try again). Empty price id or key = "Pricing is being set up".
+  - maxMailboxes is 1 at launch: the stepper row and the "x N mailboxes" wording appear only when the config raises it.
+  - Checkout: Paddle.Checkout.open in overlay mode with customData { product, plan, source, app_version, from,
+    user_sirket, user_id }. Bubble must set window.__gxUserSirket and window.__gxUserId on the page before the
+    element mounts. They are hints only (page globals are writable): the server binds the subscription by a verified
+    signal, never by these ids alone. Without them the payment event reaches the server as unbound and support binds
+    it by hand. A card CTA pressed while that plan x quantity preview is still loading opens checkout as soon as the
+    preview arrives (pendingOpen); a failed preview releases it.
+  - checkout.error (Paddle could not open the checkout) and a 20 s wait without checkout.loaded show "Checkout is not
+    available right now. Try again."; checkout.payment.failed and checkout.payment.error show the payment message.
+  - After checkout.completed the page writes the same gx_flagship_pending intent as _gx_product_card.html, moves
+    focus to the success card (role=status) and offers "Open AITHIA". States: loading, setup, ready, preview_failed,
+    opening, script_failed, closed, error, offline, success.
+  - window.__aithiaDemo { setState, setPrices, mode } exists for the Playwright checks only; it is a no-op on a live host.
+  Docs: template-factory/docs/aithia_2026-10-19/AITHIA_PRICING_PAGE.md. Checks: docs/aithia_2026-10-19/checks/.
+  Copy rules: English, ASCII punctuation, brand names fixed (lang="en" translate="no"), no numbers in the markup.
+-->
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+  #aithia{
+    --gx-font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --gx-primary:#6366f1;--gx-primary-deep:#4f46e5;
+    --gx-grad:linear-gradient(135deg,#6366f1,#8b5cf6);
+    --gx-ink:#0f172a;--gx-ink-2:#475569;--gx-ink-3:#94a3b8;
+    --gx-line:#e2e8f0;--gx-line-soft:#eef2f7;
+    --gx-bg:#f8fafc;--gx-surface:#ffffff;--gx-field:#f6f7f9;
+    --gx-ok:#16a34a;--gx-ok-bg:#f0fdf4;--gx-err:#dc2626;--gx-err-bg:#fef2f2;
+    --gx-r-sm:6px;--gx-r-md:10px;--gx-r-lg:16px;--gx-r-pill:999px;
+    --gx-shadow-sm:0 1px 2px rgba(15,23,42,.05);--gx-shadow-md:0 8px 24px -12px rgba(15,23,42,.18);
+    --gx-ring:0 0 0 3px rgba(99,102,241,.12);
+  }
+  #aithia{font-family:var(--gx-font);color:var(--gx-ink);background:#fff;font-size:17px;line-height:1.55;letter-spacing:-.002em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  #aithia *,#aithia *::before,#aithia *::after{box-sizing:border-box;margin:0;padding:0}
+  #aithia [hidden]{display:none!important}
+  #aithia.is-embedded>footer,#aithia.is-embedded>.ax-sec:not(#ax-packages){display:none!important}
+  #aithia a{color:var(--gx-primary-deep);text-decoration:none}#aithia a:hover{text-decoration:underline}
+  #aithia button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;letter-spacing:inherit}
+  #aithia button:disabled{cursor:default}
+  #aithia ul{list-style:none}
+  #aithia :focus-visible{outline:2px solid var(--gx-primary);outline-offset:2px}
+  #aithia .ax-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  #aithia .ax-wrap{max-width:980px;margin:0 auto;padding:0 20px}
+  #aithia .ax-sec{padding:64px 0}
+  #aithia .ax-band{background:var(--gx-bg)}
+  #aithia .stitle{font-size:clamp(26px,3.6vw,36px);font-weight:600;letter-spacing:-.018em;line-height:1.15}
+  #aithia .ssub{font-size:17px;color:var(--gx-ink-2);margin-top:10px;max-width:620px;line-height:1.5}
+  @media(min-width:760px){#aithia .ax-sec{padding:84px 0}}
+
+  /* hero: copy on the left, the order form on the right from 980 px */
+  #aithia .ax-hero{padding:56px 0 44px}
+  #aithia .ax-hero-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:36px}
+  #aithia .ax-eyebrow{font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--gx-ink-2);margin-bottom:20px}
+  #aithia .ax-h1{font-weight:700;letter-spacing:-.035em;line-height:1}
+  #aithia .ax-brand{display:block;font-size:clamp(54px,9vw,88px)}
+  #aithia .ax-tagline{display:block;font-size:clamp(24px,3.4vw,34px);font-weight:500;letter-spacing:-.02em;line-height:1.2;margin-top:14px}
+  #aithia .ax-sub{font-size:clamp(19px,2.4vw,22px);color:var(--gx-ink-2);margin-top:22px}
+  #aithia .ax-line{font-size:17px;font-weight:500;margin-top:6px}
+  #aithia .ax-story{font-size:15px;color:var(--gx-ink-2);margin-top:26px;max-width:520px;padding-left:14px;border-left:2px solid var(--gx-line);line-height:1.5}
+  @media(min-width:980px){
+    #aithia .ax-hero{padding:84px 0 64px}
+    #aithia .ax-hero-grid{grid-template-columns:minmax(0,1fr) 384px;gap:56px;align-items:start}
+  }
+
+  /* basket */
+  #aithia .ax-basket{background:var(--gx-surface);border:1px solid var(--gx-line-soft);border-radius:var(--gx-r-lg);box-shadow:var(--gx-shadow-md);padding:22px 20px;max-width:440px;min-width:0}
+  @media(min-width:980px){#aithia .ax-basket{max-width:none}}
+  #aithia .ax-bk-title{font-size:14px;font-weight:600;color:var(--gx-ink-2);letter-spacing:.01em}
+  #aithia .ax-bk-plan{display:flex;align-items:center;gap:10px;margin-top:6px;padding-bottom:12px;border-bottom:1px solid var(--gx-line-soft)}
+  #aithia .ax-bk-plan strong{font-size:21px;font-weight:600;letter-spacing:-.015em;flex:1 1 auto;min-width:0}
+  #aithia .ax-change{font-size:14px;font-weight:500;min-height:44px;display:inline-flex;align-items:center;padding:0 8px;margin-right:-8px}
+  #aithia .ax-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}
+  #aithia .ax-row-l{font-size:15px;font-weight:500}
+  #aithia .ax-seg{display:inline-flex;background:var(--gx-field);border:1px solid var(--gx-line-soft);border-radius:var(--gx-r-pill);padding:3px}
+  #aithia .ax-seg button{min-height:44px;min-width:44px;padding:0 18px;border-radius:var(--gx-r-pill);font-size:15px;font-weight:500;color:var(--gx-ink-2)}
+  #aithia .ax-seg button[aria-pressed="true"]{background:var(--gx-surface);color:var(--gx-ink);box-shadow:var(--gx-shadow-sm)}
+  #aithia .ax-step{display:inline-flex;align-items:stretch;border:1px solid var(--gx-line);border-radius:var(--gx-r-md);overflow:hidden;background:var(--gx-field)}
+  #aithia .ax-step button{width:44px;height:44px;font-size:22px;line-height:1;color:var(--gx-ink)}
+  #aithia .ax-step button:hover{background:var(--gx-line-soft)}
+  #aithia .ax-step button[aria-disabled="true"]{color:var(--gx-ink-3);cursor:default}
+  #aithia .ax-step button[aria-disabled="true"]:hover{background:none}
+  #aithia .ax-step button:focus-visible{outline-offset:-2px;border-radius:0}
+  #aithia .ax-step input{width:52px;height:44px;text-align:center;border:0;border-left:1px solid var(--gx-line);border-right:1px solid var(--gx-line);background:var(--gx-surface);font:inherit;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--gx-ink);border-radius:0}
+  #aithia .ax-step input:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--gx-primary)}
+  #aithia .ax-help{font-size:13px;color:var(--gx-ink-2);margin-top:8px}
+  #aithia .ax-total{margin-top:16px;padding-top:14px;border-top:1px solid var(--gx-line-soft)}
+  #aithia .ax-amount-row{display:flex;align-items:baseline;gap:6px;min-height:40px;flex-wrap:wrap}
+  #aithia .ax-amount{font-size:34px;font-weight:600;letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1.1;overflow-wrap:anywhere}
+  #aithia .ax-per{font-size:15px;color:var(--gx-ink-2);font-weight:500}
+  #aithia .is-setup .ax-amount-row{display:none}
+  #aithia .ax-live{font-size:14px;color:var(--gx-ink-2);margin-top:6px;min-height:21px;overflow-wrap:anywhere}
+  #aithia .is-loading .ax-live::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gx-primary);margin-right:8px;vertical-align:middle;animation:ax-pulse 1.2s ease-in-out infinite}
+  @keyframes ax-pulse{0%,100%{opacity:.25}50%{opacity:1}}
+  #aithia .ax-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:var(--gx-r-md);font-size:16px;font-weight:600;letter-spacing:-.005em;transition:transform .15s ease,opacity .15s ease;text-align:center}
+  #aithia .ax-btn-primary{background:var(--gx-grad);color:#fff;box-shadow:var(--gx-shadow-sm)}
+  #aithia .ax-btn-primary:hover:not(:disabled){transform:translateY(-1px)}
+  #aithia .ax-btn:active:not(:disabled){transform:scale(.98)}
+  #aithia .ax-btn:disabled{opacity:.5}
+  #aithia .ax-buy{width:100%;margin-top:16px}
+  #aithia .ax-msg{display:none;margin-top:12px;font-size:14px;line-height:1.45}
+  #aithia .ax-msg.is-on{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;border-radius:var(--gx-r-md);background:var(--gx-bg);color:var(--gx-ink)}
+  #aithia .ax-msg.is-err{background:var(--gx-err-bg);color:var(--gx-err)}
+  #aithia .ax-msg span{flex:1 1 180px}
+  #aithia .ax-retry{min-height:44px;padding:0 14px;border-radius:var(--gx-r-sm);border:1px solid var(--gx-line);background:var(--gx-surface);font-weight:600;font-size:14px;color:var(--gx-ink)}
+  #aithia .ax-bk-foot{font-size:13px;color:var(--gx-ink-2);margin-top:14px;text-align:center}
+  #aithia .ax-success h2{font-size:22px;font-weight:600;letter-spacing:-.015em;display:flex;align-items:center;gap:10px}
+  #aithia .ax-ok{width:28px;height:28px;border-radius:50%;background:var(--gx-ok-bg);color:var(--gx-ok);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+  #aithia .ax-success p{margin-top:10px;color:var(--gx-ink-2);font-size:16px}
+  #aithia .ax-success .ax-btn{margin-top:18px;width:100%}
+
+  /* commercial band */
+  #aithia .ax-commercial{padding:30px 0}
+  #aithia .ax-commercial p{font-size:clamp(20px,2.8vw,26px);font-weight:600;letter-spacing:-.018em;line-height:1.25}
+  #aithia .ax-commercial p+p{font-size:17px;font-weight:400;color:var(--gx-ink-2);margin-top:6px;letter-spacing:-.002em}
+
+  /* packages: a native radio group, the card body is the label, the CTA opens checkout */
+  #aithia .ax-plans{border:0;min-width:0;margin-top:32px;display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:760px){#aithia .ax-plans{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  #aithia .ax-plan{position:relative;display:flex;flex-direction:column;min-width:0;background:var(--gx-surface);border:1px solid var(--gx-line-soft);border-radius:var(--gx-r-lg);box-shadow:var(--gx-shadow-sm);padding:22px 20px 20px;transition:border-color .15s ease,box-shadow .15s ease}
+  #aithia .ax-plan.is-on{border-color:var(--gx-primary);box-shadow:0 0 0 1px var(--gx-primary),var(--gx-shadow-md)}
+  #aithia .ax-plan.is-focus{outline:2px solid var(--gx-primary);outline-offset:3px}
+  #aithia .ax-radio{position:absolute;opacity:0;width:1px;height:1px;top:0;left:0;pointer-events:none}
+  #aithia .ax-plan-body{display:block;flex:1 1 auto;cursor:pointer}
+  #aithia .ax-plan-head{display:flex;align-items:center;gap:10px}
+  #aithia .ax-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--gx-line);flex:0 0 auto;transition:border .15s ease}
+  #aithia .is-on .ax-dot{border:6px solid var(--gx-primary)}
+  #aithia .ax-plan-name{font-size:19px;font-weight:600;letter-spacing:-.012em;flex:1 1 auto;min-width:0}
+  #aithia .ax-pill{position:absolute;top:-12px;right:16px;font-size:12px;font-weight:600;color:var(--gx-primary-deep);background:var(--gx-surface);border:1px solid var(--gx-primary);border-radius:var(--gx-r-pill);padding:3px 10px;white-space:nowrap;line-height:1.4}
+  #aithia .ax-plan-one{display:block;font-size:17px;font-weight:600;margin-top:14px;letter-spacing:-.01em;line-height:1.35}
+  #aithia .ax-plan-desc{display:block;font-size:15px;color:var(--gx-ink-2);margin-top:8px;line-height:1.5}
+  #aithia .ax-plan-price{display:block;margin-top:16px;font-size:14px;color:var(--gx-ink-2);min-height:30px;line-height:1.4}
+  #aithia .ax-plan-price b{display:block;font-size:24px;font-weight:600;color:var(--gx-ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.2}
+  #aithia .ax-plan-list{margin-top:14px;padding-top:14px;border-top:1px solid var(--gx-line-soft);display:grid;gap:8px}
+  #aithia .ax-plan-list li,#aithia .ax-inc li{position:relative;padding-left:26px;font-size:15px;line-height:1.45}
+  #aithia .ax-plan-list li::before,#aithia .ax-inc li::before{content:"";position:absolute;left:3px;top:6px;width:10px;height:6px;border-left:2px solid var(--gx-primary);border-bottom:2px solid var(--gx-primary);transform:rotate(-45deg)}
+  #aithia .ax-cta{margin-top:18px;width:100%;border:1px solid var(--gx-line);background:var(--gx-surface);color:var(--gx-ink)}
+  #aithia .is-on .ax-cta{background:var(--gx-grad);color:#fff;border-color:transparent}
+  #aithia .ax-note{font-size:14px;color:var(--gx-ink-2);margin-top:18px}
+
+  /* included everywhere */
+  #aithia .ax-inc{margin-top:28px;display:grid;grid-template-columns:1fr;gap:12px 32px;max-width:720px}
+  @media(min-width:640px){#aithia .ax-inc{grid-template-columns:1fr 1fr}}
+  #aithia .ax-inc li{font-size:17px;padding-left:28px}
+  #aithia .ax-inc li::before{top:9px;left:3px;width:11px;height:6px}
+  #aithia .ax-trust{margin-top:28px;display:flex;flex-wrap:wrap;gap:12px}
+  #aithia .ax-trust p{font-size:15px;font-weight:600;padding:12px 16px;border:1px solid var(--gx-line);border-radius:var(--gx-r-md);background:var(--gx-surface)}
+
+  /* how Ask Aithia answers */
+  #aithia .ax-how-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:36px}
+  @media(min-width:900px){#aithia .ax-how-grid{grid-template-columns:minmax(0,1fr) 440px;gap:56px;align-items:start}}
+  #aithia .ax-how-list{margin-top:24px;display:grid;gap:16px;max-width:520px}
+  #aithia .ax-how-list li{font-size:16px;color:var(--gx-ink-2);line-height:1.5}
+  #aithia .ax-how-list strong{display:block;color:var(--gx-ink);font-weight:600}
+  #aithia .ax-steps{counter-reset:s;list-style:none}
+  #aithia .ax-steps li{counter-increment:s;position:relative;padding-left:44px;min-height:30px}
+  #aithia .ax-steps li::before{content:counter(s);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:999px;background:var(--gx-primary);color:#fff;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center}
+  #aithia .ax-win{margin-top:36px;max-width:620px;font-size:17px;line-height:1.5;color:var(--gx-ink-2)}
+  #aithia .ax-win strong{display:block;font-size:clamp(20px,2.6vw,24px);font-weight:600;letter-spacing:-.012em;color:var(--gx-ink);margin-bottom:6px}
+  #aithia .ax-demo{position:relative;border:1px solid var(--gx-line-soft);border-radius:var(--gx-r-lg);background:var(--gx-bg);padding:22px 16px 16px;margin-top:12px;min-width:0}
+  #aithia .ax-demo-label{position:absolute;top:-12px;left:16px;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--gx-ink-2);background:var(--gx-surface);border:1px solid var(--gx-line);border-radius:var(--gx-r-pill);padding:3px 10px}
+  #aithia .ax-chat{display:grid;gap:12px}
+  #aithia .ax-q{justify-self:end;max-width:86%;background:var(--gx-primary);color:#fff;border-radius:16px 16px 4px 16px;padding:10px 14px;font-size:15px;line-height:1.45}
+  #aithia .ax-a{justify-self:start;max-width:94%;background:var(--gx-surface);border:1px solid var(--gx-line-soft);border-radius:16px 16px 16px 4px;padding:12px 14px;font-size:15px;line-height:1.5;color:var(--gx-ink-2);box-shadow:var(--gx-shadow-sm)}
+  #aithia .ax-a-head{font-weight:600;color:var(--gx-ink)}
+  #aithia .ax-a>*+*{margin-top:6px}
+  #aithia .ax-src{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--gx-primary-deep);background:rgba(99,102,241,.08);border-radius:var(--gx-r-sm);padding:4px 8px}
+  #aithia .ax-chk{font-size:12px;color:var(--gx-ink-2)}
+  #aithia .ax-chip{display:inline-block;font-size:13px;font-weight:600;color:var(--gx-ink);border:1px solid var(--gx-line);border-radius:var(--gx-r-pill);padding:6px 12px;background:var(--gx-surface)}
+  #aithia .ax-compose{margin-top:4px;border:1px solid var(--gx-line);border-radius:var(--gx-r-pill);padding:12px 16px;font-size:14px;color:var(--gx-ink-2);background:var(--gx-surface)}
+
+  /* mailboxes */
+  #aithia .ax-mail{margin-top:28px;display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:560px){#aithia .ax-mail{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  #aithia .ax-mail li{background:var(--gx-surface);border:1px solid var(--gx-line-soft);border-radius:var(--gx-r-md);padding:16px 18px;font-size:16px;font-weight:600;display:flex;align-items:center;gap:12px;box-shadow:var(--gx-shadow-sm)}
+  #aithia .ax-mail svg{flex:0 0 auto;color:var(--gx-primary)}
+
+  /* secure checkout */
+  #aithia .ax-pay{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:24px}
+  #aithia .ax-pay img{height:30px;width:auto;display:block;border-radius:5px}
+
+  /* faq */
+  #aithia .ax-faq{margin-top:28px;border-top:1px solid var(--gx-line);max-width:760px}
+  #aithia .ax-faq details{border-bottom:1px solid var(--gx-line)}
+  #aithia .ax-faq summary{list-style:none;cursor:pointer;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+  #aithia .ax-faq summary::-webkit-details-marker{display:none}
+  #aithia .ax-faq summary::after{content:"";flex:0 0 auto;width:10px;height:10px;margin-right:6px;border-right:2px solid var(--gx-ink-2);border-bottom:2px solid var(--gx-ink-2);transform:rotate(45deg);transition:transform .15s ease}
+  #aithia .ax-faq details[open] summary::after{transform:rotate(-135deg)}
+  #aithia .ax-faq p{padding:0 0 18px;font-size:16px;color:var(--gx-ink-2);max-width:680px;line-height:1.55}
+
+  /* footer */
+  #aithia footer{background:var(--gx-bg);border-top:1px solid var(--gx-line)}
+  #aithia footer .ax-wrap{padding-top:16px;padding-bottom:26px}
+  #aithia .ax-fl{display:flex;flex-wrap:wrap;gap:0 20px;margin-bottom:6px}
+  #aithia .ax-fl a{font-size:13px;color:var(--gx-ink-2);min-height:44px;display:inline-flex;align-items:center}
+  #aithia .ax-fl a:hover{color:var(--gx-ink)}
+  #aithia .ax-cp{font-size:12px;color:var(--gx-ink-2);line-height:1.5}
+
+  @media(prefers-reduced-motion:reduce){
+    #aithia .is-loading .ax-live::before{animation:none}
+    #aithia .ax-btn,#aithia .ax-plan,#aithia .ax-dot,#aithia .ax-faq summary::after{transition:none}
+    #aithia .ax-btn-primary:hover:not(:disabled){transform:none}
+  }
+</style>
+</head>
+<body>
+<div id="aithia" lang="en" translate="no" class="notranslate">
+
+  <section class="ax-hero"><div class="ax-wrap ax-hero-grid">
+    <div class="ax-hero-copy">
+      <p class="ax-eyebrow">OCTONOM PRESENTS</p>
+      <h1 class="ax-h1"><span class="ax-brand">AITHIA</span><span class="ax-tagline">The AI that remembers.</span></h1>
+      <p class="ax-sub">Your AI email colleague.</p>
+      <p class="ax-line">Find the context. Prepare the reply. Follow through.</p>
+      <p class="ax-story">The answer you need is often buried in an old thread. Aithia finds the context, prepares your reply and keeps the next step in view, so you can answer with the full picture.</p>
+    </div>
+
+    <aside class="ax-basket" id="ax-basket" lang="en" translate="no" aria-label="Your plan">
+      <div id="ax-bk-form">
+        <h2 class="ax-bk-title" id="ax-bk-title">Your plan</h2>
+        <div class="ax-bk-plan"><strong id="ax-bk-plan">AITHIA Compose</strong><a class="ax-change" id="ax-change" href="#ax-packages">Change package</a></div>
+        <div class="ax-row">
+          <span class="ax-row-l" id="ax-period-l">Billing</span>
+          <div class="ax-seg" role="group" aria-labelledby="ax-period-l">
+            <button type="button" id="ax-mo" aria-pressed="true">Monthly</button>
+            <button type="button" id="ax-yr" aria-pressed="false">Annual</button>
+          </div>
+        </div>
+        <div class="ax-row" id="ax-qty-row">
+          <label class="ax-row-l" for="ax-qty">Mailboxes</label>
+          <div class="ax-step">
+            <button type="button" id="ax-dec" aria-label="Fewer mailboxes">-</button>
+            <input id="ax-qty" type="text" inputmode="numeric" pattern="[0-9]*" value="1" autocomplete="off" aria-describedby="ax-qty-help">
+            <button type="button" id="ax-inc" aria-label="More mailboxes">+</button>
+          </div>
+        </div>
+        <p class="ax-help" id="ax-qty-help">One connected mailbox each.</p>
+        <div class="ax-total">
+          <div class="ax-amount-row" aria-hidden="true"><span class="ax-amount" id="ax-amount"></span><span class="ax-per" id="ax-per"></span></div>
+          <p class="ax-live" id="ax-live" role="status" aria-live="polite"></p>
+        </div>
+        <button type="button" class="ax-btn ax-btn-primary ax-buy" id="ax-buy">Choose Compose</button>
+        <div class="ax-msg" id="ax-msg" aria-live="polite"></div>
+        <p class="ax-bk-foot">Payments handled by Paddle. Cancel anytime.</p>
+      </div>
+      <div class="ax-success" id="ax-success" role="status" tabindex="-1" hidden>
+        <h2><span class="ax-ok" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Payment received.</h2>
+        <p id="ax-success-lead">Your AITHIA plan is being activated. You will see it in the app shortly.</p>
+        <p id="ax-success-note" hidden>Sign in with the account you used here. Support confirms the link.</p>
+        <button type="button" class="ax-btn ax-btn-primary" id="ax-open">Open AITHIA</button>
+      </div>
+    </aside>
+  </div></section>
+
+  <section class="ax-band ax-commercial"><div class="ax-wrap">
+    <p>One subscription. No per-email or per-flow charges.</p>
+    <p>One connected mailbox per subscription.</p>
+  </div></section>
+
+  <section class="ax-sec"><div class="ax-wrap">
+    <h2 class="stitle">Your inbox should not be your memory.</h2>
+    <ul class="ax-how-list">
+      <li><strong>The answer is somewhere in an old thread.</strong>An offer, a date, a promise. Finding it means digging while someone waits.</li>
+      <li><strong>You are never quite sure nothing slipped.</strong>A quote nobody answered. A reply you still owe.</li>
+      <li><strong>Left to the inbox, it costs you.</strong>Offers go quiet, follow-ups come late and the same context gets rebuilt by hand.</li>
+    </ul>
+  </div></section>
+
+  <section class="ax-sec ax-band" id="ax-packages"><div class="ax-wrap">
+    <h2 class="stitle">Three packages, three outcomes.</h2>
+    <p class="ssub">Every package reads the same mailbox with the same care. The difference is what Aithia prepares for you.</p>
+    <fieldset class="ax-plans" role="radiogroup" aria-labelledby="ax-plans-l">
+      <legend class="ax-sr" id="ax-plans-l">Choose a package</legend>
+
+      <article class="ax-plan" data-plan="focus" lang="en" translate="no">
+        <input class="ax-radio" type="radio" name="ax-plan" id="ax-plan-focus" value="focus" aria-labelledby="ax-name-focus" aria-describedby="ax-one-focus">
+        <label class="ax-plan-body" for="ax-plan-focus">
+          <span class="ax-plan-head"><span class="ax-dot" aria-hidden="true"></span><span class="ax-plan-name" id="ax-name-focus">AITHIA Focus</span></span>
+          <span class="ax-plan-one" id="ax-one-focus">Know what needs your attention.</span>
+          <span class="ax-plan-desc">Make sense of your email, find past conversations and prepare reply drafts from your company knowledge.</span>
+          <span class="ax-plan-price" data-price="focus"></span>
+          <ul class="ax-plan-list"><li>Priority sorting</li><li>Daily summary</li><li>Ask Aithia with sources</li><li>Knowledge-based reply drafts</li></ul>
+        </label>
+        <button type="button" class="ax-btn ax-cta" id="ax-cta-focus" data-plan="focus">Start with Focus</button>
+      </article>
+
+      <article class="ax-plan" data-plan="compose" lang="en" translate="no">
+        <input class="ax-radio" type="radio" name="ax-plan" id="ax-plan-compose" value="compose" aria-labelledby="ax-name-compose" aria-describedby="ax-one-compose">
+        <label class="ax-plan-body" for="ax-plan-compose">
+          <span class="ax-plan-head"><span class="ax-dot" aria-hidden="true"></span><span class="ax-plan-name" id="ax-name-compose">AITHIA Compose</span><span class="ax-pill">Recommended</span></span>
+          <span class="ax-plan-one" id="ax-one-compose">Your next reply, ready to review.</span>
+          <span class="ax-plan-desc">Everything in Focus, plus drafts for your general correspondence. Pick your tone, edit with AI, review it and send it yourself.</span>
+          <span class="ax-plan-price" data-price="compose"></span>
+          <ul class="ax-plan-list"><li>General reply drafts</li><li>Edit with AI</li><li>Business tone</li><li>Multilingual replies</li></ul>
+        </label>
+        <button type="button" class="ax-btn ax-cta" id="ax-cta-compose" data-plan="compose">Choose Compose</button>
+      </article>
+
+      <article class="ax-plan" data-plan="coordinate" lang="en" translate="no">
+        <input class="ax-radio" type="radio" name="ax-plan" id="ax-plan-coordinate" value="coordinate" aria-labelledby="ax-name-coordinate" aria-describedby="ax-one-coordinate">
+        <label class="ax-plan-body" for="ax-plan-coordinate">
+          <span class="ax-plan-head"><span class="ax-dot" aria-hidden="true"></span><span class="ax-plan-name" id="ax-name-coordinate">AITHIA Coordinate</span></span>
+          <span class="ax-plan-one" id="ax-one-coordinate">Keep every next step in view.</span>
+          <span class="ax-plan-desc">Everything in Compose, plus follow-up on conversations waiting for a reply. Follow-up drafts, tasks, meeting time suggestions and CRM updates in one place.</span>
+          <span class="ax-plan-price" data-price="coordinate"></span>
+          <ul class="ax-plan-list"><li>Follow-ups and reminders</li><li>Waiting-for-reply tracking</li><li>Tasks and CRM updates</li><li>Calendar availability</li></ul>
+        </label>
+        <button type="button" class="ax-btn ax-cta" id="ax-cta-coordinate" data-plan="coordinate">Choose Coordinate</button>
+      </article>
+    </fieldset>
+    <p class="ax-note">Prices are per mailbox. Aithia never sends email in this version.</p>
+  </div></section>
+
+  <section class="ax-sec"><div class="ax-wrap">
+    <h2 class="stitle">Included everywhere.</h2>
+    <p class="ssub">Every package starts from the same foundation.</p>
+    <ul class="ax-inc">
+      <li>Classification and priority</li>
+      <li>Daily summary</li>
+      <li>Ask Aithia with sources</li>
+      <li>Knowledge-based reply drafts</li>
+    </ul>
+    <div class="ax-trust"><p>Sending stays your click.</p><p>Aithia never sends email in this version.</p></div>
+  </div></section>
+
+  <section class="ax-sec ax-band"><div class="ax-wrap ax-how-grid">
+    <div>
+      <h2 class="stitle">How Ask Aithia answers.</h2>
+      <p class="ssub">We know the moment: someone is waiting for your answer and the thread is somewhere in your inbox. Ask about it in plain words. Aithia searches your connected mailbox, answers with the source, and says so when it cannot verify something.</p>
+      <ul class="ax-how-list">
+        <li><strong>Answers come with sources.</strong>Each answer points to the conversation it came from. Open it with one click.</li>
+        <li><strong>When Aithia is not sure, it says so.</strong>No guessing and no made-up certainty.</li>
+        <li><strong>Drafts wait for your review.</strong>Aithia prepares the reply. You read it, and you send it.</li>
+      </ul>
+      <p class="ax-note">Inspired by a messenger remembered for his extraordinary memory, Aithia helps you understand conversations and keep track of what comes next.</p>
+    </div>
+    <figure class="ax-demo" aria-labelledby="ax-demo-cap">
+      <figcaption class="ax-demo-label" id="ax-demo-cap">Example</figcaption>
+      <div class="ax-chat">
+        <p class="ax-q">What happened with the quote we sent last week?</p>
+        <div class="ax-a">
+          <p class="ax-a-head">Aithia found it.</p>
+          <p>The quote went out last Tuesday. No reply has appeared in this conversation yet.</p>
+          <span class="ax-src">Source: Quote for the spring order</span>
+          <p class="ax-chk">Last checked just now</p>
+          <p>Want me to prepare a follow-up email?</p>
+          <span class="ax-chip">Prepare follow-up draft</span>
+        </div>
+        <p class="ax-q">Did they confirm the delivery date?</p>
+        <div class="ax-a">
+          <p class="ax-a-head">I couldn't verify that in your connected mailbox.</p>
+          <p>It may be in another conversation, or it may have happened on another channel.</p>
+        </div>
+        <div class="ax-compose" aria-hidden="true">Ask about your emails...</div>
+      </div>
+    </figure>
+  </div></section>
+
+  <section class="ax-sec"><div class="ax-wrap">
+    <h2 class="stitle">How it starts.</h2>
+    <ol class="ax-how-list ax-steps">
+      <li><strong>Connect your mailbox.</strong>Gmail, Outlook or business email.</li>
+      <li><strong>See it work on your own mail.</strong>Nothing is sent or changed.</li>
+      <li><strong>Choose your package and start.</strong>Aithia prepares, you decide.</li>
+    </ol>
+    <p class="ax-win"><strong>Your conversations, connected.</strong>You start the day knowing what needs you. The context of any thread is one question away, and the reply starts as a draft for you to review.</p>
+  </div></section>
+
+  <section class="ax-sec ax-band"><div class="ax-wrap">
+    <h2 class="stitle">Works with your mailbox.</h2>
+    <p class="ssub">One connected mailbox per subscription at launch.</p>
+    <ul class="ax-mail">
+      <li><svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><rect x="2.5" y="5" width="17" height="12" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 6.5l7.5 5.5 7.5-5.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Gmail</li>
+      <li><svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><rect x="2.5" y="5" width="17" height="12" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 6.5l7.5 5.5 7.5-5.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Outlook</li>
+      <li><svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><rect x="2.5" y="5" width="17" height="12" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 6.5l7.5 5.5 7.5-5.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Business email</li>
+    </ul>
+  </div></section>
+
+  <section class="ax-sec"><div class="ax-wrap">
+    <h2 class="stitle">Secure checkout.</h2>
+    <p class="ssub">Payments handled by Paddle. Cancel anytime.</p>
+    <div class="ax-pay">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/visa.svg" alt="Visa" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/mastercard.svg" alt="Mastercard" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/amex.svg" alt="American Express" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/paypal.svg" alt="PayPal" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/discover.svg" alt="Discover" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/jcb.svg" alt="JCB" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/unionpay.svg" alt="UnionPay" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/alipay.svg" alt="Alipay" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/maestro.svg" alt="Maestro" width="47" height="30" loading="lazy">
+      <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/diners.svg" alt="Diners Club" width="47" height="30" loading="lazy">
+    </div>
+  </div></section>
+
+  <section class="ax-sec ax-band"><div class="ax-wrap">
+    <h2 class="stitle">Questions, answered.</h2>
+    <div class="ax-faq">
+      <details><summary>Do I pay per email?</summary><p>No. One subscription covers your connected mailbox. There are no per-email or per-flow charges, and no usage bill at the end of the month.</p></details>
+      <details><summary>Does Aithia send email for me?</summary><p>No. Aithia prepares drafts and keeps the next step in view. Sending stays your click. Aithia never sends email in this version.</p></details>
+      <details><summary>Can I change my package later?</summary><p>Yes. An upgrade opens as soon as your payment is confirmed. A downgrade applies at the end of the billing period you already paid for.</p></details>
+      <details><summary>What happens when I cancel?</summary><p>Your access continues until the end of the period you paid for. After that, Aithia stops working on your mailbox. You can cancel from your account at any time.</p></details>
+      <details><summary>Which mailbox can I connect?</summary><p>One connected mailbox per subscription at launch: Gmail, Outlook or your business email. Shared inboxes and several accounts under one subscription are not part of this version.</p></details>
+    </div>
+  </div></section>
+
+  <footer><div class="ax-wrap">
+    <div class="ax-fl">
+      <a href="/">Home</a><a href="/templates">All Assistants</a><a href="/pricing">Pricing</a><a href="/aithia">AITHIA</a>
+      <a href="/privacy_policy">Privacy Policy</a><a href="/terms_of_service">Terms of Service</a>
+      <a href="/disclaimer">Disclaimer</a><a href="/sitemap-index.xml">Sitemap</a>
+    </div>
+    <div class="ax-cp">&copy; Gaia. AITHIA by Octonom. Your AI email colleague.</div>
+  </div></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var W=window,D=document,root=D.getElementById('aithia');
+  if(!root||root.getAttribute('data-ax-ready'))return;
+  root.setAttribute('data-ax-ready','1');
+
+  /* ---- config: the only place prices and keys are referenced. A page header may predefine
+     window.AITHIA_PRICING; its fields win over the defaults below. ---- */
+  var TEST=(W.__AITHIA_TEST__===true)||(location.protocol==='file:');
+  /* ?paddle=sandbox is honoured off gaiasphere.io, under /version-test, or under the test flag; the live host ignores it. */
+  function autoEnv(){
+    try{
+      if(/^\/version-test(\/|$)/.test(location.pathname))return 'sandbox';
+      var liveHost=/(^|\.)gaiasphere\.io$/i.test(location.hostname||'');
+      if(/[?&]paddle=sandbox(&|$)/.test(location.search)&&(TEST||!liveHost))return 'sandbox';
+    }catch(e){}
+    return 'live';
+  }
+  function slugFromUrl(){
+    var m=(location.search||'').match(/[?&](?:from|use_flagship)=([a-z0-9-]{2,60})(?:&|$)/i);
+    return m?m[1].toLowerCase():'';
+  }
+  function emptyIds(){return {focus:{month:'',year:''},compose:{month:'',year:''},coordinate:{month:'',year:''}};}
+  /* Paddle ids (public), gaiasphere.io only: sandbox 21.10, live 22.10 */
+  var GX=/(^|\.)gaiasphere\.io$/i.test(location.hostname||''),q='pri_01m5f8',r='pri_01m5hmp',SBX=GX?{t:'test_548fcd4e885df13713774879e65',p:{focus:{month:q+'dza2jmdr6fbjjs138z9d',year:q+'dzfw8jjse1y8r6xw9wb1'},compose:{month:q+'dzwc8dcf30btjmv3nww9',year:q+'e028te9nvyy44yvsnnpg'},coordinate:{month:q+'e0ev6w2dg3v5axja0yjd',year:q+'e0mf8nrqj7krvrbag9pv'}}}:null,LIV=GX?{t:'live_fc676b410fdea366c0ced74d747',p:{focus:{month:r+'hbmpyq8ny23xbbbxh1k',year:r+'hhwz3wacrb7sw3qt8ap'},compose:{month:r+'hz88p708w8cb4374tkq',year:r+'j50km5dekcr3c53ckw7'},coordinate:{month:r+'jkbhwxgw6ckedfp9n3q',year:r+'jrpm6hnkckr7054cez6'}}}:null;
+  var DEFAULTS={
+    env:autoEnv(),
+    tokens:{live:LIV?LIV.t:'',sandbox:SBX?SBX.t:''},
+    prices:{live:LIV?LIV.p:emptyIds(),sandbox:SBX?SBX.p:emptyIds()},
+    maxMailboxes:1,
+    successPath:'/app',
+    fromSlug:slugFromUrl()
+  };
+  /* prices: { live: {focus:{month,year},...}, sandbox: {...} }. A flat { focus: {...}, ... } map (older shape) applies to both environments. */
+  function mergeCfg(base,over){
+    var out={env:base.env,tokens:{},prices:{},maxMailboxes:base.maxMailboxes,successPath:base.successPath,fromSlug:base.fromSlug,embedded:false,source:''},e,k,p;
+    over=(over&&typeof over==='object')?over:{};
+    if(over.env==='sandbox'||over.env==='live')out.env=over.env;
+    for(k in base.tokens)out.tokens[k]=String((over.tokens&&over.tokens[k])||base.tokens[k]||'');
+    var src=(over.prices&&typeof over.prices==='object')?over.prices:{},perEnv=!!(src.live||src.sandbox);
+    for(e in base.prices){
+      var o=perEnv?(src[e]||{}):src;
+      out.prices[e]={};
+      for(k in base.prices[e]){
+        out.prices[e][k]={};
+        for(p in base.prices[e][k])out.prices[e][k][p]=String((o[k]&&o[k][p])||base.prices[e][k][p]||'');
+      }
+    }
+    var mx=parseInt(over.maxMailboxes,10);
+    if(mx>=1&&mx<=99)out.maxMailboxes=mx;
+    if(typeof over.successPath==='string'&&/^\/[A-Za-z0-9_\/-]*$/.test(over.successPath))out.successPath=over.successPath;
+    if(typeof over.fromSlug==='string'&&/^[a-z0-9-]{2,60}$/i.test(over.fromSlug))out.fromSlug=over.fromSlug.toLowerCase();
+    /* 20.10 (AITHIA-INAPP): mounted inside the app's packages window (Architect gxAithiaPricing) */
+    if(over.embedded===true)out.embedded=true;
+    if(over.source==='setup'||over.source==='mail')out.source=over.source;
+    return out;
+  }
+  var CFG=mergeCfg(DEFAULTS,W.AITHIA_PRICING);
+  W.AITHIA_PRICING=CFG;
+
+  var PADDLE_SRC='https://cdn.paddle.com/paddle/v2/paddle.js';
+  var DEFAULT_SLUG='inbox-chief-of-staff';
+  var PLANS={focus:{name:'Focus',cta:'Start with Focus'},compose:{name:'Compose',cta:'Choose Compose'},coordinate:{name:'Coordinate',cta:'Choose Coordinate'}};
+  var MSG={
+    script:'Checkout is not available right now. Try again.',
+    closed:'Checkout closed. Nothing was charged.',
+    error:'Payment did not go through. Nothing was charged.',
+    offline:'You are offline. Check your connection.',
+    preview:'Prices could not be loaded. Try again.',
+    setup:'Checkout opens when prices are ready. The packages below are final.'
+  };
+
+  /* ---- state ---- */
+  var S={plan:'compose',qty:1,period:'month',paddle:'idle',opening:false,pendingOpen:false,loaded:false,done:false,msg:null,force:null};
+  /* 20.10: the package chosen on the product page (template page AITHIA packages) is preselected */
+  try{var pre=sessionStorage.getItem('gx_aithia_plan')||localStorage.getItem('gx_aithia_plan');if(pre&&PLANS[pre])S.plan=pre;}catch(e){}
+  /* cache, inflight and failed are keyed per plan|period|qty; a failed key is not requested again until Try again */
+  var cache={},inflight={},failed={},inited=false,openTimer=null,pendTimer=null,pollTimer=null,failTimer=null;
+
+  var $=function(id){return D.getElementById(id);};
+  var el={plan:$('ax-bk-plan'),mo:$('ax-mo'),yr:$('ax-yr'),dec:$('ax-dec'),inc:$('ax-inc'),qty:$('ax-qty'),qtyRow:$('ax-qty-row'),help:$('ax-qty-help'),
+    amount:$('ax-amount'),per:$('ax-per'),live:$('ax-live'),buy:$('ax-buy'),msg:$('ax-msg'),form:$('ax-bk-form'),success:$('ax-success'),lead:$('ax-success-lead'),note:$('ax-success-note'),open:$('ax-open'),basket:$('ax-basket')};
+  var cards={},radios={},ctas={},priceEls={};
+  Array.prototype.forEach.call(root.querySelectorAll('.ax-plan'),function(c){
+    var p=c.getAttribute('data-plan');
+    cards[p]=c;radios[p]=c.querySelector('.ax-radio');ctas[p]=c.querySelector('.ax-cta');priceEls[p]=c.querySelector('.ax-plan-price');
+  });
+
+  function token(){return CFG.tokens[CFG.env]||'';}
+  function priceId(plan,period){var m=CFG.prices[CFG.env];return (m&&m[plan]&&m[plan][period])||'';}
+  function key(plan,period,qty){return plan+'|'+period+'|'+qty;}
+  function curKey(){return key(S.plan,S.period,S.qty);}
+  function multi(){return CFG.maxMailboxes>1;}
+  function online(){return !(typeof navigator!=='undefined'&&navigator.onLine===false);}
+  function slug(){return CFG.fromSlug||DEFAULT_SLUG;}
+  /* 20.10 (AITHIA-PAYWALL): ?src=setup = opened by the Architect setup tab, which waits for the package itself.
+     After payment this tab does not send the person into a second setup; it tells the setup tab (localStorage
+     gx_aithia_paid, a storage event on the same origin) and offers to close. */
+  var EMBED=CFG.embedded===true;
+  var FROM_SETUP=/[?&]src=setup(&|$)/.test(location.search||'')||(EMBED&&CFG.source!=='mail');
+  if(EMBED)root.classList.add('is-embedded');
+  /* the element channel (?gxel) the loader keeps per tab; carried to the app so a dev test stays on dev */
+  function chan(){var c='';try{c=String(sessionStorage.getItem('gxel')||'');}catch(e){c='';}return (c&&c!=='main'&&/^[A-Za-z0-9._-]{1,40}$/.test(c))?c:'';}
+  function appBase(){return (CFG.env==='sandbox'?'https://gaiasphere.io/version-test':'https://gaiasphere.io')+CFG.successPath;}
+  function appUrl(){var c=chan();return appBase()+'?use_flagship='+encodeURIComponent(slug())+'&intent=preview'+(c?'&gxel='+encodeURIComponent(c):'');}
+  /* footer links are site relative; under /version-test they stay under /version-test */
+  try{
+    if(/^\/version-test(\/|$)/.test(location.pathname))Array.prototype.forEach.call(root.querySelectorAll('a[href^="/"]'),function(a){
+      var h=a.getAttribute('href');if(h&&!/^\/version-test(\/|$)/.test(h)&&!/\.xml$/.test(h))a.setAttribute('href','/version-test'+(h==='/'?'':h));
+    });
+  }catch(e){}
+
+  /* The one mode that decides what the basket shows and whether checkout may open. */
+  /* 20.10 (a5): Bubble's test version with no Paddle sandbox ids yet: inside the app (gxAithiaTestGrant) a test
+     purchase grants the package on the server, no money, never a live plan */
+  function testBuy(){return CFG.env==='sandbox'&&EMBED&&typeof W.gxAithiaTestGrant==='function'&&(!token()||!priceId(S.plan,S.period));}
+  function mode(){
+    if(S.force)return S.force;
+    if(S.done)return 'success';
+    if(testBuy())return S.opening?'opening':'testbuy';
+    if(!token()||!priceId(S.plan,S.period))return 'setup';
+    if(!online())return 'offline';
+    if(S.paddle==='failed')return 'script_failed';
+    if(S.opening||S.pendingOpen)return 'opening';
+    var k=curKey();
+    if(cache[k])return 'ready';
+    if(failed[k])return 'preview_failed';
+    return 'loading';
+  }
+
+  function totalLine(entry){
+    var n=PLANS[S.plan].name,unit=S.qty===1?'mailbox':'mailboxes',per=S.period==='month'?'month':'year',billed=S.period==='month'?'monthly':'annually';
+    return 'AITHIA '+n+(multi()?' x '+S.qty+' '+unit:'')+', billed '+billed+': '+entry.total+' / '+per;
+  }
+
+  function setMsg(kind,retryFn){
+    var box=el.msg;
+    while(box.firstChild)box.removeChild(box.firstChild);
+    if(!kind){box.className='ax-msg';return;}
+    var span=D.createElement('span');span.textContent=MSG[kind]||'';box.appendChild(span);
+    if(retryFn){
+      var b=D.createElement('button');b.type='button';b.className='ax-retry';b.id='ax-retry';b.textContent='Try again';
+      b.addEventListener('click',retryFn);box.appendChild(b);
+    }
+    box.className='ax-msg is-on'+((kind==='error'||kind==='script'||kind==='offline')?' is-err':'');
+  }
+
+  function render(){
+    var m=mode(),p,entry=cache[curKey()],perTxt=S.period==='month'?'/ month':'/ year',mm=multi();
+    el.plan.textContent='AITHIA '+PLANS[S.plan].name;
+    el.mo.setAttribute('aria-pressed',S.period==='month'?'true':'false');
+    el.yr.setAttribute('aria-pressed',S.period==='year'?'true':'false');
+    if(el.qty.value!==String(S.qty)&&D.activeElement!==el.qty)el.qty.value=String(S.qty);
+    el.dec.setAttribute('aria-disabled',S.qty<=1?'true':'false');
+    el.inc.setAttribute('aria-disabled',S.qty>=CFG.maxMailboxes?'true':'false');
+    /* one mailbox at launch: the stepper row returns when the config raises maxMailboxes */
+    el.qtyRow.hidden=!mm;el.help.hidden=!mm;
+    el.help.textContent=mm?'One connected mailbox each. Up to '+CFG.maxMailboxes+' on one checkout.':'';
+    el.basket.classList.toggle('is-loading',m==='loading');
+    el.basket.classList.toggle('is-setup',m==='setup');
+
+    if(entry&&m!=='setup'&&m!=='loading'&&m!=='preview_failed'){el.amount.textContent=entry.total;el.per.textContent=perTxt;}
+    else{el.amount.textContent='';el.per.textContent='';}
+    if(m==='testbuy')el.live.textContent='Test version. No payment is taken.';
+    else if(m==='setup')el.live.textContent='Pricing is being set up';
+    else if(m==='loading')el.live.textContent='Loading prices';
+    else if(m==='preview_failed')el.live.textContent='Prices could not be loaded';
+    else if(entry)el.live.textContent=totalLine(entry);
+    else el.live.textContent='';
+
+    /* preview_failed keeps the CTA on: the checkout shows the price itself */
+    var canOpen=(m==='ready'||m==='preview_failed'||m==='testbuy');
+    el.buy.disabled=!canOpen;
+    el.buy.textContent=m==='opening'?(testBuy()?'Activating...':'Opening checkout...'):(m==='testbuy'?'Complete a test purchase':PLANS[S.plan].cta);
+    if(m==='opening')el.buy.setAttribute('aria-busy','true');else el.buy.removeAttribute('aria-busy');
+
+    for(p in PLANS){
+      var on=(p===S.plan),cardPrice=cache[key(p,S.period,1)],idOk=!!priceId(p,S.period)&&!!token();
+      cards[p].classList.toggle('is-on',on);
+      if(radios[p].checked!==on)radios[p].checked=on;
+      ctas[p].disabled=!canOpen||(!idOk&&m!=='testbuy');
+      ctas[p].textContent=(on&&m==='opening')?'Opening checkout...':PLANS[p].cta;
+      if(on&&m==='opening')ctas[p].setAttribute('aria-busy','true');else ctas[p].removeAttribute('aria-busy');
+      var pe=priceEls[p];
+      while(pe.firstChild)pe.removeChild(pe.firstChild);
+      if(m==='testbuy'){pe.textContent='Test version';}
+      else if(!idOk||m==='setup'){pe.textContent='Pricing is being set up';}
+      else if(cardPrice&&cardPrice.unit){var b=D.createElement('b');b.textContent=cardPrice.unit;pe.appendChild(b);pe.appendChild(D.createTextNode(perTxt+' per mailbox'));}
+      else if(failed[key(p,S.period,1)]){pe.textContent='Prices could not be loaded';}
+      else{pe.textContent='Loading prices';}
+    }
+
+    if(m==='success'){
+      el.form.hidden=true;el.success.hidden=false;el.note.hidden=!!String(W.__gxUserSirket||'');
+      if(EMBED&&!S.force){el.lead.textContent=CFG.source==='mail'?'Your package is being activated. Ask Aithia opens in a few seconds.':'Your setup continues by itself in a few seconds.';el.open.textContent=CFG.source==='mail'?'Back to Ask Aithia':'Back to setup';}
+      else if(FROM_SETUP&&!S.force){el.lead.textContent=S.closeFailed?'Close this tab and go back to your setup. It continues there.':'Your setup tab continues by itself in a few seconds.';el.open.textContent='Back to setup';}
+    }
+    else{el.form.hidden=false;el.success.hidden=true;}
+
+    if(m==='setup')setMsg('setup');
+    else if(m==='offline')setMsg('offline');
+    else if(m==='script_failed')setMsg('script',retryScript);
+    else if(S.msg==='error')setMsg('error',openCheckout);
+    else if(S.msg==='script')setMsg('script',openCheckout);
+    else if(S.msg==='closed')setMsg('closed');
+    else if(m==='preview_failed'||(m==='ready'&&anyFailed()))setMsg('preview',retryPrices);
+    else setMsg(null);
+  }
+
+  /* ---- prices: Paddle.PricePreview, cached per plan, period and quantity ---- */
+  function preview(plan,period,qty){
+    var k=key(plan,period,qty),id=priceId(plan,period);
+    if(cache[k]||inflight[k]||failed[k]||!id||S.paddle!=='ready'||!W.Paddle||typeof W.Paddle.PricePreview!=='function')return;
+    inflight[k]=true;
+    /* a failure marks only this key and is remembered until Try again (no re-request on every click) */
+    var finish=function(ok){
+      delete inflight[k];
+      if(ok)delete failed[k];else failed[k]=true;
+      if(S.pendingOpen&&k===curKey()){releasePending();render();if(ok)openCheckout();return;}
+      render();
+    };
+    var done=function(res){
+      var ok=false;
+      try{
+        var li=res&&res.data&&res.data.details&&res.data.details.lineItems&&res.data.details.lineItems[0];
+        var total=li&&li.formattedTotals&&li.formattedTotals.total;
+        if(!total&&li&&li.totals&&res.data.currencyCode)total=fmtMinor(li.totals.total,res.data.currencyCode);
+        if(!total)throw new Error('empty');
+        var unit=(li.formattedUnitTotals&&li.formattedUnitTotals.total)||(qty===1?total:''),cur=res.data.currencyCode||'',k1=key(plan,period,1);
+        cache[k]={total:String(total),unit:String(unit||''),currency:cur};
+        if(qty!==1&&unit&&!cache[k1]){cache[k1]={total:String(unit),unit:String(unit),currency:cur};delete failed[k1];}
+        ok=true;
+      }catch(e){ok=false;}
+      finish(ok);
+    };
+    var fail=function(){finish(false);};
+    try{
+      var pr=W.Paddle.PricePreview({items:[{priceId:id,quantity:qty}]});
+      if(pr&&typeof pr.then==='function')pr.then(done,fail);else fail();
+    }catch(e){fail();}
+  }
+  /* Paddle totals are strings in the currency's lowest denomination; the divisor follows the currency's fraction digits (a zero-decimal currency divides by 1). */
+  function fmtMinor(v,cur){
+    var n=parseInt(v,10);if(isNaN(n))return '';
+    try{
+      var f=new Intl.NumberFormat(undefined,{style:'currency',currency:cur}),d=f.resolvedOptions().maximumFractionDigits;
+      if(typeof d!=='number'||d<0||d>4)d=2;
+      return f.format(n/Math.pow(10,d));
+    }catch(e){return (n/100).toFixed(2)+' '+cur;}
+  }
+  function anyFailed(){var p;if(failed[curKey()])return true;for(p in PLANS)if(failed[key(p,S.period,1)])return true;return false;}
+  function ensurePrices(){
+    if(mode()==='setup'&&!S.force)return;
+    var p;
+    preview(S.plan,S.period,S.qty);
+    for(p in PLANS)preview(p,S.period,1);
+  }
+  function retryPrices(){failed={};render();ensurePrices();}
+
+  /* ---- Paddle.js: added by this script (onload + poll fallback), never awaited by the element loader ---- */
+  function clearTimers(){
+    if(pollTimer){clearTimeout(pollTimer);clearInterval(pollTimer);pollTimer=null;}
+    if(failTimer){clearTimeout(failTimer);failTimer=null;}
+  }
+  function loadPaddle(){
+    if(!token())return;
+    if(W.Paddle){onPaddle();return;}
+    if(S.paddle==='loading')return;
+    S.paddle='loading';render();
+    var s=D.createElement('script');s.src=PADDLE_SRC;s.async=true;
+    s.onload=function(){onPaddle();};
+    s.onerror=function(){failPaddle();};
+    try{(D.head||D.body||root).appendChild(s);}catch(e){failPaddle();return;}
+    clearTimers();
+    /* onload is the normal path. From 3 s on, a poll adopts a Paddle global whose onload never reached us.
+       Nothing after 8 s = the script failed; the retry button adds a fresh script tag. */
+    pollTimer=setTimeout(function(){
+      pollTimer=setInterval(function(){if(W.Paddle)onPaddle();},250);
+    },3000);
+    failTimer=setTimeout(function(){if(S.paddle!=='ready')failPaddle();},8000);
+  }
+  function onPaddle(){
+    clearTimers();
+    if(S.paddle==='ready')return;
+    try{
+      if(!inited){
+        if(CFG.env==='sandbox'&&W.Paddle.Environment&&typeof W.Paddle.Environment.set==='function')W.Paddle.Environment.set('sandbox');
+        W.Paddle.Initialize({token:token(),eventCallback:onEvent});
+        inited=true;
+      }
+      S.paddle='ready';
+    }catch(e){S.paddle='failed';}
+    render();ensurePrices();
+  }
+  function dropTag(){var old=D.querySelector('script[src="'+PADDLE_SRC+'"]');if(old&&old.parentNode&&!W.Paddle)old.parentNode.removeChild(old);}
+  function failPaddle(){clearTimers();if(S.paddle==='ready')return;S.paddle='failed';dropTag();render();}
+  function retryScript(){S.paddle='idle';dropTag();render();loadPaddle();}
+
+  /* ---- checkout ---- */
+  function clearOpenTimer(){if(openTimer){clearTimeout(openTimer);openTimer=null;}}
+  function onEvent(ev){
+    var name=ev&&ev.name;
+    if(name==='checkout.loaded'){S.loaded=true;clearOpenTimer();return;}
+    if(name==='checkout.completed'){S.done=true;S.opening=false;S.msg=null;writePending();clearOpenTimer();render();try{el.success.focus();}catch(e){}return;}
+    if(name==='checkout.closed'){if(!S.done){S.opening=false;clearOpenTimer();if(S.msg!=='error')S.msg='closed';render();}return;}
+    /* checkout.error: Paddle could not open the checkout at all (bad id, unapproved domain, environment mismatch); no payment was attempted */
+    if(name==='checkout.error'){
+      S.opening=false;clearOpenTimer();S.msg='script';
+      try{var er=ev.error||ev.data||{};console.warn('aithia checkout.error',String(er.code||ev.code||''),String(er.detail||ev.detail||''));}catch(e){}
+      render();return;
+    }
+    if(name==='checkout.payment.failed'||name==='checkout.payment.error'){S.msg='error';render();return;}
+  }
+  /* a card CTA pressed before its plan x quantity preview arrived: open as soon as it does, release on failure or after 15 s */
+  function armPending(){
+    if(pendTimer)clearTimeout(pendTimer);
+    pendTimer=setTimeout(function(){pendTimer=null;if(!S.pendingOpen)return;var k=curKey();S.pendingOpen=false;delete inflight[k];failed[k]=true;render();},15000);
+  }
+  function releasePending(){S.pendingOpen=false;if(pendTimer){clearTimeout(pendTimer);pendTimer=null;}}
+  function openCheckout(){
+    if(S.opening||S.done)return;
+    if(testBuy()){
+      S.opening=true;S.msg=null;render();
+      W.gxAithiaTestGrant(S.plan).then(function(ok){
+        S.opening=false;
+        if(ok){S.done=true;writePaid();render();try{el.success.focus();}catch(e){}}
+        else{S.msg='error';render();}
+      },function(){S.opening=false;S.msg='error';render();});
+      return;
+    }
+    if(!online()){render();return;}
+    var m=mode();
+    if(m==='loading'){
+      var k=curKey();
+      if(!inflight[k])ensurePrices();
+      if(!inflight[k])return;
+      S.pendingOpen=true;armPending();render();return;
+    }
+    if(m!=='ready'&&m!=='preview_failed')return;
+    S.opening=true;S.loaded=false;S.msg=null;render();
+    var ok=false;
+    try{
+      W.Paddle.Checkout.open({
+        items:[{priceId:priceId(S.plan,S.period),quantity:S.qty}],
+        /* user_sirket and user_id are hints read from page globals; the server binds by a verified signal, never by these alone */
+        customData:{product:'aithia',plan:S.plan,source:'gaia',app_version:CFG.env==='sandbox'?'version-test':'live',from:CFG.fromSlug||'',user_sirket:String(W.__gxUserSirket||''),user_id:String(W.__gxUserId||'')},
+        settings:(FROM_SETUP||EMBED)?{displayMode:'overlay'}:{displayMode:'overlay',successUrl:appUrl()}
+      });
+      ok=true;
+    }catch(e){ok=false;}
+    if(!ok){S.opening=false;S.paddle='failed';render();return;}
+    if(openTimer)clearTimeout(openTimer);
+    openTimer=setTimeout(function(){openTimer=null;if(S.opening&&!S.loaded){S.opening=false;S.msg='script';render();}},20000);
+  }
+  function writePaid(){
+    try{localStorage.setItem('gx_aithia_paid',JSON.stringify({plan:S.plan,period:S.period,ts:Date.now()}));}catch(e){}
+    /* the app's own window hears no storage event of its own write: the same signal as a window event */
+    try{W.dispatchEvent(new CustomEvent('gx:aithia-paid',{detail:{plan:S.plan}}));}catch(e){}
+  }
+  function writePending(){
+    writePaid();
+    if(FROM_SETUP||EMBED)return;
+    var rec='';
+    try{rec=JSON.stringify({slug:slug(),instant:false,intent:'preview',ts:Date.now()});}catch(e){rec='';}
+    if(!rec)return;
+    try{sessionStorage.setItem('gx_flagship_pending',rec);}catch(e){}
+    try{localStorage.setItem('gx_flagship_pending',rec);}catch(e){}
+  }
+  function openApp(){
+    writePending();
+    if(EMBED){try{W.dispatchEvent(new CustomEvent('gx:aithia-close'));}catch(e){}return;}
+    if(FROM_SETUP){
+      try{W.close();}catch(e){}
+      /* a tab the browser will not close stays here with a plain instruction (no second setup) */
+      setTimeout(function(){if(!W.closed){S.closeFailed=true;render();}},400);
+      return;
+    }
+    location.href=appUrl();
+  }
+
+  /* ---- controls ---- */
+  /* a change of selection cancels a pending card-CTA open */
+  function setPlan(p){if(!PLANS[p])return;if(p!==S.plan)releasePending();S.plan=p;if(S.msg==='closed')S.msg=null;render();ensurePrices();}
+  function setPeriod(p){p=p==='year'?'year':'month';if(p!==S.period)releasePending();S.period=p;if(S.msg==='closed')S.msg=null;render();ensurePrices();}
+  function setQty(n){n=parseInt(n,10);if(isNaN(n))n=S.qty;n=Math.max(1,Math.min(CFG.maxMailboxes,n));if(n!==S.qty)releasePending();S.qty=n;render();ensurePrices();}
+  el.mo.addEventListener('click',function(){setPeriod('month');});
+  el.yr.addEventListener('click',function(){setPeriod('year');});
+  el.dec.addEventListener('click',function(){setQty(S.qty-1);});
+  el.inc.addEventListener('click',function(){setQty(S.qty+1);});
+  el.qty.addEventListener('input',function(){
+    var v=el.qty.value.replace(/[^0-9]/g,'');
+    if(v!==el.qty.value)el.qty.value=v;
+    if(!v)return;
+    var n=parseInt(v,10);
+    if(n>CFG.maxMailboxes){setQty(CFG.maxMailboxes);el.qty.value=String(S.qty);}
+    else if(n>=1)setQty(n);
+  });
+  el.qty.addEventListener('change',function(){setQty(el.qty.value);el.qty.value=String(S.qty);});
+  el.qty.addEventListener('blur',function(){el.qty.value=String(S.qty);});
+  el.qty.addEventListener('keydown',function(e){
+    if(e.key==='ArrowUp'){e.preventDefault();setQty(S.qty+1);el.qty.value=String(S.qty);}
+    else if(e.key==='ArrowDown'){e.preventDefault();setQty(S.qty-1);el.qty.value=String(S.qty);}
+  });
+  el.buy.addEventListener('click',openCheckout);
+  el.open.addEventListener('click',openApp);
+  Object.keys(PLANS).forEach(function(p){
+    radios[p].addEventListener('change',function(){if(radios[p].checked)setPlan(p);});
+    radios[p].addEventListener('focus',function(){
+      var vis=true;try{vis=radios[p].matches(':focus-visible');}catch(e){}
+      if(vis)cards[p].classList.add('is-focus');
+    });
+    radios[p].addEventListener('blur',function(){cards[p].classList.remove('is-focus');});
+    ctas[p].addEventListener('click',function(){if(S.plan!==p)setPlan(p);openCheckout();});
+  });
+  W.addEventListener('online',function(){render();if(S.paddle==='failed')retryScript();else retryPrices();});
+  W.addEventListener('offline',function(){render();});
+
+  /* ---- test hooks: no-op unless the page runs under the Playwright checks or from a local file ---- */
+  W.__aithiaDemo={
+    setState:function(name){
+      if(!TEST)return false;
+      S.force=null;S.opening=false;S.done=false;S.msg=null;releasePending();
+      if(S.paddle==='failed')S.paddle=(W.Paddle&&inited)?'ready':'idle';
+      if(name==='loading'||name==='setup'||name==='offline'||name==='preview_failed')S.force=name;
+      else if(name==='opening')S.opening=true;
+      else if(name==='script_failed')S.paddle='failed';
+      else if(name==='closed'||name==='error')S.msg=name;
+      else if(name==='success')S.done=true;
+      if(S.paddle==='idle'&&token())loadPaddle();
+      render();return true;
+    },
+    setPrices:function(map){
+      if(!TEST)return false;
+      map=map||{};
+      var over=(map.prices||map.tokens||map.env||map.maxMailboxes!==undefined)?map:{prices:map};
+      CFG=mergeCfg(CFG,over);W.AITHIA_PRICING=CFG;
+      cache={};inflight={};failed={};S.force=null;releasePending();
+      S.qty=Math.max(1,Math.min(CFG.maxMailboxes,S.qty));
+      if(S.paddle==='failed'&&W.Paddle)S.paddle='idle';
+      render();if(S.paddle==='idle')loadPaddle();else ensurePrices();return true;
+    },
+    mode:function(){return TEST?mode():'';}
+  };
+
+  render();
+  if(token())loadPaddle();
+})();
+</script>
+</body>
+</html>
