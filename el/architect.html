@@ -17796,7 +17796,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 
     // os6 (BUILD_PLAN 0.c / 3.5.3): the Sign in click keeps the live setup intent for the trip through /login
     // (Bubble may drop the query). Always a FRESH nonce: the URL nonce is already marked done by the bridge.
-    function _gxUsePendingMirror() {
+    // force (ACCOUNT-FIRST, 22.10): { kind, id, slug, fname, intent } written as is (the setup has not opened yet, so
+    // neither the URL nor a session names it).
+    function _gxUsePendingMirror(force) {
       try {
         var ID_RX = /^[A-Za-z0-9_-]{1,80}$/;
         var env = /^\/version-test(\/|$)/.test(location.pathname) ? 'test' : 'live';
@@ -17806,7 +17808,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         var qp = null; try { qp = new URLSearchParams(location.search); } catch (_q) { qp = null; }
         var ut = qp ? (qp.get('use_template') || '') : '', uf = qp ? (qp.get('use_featured') || '') : '', ufl = qp ? (qp.get('use_flagship') || '') : '';
         var rec = null;
-        if (ut) rec = { kind: 'template', id: ut, slug: '', fname: '', intent: 'use' };
+        if (force && typeof force === 'object' && force.id) rec = { kind: String(force.kind || 'flagship'), id: String(force.id), slug: String(force.slug || ''), fname: String(force.fname || ''), intent: force.intent === 'use' ? 'use' : 'preview' };
+        else if (ut) rec = { kind: 'template', id: ut, slug: '', fname: '', intent: 'use' };
         else if (uf) rec = { kind: 'featured', id: uf, slug: '', fname: qp.get('fname') || '', intent: 'use' };
         else if (ufl) rec = { kind: 'flagship', id: ufl, slug: ufl, fname: '', intent: 'preview' };
         else {
@@ -17884,7 +17887,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     }
     window._gadBubbleAuthButton = _gadBubbleAuthButton;
 
-    function _gadShowNoAccountCard(resume) {
+    // opts (ACCOUNT-FIRST): { body: the card's sentence, slug: the flagship to reopen after sign up, onLater: Not now }
+    function _gadShowNoAccountCard(resume, opts) {
+      opts = opts || {};
       try {
         var old = document.getElementById('gad-noacct'); if (old) old.remove();
         var ov = document.createElement('div');
@@ -17895,20 +17900,23 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         ov.innerHTML =
           '<div style="width:100%;max-width:400px;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(2,6,23,0.3);padding:24px;">' +
             '<div id="gad-noacct-t" style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:8px;">Create your free account to start</div>' +
-            '<div style="font-size:14px;line-height:1.55;color:#475569;margin-bottom:20px;">This assistant starts on its own when something happens, like a new email, so it runs on your own account. Sign up or log in right here. Your setup stays open and continues.</div>' +
+            '<div id="gad-noacct-d" style="font-size:14px;line-height:1.55;color:#475569;margin-bottom:20px;"></div>' +
             '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">' +
               '<button type="button" data-act="later" style="' + btn + 'background:#fff;color:#334155;border:1px solid #cbd5e1;">Not now</button>' +
               '<button type="button" data-act="login" style="' + btn + 'background:#fff;color:#4f46e5;border:1px solid #c7d2fe;">Log in</button>' +
               '<button type="button" data-act="signup" style="' + btn + 'background:#4f46e5;color:#fff;border:1px solid #4f46e5;">Sign up</button>' +
             '</div>' +
           '</div>';
-        var onKey = function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); ev.preventDefault(); close(); } };
+        try { ov.querySelector('#gad-noacct-d').textContent = String(opts.body || 'This assistant starts on its own when something happens, like a new email, so it runs on your own account. Sign up or log in right here. Your setup stays open and continues.'); } catch (_d) {}
+        var later = function () { try { if (typeof opts.onLater === 'function') opts.onLater(); } catch (_l) {} };
+        var onKey = function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); ev.preventDefault(); close(); later(); } };
         var close = function () { window.removeEventListener('keydown', onKey, true); try { ov.remove(); } catch (_r) {} };
         ov.addEventListener('click', function (ev) {
           var b = ev.target && ev.target.closest ? ev.target.closest('[data-act]') : null;
           var act = b ? b.getAttribute('data-act') : '';
           if (act === 'login' || act === 'signup') {
-            _gxUsePendingMirror();   // os6: the setup intent survives a reload after sign up
+            // os6: the setup intent survives a reload after sign up (ACCOUNT-FIRST: the card's own flagship)
+            _gxUsePendingMirror(opts.slug ? { kind: 'flagship', id: opts.slug, slug: opts.slug, fname: '', intent: 'preview' } : null);
             var ab = _gadBubbleAuthButton(act);   // AUTH-INPLACE: the page's own window, no page change
             if (ab) {
               close();
@@ -17923,7 +17931,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
             location.href = base + '/login';
             return;
           }
-          if (b || ev.target === ov) close();
+          if (b || ev.target === ov) { close(); later(); }
         });
         window.addEventListener('keydown', onKey, true);
         document.body.appendChild(ov);
@@ -17935,11 +17943,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 
     // true = ENGELLENDİ (çağıran kurulumu durdurur). Yalnız bayrak açıkça 'no' iken.
     // resume (optional): runs once when the person signs in on this page (AUTH-INPLACE), e.g. presses the blocked button again.
-    function _gadNoAccountGate(where, resume) {
+    function _gadNoAccountGate(where, resume, opts) {
       if (_gadLoginState() !== 'no') return false;
       gW('[NO-ACCOUNT] tetikleyicili ajan kurulumu engellendi (AS SNP data-logged=no) | ' + String(where || ''));
       try { if (typeof gxaTrack === 'function') gxaTrack('setup_blocked_no_account', { where: String(where || '') }); } catch (_e) {}
-      _gadShowNoAccountCard(resume);
+      _gadShowNoAccountCard(resume, opts);
       return true;
     }
     window._gadNoAccountGate = _gadNoAccountGate;
@@ -39715,8 +39723,30 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 
     // Public giris: kart slug'i (veya dogrudan blueprint tasiyan bir obje) ile urunu ac.
     // opts = { instant, intent, source, onBoot(ok) }
+    // 22.10 (ACCOUNT-FIRST, Saltuk karari): a signed out visitor opening an AITHIA mail card creates the account FIRST.
+    // Before this the visitor connected the mailbox and previewed as Bubble's temporary user; the sign up makes a new
+    // user, so the connection and the setup never reached the account (21.10 test: setup from scratch after sign up).
+    // The card reopens by itself after sign up (intent mirrored; in place when the page's own window opens). The
+    // account card counts as opened (onBoot true: the entry lock is released, the surface says opened).
+    function _gflAccountFirst(slugOrCard, opts){
+      try {
+        var slug = (slugOrCard && typeof slugOrCard === 'object') ? String(slugOrCard.Slug || slugOrCard.slug || '') : String(slugOrCard || '').trim();
+        if (!_GFL_PAY_RE.test(slug)) return false;
+        if (typeof window._gadLoginState !== 'function' || window._gadLoginState() !== 'no') return false;
+        if (typeof window._gadNoAccountGate !== 'function') return false;
+        var o2 = {}; Object.keys(opts || {}).forEach(function(k){ o2[k] = opts[k]; });
+        window._gadNoAccountGate('flagship:entry', function(){ window.gaiaUseFlagship(slugOrCard, o2); }, {
+          slug: slug,
+          body: 'AITHIA works in your own mailbox, so it runs on your own account. Sign up or log in, and your setup opens right after.',
+          onLater: function(){ try { _gadFlagshipClearDeepLink(); } catch(e){} }   // Not now: no reopen on the next load
+        });
+        try { if (typeof opts.onBoot === 'function') opts.onBoot(true); } catch(e){}
+        return true;
+      } catch(e){ return false; }
+    }
     window.gaiaUseFlagship = function(slugOrCard, opts){
       opts = opts || {};
+      if (_gflAccountFirst(slugOrCard, opts)) return;   /* ACCOUNT-FIRST */ // AITHIA: the account before the mailbox question
       try { if (_gflMailProviderRoute(slugOrCard, opts)) return; } catch(_mpe){ gW('[MAILPROV] router error:', _mpe && _mpe.message); }   /* MAILPROV */ // inbox-chief-of-staff*: which mailbox first
       var notify = function(ok){ try { if (typeof opts.onBoot === 'function') opts.onBoot(!!ok); } catch(e){} };
       var boot = function(card){
