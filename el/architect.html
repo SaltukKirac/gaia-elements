@@ -67342,17 +67342,26 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   // More bulunamayinca surec listesi gorunur 5 hucreye inerdi. Sinif ilk tercih (baska Bubble surumlerinde olabilir),
   // yoksa YAPIDAN. Hucre ici = SEL.cell icinde ya da hucre tasiyan RG hucresi (group-item) / RepeatingGroup icinde
   // (hucre basina oklar, telefon secicisi, edit ikonu). Belirsizse null (tahmin yok).
+  // WSEDIT (barParts): hucre dugumu cagiranin verdigi dugumdur (edit kipinde hucre sarmalayicisi .baUmlm: kalem, +, -
+  // onun icinde); o dugumun icindeki ya da onu kapsayan oge de hucre icidir. Kendi hucrelerimizde (SEL.cell) ayni sonuc.
   var STUB_RE = /^["']?(PLACEHOLDER|BLANK)/;
   function optStub(op) { return STUB_RE.test(str(op && op.value)); }
   function matchSel(n, sel) {
     try { var f = n.matches || n.msMatchesSelector || n.webkitMatchesSelector; return !!f && f.call(n, sel); } catch (e) { return false; }
   }
-  function inCells(n, bar) {
+  function cellHas(cells, n, outer) {
+    for (var i = 0; cells && i < cells.length; i++) {
+      var c = cells[i] ? cells[i].node : null;
+      try { if (c && (outer ? n.contains(c) : c.contains(n))) { return true; } } catch (e) { /* yut */ }
+    }
+    return false;
+  }
+  function inCells(n, bar, cells) {
     for (var x = n; x && x !== bar && x.nodeType === 1; x = x.parentNode) {
       if (matchSel(x, SEL.cell)) { return true; }
       if ((hasCls(x, 'group-item') || hasCls(x, 'RepeatingGroup')) && q1(SEL.cell, x)) { return true; }
     }
-    return false;
+    return cellHas(cells, n, false);
   }
   function boxOf(n) {
     var r = null;
@@ -67366,7 +67375,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     try { all = bar.querySelectorAll('select'); } catch (e) { all = null; }
     for (var i = 0; all && i < all.length; i++) {
       var m = all[i], hit = false;
-      if (inCells(m, bar) || !shown(m, bar)) { continue; }
+      if (inCells(m, bar, cells) || !shown(m, bar)) { continue; }
       for (var o = 0; o < m.options.length && !hit; o++) {
         var op = m.options[o], ot = clean(op.textContent || op.label);
         if (optStub(op)) { hit = true; }
@@ -67396,7 +67405,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     for (var j = 0; all && j < all.length; j++) {
       var n = all[j];
       if (more && (n === more || n.contains(more) || more.contains(n))) { continue; }
-      if (inCells(n, bar) || q1(SEL.cell, n) || q1('select', n)) { continue; }
+      if (inCells(n, bar, cells) || q1(SEL.cell, n) || cellHas(cells, n, true) || q1('select', n)) { continue; }
       if (upTo(n, function (x) { return matchSel(x, SEL.addStage); }, bar) || !shown(n, bar)) { continue; }
       var b = boxOf(n);
       if (!b || b.width > 80 || b.height > 64) { continue; }
@@ -67415,6 +67424,27 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     out.prev = pv.length === 1 ? pv[0] : null;
     out.next = nx.length === 1 ? nx[0] : null;
+    return out;
+  }
+  // Barin More secicisi ve sayfa oklari (snapshot ve WSEDIT barParts ayni kural). More: sinifli secici gorunurse o,
+  // yoksa yapidan. Oklar: sinif DOM'da varsa o karar verir (gizliyse null); yoksa yapidan. cells: [{ name, node }].
+  function partsOf(bar, cells) {
+    var out = { more: null, prev: null, next: null, how: { more: 'none', prev: 'none', next: 'none' } };
+    if (!bar) { return out; }
+    cells = cells || [];
+    var mo = q1('select' + SEL.more, bar) || q1(SEL.more + ' select', bar);
+    if (mo && shown(mo, bar)) { out.how.more = 'class'; } else { mo = moreFind(bar, cells); if (mo) { out.how.more = 'structure'; } }
+    out.more = mo || null;
+    var pv = bar.querySelector(SEL.prev), nx = bar.querySelector(SEL.next);
+    out.prev = (pv && shown(pv, bar)) ? pv : null;
+    out.next = (nx && shown(nx, bar)) ? nx : null;
+    if (pv) { out.how.prev = 'class'; }
+    if (nx) { out.how.next = 'class'; }
+    if (!pv || !nx) {
+      var pg = pagerFind(bar, cells, out.more);
+      if (!pv && pg.prev) { out.prev = pg.prev; out.how.prev = 'structure'; }
+      if (!nx && pg.next) { out.next = pg.next; out.how.next = 'structure'; }
+    }
     return out;
   }
 
@@ -67502,9 +67532,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         s.cells.push({ name: cn, node: c, count: cc ? numOf(cc) : null, selected: csel });
         if (csel && s.cell < 0) { s.cell = s.cells.length - 1; }
       }
-      // More: barin kendi secicisi; hucre icindeki telefon secicisi (Dropdown X) DEGIL. Sinif yoksa yapidan (moreFind).
-      var mo = q1('select' + SEL.more, bar) || q1(SEL.more + ' select', bar);
-      if (mo && shown(mo, bar)) { s.how.more = 'class'; } else { mo = moreFind(bar, s.cells); if (mo) { s.how.more = 'structure'; } }
+      // More: barin kendi secicisi; hucre icindeki telefon secicisi (Dropdown X) DEGIL. Sinif yoksa yapidan (partsOf).
+      // Oklar: sinif DOM'da varsa o karar verir (gizliyse null); yoksa yapidan.
+      var pt = partsOf(bar, s.cells);
+      var mo = pt.more;
+      s.how = pt.how;
+      s.prev = pt.prev;
+      s.next = pt.next;
       if (mo) {
         s.more = mo;
         s.moreSel = mo.selectedIndex;
@@ -67515,17 +67549,6 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
           if (op.disabled || !ot || optStub(op) || (o === 0 && (op.value === '' || /^more$/i.test(ot)))) { continue; }
           s.moreOpts.push({ name: ot, index: o });
         }
-      }
-      // Oklar: sinif DOM'da varsa o karar verir (gizliyse null); yoksa yapidan (pagerFind).
-      var pv = bar.querySelector(SEL.prev), nx = bar.querySelector(SEL.next);
-      s.prev = (pv && shown(pv, bar)) ? pv : null;
-      s.next = (nx && shown(nx, bar)) ? nx : null;
-      if (pv) { s.how.prev = 'class'; }
-      if (nx) { s.how.next = 'class'; }
-      if (!pv || !nx) {
-        var pg = pagerFind(bar, s.cells, s.more);
-        if (!pv && pg.prev) { s.prev = pg.prev; s.how.prev = 'structure'; }
-        if (!nx && pg.next) { s.next = pg.next; s.how.next = 'structure'; }
       }
       var as = bar.querySelector(SEL.addStage);
       if (as && shown(as, bar)) { s.can.addStage = as; }
@@ -71693,6 +71716,24 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     api.refreshCards = function (force) { return refreshCards(!!force); };
     api.openRecord = function (k, i) { return openRecord(Number(k), Number(i), false, null); };
   })();
+  // WSEDIT (canli bulgu 22.10): Edit workspace AYNI surec barini okur; More ve sayfa oklari bu modulun kuraliyla (sinif
+  // once, yoksa yapidan). bar: barin koku (yoksa barRoot()); cells: [{ name, node }] (yoksa barin gorunur hucreleri;
+  // WSEDIT edit kipi hucre sarmalayicilarini verir). Yalniz okuma, tik yok. Sayilamaz; hata ya da bar yoksa hepsi null.
+  try {
+    Object.defineProperty(api, 'barParts', {
+      value: function (bar, cells) {
+        var none = { more: null, prev: null, next: null, how: { more: 'none', prev: 'none', next: 'none' } };
+        try {
+          var b = (bar && bar.nodeType === 1) ? bar : barRoot();
+          if (!b) { return none; }
+          var cs = isArr(cells) ? cells : snapshot().cells;
+          var p = partsOf(b, cs);
+          return { more: p.more, prev: p.prev, next: p.next, how: { more: p.how.more, prev: p.how.prev, next: p.how.next } };
+        } catch (e) { return none; }
+      },
+      writable: false, enumerable: false, configurable: true
+    });
+  } catch (e0) { /* yut */ }
   try {
     Object.defineProperty(octo, '_wsbar', { value: api, writable: false, enumerable: false, configurable: true });
   } catch (e) { /* yut */ }
@@ -72590,9 +72631,20 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     return t;
   }
   function stateOf(add, remove) { if (add && shown(add, null)) { return 'off'; } if (remove && shown(remove, null)) { return 'on'; } return ''; }
+  // Canli bulgu 22.10 (app-wsbar ile ayni): More secicisi ve sayfa oklari Haziran ihracinin sinifini TASIMIYOR; yalniz
+  // sinifla Edit workspace gorunur 5 sureci listeler, sayfalayamaz. Sinif once; eksik parca app-wsbar'in yapisal
+  // kuraliyla (octo._wsbar.barParts). Kural yalniz surec barinda (More ve oklar orada; sol menu tablo / liste satirlarinda
+  // sayfa yok). Hucre = edit kipi sarmalayicisi (.baUmlm): icindeki kalem, + ve - ok sayilmaz. Bar modulu ya da API'si
+  // yoksa yalniz sinif (bugunku gibi). Canli secenek degeri '"PLACEHOLDER..' / '"BLANK_..': yer tutucu atlanir.
+  var STUB_RE = /^["']?(PLACEHOLDER|BLANK)/;
+  function barParts(bar, cells) {
+    var b = wsbar();
+    if (!b || typeof b.barParts !== 'function') { return null; }
+    try { var r = b.barParts(bar, cells); return (r && typeof r === 'object') ? r : null; } catch (e) { return null; }
+  }
   function editSnap() {
     var side = sideRoot(), bar = barRoot();
-    var e = { sheets: [], lists: [], cells: [], more: [], addList: null, addStage: null, prev: null, next: null, bar: false, cur: -1 };
+    var e = { sheets: [], lists: [], cells: [], more: [], addList: null, addStage: null, prev: null, next: null, bar: false, cur: -1, how: { more: 'none', prev: 'none', next: 'none' } };
     var rows = sheetRows();
     var names = {};
     for (var i = 0; i < rows.length; i++) {
@@ -72639,17 +72691,29 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         e.cells.push({ name: cn, node: wrap, cell: cell, add: sa, remove: sr, edit: (se && shown(se, null)) ? se : null, state: stateOf(sa, sr) });
       }
       var mo = q1('select' + SEL.more, bar) || q1(SEL.more + ' select', bar);
-      if (mo && shown(mo, bar)) {
-        for (var o = 0; o < mo.options.length; o++) {
-          var op = mo.options[o];
-          var ot = clean(op.textContent || op.label);
-          if (op.disabled || !ot || (o === 0 && (op.value === '' || /^more$/i.test(ot)))) { continue; }
-          e.more.push(ot);
-        }
-      }
+      if (mo && shown(mo, bar)) { e.how.more = 'class'; } else { mo = null; }
+      // Oklar: sinif DOM'da varsa o karar verir (gizliyse null); yalniz sinif yoksa yapidan.
       var pv = q1(SEL.prev, bar), nx = q1(SEL.next, bar);
       e.prev = (pv && shown(pv, bar)) ? pv : null;
       e.next = (nx && shown(nx, bar)) ? nx : null;
+      if (pv) { e.how.prev = 'class'; }
+      if (nx) { e.how.next = 'class'; }
+      if (!mo || !pv || !nx) {
+        var bp = barParts(bar, e.cells);
+        if (bp) {
+          if (!mo && bp.more) { mo = bp.more; e.how.more = 'structure'; }
+          if (!pv && bp.prev) { e.prev = bp.prev; e.how.prev = 'structure'; }
+          if (!nx && bp.next) { e.next = bp.next; e.how.next = 'structure'; }
+        }
+      }
+      if (mo) {
+        for (var o = 0; o < mo.options.length; o++) {
+          var op = mo.options[o];
+          var ot = clean(op.textContent || op.label);
+          if (op.disabled || !ot || STUB_RE.test(str(op.value)) || (o === 0 && (op.value === '' || /^more$/i.test(ot)))) { continue; }
+          e.more.push(ot);
+        }
+      }
       var as = q1(SEL.addStage, bar);
       if (as && shown(as, bar)) { e.addStage = as; }
     }
@@ -73604,7 +73668,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       off: off(), bar: barActive(), gf: { node: !!g, shown: gfShown(), ours: S.gfOurs, attr: root().hasAttribute(A_GF), items: r ? Object.keys(r) : null, unmapped: un },
       items: S.items ? Object.keys(S.items) : null, gfFail: S.gfFail,
       person: { box: !!personBox(), enabled: personEnabled(), suggestions: suggestions().length },
-      edit: { mode: editMode(), sheet: S.edit ? S.edit.phase : '', sheets: snap.sheets.length, cur: snap.cur, lists: snap.lists.length, cells: snap.cells.length, more: snap.more.length, popup: popupOpen() },
+      edit: { mode: editMode(), sheet: S.edit ? S.edit.phase : '', sheets: snap.sheets.length, cur: snap.cur, lists: snap.lists.length, cells: snap.cells.length, more: snap.more.length, popup: popupOpen(),
+        how: { more: snap.how.more, prev: snap.how.prev, next: snap.how.next } },   // canli bulgu 22.10: class | structure | none
       pick: !!S.pick, lease: !!(S.lease && now() < S.lease.until), last: S.lastErr, trace: S.trace.slice(-16)
     };
   }
