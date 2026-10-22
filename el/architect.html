@@ -28527,7 +28527,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       try {
         var copy = { slug: s.slug, phase: s.phase, step: s.step, apps: s.apps, prefs: s.prefs, changeText: s.changeText,
           previewRef: s.previewRef, previewRecords: (s.previewRecords || []).slice(0, 8), previewFp: s.previewFp, evidence: s.evidence,
-          previewCount: s.previewCount, previewLastTs: s.previewLastTs, triggerId: s.triggerId, triggerState: s.triggerState, handedOff: !!s.handedOff, ts: Date.now(), uid: _gflOwnerUid() };   // ACCT-SWITCH
+          previewCount: s.previewCount, previewLastTs: s.previewLastTs, triggerId: s.triggerId, triggerState: s.triggerState, handedOff: !!s.handedOff, ts: Date.now(), uid: _gflOwnerUid(),   // ACCT-SWITCH
+          previewParts: s.previewParts || null };   // report A13
         // 17.09 (WORK MAP): harita + durum + inceleme sayaci yalniz ozellik acik kartin oturumunda vardir (digerlerinde kopya ayni kalir)
         if (s.workMap || s.workMapState || s.inspectCount) { copy.workMap = s.workMap || null; copy.workMapState = String(s.workMapState || ''); copy.inspectCount = Number(s.inspectCount) || 0; copy.workMapSeen = !!s.workMapSeen; }
         // 17.09 (DEEP_SCAN spec H1.2): derin taramanin ciktilari da kalir; yenilemede glance seridi ve ray geri gelir,
@@ -28626,6 +28627,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           s.previewCount  = Number(saved.previewCount) || 0;
           s.previewLastTs = Number(saved.previewLastTs) || 0;
           s.previewFp     = String(saved.previewFp || '');
+          s.previewParts  = (saved.previewParts && typeof saved.previewParts === 'object' && !Array.isArray(saved.previewParts)) ? saved.previewParts : null;   // report A13
           s.previewRecords = Array.isArray(saved.previewRecords) ? saved.previewRecords.slice(0, 8) : [];   // 17.09: kayit tavani 8
           s.evidence      = (saved.evidence && typeof saved.evidence === 'object') ? saved.evidence : null;
           if (['preview','verify','configure','launch'].indexOf(saved.step) >= 0) s.step = saved.step;
@@ -28758,6 +28760,37 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           + '|' + ovr + '|' + prm + '|' + String(s.retestRef || '') + '|' + src;
         return (typeof _gadHashStr === 'function') ? String(_gadHashStr(raw)) : raw;
       } catch(e){ return ''; }
+    }
+    // 22.10 (report A13): the fingerprint's parts, kept at preview time, so "the setup changed since the preview" can name
+    // what changed. The model is left out: the person cannot change it on this screen.
+    function _gadFlagshipFpParts(s){
+      var o = {};
+      try { o.preferences = JSON.stringify(_gadFlagshipPrefsPayload(s.prefs, s.ctx.prefKeys)); } catch(e){ o.preferences = ''; }
+      try { o.apps = _gadFlagshipExcludedApps(s).slice().sort().join(','); } catch(e){ o.apps = ''; }
+      o.change = String(s.changeText || '').trim();
+      try { o.answers = JSON.stringify(_gflGsCleanOverrides(s.overrides)); } catch(e){ o.answers = ''; }
+      try { o.permissions = JSON.stringify(_gflGsCleanPerms(s.permissions)); } catch(e){ o.permissions = ''; }
+      o.test = String(s.retestRef || '');
+      try { o.sources = JSON.stringify(s.sourceUse || {}) + JSON.stringify(s.sourcePending || {}); } catch(e){ o.sources = ''; }
+      return o;
+    }
+    var _GFL_FP_NAMES = { preferences: 'your preferences', apps: 'the apps it uses', change: 'your change request', answers: 'your answers',
+      permissions: 'the permissions', test: 'the test message', sources: 'the sources it reads' };
+    // What the person changed since the preview; null when the preview kept no parts (a session saved before 22.10).
+    function _gadFlagshipStaleNames(s){
+      var was = (s && s.previewParts && typeof s.previewParts === 'object') ? s.previewParts : null; if (!was) return null;
+      var now = _gadFlagshipFpParts(s), names = [];
+      Object.keys(_GFL_FP_NAMES).forEach(function(k){
+        var a = String(was[k] == null ? '' : was[k]), b = String(now[k] == null ? '' : now[k]);
+        if (k === 'test' && !a) return;   // the first test message is picked by the setup itself right after the preview
+        if (a !== b) names.push(_GFL_FP_NAMES[k]);
+      });
+      return names;
+    }
+    function _gadFlagshipStaleText(names){
+      if (!names || !names.length) return 'The setup changed since the preview. Run the preview again or continue.';
+      var list = (names.length === 1) ? names[0] : (names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]);
+      return 'Since the preview you changed ' + list + '. Run the preview again, or press the button again to continue.';
     }
     function _gadFlagshipIsOn(slug){ try { return (typeof isSlugConnected === 'function') && isSlugConnected(String(slug || '').toLowerCase()); } catch(e){ return false; } }
     function _gadFlagshipRequiredMissing(s){ return s.apps.required.filter(function(x){ return !_gadFlagshipIsOn(x); }); }
@@ -30279,6 +30312,17 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
           s.pay.state = 'ok'; s.pay.plan = r.plan; s.pay.justPaid = (r.v === 'ok');
           _gflPayStopWatch();
           try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_cleared', { slug: s.ctx && s.ctx.slug, plan: r.plan || '' }); } catch(e){}
+          // 22.10 (report A12): one step after the payment. The packages window closes and the start the person chose
+          // (they reached this card through Start / Choose a package) continues by itself; the card says so meanwhile.
+          if (r.v === 'ok') {
+            s.pay.autoStart = true;
+            try { window.dispatchEvent(new CustomEvent('gx:aithia-close')); } catch(e){}
+            setTimeout(function(){
+              if (_gadFlagshipSession !== s || s.busy || s.starting || s.pending) return;
+              var btn = _gadFlagshipEl(s.pay.resume === 'review' ? 'gfl-review' : 'gfl-go');
+              if (btn && !btn.disabled && !btn.hidden) { _gflPayLog('package active, the setup continues'); try { btn.click(); } catch(e){} }
+            }, 900);
+          }
         }
         _gadFlagshipPrimaryLabel();
       });
@@ -30366,7 +30410,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       }
       if (st === 'ok') {
         t.textContent = _gflPayPlanName(s.pay.plan) + ' is active.';
-        d.textContent = 'Start the assistant to finish setup.';
+        d.textContent = s.pay.autoStart ? 'Payment received. Starting your assistant now.' : 'Start the assistant to finish setup.';   // report A12
         return;
       }
       t.textContent = 'Choose an AITHIA package to start';
@@ -30409,9 +30453,35 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     }
     window._gflPayGate = _gflPayGate;
     /* AITHIA-PAYWALL-END */
+    // 22.10 (report A11): the package is asked as soon as the launch summary shows, not when Start is pressed, so a
+    // workspace without a package sees "Choose a package" from the start instead of a Start button that turns into a
+    // payment step at the last moment. Same answers as the gate; a failed early check leaves the click to ask again.
+    function _gflPayPrefetch(s){
+      s.pay = { state: 'checking', resume: 'go', waking: false, prefetch: true };
+      _gflPayAsk(false).then(function(r){
+        if (r.v !== 'retry' || _gadFlagshipSession !== s) return r;
+        if (s.pay && s.pay.prefetch) { s.pay.waking = true; _gadFlagshipPrimaryLabel(); }   // "Still checking. This can take up to a minute."
+        return _gflPayAsk(true, 45000);
+      }).then(function(r){
+        if (_gadFlagshipSession !== s || !s.pay || !s.pay.prefetch) return;
+        s.pay.prefetch = false; s.pay.waking = false;
+        _gflPayLog('early check ->', r.v, r.plan || r.why || '');
+        if (r.v === 'required') {
+          s.pay.state = 'required'; s.pay.billing = r.billing || null;
+          try { if (typeof gxaTrack === 'function') gxaTrack('aithia_paywall_shown', { slug: s.ctx && s.ctx.slug, early: 1 }); } catch(e){}
+        } else if (r.v === 'retry') s.pay.state = 'idle';
+        else { s.pay.state = 'ok'; s.pay.plan = r.plan; }
+        _gadFlagshipPrimaryLabel();
+      });
+    }
     function _gadFlagshipPrimaryLabel(){
       _gadFlagshipPrimaryLabel0();
-      try { var s1 = _gadFlagshipSession; if (s1 && s1.pay) _gflPayPaint(s1, _gadFlagshipEl('gfl-go')); } catch(e){ try { console.warn('[PAYWALL] paint', e && e.message); } catch(_e){} }   /* AITHIA-PAYWALL */
+      try {
+        var s1 = _gadFlagshipSession;
+        if (s1 && !s1.pay && s1.step === 'launch' && s1.launchView === 'summary' && !s1.pending && !s1.starting && s1.phase !== 'done'
+            && _gflPayApplies(s1.ctx) && !(typeof window._gadLoginState === 'function' && window._gadLoginState() === 'no')) _gflPayPrefetch(s1);   // report A11
+        if (s1 && s1.pay) _gflPayPaint(s1, _gadFlagshipEl('gfl-go'));
+      } catch(e){ try { console.warn('[PAYWALL] paint', e && e.message); } catch(_e){} }   /* AITHIA-PAYWALL */
     }
     function _gadFlagshipPrimaryLabel0(){
       var s = _gadFlagshipSession, go = _gadFlagshipEl('gfl-go'); if (!s || !go) return;
@@ -37456,6 +37526,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       var a = '';
       try { a = _gflStr((s.inboxProfile && (s.inboxProfile.account || s.inboxProfile.email)) || (s.evidence && s.evidence.account) || ''); } catch(e){ a = ''; }
       if (!a) { var _mpA = _gflMailApp(s && s.ctx); if (_mpA === 'bizmail' && window.__gflBizmail && window.__gflBizmail.email) a = String(window.__gflBizmail.email); } /* MAILPROV */
+      // 22.10 (report A14): the connected account's own address (Composio list, C3 indexer) is evidence too, so the last
+      // screen names the mailbox that will be activated instead of "your Gmail account".
+      if (!a) { try { var _cm = window.connectedAccountMetaCache && window.connectedAccountMetaCache[_gflMailAppNow()]; if (_cm && _cm.email) a = String(_cm.email); } catch(_cme){} }
       return a ? _gflCut(a, 120) : (_gflMailAppNow() === 'outlook' ? 'your Outlook account' : (_gflMailAppNow() === 'bizmail' ? 'your business mailbox' : 'your Gmail account')); /* MAILPROV */
     }
     // Taranan kullanici etiketleri (urunun kendi yeni etiketleri haric). Tarama yoksa liste bostur ve secim cizilmez.
@@ -38044,6 +38117,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       if (!r.card || r.mismatch) return 'error';
       var failed = (r.card.checked || []).some(function(k){ return k.state === 'failed'; });
       if (failed) return 'error';
+      // 22.10 (report A04): a message that needs no reply (draft_state 'none') with nothing left unconfirmed is a finished
+      // test, not "Some checks are open" with an unexplained "Continue with this limit".
+      if (r.card.draft_state === 'none' && !((r.card.unverified || []).length)) return 'verified';
       return (r.card.draft_state === 'verified') ? 'verified' : 'partial';
     }
     function _gflGsRetestStale(s){
@@ -38226,7 +38302,11 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // ★ 19.09 gorsel denetim (spec 6.7): biten kosuda alt satir baslikla AYNI seyi soyluyordu. Cumle urunden
       // cikmaz, muhurun adinda durur; ekranda yalniz muhur ve basligi kalir. Yarim kosuda satir gercek bir
       // bilgi tasir (neyin acik kaldigi), orada ekranda kalir.
-      if (out === 'verified') {
+      if (out === 'verified' && c.draft_state === 'none') {   // report A04: say why there is no draft
+        si.setAttribute('aria-label', 'Checks done. This message needs no reply, so no draft was written.');
+        seal.setAttribute('title', 'This message needs no reply, so no draft was written.');
+        seal.appendChild(_gflNode('div', 'gfl-state-c', 'This message needs no reply, so no draft was written.'));
+      } else if (out === 'verified') {
         si.setAttribute('aria-label', 'Checks done. The checks this request needs are done.');
         seal.setAttribute('title', 'The checks this request needs are done.');
       } else seal.appendChild(_gflNode('div', 'gfl-state-c', _gflGsPartialLine(c)));
@@ -38602,7 +38682,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         try { _gflGsRenderStep(s); } catch(_egf){}
         return;
       }
-      s.previewRecords = recs; s.evidence = ev; s.previewFp = _gadFlagshipFingerprint(s); s.phase = 'idle';
+      s.previewRecords = recs; s.evidence = ev; s.previewFp = _gadFlagshipFingerprint(s); s.previewParts = _gadFlagshipFpParts(s); s.phase = 'idle';
       // 17.09 (DEEP_SCAN spec 5.7): "triaged" yerine duz ingilizce.
       // ★ 19.09 denetim (kabul 10): kayit gelmemesi "kapsamda mesaj yoktu" DEMEK DEGILDIR. Tarama satirlari
       // varken (kapsamda mesaj vardi, kosu yalniz gosterilecek bir istek secmedi) altyazi da durum kartiyla
@@ -39182,7 +39262,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         if ((b = t.closest('#gfl-go'))) {
           if (s.busy) return;
           if (b.getAttribute('data-act') === 'open-workspace') { closeSheet('open-workspace'); return; }
-          if (b.getAttribute('data-act') === 'aithia-pay') { _gflPayOpen(s, ctx); return; }   /* AITHIA-PAYWALL */
+          if (b.getAttribute('data-act') === 'aithia-pay') {   /* AITHIA-PAYWALL */
+            if (s.pay && s.pay.state === 'required') { _gflPayOpen(s, ctx); return; }
+            b.removeAttribute('data-act');   // a mark left from an earlier answer: the commit below asks again
+          }
           if (s.step === 'connect') { if (_gadFlagshipRequiredMissing(s).length === 0) _gadFlagshipStep('preview'); return; }
           // 18.09 (GUIDED_SETUP_SPEC 2.1 - 2.5): dort adimin ileri yolu. 2A'dan 2B'ye YALNIZ yeniden denenecek
           // mesajin engelleyen bir sorusu varsa gecilir; yoksa dogrudan izinlere.
@@ -39377,9 +39460,13 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       // Onizlemeden sonra kurulum degistiyse bir kez uyar (ikinci tik gecer)
       if (!fromReview && s.previewFp) {
         var fpNow = _gadFlagshipFingerprint(s);
-        if (fpNow !== s.previewFp && s.staleAck !== fpNow) {
+        // 22.10 (report A13): the 4A test already ran on a message with exactly these settings, a newer proof than the
+        // preview, so the note would only warn about the changes that test covered.
+        var rtCur = false; try { var rt0 = _gflGsRetest(s); rtCur = !!(rt0.state === 'done' && rt0.fp && rt0.fp === fpNow && !s.retestStale); } catch(_rt){}
+        var stNames = (fpNow !== s.previewFp && !rtCur) ? _gadFlagshipStaleNames(s) : null;
+        if (fpNow !== s.previewFp && s.staleAck !== fpNow && !rtCur && !(stNames && !stNames.length)) {
           s.staleAck = fpNow;
-          _gadFlagshipNote('The setup changed since the preview. Run the preview again or continue.', true);
+          _gadFlagshipNote(_gadFlagshipStaleText(stNames), true);   // report A13: names what changed
           return false;
         }
       }
