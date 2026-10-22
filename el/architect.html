@@ -17914,7 +17914,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
             '</div>' +
           '</div>';
         try { ov.querySelector('#gad-noacct-d').textContent = String(opts.body || 'This assistant starts on its own when something happens, like a new email, so it runs on your own account. Sign up or log in right here. Your setup stays open and continues.'); } catch (_d) {}
-        var later = function () { try { if (typeof opts.onLater === 'function') opts.onLater(); } catch (_l) {} };
+        var later = function () { _gadAuthResumeArm(null); try { if (typeof opts.onLater === 'function') opts.onLater(); } catch (_l) {} };
         var onKey = function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); ev.preventDefault(); close(); later(); } };
         var close = function () { window.removeEventListener('keydown', onKey, true); try { ov.remove(); } catch (_r) {} };
         ov.addEventListener('click', function (ev) {
@@ -17932,9 +17932,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
               try { ab.click(); } catch (_c) {}
               return;
             }
-            // no such button on this page: the same version's login page (the old route)
+            // no such button on this page: the same version's login page; Sign up opens its sign up form directly (22.10)
             var base = /^\/version-test(\/|$)/.test(location.pathname) ? '/version-test' : '';
-            location.href = base + '/login';
+            location.href = base + '/login' + (act === 'signup' ? '?nav=signup' : '');
             return;
           }
           if (b || ev.target === ov) { close(); later(); }
@@ -17942,6 +17942,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         window.addEventListener('keydown', onKey, true);
         document.body.appendChild(ov);
         try { ov.querySelector('[data-act="signup"]').focus(); } catch (_f) {}
+        // 22.10 (ACCOUNT-FIRST): the login flag can read 'no' for a moment while a signed in page renders; the card
+        // then closes by itself and the blocked step continues as soon as the flag says 'yes' (no second sign in).
+        if (typeof resume === 'function') _gadAuthResumeArm(function () { close(); resume(); });
       } catch (_e) {
         _gadToast('Sign in or create an account to set up an assistant that runs on its own.', 'error');
       }
@@ -39739,19 +39742,47 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // user, so the connection and the setup never reached the account (21.10 test: setup from scratch after sign up).
     // The card reopens by itself after sign up (intent mirrored; in place when the page's own window opens). The
     // account card counts as opened (onBoot true: the entry lock is released, the surface says opened).
+    // 22.10 (AITHIA resume, Saltuk: "giris yap diyor sonra sureci sifirliyor"): the AITHIA setup intent outlives every hop
+    // of Bubble's sign up / log in chain (the /login page, its refresh, the ChangePage back to the app). It is kept
+    // 60 min in both storages and cleared only when the setup really opens for a signed in person, or on Not now.
+    // _flagshipDeepLink reads it on every app load when the URL and gx_flagship_pending name nothing.
+    var _GFL_AR_KEY = 'gx_aithia_resume', _GFL_AR_TTL = 3600000;
+    function _gflAithiaResumeSet(slug){
+      var raw = JSON.stringify({ slug: String(slug || '').slice(0, 80), ts: Date.now() });
+      try { localStorage.setItem(_GFL_AR_KEY, raw); } catch(e){}
+      try { sessionStorage.setItem(_GFL_AR_KEY, raw); } catch(e){}
+    }
+    function _gflAithiaResumeGet(){
+      var r = null;
+      try { r = JSON.parse(sessionStorage.getItem(_GFL_AR_KEY) || localStorage.getItem(_GFL_AR_KEY) || 'null'); } catch(e){ r = null; }
+      if (!r || !_GFL_PAY_RE.test(String(r.slug || '')) || !(Date.now() - Number(r.ts || 0) < _GFL_AR_TTL)) { if (r) _gflAithiaResumeClear(); return null; }
+      return r;
+    }
+    function _gflAithiaResumeClear(){
+      try { localStorage.removeItem(_GFL_AR_KEY); } catch(e){}
+      try { sessionStorage.removeItem(_GFL_AR_KEY); } catch(e){}
+    }
+    window._gflAithiaResumeGet = _gflAithiaResumeGet;
     function _gflAccountFirst(slugOrCard, opts){
       try {
         var slug = (slugOrCard && typeof slugOrCard === 'object') ? String(slugOrCard.Slug || slugOrCard.slug || '') : String(slugOrCard || '').trim();
         if (!_GFL_PAY_RE.test(slug)) return false;
-        if (typeof window._gadLoginState !== 'function' || window._gadLoginState() !== 'no') return false;
+        if (typeof window._gadLoginState !== 'function' || window._gadLoginState() !== 'no') { _gflAithiaResumeClear(); return false; }   // signed in: the setup opens now
         if (typeof window._gadNoAccountGate !== 'function') return false;
+        _gflAithiaResumeSet(slug);
         var o2 = {}; Object.keys(opts || {}).forEach(function(k){ o2[k] = opts[k]; });
-        window._gadNoAccountGate('flagship:entry', function(){ window.gaiaUseFlagship(slugOrCard, o2); }, {
-          slug: slug,
-          body: 'AITHIA works in your own mailbox, so it runs on your own account. Sign up or log in, and your setup opens right after.',
-          onLater: function(){ try { _gadFlagshipClearDeepLink(); } catch(e){} }   // Not now: no reopen on the next load
-        });
-        try { if (typeof opts.onBoot === 'function') opts.onBoot(true); } catch(e){}
+        var t0 = Date.now();
+        // the flag may read 'no' for a moment on a page that is signing in: look again for 1.5 s before asking
+        (function ask(){
+          if (window._gadLoginState() !== 'no') { window.gaiaUseFlagship(slugOrCard, o2); return; }
+          if (Date.now() - t0 < 1500) { setTimeout(ask, 250); return; }
+          window._gadNoAccountGate('flagship:entry', function(){ window.gaiaUseFlagship(slugOrCard, o2); }, {
+            slug: slug,
+            body: 'AITHIA works in your own mailbox, so it runs on your own account. Sign up or log in, and your setup opens right after.',
+            onLater: function(){ _gflAithiaResumeClear(); try { _gadFlagshipClearDeepLink(); } catch(e){} }   // Not now: no reopen on the next load
+          });
+          try { if (typeof opts.onBoot === 'function') opts.onBoot(true); } catch(e){}
+        })();
         return true;
       } catch(e){ return false; }
     }
@@ -40457,6 +40488,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
               else { sessionStorage.removeItem(_FLAG_PENDING_KEY); }
             }
           } catch(e){}
+        }
+        if (!fslug) {   // 22.10 AITHIA resume: the setup of a sign up / log in round trip (Bubble's chain drops the rest)
+          try { var _ar = (typeof _gflAithiaResumeGet === 'function') ? _gflAithiaResumeGet() : null; if (_ar) { fslug = String(_ar.slug); instant = false; intent = 'preview'; gL('[FLAGSHIP] AITHIA kurulum niyeti geri yuklendi:', fslug); } } catch(_are){}
         }
         var source = 'deeplink';
         if (!fslug) {
