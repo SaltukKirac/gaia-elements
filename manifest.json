@@ -1,80 +1,80 @@
 {
-  "repo": "SaltukKirac/gaia-elements",
-  "channel": "main",
-  "rev": 36,
-  "updated": "2026-10-22T17:39:37Z",
-  "elements": {
-    "aithia-pricing": {
-      "commit": "898b74e25db0187832a6d32c5c0bb7813a5aa6a2",
-      "path": "el/aithia-pricing.html",
-      "blob": "a9b882806474e9e9cea8f768d7e1efa1ef4e50a5",
-      "bytes": 61414,
-      "title": "AITHIA pricing page (public, /aithia)",
-      "updated": "2026-10-22T11:12:35Z"
-    },
-    "architect": {
-      "commit": "d5598ef3b272aae8b723c02375d730ab2d99552c",
-      "path": "el/architect.html",
-      "blob": "725b78ea761814e872ae84af745b5da9bf22faeb",
-      "bytes": 4084357,
-      "title": "AI Architect / GAD (+ Octo shell) - app page",
-      "updated": "2026-10-22T17:38:38Z"
-    },
-    "form": {
-      "commit": "9119236c26dae473cef4452168eb7c09df783989",
-      "path": "el/form.html",
-      "blob": "40a4172f3e4f91f7c1415a25888fa48604eca056",
-      "bytes": 841250,
-      "title": "Dynamic form - app page",
-      "updated": "2026-10-22T17:39:37Z"
-    },
-    "onboarding": {
-      "commit": "f39ee569c4627b019ecd98938b52097296c54535",
-      "path": "el/onboarding.html",
-      "blob": "054f1a108f13ff366d14489d07ba1e1b8a4feaf6",
-      "bytes": 58373,
-      "title": "Onboarding widget",
-      "updated": "2026-09-30T13:10:00Z"
-    },
-    "pricing": {
-      "commit": "b9aef8edee91bc5c6981d3f94130c64f5e160353",
-      "path": "el/pricing.html",
-      "blob": "2f84ca306744bf37ed5760f9610d90b8413025ed",
-      "bytes": 23322,
-      "title": "Pricing page (public, /pricing)",
-      "updated": "2026-09-24T21:46:46Z"
-    },
-    "prompt-builder": {
-      "commit": "d9f50da4f263f293ed5a5e36000d01b769733e07",
-      "path": "el/prompt-builder.html",
-      "blob": "e836e467272cbadcdef2856cafbcd06b3e22b281",
-      "bytes": 119543,
-      "title": "Prompt Builder",
-      "updated": "2026-09-24T20:35:50Z"
-    },
-    "table": {
-      "commit": "0e1cec885fe17560a86986b18284209973565e9e",
-      "path": "el/table.html",
-      "blob": "e2b5031c3b767a99eaa3c702dc29e8c26fa8cad4",
-      "bytes": 580909,
-      "title": "Dynamic table (tablev2) - app page",
-      "updated": "2026-10-22T09:25:05Z"
-    },
-    "template-page": {
-      "commit": "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
-      "path": "el/template-page.html",
-      "blob": "ea4781cce9230c7fff12a9102a770d9e64326336",
-      "bytes": 286439,
-      "title": "Template detail page (public, /template/<slug>)",
-      "updated": "2026-10-22T09:24:24Z"
-    },
-    "templates-button": {
-      "commit": "b9aef8edee91bc5c6981d3f94130c64f5e160353",
-      "path": "el/templates-button.html",
-      "blob": "6cf68a5b55f2523f9a360a021b3e65b24c1c05dd",
-      "bytes": 28003,
-      "title": "Flagship home mount (templates button)",
-      "updated": "2026-09-24T21:46:46Z"
-    }
-  }
+    "repo":  "SaltukKirac/gaia-elements",
+    "channel":  "main",
+    "rev":  37,
+    "updated":  "2026-10-22T18:08:15Z",
+    "elements":  {
+                     "aithia-pricing":  {
+                                            "commit":  "898b74e25db0187832a6d32c5c0bb7813a5aa6a2",
+                                            "path":  "el/aithia-pricing.html",
+                                            "blob":  "a9b882806474e9e9cea8f768d7e1efa1ef4e50a5",
+                                            "bytes":  61414,
+                                            "title":  "AITHIA pricing page (public, /aithia)",
+                                            "updated":  "2026-10-22T11:12:35Z"
+                                        },
+                     "architect":  {
+                                       "commit":  "282f26485a921e902864ebfd18ffd51959faf837",
+                                       "path":  "el/architect.html",
+                                       "blob":  "e008dcd37e97d8673bfc130402fc5a934abd4df9",
+                                       "bytes":  4086660,
+                                       "title":  "AI Architect / GAD (+ Octo shell) - app page",
+                                       "updated":  "2026-10-22T18:08:15Z"
+                                   },
+                     "form":  {
+                                  "commit":  "9119236c26dae473cef4452168eb7c09df783989",
+                                  "path":  "el/form.html",
+                                  "blob":  "40a4172f3e4f91f7c1415a25888fa48604eca056",
+                                  "bytes":  841250,
+                                  "title":  "Dynamic form - app page",
+                                  "updated":  "2026-10-22T17:39:37Z"
+                              },
+                     "onboarding":  {
+                                        "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
+                                        "path":  "el/onboarding.html",
+                                        "blob":  "054f1a108f13ff366d14489d07ba1e1b8a4feaf6",
+                                        "bytes":  58373,
+                                        "title":  "Onboarding widget",
+                                        "updated":  "2026-09-30T13:10:00Z"
+                                    },
+                     "pricing":  {
+                                     "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                     "path":  "el/pricing.html",
+                                     "blob":  "2f84ca306744bf37ed5760f9610d90b8413025ed",
+                                     "bytes":  23322,
+                                     "title":  "Pricing page (public, /pricing)",
+                                     "updated":  "2026-09-24T21:46:46Z"
+                                 },
+                     "prompt-builder":  {
+                                            "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
+                                            "path":  "el/prompt-builder.html",
+                                            "blob":  "e836e467272cbadcdef2856cafbcd06b3e22b281",
+                                            "bytes":  119543,
+                                            "title":  "Prompt Builder",
+                                            "updated":  "2026-09-24T20:35:50Z"
+                                        },
+                     "table":  {
+                                   "commit":  "0e1cec885fe17560a86986b18284209973565e9e",
+                                   "path":  "el/table.html",
+                                   "blob":  "e2b5031c3b767a99eaa3c702dc29e8c26fa8cad4",
+                                   "bytes":  580909,
+                                   "title":  "Dynamic table (tablev2) - app page",
+                                   "updated":  "2026-10-22T09:25:05Z"
+                               },
+                     "template-page":  {
+                                           "commit":  "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
+                                           "path":  "el/template-page.html",
+                                           "blob":  "ea4781cce9230c7fff12a9102a770d9e64326336",
+                                           "bytes":  286439,
+                                           "title":  "Template detail page (public, /template/\u003cslug\u003e)",
+                                           "updated":  "2026-10-22T09:24:24Z"
+                                       },
+                     "templates-button":  {
+                                              "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                              "path":  "el/templates-button.html",
+                                              "blob":  "6cf68a5b55f2523f9a360a021b3e65b24c1c05dd",
+                                              "bytes":  28003,
+                                              "title":  "Flagship home mount (templates button)",
+                                              "updated":  "2026-09-24T21:46:46Z"
+                                          }
+                 }
 }
