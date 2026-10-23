@@ -63915,7 +63915,19 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     }
     for (var i = 0; i < t.msgs.length; i++) { log.appendChild(mailTurnEl(t, t.msgs[i], i === t.msgs.length - 1)); }
     // A failed ask, a FAILED verdict or a spent poll budget: one muted line and Try again; the user turn stays.
-    if (t.err && !t.req) {
+    // a8 (23.10): provider_quota (the AI service behind Aithia has no credits left) says so and offers no Try again:
+    // asking again cannot help until it is topped up; the composer stays, a new question still goes out.
+    if (t.err === 'provider_quota' && !t.req) {
+      var qh = muted("Aithia can't answer right now");
+      qh.setAttribute('role', 'status');
+      qh.setAttribute('data-k', 'mail-quota');
+      log.appendChild(qh);
+      var qw = el('div', 'octo-rail-muted');
+      qw.appendChild(el('span', '', 'Our AI service is paused.'));
+      qw.appendChild(D.createTextNode(' '));
+      qw.appendChild(el('span', '', 'Ask again later.'));
+      log.appendChild(qw);
+    } else if (t.err && !t.req) {
       log.appendChild(muted('Could not search mailbox'));
       log.appendChild(errRow(mailRetry));
     }
@@ -70788,6 +70800,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
         var f = fields[i], n = opts.length;
         opts.push({ key: f.key, header: f.header });
         var it = item(f.header, 'title-pick', '', { 'data-idx': n, 'data-key': 'tt:' + n });
+        it.lastChild.setAttribute('dir', 'auto');   // 0C.17: Latin disi (sagdan sola) basliklar kendi yonunde
         var on = !!tm.pick && f.key === tm.pick;
         it.setAttribute('role', 'menuitemradio');
         it.setAttribute('aria-checked', on ? 'true' : 'false');
@@ -72721,6 +72734,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     sp.appendChild(D.createTextNode(' '));
     var tv = el('span', 'octo-wsb-tval', v);
     tv.title = v;
+    tv.setAttribute('dir', 'auto');   // 0C.17: secilen Latin disi baslik kendi yonunde
     sp.appendChild(tv);
     sp.appendChild(octo.icon('chevron-down', 12));
     b.appendChild(sp);
@@ -76530,6 +76544,11 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
      alan (spare); hicbiri yoksa durust etiket: '<baslik> not filled in' ya da 'No title to show' (uydurma yok);
    - kullanicinin secimi (0C.7) tablo basina tek alan anahtari; bu oturumda gorulen bir ekranin tam listesinde yoksa
      uyur. Doluluk ve ayirt edicilik kapilarini atlar, gizlilik vetolarini ve deger maskelerini asla.
+   - KISA YAMA 0C.17 (23.10): adi Latin harfi tasimayan (Arapca, Kiril, Yunan, CJK ...) metin / referans sutunu KOR
+     alandir: yalniz Title: secicisinde, hicbir zaman otomatik degil. Gizlilik degere de bakar: TCKN, IBAN, kart (her
+     katmanda), numara adli olmayan sutunda uzun duz numara; degerleri cogunlukla gizli olan sutun asla otomatik
+     degil, tablo icin bilinince secicide yok ve secimi uyur. Inceleme 23.10: okunur ad kurali (readable), kart IIN
+     ister, metinde grup pencereleri, yon / bicim isaretleri atilir, sutun isareti saglam ornek ister (privMin, privRows).
 
    Bubble'da ve sunucuda SIFIR degisiklik; ayna mirror_query select'i alanlari adiyla verir (SRV 25115-25134).
    Kayit degerleri yalniz bu kapanisin belleginde; DOM'a ve depolamaya yazilmaz, diag() deger tasimaz (yalniz alan
@@ -76551,12 +76570,20 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   // fillT1 / fill: doluluk kapisi (kimlik adli / diger); distT1 / dist: farkli deger payi (en az 2 farkli deger);
   // maxLen: ortalama uzunluk (kimlik adli haric); pairBelow / pairMin / pairLen: ikinci alan kurali; shape: tarih /
   // tutar / telefon bicimli deger payi; refFill: _ref'in kalmasi; stableRows: plan bu kadar satirla kalici olur.
-  var T = { fillT1: 0.2, fill: 0.5, distT1: 0.3, dist: 0.6, maxLen: 80, pairBelow: 0.8, pairMin: 0.9, pairLen: 24, shape: 0.8, refFill: 0.8, stableRows: 10 };
+  // priv (0C.17): gizli deger payi = gizli (TCKN / IBAN / kart / uzun numara) / ham dolu deger. Bu paya ulasan sutun bir
+  // kimlik sutununun kilik degistirmis halidir (kalan degerleri de cogu zaman tanimadigimiz kimlik bicimleri): asla
+  // otomatik degil. 0.3: 10 satirda 3 gizli deger. privMin: plandan dusmek icin en az 2 gizli deger (tek giris hatasi
+  // sutunu silmez, o deger tek tek maskelenir). privRows: tablo icin ISARET (secicide yok, secim uyur, istenmez; sayfa
+  // omru) en az 10 ham dolu degerin olcumuyle; kucuk ornek (3 satir, T8, tek surecin alt kumesi) yalniz o plandan
+  // dusurur (inceleme 23.10: 3 satirda tek Luhn tutmasi sutunu sayfa boyu siliyordu). Telefon bicimi paya girmez (eski
+  // maske, aynen); numara adli sutunda yalniz kart bicimi tutan deger (Luhn gurultusu) maskelenir ama paya girmez.
+  var T = { fillT1: 0.2, fill: 0.5, distT1: 0.3, dist: 0.6, maxLen: 80, pairBelow: 0.8, pairMin: 0.9, pairLen: 24, shape: 0.8, refFill: 0.8, stableRows: 10, priv: 0.3, privMin: 2, privRows: 10 };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
 
-  // seen[tid][kapsam] = {top, full}; pick[tid] = onayli alan anahtari; tp[tid] = tablonun son plani (menu otomatigi).
-  var S = { plans: {}, seen: {}, pick: {}, tp: {}, cfgText: null, cfgCols: null, last: null };
+  // seen[tid][kapsam] = {top, full}; pick[tid] = onayli alan anahtari; tp[tid] = tablonun son plani (menu otomatigi);
+  // priv[tid][anahtar] = 1: degerleri cogunlukla gizli bilinen sutun (0C.17; plan olcer, sayfa omru, reset siler).
+  var S = { plans: {}, seen: {}, pick: {}, tp: {}, priv: {}, cfgText: null, cfgCols: null, last: null };
 
   function str(v) { return (v == null) ? '' : String(v); }
   function clean(v) { return str(v).replace(/\s+/g, ' ').trim().slice(0, 120); }
@@ -76656,8 +76683,22 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   var SYS_NK = ['id', 'ref', 'surec', 'modified', 'created', 'collab', 'listeler', 'sheet', 'sheetname', 'org', 'notvisible', 'keymode'];
 
   function packName(s) { return PACK.indexOf(fold(s).replace(/ /g, '')) >= 0; }
-  // Basligin katmani: 1 kimlik adli, 2 diger metin, 3 numara / kod; 0 = aday degil. Ad hem anahtardan hem basliktan;
-  // katlaninca hic kelime kalmayan ad (Latin disi yazi) vetolarla denetlenemez, aday olmaz.
+  // OKUNUR ad (0C.17): vetolarin denetleyebildigi ad. Yalniz ASCII ad kelime tasiyorsa okunur (eski kural aynen: '2024',
+  // 'A'); ASCII disi karakter tasiyan ad ise butun harfleri Latinse ('M\u00fc\u015fteri 2', 'Stra\u00dfe', '\u00c7') ya da en az iki
+  // harfli bir Latin kelime kaliyorsa ('Musteri \u540d\u524d'). Latin disi adda kalan rakam ('\u041f\u0430\u0440\u043e\u043b\u044c 1' -> '1'), NFKD'nin
+  // urettigi tek harf ('\u2116 \u043f\u0430\u0441\u043f\u043e\u0440\u0442\u0430' -> 'o') ve tek Latin harf okunur saymaz (inceleme 23.10).
+  var LAT_ONLY = /^[\x00-\x7f\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u024f\u1e00-\u1eff\u0300-\u036f]*$/;
+  function readable(nm, tk) {
+    if (!tk.length) { return false; }
+    if (LAT_ONLY.test(nm)) { return true; }
+    for (var i = 0; i < tk.length; i++) { if (tk[i].length >= 2 && /[a-z]/.test(tk[i])) { return true; } }
+    return false;
+  }
+  // Basligin katmani: 1 kimlik adli, 2 diger metin, 3 numara / kod; 0 = aday degil; -1 = KOR alan (0C.17). Ad hem
+  // anahtardan hem basliktan. Vetolar kelimesi olan her adda denetlenir (biri tutarsa aday degil; okunmayan adin rakam /
+  // tek harf kelimeleri hicbir vetoya uymaz, zarari yok). Baslik okunmuyorsa (ASCII disi karakter tasir; yalniz ASCII
+  // noktalama degil) ve tip metin / referanssa alan kordur: yalniz Title: secicisinde (candidates: tam liste, katman 2,
+  // blind), otomatik hicbir yerde degil. Sayi / bilinmeyen tip disarida.
   function tierOf(col) {
     var kind = canon(col.type);
     var names = [col.header, col.key];
@@ -76665,10 +76706,11 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       var nm = clean(names[i]);
       if (!nm) { continue; }
       var tk = toks(nm);
-      if (!tk.length) { return 0; }
+      if (!tk.length) { continue; }
       if (packName(nm) || anyPre(tk, VETO_P) || anyTok(tk, VETO_T) || anyStem(tk, PRIV_S) || anyRun(tk, PRIV_R) || anyStem(tk, LONG_S)) { return 0; }
     }
-    var ht = toks(col.header);
+    var hc = clean(col.header), ht = toks(hc);
+    if (hc && !readable(hc, ht)) { return (/[^\x00-\x7f]/.test(hc) && (kind === 'text' || kind === 'reference')) ? -1 : 0; }
     var code = anyTok(ht, CODE_T);
     if (kind === 'number' || kind === 'integer') { return code ? 3 : 0; }
     if (kind !== 'text' && kind !== 'reference') { return 0; }
@@ -76723,7 +76765,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   }
   // Su anki ekranin adaylari (gorunur sira; vetolar sinirdan once; katman, sonra sira). fields: ilk MAX_CANDS (B'nin
   // birlesimi), all: vetolardan sonraki tam liste (silme ve secim bununla). Yapilandirma sutunlari bossa ekran hazir
-  // degildir (src ''): tablo gecisinde bos liste kaydedilip o ekranin alanlari silinmez (0C.3.4).
+  // degildir (src ''): tablo gecisinde bos liste kaydedilip o ekranin alanlari silinmez (0C.3.4). Kor alan (0C.17):
+  // {tier: 2, blind: true}, yalniz all'da (secici ve onun duvari); fields'ta, birlesimde ve plan puaninda asla.
   function candidates() {
     var cols = cfgColumns();
     var st = tableState();
@@ -76738,10 +76781,11 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       if (st.fields && st.fields.indexOf(c.key) < 0) { continue; }   // tablonun bu ekranda istemedigi alan istenmez
       var tier = tierOf(c);
       if (!tier) { continue; }
+      if (tier < 0) { out.push({ key: c.key, header: c.header, tier: 2, pos: i, num: false, int: false, blind: true }); continue; }
       out.push({ key: c.key, header: c.header, tier: tier, pos: i, num: canon(c.type) === 'number' || c.int, int: c.int });
     }
     out.sort(function (a, b) { return (a.tier - b.tier) || (a.pos - b.pos); });
-    return { fields: out.slice(0, MAX_CANDS), all: out, src: 'state' };
+    return { fields: out.filter(function (f) { return !f.blind; }).slice(0, MAX_CANDS), all: out, src: 'state' };
   }
 
   // ---------------------------------------------------------- ekran kapsami (Board spec 2.8)
@@ -76793,6 +76837,9 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   }
   // Ogrenilmis kapsam sayisi (adayi olmayan kapsam da sayilir).
   function known(tid) { var t = S.seen[str(tid)]; return t ? Object.keys(t).length : 0; }
+  // 0C.17: degerleri cogunlukla gizli bilinen sutun (planin olcumu, tablo basina). Izinli alanlardan, secimden,
+  // menuden ve birim kipinin select'inden duser; bir daha istenmez ve olculmez (sayfa omru, reset siler).
+  function privKnown(tid, k) { var o = S.priv[str(tid)]; return !!o && own(o, str(k)); }
   // Kapsam listelerinin tam listesinde k alani (alan bilgisiyle) ya da null.
   function inFull(ls, k) {
     for (var i = 0; i < ls.length; i++) {
@@ -76811,7 +76858,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     return true;
   }
   // Onayli secim: kayitli anahtar, bu oturumda gorulen bir ekranin TAM listesinde (cols verilirse yalniz tum kayitlar
-  // ekrani ve o sutunlarin surec ekranlari) varsa; yoksa uyur ve '' doner. Tam liste vetolardan sonradir.
+  // ekrani ve o sutunlarin surec ekranlari) varsa; yoksa uyur ve '' doner. Tam liste vetolardan sonradir; degerleri
+  // gizli bilinen sutunun (0C.17) secimi de uyur.
   function pick(tid, cols) {
     tid = str(tid);
     var k = str(S.pick[tid]), t = S.seen[tid];
@@ -76819,18 +76867,20 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var ls = [];
     if (isArr(cols)) { ls.push(t.all); cols.forEach(function (c) { ls.push(t['stage:' + str(c)]); }); }
     else { for (var s in t) { if (own(t, s)) { ls.push(t[s]); } } }
-    return inFull(ls, k) ? k : '';
+    return (inFull(ls, k) && !privKnown(tid, k)) ? k : '';
   }
   // Bir sutunun (surec kimligi) kartinin kullanabilecegi alanlar: tum kayitlar ekrani + o surecin ekrani (gorulduyse),
-  // ilk 5'leri; onayli secim bu iki ekrandan birinin tam listesindeyse o da eklenir.
+  // ilk 5'leri; onayli secim bu iki ekrandan birinin tam listesindeyse o da eklenir (kor alan yalniz boyle girer).
+  // Degerleri gizli bilinen sutun (0C.17) hic izinli degildir: istenmez, degeri karta yazilmaz.
   function allowed(tid, col) {
-    var t = S.seen[str(tid)];
+    tid = str(tid);
+    var t = S.seen[tid];
     var o = {};
     if (!t) { return o; }
     var ls = [t.all, t['stage:' + str(col)]];
-    ls.forEach(function (l) { ((l && l.top) || []).forEach(function (f) { if (!own(o, f.key)) { o[f.key] = f; } }); });
-    var pk = str(S.pick[str(tid)]);
-    if (pk && !own(o, pk)) { var pf = inFull(ls, pk); if (pf) { o[pk] = pf; } }
+    ls.forEach(function (l) { ((l && l.top) || []).forEach(function (f) { if (!own(o, f.key) && !privKnown(tid, f.key)) { o[f.key] = f; } }); });
+    var pk = str(S.pick[tid]);
+    if (pk && !own(o, pk) && !privKnown(tid, pk)) { var pf = inFull(ls, pk); if (pf) { o[pk] = pf; } }
     return o;
   }
   // Sutunlarin izinli alanlarinin birlesimi: onayli secim once, sonra katman ve sira; toplam en cok MAX_SEL.
@@ -76863,8 +76913,9 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   var BID_ANY = /\b\d{13}x\d{15,}\b/;
   var PLACE = ['yok', 'na', 'none', 'null', 'undefined', 'nil', 'tbd', 'belirtilmemis', 'bilinmiyor', 'unknown', 'bos'];
   function placeholder(t) { return /^[\s\-\u2013\u2014.,?_*\/\\0]*$/.test(t) || PLACE.indexOf(fold(t).replace(/ /g, '')) >= 0; }
-  // Maskeler KIRPMADAN ONCE tam degerde: Bubble kimligi (her yerde), claim paketi, cihaz anahtari, baglanti, e-posta;
-  // yer tutucular ('-', '0', 'yok', 'n/a' ...) bos.
+  // Maskeler KIRPMADAN ONCE tam degerde: Bubble kimligi (her yerde), claim paketi, cihaz anahtari, baglanti, e-posta
+  // (0C.17: Latin disi uzantili alan adi da, 'ivan@\u043f\u043e\u0447\u0442\u0430.\u0440\u0444'); yer tutucular ('-', '0', 'yok', 'n/a' ...) bos.
+  var MAIL_RE = /[^\s@]+@[^\s@]+\.(?:[a-z]{2,}|[^\x00-\x7f\s@.]{2,})/i;
   function rawOf(v) {
     if (isArr(v)) { v = v.length ? v[0] : ''; }
     if (v == null || isObj(v) || isArr(v) || typeof v === 'boolean') { return null; }
@@ -76872,7 +76923,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var t = str(v).replace(/\s+/g, ' ').trim();
     if (!t) { return null; }
     if (BID_ANY.test(t) || /^octo[12]\./.test(t) || t.indexOf('octo-cihaz1.') >= 0) { return null; }
-    if (/^(https?:)?\/\//i.test(t) || /^www\./i.test(t) || /[^\s@]+@[^\s@]+\.[a-z]{2,}/i.test(t)) { return null; }
+    if (/^(https?:)?\/\//i.test(t) || /^www\./i.test(t) || MAIL_RE.test(t)) { return null; }
     if (placeholder(t)) { return null; }
     return t;
   }
@@ -76883,14 +76934,26 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   }
   // Kartta gorunen metin ve arama terimi (ham). Sayi sutununun degeri aynada metindir (SRV 23543): JS sayi metni
   // tablonun bicimiyle yazilir (TV2 3165), baska bicimdeki metin oldugu gibi.
-  function valOf(row, f) {
+  // 0C.17 deger gizliligi (her katmanda, kirpmadan once tam degerde, rakamlar normallesmis): numara adli sutun (katman 3)
+  // yalniz tam deger TCKN / IBAN / kart; digerleri (katman 1 / 2, kor alan) ayrica metnin icinde de, ve 10+ rakamli duz
+  // numara. Gizli deger null doner (kart zincirde sonrakine duser). w verilirse olcum icin: w.raw (ham deger vardi),
+  // w.priv (gizli diye maskelendi ve paya girer; numara adli sutunda yalniz kart bicimi tutan deger maskelenir, paya
+  // girmez). Telefon bicimi ayri, eski maske (paya girmez); kor alanda tarih / tutar / numara dizisi de maskeli.
+  function valOf(row, f, w) {
     var r = rawOf(row[f.key]);
     if (r == null) { return null; }
+    if (w) { w.raw = 1; }
+    var code = f.tier === 3 && !f.blind;
+    var pv = privOf(String(r), code ? 'code' : 'text');
+    if (pv) { if (w && pv === 1) { w.priv = 1; } return null; }
     if (typeof r === 'number') { return { text: clean(f.num ? fmtNum(r, f.int) : String(r)), q: String(r) }; }
     var t = clean(r);
     if (!t) { return null; }
+    var nd = ndig(t);
     // Kimlik / metin sutununda tek tek telefon bicimli deger de baslik olmaz (numara sutunu bicim payiyla elenir).
-    if (f.tier !== 3 && phoneLike(t)) { return null; }
+    if (!code && phoneLike(nd)) { return null; }
+    // Kor alanin adi bir sey soylemez: tarih / tutar bicimli deger ve numara dizisi de gosterilmez (shapeAny).
+    if (f.blind && shapeAny(nd)) { return null; }
     if (f.num && /^-?\d+(\.\d+)?$/.test(t)) { var n = Number(t); if (isFinite(n)) { return { text: clean(fmtNum(n, f.int)), q: t }; } }
     return { text: t, q: t };
   }
@@ -76901,7 +76964,164 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     // os9b safeRef maskesi aynen + baglanti + yer tutucu
     if (!t || /^\d{13}x\d{15,}$/.test(t) || /^octo[12]\./.test(t) || t.indexOf('octo-cihaz1.') >= 0) { return ''; }
     if (/^(https?:)?\/\//i.test(t) || /^www\./i.test(t) || placeholder(t)) { return ''; }
+    // 0C.17: kaydin adi (ajanin yazdigi) numara gibi tutulur (duz dosya numarasi kalir); TCKN / IBAN / kart tam degerde
+    // ve metnin icinde maskelenir, kirpmadan once.
+    if (privOf(str(v).replace(/\s+/g, ' ').trim(), 'ref')) { return ''; }
     return t;
+  }
+
+  // ---------------------------------------------------------- deger gizliligi (0C.17)
+  // Unicode ondalik rakamlari ASCII'ye (yalniz dedektorler icin; kartta asil metin kalir): NFKC tam genislik ve
+  // matematik rakamlarini cevirir; Arapca-Hint, Farsca, N'Ko, Hint yazilari, Tay, Lao, Tibet, Myanmar, Khmer, Mogol ...
+  // (BMP'deki her 0 rakaminin kod noktasi, ardindaki 9 rakam ardisik). Once gorunmez yon / bicim isaretleri atilir
+  // (LRM / RLM, ALM, LRE..RLO, LRI..PDI, ZWSP, ZWJ, BOM, yumusak tire: sagdan sola veriden ve telefon rehberinden
+  // kopyalanan numaralar bunlarla sarilir) ve Arapca ondalik / binlik ayiraci '.' / ',' olur (inceleme 23.10).
+  var DZ = [0x0660, 0x06f0, 0x07c0, 0x0966, 0x09e6, 0x0a66, 0x0ae6, 0x0b66, 0x0be6, 0x0c66, 0x0ce6, 0x0d66, 0x0de6, 0x0e50, 0x0ed0,
+    0x0f20, 0x1040, 0x1090, 0x17e0, 0x1810, 0x1946, 0x19d0, 0x1a80, 0x1a90, 0x1b50, 0x1bb0, 0x1c40, 0x1c50, 0xa620, 0xa8d0, 0xa900,
+    0xa9d0, 0xa9f0, 0xaa50, 0xabf0, 0xff10];
+  var FMT_RE = /[\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]/g;
+  function ndig(s) {
+    var t = str(s);
+    try { t = t.normalize('NFKC'); } catch (e) { /* yut */ }
+    if (!/[^\x00-\x7f]/.test(t)) { return t; }
+    t = t.replace(FMT_RE, '').replace(/\u066b/g, '.').replace(/[\u066c\u060c]/g, ',').replace(/^\s+|\s+$/g, '');
+    var out = '';
+    for (var i = 0; i < t.length; i++) {
+      var c = t.charCodeAt(i), d = -1;
+      for (var j = 0; c > 0x7f && j < DZ.length; j++) { if (c >= DZ[j] && c <= DZ[j] + 9) { d = c - DZ[j]; break; } }
+      out += d >= 0 ? String(d) : t.charAt(i);
+    }
+    return out;
+  }
+  function luhn(ds) {
+    var s = 0, alt = false;
+    for (var i = ds.length - 1; i >= 0; i--) {
+      var n = ds.charCodeAt(i) - 48;
+      if (alt) { n *= 2; if (n > 9) { n -= 9; } }
+      s += n;
+      alt = !alt;
+    }
+    return s % 10 === 0;
+  }
+  // TC kimlik no: 11 rakam, ilk rakam 0 degil; 10. rakam = ((1+3+5+7+9) x 7 - (2+4+6+8)) mod 10, 11. = ilk 10'un toplami mod 10.
+  function tcknOk(ds) {
+    if (!/^[1-9]\d{10}$/.test(ds)) { return false; }
+    var d = [];
+    for (var i = 0; i < 11; i++) { d.push(ds.charCodeAt(i) - 48); }
+    if (((((d[0] + d[2] + d[4] + d[6] + d[8]) * 7 - (d[1] + d[3] + d[5] + d[7])) % 10) + 10) % 10 !== d[9]) { return false; }
+    var s = 0;
+    for (var j = 0; j < 10; j++) { s += d[j]; }
+    return s % 10 === d[10];
+  }
+  // IBAN (ISO 13616): bosluksuz buyuk harf, ulke + 2 kontrol + 11-30 hane; ilk 4 sona, harf A=10..Z=35, mod 97 = 1.
+  function ibanOk(s) {
+    if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) { return false; }
+    var r = s.slice(4) + s.slice(0, 4), m = 0;
+    for (var i = 0; i < r.length; i++) {
+      var c = r.charCodeAt(i);
+      m = c >= 65 ? (m * 100 + c - 55) % 97 : (m * 10 + c - 48) % 97;
+    }
+    return m === 1;
+  }
+  // Kart: 13-19 rakam, gercek kart oneki (IIN) ve Luhn. Luhn tek basina rastgele kodlarin onda birini tutar (inceleme
+  // 23.10: yilla baslayan dosya / police / e-Fatura numaralari). Onekler: 3-6 (Amex, JCB, Diners, Visa, Mastercard,
+  // Maestro, Discover, UnionPay 62), 2200-2204 Mir, 2221-2720 Mastercard 2, 81-82 UnionPay / RuPay, 8600 Uzcard, 9792
+  // Troy, 9860 Humo. 19xx / 20xx ile baslayan kodlar ve 869 barkodlari kart degildir.
+  function iinOk(ds) {
+    var a = ds.charCodeAt(0) - 48, p2 = Number(ds.slice(0, 2)), p4 = Number(ds.slice(0, 4));
+    return (a >= 3 && a <= 6) || (p4 >= 2200 && p4 <= 2204) || (p4 >= 2221 && p4 <= 2720) || p2 === 81 || p2 === 82 || p4 === 8600 || p4 === 9792 || p4 === 9860;
+  }
+  function cardOk(ds) { return ds.length >= 13 && ds.length <= 19 && iinOk(ds) && luhn(ds); }
+  // Tam deger dedektorleri (n: rakamlari normallesmis, bosluklari tek). tcknLike: yalniz rakam ve bosluk, 11 rakam;
+  // ibanLike: bosluklar atilir; cardLike: rakam + istege bagli bosluk / tire, kart (cardOk); longId: yalniz rakam ve
+  // bosluk . - / ile tarih, donem ve saat parcalari disinda en az 10 rakam (numara adli olmayan sutunda kimlik, hesap,
+  // abone, police ... ayirt edilemez).
+  function tcknLike(n) { return /^[\d ]+$/.test(n) && tcknOk(n.replace(/ /g, '')); }
+  function ibanLike(n) { return ibanOk(n.replace(/\s+/g, '').toUpperCase()); }
+  function cardLike(n) { return /^\d[\d -]*\d$/.test(n) && cardOk(n.replace(/\D/g, '')); }
+  // Bosluksuz parca tarih (gun basta ya da yil basta), donem (yil-ay, ay-yil) ya da saat (14.30) mi; iki tarih tek tireyle
+  // ('01.10.2026-31.10.2026') da. '2024-10-001234' kod kalir (inceleme 23.10: '23.10.2026 14.30', '01.01.2026 -
+  // 01.01.2027' kimlik sanilip sutunu secicinden siliyordu).
+  var DCHUNK = /^((0?[1-9]|[12]\d|3[01])[.\/-](0?[1-9]|1[0-2])[.\/-](\d{2}|\d{4})|\d{4}[.\/-](0?[1-9]|1[0-2])[.\/-](0?[1-9]|[12]\d|3[01])|(1[34]|19|20)\d\d[.\/-](0?[1-9]|1[0-2])|(0?[1-9]|1[0-2])[.\/-](19|20)\d\d|([01]?\d|2[0-3])\.[0-5]\d)$/;
+  function dateChunk(c) {
+    if (DCHUNK.test(c)) { return true; }
+    var h = c.split('-');
+    return h.length === 2 && DCHUNK.test(h[0]) && DCHUNK.test(h[1]);
+  }
+  function longId(n) {
+    if (!/^[\d\s.\-\/]+$/.test(n)) { return false; }
+    return digits(n.split(/\s+/).filter(function (c) { return !dateChunk(c); }).join(' ')) >= 10;
+  }
+  // Kart penceresinin gruplanisi: tek grup, dortlu gruplar + son 1-4 rakam, ya da 4-6-5 / 4-6-4 (Amex, Diners).
+  function cardShape(g, i, j) {
+    if (i === j) { return true; }
+    var k = i;
+    while (k < j && g[k].length === 4) { k++; }
+    if (k === j && g[j].length <= 4) { return true; }
+    return j === i + 2 && g[i].length === 4 && g[i + 1].length === 6 && (g[j].length === 5 || g[j].length === 4);
+  }
+  var LET_RE = /[A-Za-z\u00c0-\u024f]/;
+  // Metnin icinde (numara adli olmayan sutun ve _ref): rakam dizisi (tek bosluk / tireyle gruplanmis) gruplarina
+  // bolunur ve ardisik gruplarin her penceresi denenir (inceleme 23.10: 'Ahmet <TCKN> 34 ABC 123', '1985 <TCKN>', kart +
+  // son kullanma): 11 rakam TCKN; 13-19 rakam kart (cardOk, cardShape), harfe yapisik kenar grubu haric ('ABC2026...'
+  // e-Fatura numarasi). 'XX00' ile baslayan tek parca ya da dortlu gruplu IBAN (her grup sonunda mod 97).
+  function strongIn(n) {
+    var re = /\d(?:[ \-]?\d)*/g, m;
+    while ((m = re.exec(n))) {
+      var g = m[0].split(/[ \-]/), last = g.length - 1;
+      var glueL = LET_RE.test(n.charAt(m.index - 1)), glueR = LET_RE.test(n.charAt(m.index + m[0].length));
+      for (var a = 0; a <= last; a++) {
+        var ds = '';
+        for (var b = a; b <= last && ds.length < 19; b++) {
+          ds += g[b];
+          if (ds.length === 11 && tcknOk(ds)) { return true; }
+          if (ds.length >= 13 && ds.length <= 19 && !(glueL && a === 0) && !(glueR && b === last) && cardShape(g, a, b) && cardOk(ds)) { return true; }
+        }
+      }
+    }
+    var tk = n.split(/[^A-Za-z0-9]+/);
+    for (var i = 0; i < tk.length; i++) {
+      if (!/^[A-Za-z]{2}\d{2}/.test(tk[i])) { continue; }
+      var s = tk[i].toUpperCase();
+      if (ibanOk(s)) { return true; }
+      for (var j = i + 1; j < tk.length && s.length < 34 && /^[A-Za-z0-9]{1,4}$/.test(tk[j]); j++) {
+        s += tk[j].toUpperCase();
+        if (ibanOk(s)) { return true; }
+        if (tk[j].length < 4) { break; }
+      }
+    }
+    return false;
+  }
+  // Gizli deger mi (0 degil, 1 gizli, 2 gizli ama paya girmez): kind 'code' (katman 3) yalniz tam deger TCKN / IBAN
+  // (1) ve kart (2: numara adli sutunda Luhn gurultusu, deger maskelenir ama sutunu isaretlemez); 'ref' (_ref) + metnin
+  // icinde; 'text' (katman 1 / 2, kor alan) + 10+ rakamli duz numara (telefon bicimi haric: o eski maske, paya girmez).
+  function privOf(s, kind) {
+    var n = ndig(s);
+    if (!/\d/.test(n)) { return 0; }
+    if (tcknLike(n) || ibanLike(n)) { return 1; }
+    if (cardLike(n)) { return kind === 'code' ? 2 : 1; }
+    if (kind === 'code') { return 0; }
+    if (strongIn(n)) { return 1; }
+    return (kind === 'text' && longId(n) && !phoneLike(n)) ? 1 : 0;
+  }
+  // Kor alanda bicim (adi bir sey soylemez): tarih / tutar (dateAmt; her para birimi simgesi, Unicode Sc BMP, '$'
+  // sayilir), yil basta ya da ay basta tarih ('2026/10/23', '1405/08/01', '10/23/2026'), CJK / Kore tarihi ('2026
+  // \u5e74 10 \u6708', '2026\ub144 10\uc6d4'), birimi para birimi kelimesi olan sayi ('1500 \u5143', '3,200 \u5186', '1500 \u0440\u0443\u0431.', '1500 \u0631.\u0633',
+  // '\ufdfc' NFKC'de '\u0631\u06cc\u0627\u0644' olur) ve en az 7 rakamli numara dizisi (telefon, kimlik, kod: '8 (999) 123-45-67',
+  // '123-45-6789'). Inceleme 23.10: Arapca, Farsca ve CJK tablolarin olagan bicimleri geciyordu.
+  var CUR_ANY = /[\u00a2-\u00a5\u058f\u060b\u07fe\u07ff\u09f2\u09f3\u09fb\u0af1\u0bf9\u0e3f\u17db\u20a0-\u20c0\ua838\ufe69\uff04\uffe0\uffe1\uffe5\uffe6]/g;
+  var DATE_X = /^(\d{4}[.\/-](0?[1-9]|1[0-2])[.\/-](0?[1-9]|[12]\d|3[01])|(0?[1-9]|1[0-2])[.\/-](0?[1-9]|[12]\d|3[01])[.\/-](\d{2}|\d{4}))(?:$|[ T])/;
+  var DATE_CJK = /^\d{2,4}\s*[\u5e74\ub144]\s*\d{1,2}\s*[\u6708\uc6d4]/;
+  var CUR_W = ['\u5143', '\u5186', '\u5706', '\u5713', '\u5757', '\uc6d0', 'rs', '\u0440\u0443\u0431', '\u0440', '\u0433\u0440\u043d', '\u0441\u0443\u043c', '\u0442\u0433', '\u043b\u0432',
+    '\u0631.\u0633', '\u062f.\u0625', '\u0631\u06cc\u0627\u0644', '\u0631\u064a\u0627\u0644', '\u062a\u0648\u0645\u0627\u0646', '\u062c.\u0645', '\u062f.\u0643', '\u0631.\u0642', '\u062f.\u0645'];
+  function unitAmt(n) {
+    var m = /^(?:([^\d\s]{1,6})\s*)?\d(?:[\d.,\s]*\d)?(?:\s*([^\d\s]{1,6}))?$/.exec(n.replace(/^[-+]\s*/, ''));
+    if (!m || !!m[1] === !!m[2]) { return false; }
+    return CUR_W.indexOf((m[1] || m[2]).toLowerCase().replace(/\.$/, '')) >= 0;
+  }
+  function shapeAny(n) {
+    return dateAmt(n) || dateAmt(n.replace(CUR_ANY, '$')) || DATE_X.test(n) || DATE_CJK.test(n) || unitAmt(n) ||
+      (/^[+(]?[\d\s().\-\/]+$/.test(n) && digits(n) >= 7);
   }
   // Benzersizlik anahtari: Turkce katlama, Latin disi harfler kalir, bosluk ve noktalama gider.
   function dkey(s) { return lowerTr(s).replace(/[\s!-\/:-@\[-`{-~\u00b7\u2013\u2014]+/g, ''); }
@@ -76914,19 +77134,24 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     if (DATE_RE.test(t)) { return true; }
     return AMT_RE.test(t) && (CUR_RE.test(t) || /\d[.,]\d/.test(t));
   }
-  // Telefon: 10-13 rakam ve +, 0 ya da ( ile baslar (ya da 5 ile baslayan 10 rakam); 2024-10-001234 gibi kod degil.
+  // Telefon: 10-13 rakam ve +, 0 ya da ( ile baslar (ya da 5 ile baslayan 10 rakam; 0C.17 incelemesi: ya da '8 (' ile,
+  // Rusca / Kazakca yurt ici bicim '8 (999) 123-45-67'); 2024-10-001234 gibi kod degil.
   function phoneLike(t) {
     var ds = digits(t);
-    return /^\+?[\d\s().-]+$/.test(t) && ds >= 10 && ds <= 13 && (/^[+0(]/.test(t) || (ds === 10 && /^5/.test(t)));
+    return /^\+?[\d\s().-]+$/.test(t) && ds >= 10 && ds <= 13 && (/^[+0(]/.test(t) || /^8 ?\(/.test(t) || (ds === 10 && /^5/.test(t)));
   }
+  // priv (0C.17): gizli diye maskelenen degerlerin ham dolu degerlere payi (yer tutucu, kimlik, baglanti haric); np
+  // gizli deger sayisi, raw ham dolu deger sayisi (privMin / privRows kapilari icin; diag'a girmez).
   function stats(rows, f, okRow) {
-    var n = 0, filled = 0, seen = {}, distinct = 0, len = 0, shape = 0;
+    var n = 0, filled = 0, seen = {}, distinct = 0, len = 0, shape = 0, raw = 0, np = 0;
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       if (!isObj(r) || (okRow && !okRow(r))) { continue; }
       n++;
-      var rf = f ? null : refOf(r);
-      var v = f ? valOf(r, f) : (rf ? { text: rf } : null);
+      var rf = f ? null : refOf(r), w = {};
+      var v = f ? valOf(r, f, w) : (rf ? { text: rf } : null);
+      if (w.raw) { raw++; }
+      if (w.priv) { np++; }
       if (!v) { continue; }
       filled++;
       len += v.text.length;
@@ -76935,10 +77160,14 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       // Tarih / tutar bicimi numara adli sutunda sayilmaz (kod rakamdir); telefon bicimi her sutunda sayilir.
       if (f && ((f.tier !== 3 && dateAmt(v.text)) || phoneLike(v.text))) { shape++; }
     }
-    return { n: n, filled: filled, d: distinct, fill: n ? filled / n : 0, ratio: filled ? distinct / filled : 0, len: filled ? len / filled : 0, shape: filled ? shape / filled : 0 };
+    return { n: n, filled: filled, d: distinct, fill: n ? filled / n : 0, ratio: filled ? distinct / filled : 0, len: filled ? len / filled : 0, shape: filled ? shape / filled : 0, priv: raw ? np / raw : 0, np: np, raw: raw };
   }
-  // Uygunluk: doluluk, benzersizlik (kucuk ornekte mutlak taban), uzunluk, bicim.
+  // 0C.17: sutun bu planda gizli sayilir mi: pay T.priv'e ulasti ve en az T.privMin gizli deger (tek deger yalniz
+  // kendisi maskelenir, sutunu dusurmez).
+  function privCol(st) { return !!st && st.np >= T.privMin && st.priv >= T.priv; }
+  // Uygunluk: gizli pay (0C.17), doluluk, benzersizlik (kucuk ornekte mutlak taban), uzunluk, bicim.
   function fits(st, t1) {
+    if (privCol(st)) { return false; }
     if (!st.filled || st.fill < (t1 ? T.fillT1 : T.fill)) { return false; }
     if (st.filled >= 2 && st.d < Math.max(2, Math.ceil((t1 ? T.distT1 : T.dist) * st.filled))) { return false; }
     if (!t1 && st.len > T.maxLen) { return false; }
@@ -76948,6 +77177,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   // katman 1 ve 3'te (katman 2 duz metin en az 2 dolu ve ayirt edici); dolu >= 2 ise d >= max(2, ceil(dist x dolu));
   // uzunluk (katman 1 haric) ve bicim payi aynen. Az cesitli alan (AXA, Istanbul) boylece baslik olamaz.
   function spareOk(st, tier) {
+    if (privCol(st)) { return false; }   // 0C.17: degerleri cogunlukla gizli sutun yedek de olmaz
     if (!st.filled || (st.filled === 1 && tier === 2)) { return false; }
     if (st.filled >= 2 && st.d < Math.max(2, Math.ceil(T.dist * st.filled))) { return false; }
     if (tier !== 1 && st.len > T.maxLen) { return false; }
@@ -76965,12 +77195,20 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   function select(tid, cols) {
     if (isArr(cols)) { return unionOf(tid, cols).map(function (f) { return f.key; }); }
     var c = candidates();
-    var out = c.fields.map(function (f) { return f.key; });
+    var out = c.fields.filter(function (f) { return !privKnown(tid, f.key); }).map(function (f) { return f.key; });
     var pk = pick(tid);
     if (pk && c.all.some(function (f) { return f.key === pk; })) { out = [pk].concat(out.filter(function (k) { return k !== pk; })); }
     return out.slice(0, MAX_SEL);
   }
   function rank(a, b) { return (a.tier - b.tier) || (b.score - a.score) || (a.pos - b.pos); }
+  // 0C.17: olculen gizli pay T.priv'e ulastiysa (en az T.privMin gizli deger) ve olcum en az T.privRows ham dolu
+  // degerdeyse sutun bu tablo icin gizli bilinir (yapiskan, sayfa omru). Kucuk ornek yalniz o plandan dusurur (fits).
+  // Isaret yeniden olculmez (sutun artik istenmez, degeri bellege alinmaz); bu yuzden saglam ornek ister (inceleme 23.10).
+  function privMark(tid, f, st) {
+    if (!tid || !privCol(st) || st.raw < T.privRows) { return; }
+    var t = str(tid), o = own(S.priv, t) ? S.priv[t] : (S.priv[t] = {});
+    o[f.key] = 1;
+  }
   // sent: B sorgusunda gercekten istenen alanlar. Ucustayken kume degistiyse yalniz gonderilenler puanlanir ve plan
   // kalici olmaz. colOf(row): satirin sutunu (pano kipi); bir alan yalniz izinli oldugu satirlarda olculur. allCols:
   // select'in kullandigi sutunlar (plan ayni anahtarla saklanir); yoksa satirlarin sutunlari. opt.prefer: onceki
@@ -76984,6 +77222,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       cols = Object.keys(cs);
     }
     var fields = cols ? unionOf(tid, cols) : candidates().fields;
+    // 0C.17: degerleri gizli bilinen sutun istenmez ve olculmez (birlesim allowed'dan zaten suzulur; birim kipi burada).
+    if (tid) { fields = fields.filter(function (f) { return !privKnown(tid, f.key); }); }
     var key = tid ? planKey(tid, fields) : '';
     var have = key ? S.plans[key] : null;
     if (have && have.stable) { S.tp[str(tid)] = have; return (have.primary || have.spare.length) ? have : null; }
@@ -76993,14 +77233,20 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       drift = kept.length !== fields.length;
       fields = kept;
     }
-    if (!fields.length || !isArr(rows) || !rows.length) { S.last = { why: fields.length ? 'no rows' : 'no candidates' }; return null; }
     var allow = {};
     if (cols) { cols.forEach(function (c) { allow[c] = allowed(tid, c); }); }
+    var okOf = function (k) { return cols ? function (r) { return own(allow[str(colOf(r))] || {}, k); } : null; };
+    // Kor alan (0C.17; birlesime yalniz secimle girer) puanlanmaz ve plana girmez: yalniz gizli payi olculur, cogunlukla
+    // gizliyse secim uyur.
+    var blind = fields.filter(function (f) { return f.blind; });
+    fields = fields.filter(function (f) { return !f.blind; });
+    if (isArr(rows) && rows.length) { blind.forEach(function (f) { privMark(tid, f, stats(rows, f, okOf(f.key))); }); }
+    if (!fields.length || !isArr(rows) || !rows.length) { S.last = { why: fields.length ? 'no rows' : 'no candidates' }; return null; }
     var scored = [];
     for (var i = 0; i < fields.length; i++) {
       var f = fields[i];
-      var okRow = cols ? (function (k) { return function (r) { return own(allow[str(colOf(r))] || {}, k); }; })(f.key) : null;
-      var st = stats(rows, f, okRow);
+      var st = stats(rows, f, okOf(f.key));
+      privMark(tid, f, st);
       scored.push({ key: f.key, f: f, tier: f.tier, pos: f.pos, ok: fits(st, f.tier === 1), st: st, score: st.ratio * Math.sqrt(st.fill) });
     }
     var good = scored.filter(function (x) { return x.ok; }).sort(rank);
@@ -77105,9 +77351,10 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       q = ref.length >= 2 ? ref : str(q);
       return { text: text, q: q.length >= 2 ? q : '', untitled: false, empty: '', hdr: '', src: src, keys: keys.filter(function (k) { return k !== '_ref'; }) };
     }
-    // Secim yalniz doluluk ve ayirt edicilik kapilarini atlar: duvar (allow), vetolar (tam liste) ve maskeler (valOf) aynen.
+    // Secim yalniz doluluk ve ayirt edicilik kapilarini atlar: duvar (allow), vetolar (tam liste) ve maskeler (valOf) aynen;
+    // degerleri gizli bilinen sutunun secimi (0C.17) uyur.
     var pk = clean(o.pick);
-    if (pk.charAt(0) === '_') { pk = ''; }
+    if (pk.charAt(0) === '_' || (pk && p && privKnown(p.tid, pk))) { pk = ''; }
     if (pk) {
       var pv = partOf(r, p, pk, allow);
       if (pv) { return out(pv.text, pv.q, 'pick', [pk]); }
@@ -77136,30 +77383,33 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   // Kart basligi secicisinin secenekleri (0C.7.4): yalniz bu oturumda gorulen ekranlarin TAM listeleri (vetolardan
   // sonra; gizli alan yok), deger yok. all: tum kayitlar ekrani (her kartta gecerli); stages: eslenen (cols) ve
   // gorulen her surecin kendi fazladan alanlari (yalniz o sutunda); auto: tablonun son planinin birincili, gorulen
-  // listelerdeyse (_ref ya da birincil yoksa null); seenAll: tum kayitlar ekrani bu tabloda ogrenildi mi.
+  // listelerdeyse (_ref ya da birincil yoksa null); seenAll: tum kayitlar ekrani bu tabloda ogrenildi mi. Kor alanlar
+  // (0C.17) burada, basliklari oldugu gibi; degerleri gizli bilinen sutunlar yok.
   function menu(tid, cols) {
     tid = str(tid);
     var t = own(S.seen, tid) ? S.seen[tid] : {};
     function hk(f) { return { key: f.key, header: f.header }; }
+    function vis(f) { return !privKnown(tid, f.key); }
     var inAll = {}, inAny = {};
-    var all = ((t.all && t.all.full) || []).map(function (f) { inAll[f.key] = 1; inAny[f.key] = 1; return hk(f); });
+    var all = ((t.all && t.all.full) || []).filter(vis).map(function (f) { inAll[f.key] = 1; inAny[f.key] = 1; return hk(f); });
     var ids = [];
     if (isArr(cols)) { cols.forEach(function (c) { c = str(c); if (c && ids.indexOf(c) < 0) { ids.push(c); } }); }
     else { for (var s in t) { if (own(t, s) && s.indexOf('stage:') === 0) { ids.push(s.slice(6)); } } }
     var stages = [];
     ids.forEach(function (c) {
       var l = own(t, 'stage:' + c) ? t['stage:' + c] : null;
-      var fs = ((l && l.full) || []).filter(function (f) { return !own(inAll, f.key); }).map(function (f) { inAny[f.key] = 1; return hk(f); });
+      var fs = ((l && l.full) || []).filter(function (f) { return !own(inAll, f.key) && vis(f); }).map(function (f) { inAny[f.key] = 1; return hk(f); });
       if (fs.length) { stages.push({ col: c, fields: fs }); }
     });
     var auto = null, tp = S.tp[tid];
     if (tp && tp.primary && tp.primary !== '_ref' && own(inAny, tp.primary) && tp.fields[tp.primary]) { auto = hk(tp.fields[tp.primary]); }
     return { auto: auto, all: all, stages: stages, seenAll: !!t.all };
   }
-  function reset() { S.plans = {}; S.seen = {}; S.pick = {}; S.tp = {}; S.cfgText = null; S.cfgCols = null; S.last = null; }
+  function reset() { S.plans = {}; S.seen = {}; S.pick = {}; S.tp = {}; S.priv = {}; S.cfgText = null; S.cfgCols = null; S.last = null; }
   function r2(x) { return Math.round(x * 100) / 100; }
   // Teshis: alan adlari ve olculer; kayit degeri YOK. seen: kapsam basina ilk 5 (anahtar:katman); full: kapsam basina
-  // tam liste sayisi; pick: tablo basina kayitli secimin anahtari (uyuyor olabilir).
+  // tam liste sayisi; pick: tablo basina kayitli secimin anahtari (uyuyor olabilir); blind: su anki ekranin kor alanlari
+  // (0C.17, ad); priv: tablo basina degerleri gizli bilinen sutunlarin adlari; scored[].priv: olculen gizli pay.
   function diag() {
     var c = candidates();
     var plans = [];
@@ -77167,8 +77417,10 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       if (!own(S.plans, k)) { continue; }
       var p = S.plans[k];
       plans.push({ tid: p.tid, primary: p.primary, secondary: p.secondary, order: p.order.slice(), spare: (p.spare || []).slice(), n: p.n, stable: p.stable, why: p.why,
-        scored: (p.scored || []).map(function (x) { return { key: x.key, tier: x.tier, ok: x.ok, fill: r2(x.st.fill), ratio: r2(x.st.ratio), len: Math.round(x.st.len), shape: r2(x.st.shape) }; }) });
+        scored: (p.scored || []).map(function (x) { return { key: x.key, tier: x.tier, ok: x.ok, fill: r2(x.st.fill), ratio: r2(x.st.ratio), len: Math.round(x.st.len), shape: r2(x.st.shape), priv: r2(x.st.priv || 0) }; }) });
     }
+    var pv = {};
+    for (var g in S.priv) { if (own(S.priv, g)) { pv[g] = Object.keys(S.priv[g]); } }
     var seen = {}, full = {}, pk = {};
     for (var t in S.seen) {
       if (!own(S.seen, t)) { continue; }
@@ -77181,7 +77433,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     }
     for (var q in S.pick) { if (own(S.pick, q)) { pk[q] = S.pick[q]; } }
     var sc = scope();
-    return { src: c.src, candidates: c.fields.map(function (f) { return f.key + ':' + f.tier; }), scope: sc.kind, scopeSrc: sc.src, seen: seen, full: full, pick: pk, plans: plans, last: S.last ? S.last.why : '' };
+    return { src: c.src, candidates: c.fields.map(function (f) { return f.key + ':' + f.tier; }), blind: c.all.filter(function (f) { return f.blind; }).map(function (f) { return f.key; }),
+      scope: sc.kind, scopeSrc: sc.src, seen: seen, full: full, pick: pk, priv: pv, plans: plans, last: S.last ? S.last.why : '' };
   }
 
   var api = {
