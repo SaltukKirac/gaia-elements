@@ -20,12 +20,9 @@
   - Amounts come only from Paddle.PricePreview (cached per plan, period, quantity; a failed key is remembered until
     Try again). Empty price id or key = "Pricing is being set up".
   - maxMailboxes is 1 at launch: the stepper row and the "x N mailboxes" wording appear only when the config raises it.
-  - Checkout: Paddle.Checkout.open in overlay mode with customData { product, plan, source, app_version, from,
-    user_sirket, user_id }. Bubble must set window.__gxUserSirket and window.__gxUserId on the page before the
-    element mounts. They are hints only (page globals are writable): the server binds the subscription by a verified
-    signal, never by these ids alone. Without them the payment event reaches the server as unbound and support binds
-    it by hand. A card CTA pressed while that plan x quantity preview is still loading opens checkout as soon as the
-    preview arrives (pendingOpen); a failed preview releases it.
+  - Checkout: Paddle.Checkout.open (overlay), customData { product, plan, source, app_version, from, user_sirket,
+    user_id } (hints from page globals; the server binds by a verified signal). ?aithia_code=<code> (kept for the tab)
+    opens it with that Paddle discount applied (discountCode). A CTA pressed while its preview loads opens on arrival.
   - checkout.error (Paddle could not open the checkout) and a 20 s wait without checkout.loaded show "Checkout is not
     available right now. Try again."; checkout.payment.failed and checkout.payment.error show the payment message.
   - After checkout.completed the page writes the same gx_flagship_pending intent as _gx_product_card.html, moves
@@ -491,6 +488,8 @@
     return out;
   }
   var CFG=mergeCfg(DEFAULTS,W.AITHIA_PRICING);
+  var DC='';try{var dm=/[?&]aithia_code=([A-Za-z0-9_-]{3,40})(?:&|#|$)/.exec(location.search||'');if(dm){DC=dm[1];sessionStorage.setItem('gx_aithia_code',DC);}else DC=String(sessionStorage.getItem('gx_aithia_code')||'');}catch(e){}
+
   W.AITHIA_PRICING=CFG;
 
   var PADDLE_SRC='https://cdn.paddle.com/paddle/v2/paddle.js';
@@ -775,12 +774,14 @@
     S.opening=true;S.loaded=false;S.msg=null;render();
     var ok=false;
     try{
-      W.Paddle.Checkout.open({
+      var co={
         items:[{priceId:priceId(S.plan,S.period),quantity:S.qty}],
         /* user_sirket and user_id are hints read from page globals; the server binds by a verified signal, never by these alone */
         customData:{product:'aithia',plan:S.plan,source:'gaia',app_version:CFG.env==='sandbox'?'version-test':'live',from:CFG.fromSlug||'',user_sirket:String(W.__gxUserSirket||''),user_id:String(W.__gxUserId||'')},
         settings:(FROM_SETUP||EMBED)?{displayMode:'overlay'}:{displayMode:'overlay',successUrl:appUrl()}
-      });
+      };
+      if(DC)co.discountCode=DC;
+      W.Paddle.Checkout.open(co);
       ok=true;
     }catch(e){ok=false;}
     if(!ok){S.opening=false;S.paddle='failed';render();return;}
