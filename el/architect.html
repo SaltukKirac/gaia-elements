@@ -44802,7 +44802,9 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
    degerler). Tablonun atalarina HICBIR kural yok; panel body'nin cocugu (fixed), transform yalniz kendi okunda.
    ========================================================================== */
 #octo-inbox-pop,
-#octo-inbox-fab {
+#octo-inbox-fab,
+#octo-inbox-toast,
+#octo-inbox-full {
   --octo-accent: #6366f1;
   --octo-accent-ink: #4f46e5;
   --octo-accent-soft: rgba(99, 102, 241, .10);
@@ -44826,8 +44828,8 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
   text-align: left;
   -webkit-font-smoothing: antialiased;
 }
-#octo-inbox-pop *, #octo-inbox-pop *::before, #octo-inbox-pop *::after { box-sizing: border-box; }
-#octo-inbox-pop[hidden], #octo-inbox-fab[hidden], #octo-inbox-scrim[hidden], #octo-inbox-pop [hidden] { display: none !important; }
+#octo-inbox-pop *, #octo-inbox-pop *::before, #octo-inbox-pop *::after, #octo-inbox-full *, #octo-inbox-full *::before, #octo-inbox-full *::after { box-sizing: border-box; }
+#octo-inbox-pop[hidden], #octo-inbox-fab[hidden], #octo-inbox-scrim[hidden], #octo-inbox-pop [hidden], #octo-inbox-toast[hidden], #octo-inbox-full[hidden] { display: none !important; }
 .octo-inbox-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ------------------------------------------------ bar button (first item of the left zone) */
@@ -44967,6 +44969,93 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 @media (pointer: coarse) {
   #octo-inbox-pop .octo-inbox-err .octo-inbox-btn, #octo-inbox-pop .octo-inbox-row.is-q .octo-inbox-btn { height: 44px; }
 }
+
+/* ------------------------------------------------ l2: urgent strip, cards, sections, toast, full view */
+#octo-inbox-pop .octo-inbox-blkwrap:empty { display: none; }
+#octo-inbox-pop .octo-inbox-blk { display: grid; gap: 1px; margin: 10px 14px 0; border: 1px solid rgba(180, 83, 9, .28); border-radius: 10px; background: rgba(180, 83, 9, .28); overflow: hidden; }
+#octo-inbox-pop .octo-inbox-blk-row { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 4px 10px; padding: 10px 12px; background: #fdf7f0; }
+#octo-inbox-pop .octo-inbox-blk-row > svg { margin-top: 1px; color: var(--octo-warn); }
+#octo-inbox-pop .octo-inbox-blk-t { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 700; color: var(--octo-warn); }
+#octo-inbox-pop .octo-inbox-blk-r { color: var(--octo-ink-2); overflow-wrap: anywhere; }
+#octo-inbox-pop .octo-inbox-sec h3 { display: flex; align-items: center; gap: 8px; }
+#octo-inbox-pop .octo-inbox-n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--octo-field); color: var(--octo-ink-2); font: 600 11px/18px var(--octo-font); text-align: center; letter-spacing: 0; }
+#octo-inbox-pop .octo-inbox-empty { display: flex; align-items: center; gap: 8px; margin: 2px 0; color: var(--octo-ink-2); }
+#octo-inbox-pop .octo-inbox-empty svg { color: var(--octo-ok); }
+#octo-inbox-pop .octo-inbox-subh { margin: 14px 0 8px; color: var(--octo-ink-3t); font: 600 11px/16px var(--octo-font); letter-spacing: .06em; text-transform: uppercase; }
+#octo-inbox-pop .octo-inbox-linkbtn { min-height: 44px; padding: 0 2px; border: 0; background: transparent; color: var(--octo-accent-ink); font-weight: 600; }
+#octo-inbox-pop .octo-inbox-card { display: grid; gap: 8px; margin: 0 0 10px; padding: 12px; border: 1px solid var(--octo-line); border-radius: 12px; background: var(--octo-surface); }
+#octo-inbox-pop .octo-inbox-card:focus { outline: none; }
+#octo-inbox-pop .octo-inbox-card.is-focus { border-color: var(--octo-accent); box-shadow: 0 0 0 3px var(--octo-accent-soft); }
+#octo-inbox-pop .octo-inbox-ct { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+#octo-inbox-pop .octo-inbox-ct h4 { flex: 1 1 auto; min-width: 0; margin: 0; font: 600 14px/20px var(--octo-font); color: var(--octo-ink); }
+#octo-inbox-pop .octo-inbox-opts { display: grid; gap: 6px; }
+#octo-inbox-pop .octo-inbox-choice { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 6px 10px; border: 1px solid var(--octo-line); border-radius: 10px; background: var(--octo-surface); text-align: left; }
+#octo-inbox-pop .octo-inbox-choice:hover, #octo-inbox-pop .octo-inbox-choice:focus-visible { border-color: var(--octo-accent); background: var(--octo-accent-soft); }
+#octo-inbox-pop .octo-inbox-choice b { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+#octo-inbox-pop .octo-inbox-choice kbd { min-width: 18px; padding: 0 4px; border: 1px solid var(--octo-line); border-radius: 4px; color: var(--octo-ink-3t); font: 600 10px/16px ui-monospace, Consolas, monospace; text-align: center; }
+#octo-inbox-pop .octo-inbox-choice:disabled, #octo-inbox-pop .octo-inbox-btn:disabled, #octo-inbox-pop .octo-inbox-flat:disabled { opacity: .5; cursor: default; }
+#octo-inbox-pop .octo-inbox-acts { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
+#octo-inbox-pop .octo-inbox-flat { display: inline-flex; align-items: center; height: 44px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: var(--octo-ink-2); font-weight: 600; }
+#octo-inbox-pop .octo-inbox-flat:hover { background: var(--octo-field); color: var(--octo-ink); }
+#octo-inbox-pop .octo-inbox-from { margin: 0; color: var(--octo-ink-3t); font-size: 12px; overflow-wrap: anywhere; }
+#octo-inbox-pop .octo-inbox-text { display: grid; gap: 6px; }
+#octo-inbox-pop .octo-inbox-text input { width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--octo-line); border-radius: 10px; background: var(--octo-surface); font: inherit; color: var(--octo-ink); }
+#octo-inbox-pop .octo-inbox-disc { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--octo-ink); font-weight: 600; text-align: left; }
+#octo-inbox-pop .octo-inbox-disc svg { color: var(--octo-ink-3t); transition: transform 180ms ease; }
+#octo-inbox-pop .octo-inbox-disc[aria-expanded="false"] svg { transform: rotate(-90deg); }
+#octo-inbox-pop .octo-inbox-dec { margin: 0; color: var(--octo-ink); font-weight: 500; overflow-wrap: anywhere; }
+#octo-inbox-pop .octo-inbox-foot-r { display: inline-flex; align-items: center; gap: 4px; }
+#octo-inbox-pop .octo-inbox-row .octo-inbox-acts .octo-inbox-flat { height: 36px; }
+@media (pointer: coarse) { #octo-inbox-pop .octo-inbox-row .octo-inbox-acts .octo-inbox-flat { height: 44px; } }
+
+#octo-inbox-toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 1460;
+  display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px); padding: 4px 4px 4px 16px;
+  border-radius: 12px; background: #0f172a; color: #fff; box-shadow: 0 6px 18px rgba(15, 23, 42, .18);
+  transform: translateX(-50%);
+}
+#octo-inbox-toast span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+#octo-inbox-toast button { height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: #c7d2fe; font: 700 13px/18px var(--octo-font); cursor: pointer; }
+#octo-inbox-toast button:hover { background: rgba(255, 255, 255, .08); }
+
+#octo-inbox-full {
+  position: fixed; inset: 0; z-index: 1456; overflow: auto;
+  background: var(--octo-bg);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+#octo-inbox-full:focus { outline: none; }
+#octo-inbox-full button { font: inherit; color: inherit; cursor: pointer; }
+#octo-inbox-full button:focus-visible, #octo-inbox-full a:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+#octo-inbox-full .octo-inbox-full-in { max-width: 1200px; margin: 0 auto; padding-block: 20px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#octo-inbox-full .octo-inbox-full-head { display: flex; align-items: center; gap: 10px; }
+#octo-inbox-full .octo-inbox-full-head h2 { flex: 1 1 auto; margin: 0; font: 700 20px/26px var(--octo-font); color: var(--octo-ink); }
+#octo-inbox-full .octo-inbox-btn { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px; border: 1px solid var(--octo-line); border-radius: 10px; background: var(--octo-surface); color: var(--octo-ink); font-weight: 600; }
+#octo-inbox-full .octo-inbox-btn.is-primary { border-color: var(--octo-accent); background: var(--octo-accent); color: #fff; }
+#octo-inbox-full .octo-inbox-fchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+#octo-inbox-full .octo-inbox-fchip { height: 36px; padding: 0 12px; border: 1px solid var(--octo-line); border-radius: 999px; background: var(--octo-surface); color: var(--octo-ink-2); font-weight: 600; font-size: 12px; }
+#octo-inbox-full .octo-inbox-fchip[aria-pressed="true"] { border-color: var(--octo-accent); background: var(--octo-accent-soft); color: var(--octo-accent-ink); }
+@media (pointer: coarse) { #octo-inbox-full .octo-inbox-fchip { height: 44px; } }
+#octo-inbox-full .octo-inbox-fgrid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 16px; margin-top: 14px; align-items: start; }
+@media (max-width: 899px) { #octo-inbox-full .octo-inbox-fgrid { grid-template-columns: minmax(0, 1fr); } }
+#octo-inbox-full .octo-inbox-flist { margin: 0; padding: 0; list-style: none; overflow: hidden; background: var(--octo-surface); border: 1px solid var(--octo-line); border-radius: 10px; }
+#octo-inbox-full .octo-inbox-fitem { display: grid; gap: 2px; width: 100%; min-height: 56px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--octo-line-2); background: transparent; text-align: left; }
+#octo-inbox-full .octo-inbox-flist li:last-child .octo-inbox-fitem { border-bottom: 0; }
+#octo-inbox-full .octo-inbox-fitem[aria-current="true"] { background: var(--octo-accent-soft); }
+#octo-inbox-full .octo-inbox-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--octo-ink); }
+#octo-inbox-full .octo-inbox-meta, #octo-inbox-full .octo-inbox-muted { color: var(--octo-ink-3t); font-size: 12px; overflow-wrap: anywhere; }
+#octo-inbox-full p.octo-inbox-muted { margin: 0; padding: 16px; }
+#octo-inbox-full .octo-inbox-fdet { padding: 16px; background: var(--octo-surface); border: 1px solid var(--octo-line); border-radius: 10px; }
+#octo-inbox-full .octo-inbox-fdet h3 { margin: 0 0 4px; font: 700 16px/22px var(--octo-font); color: var(--octo-ink); overflow-wrap: anywhere; }
+#octo-inbox-full .octo-inbox-trace { margin: 14px 0; padding: 0; list-style: none; }
+#octo-inbox-full .octo-inbox-trace li { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 0 0 14px; }
+#octo-inbox-full .octo-inbox-trace li::before { content: ""; position: absolute; left: 11px; top: 24px; bottom: 0; width: 2px; background: var(--octo-line); }
+#octo-inbox-full .octo-inbox-trace li:last-child::before { display: none; }
+#octo-inbox-full .octo-inbox-tdot { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--octo-field); box-shadow: inset 0 0 0 1px var(--octo-line); color: var(--octo-ok); }
+#octo-inbox-full .octo-inbox-trace li.is-done .octo-inbox-tdot { background: var(--octo-ok-soft); box-shadow: none; }
+#octo-inbox-full .octo-inbox-trace b { color: var(--octo-ink); }
+#octo-inbox-full .octo-inbox-acts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#octo-inbox-full .octo-inbox-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--octo-accent-ink); font-weight: 600; text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { #octo-inbox-pop *, #octo-inbox-full * { transition: none !important; } }
 
 /* ==========================================================================
    app-rail.css  -  OCTO RAIL (os3) + workspace sekmeleri (os3t). Sahip: CLIENT. OCTO_RAIL_SPEC 2.1, 2.7;
@@ -52937,16 +53026,19 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
 
 /* file: app-inbox.js */
 /* ==========================================================================
-   app-inbox.js  -  OCTO INCOMING (gelen evrak ve bilgi kutusu), canli l1 (23.10.2026). Sahip: CLIENT.
+   app-inbox.js  -  OCTO INCOMING (gelen evrak ve bilgi kutusu), canli l2 (23.10.2026). Sahip: CLIENT.
    Tasarim: octonom/gelen-kutusu/GELEN_KUTUSU_TASARIM.md; canli kurulum ve isleyis: octonom/gelen-kutusu/canli/OKUBENI.md
    - Yalniz ozel kanal govdesinde gelir (?gxel=eksper). Sunucu os_inbox_list {enabled:false} derse HICBIR SEY cizilmez.
    - Dosya baytlari tarayicidan Bubble deposuna gider (POST /fileupload); sunucuya yalniz adres (os_inbox_add).
-   - Liste ve cevaplar sirketin "Gelen Kutusu" tablosundan (os_inbox_list); cevabi ofis laptopundaki Claude Code
-     izleyicisi yazar. Octo Brain yok, Postgres yok.
+   - Liste, cevaplar ve sorular sirketin "Gelen Kutusu" tablosundan (os_inbox_list); soruyu ve cevabi ofis laptopundaki
+     Claude Code izleyicisi yazar. Kisinin karari os_inbox_act ile satira yazilir, izleyici sonraki kontrolde uygular.
+     Octo Brain yok, Postgres yok.
+   - Bolumler (tasarim 7): engelleyici serit, Drop, Needs you (Payments alt basligi yalniz yoneticiye), Working on it,
+     Recent, Parked, Later; tam gorunum "Open Incoming". Her kararin 8 sn Undo'su var.
    - Hicbir dosya sessizce kaybolmaz: yuklenemeyen dosya listede "Upload stopped" + "Try again" ile kalir; yukleme
-     surerken sayfadan cikis uyarilir.
+     surerken sayfadan cikis uyarilir; ayni dosya ikinci kez gelirse sunucu Parked'a "Already received" diye koyar.
    Kurallar: CSS yalniz #octo-inbox-* kokleri; tablonun atalarina dokunulmaz (panel body'nin cocugu, fixed);
-   uzak metin (dosya adi, cevap) YALNIZ textContent ile.
+   uzak metin (dosya adi, cevap, secenek) YALNIZ textContent ile.
    ========================================================================== */
 (function (W, D) {
   'use strict';
@@ -52954,14 +53046,31 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
 
   var T = {
     first: 1200, listOpen: 15000, listClosed: 60000, listHidden: 300000,
-    upParallel: 2, addBatch: 10, maxBytes: 50 * 1024 * 1024, doneKeep: 6000
+    upParallel: 2, addBatch: 10, maxBytes: 50 * 1024 * 1024, doneKeep: 6000, undoMs: 8000, needsShown: 3
   };
   var S = {
-    enabled: null, ready: false, items: [], err: '', at: 0, loading: false, loaded: false,
+    enabled: null, ready: false, items: [], manager: false, err: '', at: 0, loading: false, loaded: false,
     open: false, filter: 'all', hint: '', queue: [], seq: 0, active: 0, timer: null,
-    btn: null, pill: null, lab: null, fab: null, pop: null, scrim: null, body: null, foot: null, dz: null, fileIn: null, folderIn: null, photoIn: null
+    showAll: false, parkedOpen: false, laterOpen: false, recentOpen: true, textFor: '', laterFor: '', busy: {}, focus: '',
+    full: false, fullFilter: 'all', fullSel: '',
+    btn: null, pill: null, lab: null, fab: null, pop: null, scrim: null, body: null, foot: null, dz: null,
+    fileIn: null, folderIn: null, photoIn: null, toast: null, toastT: null, fullEl: null
   };
-  var STATUS_LABEL = { 'Received': 'Received', 'Reading': 'Reading', 'Answered': 'Answered', 'Needs you': 'Needs you', 'Could not read': 'Could not read' };
+  // question code -> card title (gaia-ux: English, at most 5 words; {record} = file in this office)
+  var TITLE = {
+    WHICH_CASE: 'Which file is this?', NEW_CASE: 'New file?', TWIN: 'Possible duplicate', CONFLICT: 'Two values disagree',
+    CHECK: 'Check this answer', FAIL: 'Could not process', PAY_SPLIT: 'Split this payment?', PAY_DIFF: 'Amount differs',
+    PAY_WHO: 'Who sent this payment?', PAY_DUP: 'Paid twice?', PAY_NOINV: 'Paid before invoice', SBM_ROUND: 'SBM round due',
+    DEADLINE: 'Due soon'
+  };
+  // which escape buttons a card shows next to its options
+  var ESC = {
+    WHICH_CASE: ['text', 'not_ours', 'later'], NEW_CASE: ['text', 'not_ours', 'later'], TWIN: ['later'], CONFLICT: ['later'],
+    CHECK: ['text', 'later'], FAIL: ['later'], PAY_SPLIT: ['text', 'later'], PAY_DIFF: ['later'], PAY_WHO: ['text', 'later'],
+    PAY_DUP: ['later'], PAY_NOINV: ['later'], SBM_ROUND: ['done', 'later'], DEADLINE: ['done', 'later']
+  };
+  var TEXT_LABEL = { WHICH_CASE: 'None of these', NEW_CASE: 'Belongs to...', CHECK: 'Wrong file', PAY_SPLIT: 'Pick other records', PAY_WHO: 'Pick a record' };
+  var STATUS_LABEL = { 'Received': 'Received', 'Reading': 'Reading', 'Answered': 'Answered', 'Needs you': 'Needs you', 'Decided': 'Answered', 'Filed': 'Filed', 'Parked': 'Parked', 'Done': 'Done', 'Could not read': 'Could not read' };
 
   // ------------------------------------------------------------ helpers
   function el(tag, cls, txt) {
@@ -52969,6 +53078,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (cls) { e.className = cls; }
     if (txt !== undefined && txt !== null) { e.textContent = String(txt); }
     return e;
+  }
+  function button(cls, label, fn) {
+    var b = el('button', cls, label); b.type = 'button';
+    if (fn) { b.addEventListener('click', fn); }
+    return b;
   }
   function svg(paths, size) {
     var NS = 'http://www.w3.org/2000/svg';
@@ -52987,11 +53101,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
     camera: 'M4 8h3l2-3h6l2 3h3v11H4z|M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
     doc: 'M6 3h8l4 4v14H6z|M14 3v4h4',
-    refresh: 'M20 11a8 8 0 1 0-2.3 5.7|M20 4v7h-7'
+    refresh: 'M20 11a8 8 0 1 0-2.3 5.7|M20 4v7h-7',
+    alert: 'M12 4l9 16H3z|M12 10v4|M12 17.5h.01',
+    chev: 'M6 9l6 6 6-6',
+    expand: 'M4 9V4h5|M20 9V4h-5|M4 15v5h5|M20 15v5h-5',
+    check: 'M5 12.5l4.5 4.5L19 7.5',
+    clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z|M12 7v5l3 2'
   };
   function now() { return Date.now(); }
   function narrow() { try { return W.matchMedia('(max-width: 899px)').matches; } catch (e) { return false; } }
   function coarse() { try { return W.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } }
+  function reduced() { try { return W.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
   function hhmm(t) { var d = new Date(t); if (isNaN(d.getTime())) { return ''; } var h = d.getHours(), m = d.getMinutes(); return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
   function when(iso) {
     var d = new Date(iso); if (isNaN(d.getTime())) { return ''; }
@@ -53007,15 +53127,51 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
   function bumpBar() { try { W.dispatchEvent(new CustomEvent('octo:inbox')); } catch (e) { /* yut */ } }
   function announce(t) { var l = D.getElementById('octo-inbox-live'); if (l) { l.textContent = ''; setTimeout(function () { l.textContent = t; }, 30); } }
+  function snoozed(it) { var t = Date.parse(it.snooze || ''); return !isNaN(t) && t > now(); }
+  function visible(it) { return S.filter === 'all' || it.mine; }
+  function isFin(it) { return it.role === 'finans'; }
+  function dueText(it) {
+    var t = Date.parse(it.due || ''); if (isNaN(t)) { return ''; }
+    var h = Math.round((t - now()) / 3600000);
+    return t >= now() ? ('Due in ' + Math.max(1, h) + ' h') : ('Overdue ' + Math.max(1, -h) + ' h');
+  }
 
-  // ------------------------------------------------------------ server list (badge + panel)
+  // ------------------------------------------------------------ groups (one source: the server list)
+  function groups() {
+    var g = { block: [], need: [], pay: [], work: [], recent: [], parked: [], later: [] };
+    S.items.forEach(function (it) {
+      if (!visible(it)) { return; }
+      var st = it.status;
+      if (snoozed(it) && (st === 'Needs you' || it.tier === 'block')) { g.later.push(it); return; }
+      if (it.tier === 'block' && st !== 'Done' && st !== 'Parked' && st !== 'Decided') { g.block.push(it); return; }
+      if (st === 'Needs you') { (isFin(it) ? g.pay : g.need).push(it); return; }
+      if (st === 'Received' || st === 'Reading' || st === 'Decided') { g.work.push(it); return; }
+      if (st === 'Parked') { g.parked.push(it); return; }
+      g.recent.push(it);   // Answered, Filed, Done, Could not read
+    });
+    var byDue = function (a, b) {
+      var da = Date.parse(a.due || '') || 9e15, db = Date.parse(b.due || '') || 9e15;
+      if (da !== db) { return da - db; }
+      return (Date.parse(a.at) || 0) - (Date.parse(b.at) || 0);
+    };
+    g.block.sort(byDue); g.need.sort(byDue); g.pay.sort(byDue);
+    return g;
+  }
   function needsCount() {
     var n = 0;
-    for (var i = 0; i < S.items.length; i++) { if (S.items[i].status === 'Needs you') { n++; } }
-    for (var j = 0; j < S.queue.length; j++) { if (S.queue[j].state === 'fail' || S.queue[j].state === 'big') { n++; } }
+    S.items.forEach(function (it) {
+      if (snoozed(it)) { return; }
+      if (it.status === 'Needs you' || (it.tier === 'block' && it.status !== 'Done' && it.status !== 'Parked' && it.status !== 'Decided')) { n++; }
+    });
+    S.queue.forEach(function (x) { if (x.state === 'fail' || x.state === 'big') { n++; } });
     return n;
   }
-  function failed() { for (var j = 0; j < S.queue.length; j++) { if (S.queue[j].state === 'fail' || S.queue[j].state === 'big') { return true; } } return false; }
+  function warnBadge() {
+    if (S.queue.some(function (x) { return x.state === 'fail' || x.state === 'big'; })) { return true; }
+    return S.items.some(function (it) { return it.tier === 'block' && !snoozed(it) && it.status !== 'Done' && it.status !== 'Parked' && it.status !== 'Decided'; });
+  }
+
+  // ------------------------------------------------------------ server list
   function load(why) {
     if (S.loading) { return; }
     S.loading = true;
@@ -53025,12 +53181,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       var was = S.enabled;
       S.enabled = !!(d && d.enabled);
       S.ready = !!(d && d.ready);
+      S.manager = !!(d && d.manager);
       S.items = (d && Array.isArray(d.items)) ? d.items : [];
       S.err = ''; S.at = now(); S.loaded = true;
-      // a row that reached the table drops its local queue entry
       dropArrived();
       if (was !== S.enabled) { bumpBar(); }
-      paintButton(); if (S.open) { paintPanel(); }
+      paintButton(); if (S.open) { paintPanel(); } if (S.full) { paintFull(); }
       ensureFab();
     }, function (e) {
       S.loading = false;
@@ -53041,9 +53197,53 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
   function schedule() {
     if (S.timer) { clearTimeout(S.timer); }
-    var ms = D.hidden ? T.listHidden : (S.open ? T.listOpen : T.listClosed);
+    var ms = D.hidden ? T.listHidden : ((S.open || S.full) ? T.listOpen : T.listClosed);
     if (S.enabled === false) { ms = T.listHidden; }
     S.timer = setTimeout(function () { load('tick'); schedule(); }, ms);
+  }
+
+  // ------------------------------------------------------------ acts (a person's answer, written by the server)
+  function findItem(id) { for (var i = 0; i < S.items.length; i++) { if (S.items[i].id === id) { return S.items[i]; } } return null; }
+  function act(it, kind, value, toastText) {
+    if (!it || S.busy[it.id]) { return; }
+    S.busy[it.id] = true;
+    paintPanel();
+    var payload = { id: it.id, act: kind };
+    if (value !== undefined && value !== null) { payload.value = value; }
+    req('os_inbox_act', payload, { retry: false, cacheKey: 'inbox-act-' + it.id + '-' + kind + '-' + now(), timeoutMs: 25000 }).then(function (d) {
+      delete S.busy[it.id];
+      if (d && d.item) {
+        for (var i = 0; i < S.items.length; i++) { if (S.items[i].id === it.id) { S.items[i] = d.item; break; } }
+      }
+      S.textFor = ''; S.laterFor = '';
+      paintPanel(); paintButton(); if (S.full) { paintFull(); }
+      var undoKind = kind === 'later' ? 'unlater' : ((kind === 'unlater' || kind === 'undo') ? '' : 'undo');
+      toast(toastText || 'Saved', undoKind ? function () { act(findItem(it.id) || it, undoKind, null, 'Answer undone'); } : null);
+    }, function (e) {
+      delete S.busy[it.id];
+      paintPanel();
+      toast(e && e.code === 'forbidden' ? 'Only managers can answer' : 'Could not save', null);
+    });
+  }
+  function toast(text, undo) {
+    if (!S.toast) {
+      var t = el('div', 'octo-inbox-toast'); t.id = 'octo-inbox-toast'; t.setAttribute('role', 'status'); t.hidden = true;
+      D.body.appendChild(t); S.toast = t;
+    }
+    var t2 = S.toast;
+    while (t2.firstChild) { t2.removeChild(t2.firstChild); }
+    t2.appendChild(el('span', '', text));
+    if (undo) { t2.appendChild(button('', 'Undo', function () { hideToast(); undo(); })); }
+    t2.hidden = false;
+    if (S.toastT) { clearTimeout(S.toastT); }
+    S.toastT = setTimeout(hideToast, undo ? T.undoMs : 4000);
+    announce(text);
+  }
+  function hideToast() { if (S.toast) { S.toast.hidden = true; } }
+  function laterTimes() {
+    var d = new Date(), a = new Date(d.getTime() + 2 * 3600000), m = new Date(d);
+    m.setDate(m.getDate() + 1); m.setHours(9, 0, 0, 0);
+    return [['In 2 hours', a.toISOString()], ['Tomorrow morning', m.toISOString()]];
   }
 
   // ------------------------------------------------------------ bar button (wsbar asks for it on every paint)
@@ -53069,11 +53269,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     return S.btn;
   }
   function paintButton() {
-    var n = needsCount();
+    var n = needsCount(), warn = warnBadge();
     [S.btn, S.fab].forEach(function (b) {
       if (!b) { return; }
       var p = b.querySelector('.octo-wsb-inbox-n, .octo-inbox-fab-n');
-      if (p) { p.textContent = n ? String(n) : ''; p.hidden = !n; p.setAttribute('data-warn', failed() ? '1' : '0'); }
+      if (p) { p.textContent = n ? String(n) : ''; p.hidden = !n; p.setAttribute('data-warn', warn ? '1' : '0'); }
       b.setAttribute('aria-expanded', S.open ? 'true' : 'false');
       b.setAttribute('aria-label', n ? ('Incoming, ' + n + ' need you') : 'Incoming');
     });
@@ -53100,7 +53300,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     paintButton();
   }
 
-  // ------------------------------------------------------------ panel
+  // ------------------------------------------------------------ panel shell
   function buildPop() {
     if (S.pop) { return; }
     var live = el('div', 'octo-inbox-sr'); live.id = 'octo-inbox-live'; live.setAttribute('role', 'status'); live.setAttribute('aria-live', 'polite');
@@ -53120,17 +53320,18 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     head.appendChild(h);
     var seg = el('div', 'octo-inbox-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Show');
     [['all', 'All'], ['mine', 'Mine']].forEach(function (x) {
-      var b = el('button', '', x[1]); b.type = 'button'; b.setAttribute('data-f', x[0]);
-      b.addEventListener('click', function () { S.filter = x[0]; paintPanel(); });
+      var b = button('', x[1], function () { S.filter = x[0]; paintPanel(); paintButton(); });
+      b.setAttribute('data-f', x[0]);
       seg.appendChild(b);
     });
     head.appendChild(seg);
-    var x = el('button', 'octo-inbox-icon'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.appendChild(svg(IC.close, 16));
-    x.addEventListener('click', function () { close(); });
+    var x = button('octo-inbox-icon', null, function () { close(); }); x.setAttribute('aria-label', 'Close'); x.appendChild(svg(IC.close, 16));
     head.appendChild(x);
     p.appendChild(head);
 
-    // drop zone
+    S.blk = el('div', 'octo-inbox-blkwrap');
+    p.appendChild(S.blk);
+
     var dz = el('div', 'octo-inbox-dz');
     dz.appendChild(svg(IC.tray, 22));
     dz.appendChild(el('div', 'octo-inbox-dz-t', 'Drop anything'));
@@ -53161,7 +53362,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     p.appendChild(S.body);
     S.foot = el('div', 'octo-inbox-foot');
     p.appendChild(S.foot);
-    p.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
+    p.addEventListener('keydown', onKey);
     D.body.appendChild(p);
     S.pop = p;
   }
@@ -53201,7 +53402,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
   function close() {
     if (!S.open) { return; }
-    S.open = false;
+    S.open = false; S.textFor = ''; S.laterFor = '';
     if (S.pop) { S.pop.hidden = true; }
     if (S.scrim) { S.scrim.hidden = true; }
     paintButton(); schedule();
@@ -53211,72 +53412,247 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   D.addEventListener('pointerdown', function (e) {
     if (!S.open || narrow() || !S.pop) { return; }
     var t = e.target;
-    if (S.pop.contains(t) || (S.btn && S.btn.contains(t)) || (S.fab && S.fab.contains(t))) { return; }
+    if (S.pop.contains(t) || (S.btn && S.btn.contains(t)) || (S.fab && S.fab.contains(t)) || (S.toast && S.toast.contains(t)) || (S.fullEl && S.fullEl.contains(t))) { return; }
     close();
   }, true);
   W.addEventListener('resize', function () { if (S.open) { place(anchorEl); if (S.scrim) { S.scrim.hidden = !narrow(); } } });
 
+  // ------------------------------------------------------------ panel paint
   function chip(text, cls) { return el('span', 'octo-inbox-chip' + (cls ? ' ' + cls : ''), text); }
+  function section(title, n) {
+    var s = el('section', 'octo-inbox-sec');
+    var h = el('h3', '', title);
+    if (n) { h.appendChild(el('span', 'octo-inbox-n', String(n))); }
+    s.appendChild(h);
+    return s;
+  }
+  function disclosure(sec, label, openKey) {
+    var b = el('button', 'octo-inbox-disc'); b.type = 'button';
+    b.setAttribute('aria-expanded', S[openKey] ? 'true' : 'false');
+    b.appendChild(svg(IC.chev, 16)); b.appendChild(el('span', '', label));
+    b.addEventListener('click', function () { S[openKey] = !S[openKey]; paintPanel(); });
+    sec.appendChild(b);
+    return S[openKey];
+  }
   function paintPanel() {
     if (!S.pop || !S.open) { return; }
+    var keep = S.pop.scrollTop;
+    var focusKey = D.activeElement && S.pop.contains(D.activeElement) ? D.activeElement.getAttribute('data-k') : '';
     var mob = narrow() || coarse();
     S.pop.querySelectorAll('.is-mob').forEach(function (x) { x.hidden = !mob; });
     S.pop.querySelectorAll('.is-desk').forEach(function (x) { x.hidden = mob; });
     S.pop.querySelectorAll('.octo-inbox-seg button').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-f') === S.filter ? 'true' : 'false'); });
     var inp = D.getElementById('octo-inbox-hint'); if (inp && D.activeElement !== inp) { inp.value = S.hint; }
-    var body = S.body;
+    var body = S.body, blk = S.blk;
     while (body.firstChild) { body.removeChild(body.firstChild); }
+    while (blk.firstChild) { blk.removeChild(blk.firstChild); }
 
-    // local uploads first: nothing dropped may disappear before the table has it
+    if (!S.loaded) {
+      var ls = section('Needs you');
+      if (S.err) { ls.appendChild(errRow()); } else { ls.appendChild(el('p', 'octo-inbox-muted', 'Loading Incoming')); }
+      body.appendChild(ls);
+      paintFoot(); return;
+    }
+    if (!S.ready) { var nr = section('Incoming'); nr.appendChild(el('p', 'octo-inbox-muted', 'Incoming is not set up')); body.appendChild(nr); paintFoot(); return; }
+    var g = groups();
+
+    // engelleyici serit
+    if (g.block.length) {
+      var wrap = el('div', 'octo-inbox-blk'); wrap.setAttribute('role', 'group'); wrap.setAttribute('aria-label', 'Urgent');
+      g.block.slice(0, 3).forEach(function (it) { wrap.appendChild(blockRow(it)); });
+      blk.appendChild(wrap);
+    }
+    if (S.err) { var er = el('div', 'octo-inbox-sec'); er.appendChild(errRow()); body.appendChild(er); }
+
+    // yerel yuklemeler
     var q = S.queue.filter(function (x) { return x.state !== 'gone'; });
     if (q.length) {
-      var qs = el('section', 'octo-inbox-sec');
-      qs.appendChild(el('h3', '', 'Your uploads'));
+      var qs = section('Your uploads');
       q.forEach(function (x) { qs.appendChild(queueRow(x)); });
       body.appendChild(qs);
     }
-    var sec = el('section', 'octo-inbox-sec');
-    sec.appendChild(el('h3', '', 'Recent'));
-    if (!S.loaded && (S.loading || !S.err)) {
-      sec.appendChild(el('p', 'octo-inbox-muted', 'Loading Incoming'));
-    } else if (S.err && !S.loaded) {
-      var er = el('div', 'octo-inbox-err');
-      er.appendChild(el('span', '', 'Could not load'));
-      var tb = el('button', 'octo-inbox-btn', 'Try again'); tb.type = 'button';
-      tb.addEventListener('click', function () { load('retry'); });
-      er.appendChild(tb); sec.appendChild(er);
-    } else if (!S.ready) {
-      sec.appendChild(el('p', 'octo-inbox-muted', 'Incoming is not set up'));
-    } else {
-      var items = S.items.filter(function (it) { return S.filter === 'all' || it.mine; });
-      if (!items.length) { sec.appendChild(el('p', 'octo-inbox-muted', 'Nothing here yet')); }
-      items.forEach(function (it) { sec.appendChild(itemRow(it)); });
-      if (S.err) {
-        var st = el('div', 'octo-inbox-err');
-        st.appendChild(el('span', '', 'Could not load'));
-        var tb2 = el('button', 'octo-inbox-btn', 'Try again'); tb2.type = 'button';
-        tb2.addEventListener('click', function () { load('retry'); });
-        st.appendChild(tb2); sec.insertBefore(st, sec.children[1] || null);
-      }
+
+    // Needs you (+ Payments)
+    var ns = section('Needs you', g.need.length + g.pay.length);
+    if (!g.need.length && !g.pay.length) {
+      var e = el('p', 'octo-inbox-empty'); e.appendChild(svg(IC.check, 16)); e.appendChild(el('span', '', 'Nothing needs you')); ns.appendChild(e);
     }
-    body.appendChild(sec);
-    // footer
+    var lim = S.showAll ? 99 : T.needsShown;
+    g.need.slice(0, lim).forEach(function (it) { ns.appendChild(card(it)); });
+    if (g.pay.length) {
+      ns.appendChild(el('h4', 'octo-inbox-subh', 'Payments'));
+      g.pay.slice(0, lim).forEach(function (it) { ns.appendChild(card(it)); });
+    }
+    if (!S.showAll && (g.need.length > lim || g.pay.length > lim)) { ns.appendChild(button('octo-inbox-linkbtn', 'Show all', function () { S.showAll = true; paintPanel(); })); }
+    body.appendChild(ns);
+
+    // Working on it
+    var ws = section('Working on it');
+    if (!g.work.length) { ws.appendChild(el('p', 'octo-inbox-muted', 'Nothing in progress')); }
+    g.work.forEach(function (it) { ws.appendChild(row(it)); });
+    body.appendChild(ws);
+
+    // Recent
+    var rs = el('section', 'octo-inbox-sec');
+    if (!g.recent.length) { rs.appendChild(el('p', 'octo-inbox-muted', 'Nothing here yet')); }
+    else if (disclosure(rs, g.recent.length + ' recent', 'recentOpen')) { g.recent.slice(0, 40).forEach(function (it) { rs.appendChild(row(it)); }); }
+    body.appendChild(rs);
+
+    // Parked
+    if (g.parked.length) {
+      var ps = el('section', 'octo-inbox-sec');
+      if (disclosure(ps, g.parked.length + ' parked', 'parkedOpen')) { g.parked.forEach(function (it) { ps.appendChild(row(it)); }); }
+      body.appendChild(ps);
+    }
+    // Later
+    if (g.later.length) {
+      var lt = el('section', 'octo-inbox-sec');
+      if (disclosure(lt, g.later.length + ' later', 'laterOpen')) { g.later.forEach(function (it) { lt.appendChild(row(it)); }); }
+      body.appendChild(lt);
+    }
+    paintFoot();
+    S.pop.scrollTop = keep;
+    if (focusKey) { var f = S.pop.querySelector('[data-k="' + focusKey + '"]'); if (f) { try { f.focus({ preventScroll: true }); } catch (x2) { f.focus(); } } }
+  }
+  function paintFoot() {
     var f = S.foot;
     while (f.firstChild) { f.removeChild(f.firstChild); }
-    f.appendChild(el('span', 'octo-inbox-muted', S.at ? ('Checked ' + hhmm(S.at)) : ''));
-    var rb = el('button', 'octo-inbox-icon'); rb.type = 'button'; rb.setAttribute('aria-label', 'Refresh'); rb.appendChild(svg(IC.refresh, 16));
-    rb.addEventListener('click', function () { load('refresh'); });
-    f.appendChild(rb);
+    var full = button('octo-inbox-flat', 'Open Incoming', function () { openFull(); });
+    full.setAttribute('data-k', 'full');
+    f.appendChild(full);
+    var right = el('span', 'octo-inbox-foot-r');
+    right.appendChild(el('span', 'octo-inbox-muted', S.at ? ('Checked ' + hhmm(S.at)) : ''));
+    var rb = button('octo-inbox-icon', null, function () { load('refresh'); }); rb.setAttribute('aria-label', 'Refresh'); rb.appendChild(svg(IC.refresh, 16));
+    right.appendChild(rb);
+    f.appendChild(right);
   }
-  function itemRow(it) {
+  function errRow() {
+    var er = el('div', 'octo-inbox-err');
+    er.appendChild(el('span', '', 'Could not load'));
+    if (S.at) { er.appendChild(el('span', 'octo-inbox-muted', 'Updated ' + Math.max(1, Math.round((now() - S.at) / 60000)) + ' min ago')); }
+    er.appendChild(button('octo-inbox-btn', 'Try again', function () { load('retry'); }));
+    return er;
+  }
+  function blockRow(it) {
+    var r = el('div', 'octo-inbox-blk-row');
+    r.appendChild(svg(IC.alert, 16));
+    var m = el('div', 'octo-inbox-rm');
+    var t = el('div', 'octo-inbox-blk-t', dueText(it) || TITLE[it.question] || 'Needs you');
+    if (it.ref) { t.appendChild(chip(it.ref, 'is-ref')); }
+    m.appendChild(t);
+    if (it.answer) { m.appendChild(el('div', 'octo-inbox-blk-r', it.answer)); }
+    var a = el('div', 'octo-inbox-acts');
+    var busy = !!S.busy[it.id];
+    a.appendChild(dis(button('octo-inbox-btn', 'Done', function () { act(it, 'done', null, 'Done'); }), busy));
+    a.appendChild(dis(button('octo-inbox-flat', 'In 2 hours', function () { act(it, 'later', laterTimes()[0][1], 'Back at ' + hhmm(laterTimes()[0][1])); }), busy));
+    if (it.url) { a.appendChild(openLink(it)); }
+    m.appendChild(a);
+    r.appendChild(m);
+    return r;
+  }
+  function dis(b, on) { if (on) { b.disabled = true; } return b; }
+  function openLink(it) {
+    var a = el('a', 'octo-inbox-link', 'Open file'); a.href = it.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    return a;
+  }
+  function card(it) {
+    var c = el('article', 'octo-inbox-card' + (S.focus === it.id ? ' is-focus' : ''));
+    c.tabIndex = -1;
+    c.setAttribute('data-card', it.id);
+    c.setAttribute('data-k', 'card:' + it.id);
+    c.addEventListener('focusin', function () { S.focus = it.id; });
+    var busy = !!S.busy[it.id];
+    var top = el('div', 'octo-inbox-ct');
+    var title = el('h4', '', TITLE[it.question] || 'Needs your answer'); title.id = 'gk-t-' + it.id;
+    c.setAttribute('aria-labelledby', title.id);
+    top.appendChild(title);
+    if (it.ref) { top.appendChild(chip(it.ref, 'is-ref')); }
+    var dt = dueText(it);
+    top.appendChild(chip(dt || (it.mine ? 'Yours' : (it.by || 'Team')), dt ? 'is-warn' : ''));
+    c.appendChild(top);
+    if (it.answer) { c.appendChild(el('p', 'octo-inbox-ans', it.answer)); }
+    if (it.options && it.options.length) {
+      var opts = el('div', 'octo-inbox-opts'); opts.setAttribute('role', 'group'); opts.setAttribute('aria-label', 'Pick one');
+      it.options.forEach(function (o, i) {
+        var b = button('octo-inbox-choice', null, function () { act(it, 'choose', o.value, 'Answered: ' + (o.label || o.value).slice(0, 40)); });
+        b.setAttribute('data-k', 'opt:' + it.id + ':' + i);
+        b.appendChild(el('b', '', o.label || o.value));
+        if (i < 3 && !coarse()) { b.appendChild(el('kbd', '', String(i + 1))); }
+        opts.appendChild(dis(b, busy));
+      });
+      c.appendChild(opts);
+    }
+    var esc = ESC[it.question] || ['text', 'not_ours', 'later'];
+    if (S.textFor === it.id) {
+      c.appendChild(textForm(it));
+    } else if (S.laterFor === it.id) {
+      var lr = el('div', 'octo-inbox-acts'); lr.setAttribute('role', 'group'); lr.setAttribute('aria-label', 'Later');
+      laterTimes().forEach(function (x, i) {
+        var b = button('octo-inbox-btn', x[0], function () { act(it, 'later', x[1], 'Back at ' + hhmm(x[1])); });
+        b.setAttribute('data-k', 'later:' + it.id + ':' + i);
+        lr.appendChild(dis(b, busy));
+      });
+      lr.appendChild(button('octo-inbox-flat', 'Cancel', function () { S.laterFor = ''; paintPanel(); }));
+      c.appendChild(lr);
+    } else {
+      var a = el('div', 'octo-inbox-acts');
+      var noOpts = !(it.options && it.options.length);
+      if (esc.indexOf('text') >= 0 || noOpts) {
+        var tl = noOpts ? 'Reply' : (TEXT_LABEL[it.question] || 'None of these');
+        var tb = button('octo-inbox-flat', tl, function () { S.textFor = it.id; S.laterFor = ''; paintPanel(); var f = D.getElementById('gk-text-' + it.id); if (f) { f.focus(); } });
+        tb.setAttribute('data-k', 'text:' + it.id); tb.setAttribute('data-act', 'text');
+        a.appendChild(dis(tb, busy));
+      }
+      if (esc.indexOf('done') >= 0) { a.appendChild(dis(button('octo-inbox-btn', 'Done', function () { act(it, 'done', null, 'Done'); }), busy)); }
+      if (esc.indexOf('not_ours') >= 0) {
+        var nb = button('octo-inbox-flat', 'Not ours', function () { act(it, 'not_ours', null, 'Parked, not ours'); });
+        nb.setAttribute('data-act', 'not_ours'); a.appendChild(dis(nb, busy));
+      }
+      if (esc.indexOf('later') >= 0) {
+        var lb = button('octo-inbox-flat', 'Later', function () { S.laterFor = it.id; S.textFor = ''; paintPanel(); });
+        lb.setAttribute('data-act', 'later'); a.appendChild(dis(lb, busy));
+      }
+      if (it.url) { a.appendChild(openLink(it)); }
+      c.appendChild(a);
+    }
+    var from = [it.name ? ('From: ' + it.name) : '', it.by && !it.mine ? it.by : '', when(it.at)].filter(Boolean).join(', ');
+    c.appendChild(el('p', 'octo-inbox-from', from));
+    if (busy) { c.appendChild(el('p', 'octo-inbox-muted', 'Saving')); }
+    return c;
+  }
+  // the option's own label for a decision ("R-0141" -> "34 XX 000, Insurer A"); typed answers lose the "Text: " prefix
+  function decisionLabel(it) {
+    var d = String(it.decision || '');
+    var o = (it.options || []).filter(function (x) { return x.value === d; })[0];
+    return o ? (o.label || o.value) : d.replace(/^Text: /, '');
+  }
+  function textForm(it) {
+    var f = el('form', 'octo-inbox-text');
+    var label = el('label', 'octo-inbox-sr', it.question === 'WHICH_CASE' || it.question === 'NEW_CASE' ? 'File no' : 'Your answer');
+    label.setAttribute('for', 'gk-text-' + it.id);
+    var i = el('input'); i.id = 'gk-text-' + it.id; i.type = 'text'; i.maxLength = 80; i.autocomplete = 'off';
+    i.placeholder = it.question === 'WHICH_CASE' || it.question === 'NEW_CASE' || it.question === 'PAY_WHO' || it.question === 'PAY_SPLIT' ? 'File no or plate' : 'Your answer';
+    var row1 = el('div', 'octo-inbox-acts');
+    var save = button('octo-inbox-btn is-primary', 'Save'); save.type = 'submit';
+    row1.appendChild(save);
+    row1.appendChild(button('octo-inbox-flat', 'Cancel', function () { S.textFor = ''; paintPanel(); }));
+    f.appendChild(label); f.appendChild(i); f.appendChild(row1);
+    f.addEventListener('submit', function (e) { e.preventDefault(); var v = String(i.value || '').trim(); if (v) { act(it, 'text', v, 'Saved'); } });
+    return f;
+  }
+  function row(it) {
     var r = el('div', 'octo-inbox-row');
     r.setAttribute('data-status', it.status || 'Received');
-    var ic = el('span', 'octo-inbox-ric'); ic.appendChild(svg(IC.doc, 16)); r.appendChild(ic);
+    var ic = el('span', 'octo-inbox-ric'); ic.appendChild(svg(it.status === 'Received' || it.status === 'Reading' ? IC.clock : IC.doc, 16)); r.appendChild(ic);
     var m = el('div', 'octo-inbox-rm');
     var top = el('div', 'octo-inbox-rt');
-    top.appendChild(el('span', 'octo-inbox-name', it.name || 'File'));
-    var stc = it.status === 'Needs you' ? 'is-warn' : (it.status === 'Answered' ? 'is-ok' : (it.status === 'Could not read' ? 'is-warn' : ''));
-    top.appendChild(chip(STATUS_LABEL[it.status] || it.status || 'Received', stc));
+    top.appendChild(el('span', 'octo-inbox-name', it.name || TITLE[it.question] || 'Item'));
+    var label = STATUS_LABEL[it.status] || it.status || 'Received';
+    if (snoozed(it)) { label = 'Back at ' + hhmm(it.snooze); }
+    else if (it.status === 'Parked' && it.copy_of) { label = 'Already received'; }
+    else if (it.status === 'Parked' && it.decision === 'Not ours') { label = 'Parked, not ours'; }
+    var stc = (it.status === 'Answered' || it.status === 'Filed' || it.status === 'Done') ? 'is-ok' : (it.status === 'Could not read' ? 'is-warn' : '');
+    top.appendChild(chip(label, stc));
     m.appendChild(top);
     var meta = [];
     if (!it.mine && it.by) { meta.push(it.by); }
@@ -53284,14 +53660,22 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (it.size) { meta.push(kb(it.size)); }
     if (it.hint) { meta.push('File no ' + it.hint); }
     m.appendChild(el('div', 'octo-inbox-meta', meta.filter(Boolean).join(', ')));
-    if (it.answer) { m.appendChild(el('p', 'octo-inbox-ans', it.answer)); }
-    var line = el('div', 'octo-inbox-links');
-    if (it.ref) { line.appendChild(chip(it.ref, 'is-ref')); }
-    if (it.url) {
-      var a = el('a', 'octo-inbox-link', 'Open file'); a.href = it.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-      line.appendChild(a);
+    if (it.status === 'Decided') {
+      var dl = 'Answered by ' + (it.decided_by || 'you') + ': ' + decisionLabel(it);
+      m.appendChild(el('p', 'octo-inbox-dec', dl));
+      m.appendChild(el('div', 'octo-inbox-meta', 'Waiting for next check'));
+    } else if (it.answer && !(it.status === 'Parked' && it.copy_of)) {
+      m.appendChild(el('p', 'octo-inbox-ans', it.answer));
     }
-    if (line.firstChild) { m.appendChild(line); }
+    var a = el('div', 'octo-inbox-acts');
+    var busy = !!S.busy[it.id];
+    if (it.ref) { a.appendChild(chip(it.ref, 'is-ref')); }
+    if (it.status === 'Answered') { a.appendChild(dis(button('octo-inbox-flat', 'Send to office inbox', function () { act(it, 'send_office', null, 'Sent to office inbox'); }), busy)); }
+    if (it.status === 'Parked' || it.status === 'Could not read') { a.appendChild(dis(button('octo-inbox-flat', it.status === 'Could not read' ? 'Try again' : 'Bring back', function () { act(it, 'bring_back', null, 'Back in Incoming'); }), busy)); }
+    if ((it.status === 'Decided' || it.status === 'Done') && it.prev) { a.appendChild(dis(button('octo-inbox-flat', 'Undo', function () { act(it, 'undo', null, 'Answer undone'); }), busy)); }
+    if (snoozed(it)) { a.appendChild(dis(button('octo-inbox-flat', 'Show now', function () { act(it, 'unlater', null, 'Back in Incoming'); }), busy)); }
+    if (it.url) { a.appendChild(openLink(it)); }
+    if (a.firstChild) { m.appendChild(a); }
     r.appendChild(m);
     return r;
   }
@@ -53301,22 +53685,127 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var m = el('div', 'octo-inbox-rm');
     var top = el('div', 'octo-inbox-rt');
     top.appendChild(el('span', 'octo-inbox-name', x.name));
-    var label = { wait: 'Waiting', up: 'Uploading', ready: 'Uploading', add: 'Saving', done: 'Received', fail: 'Upload stopped', big: 'Too large to upload' }[x.state] || '';
+    var label = { wait: 'Waiting', up: 'Uploading', ready: 'Uploading', add: 'Saving', done: x.copy ? 'Already received' : 'Received', fail: 'Upload stopped', big: 'Too large to upload' }[x.state] || '';
     top.appendChild(chip(label, (x.state === 'fail' || x.state === 'big') ? 'is-warn' : (x.state === 'done' ? 'is-ok' : '')));
     m.appendChild(top);
     m.appendChild(el('div', 'octo-inbox-meta', kb(x.size)));
     if (x.state === 'fail') {
-      var tb = el('button', 'octo-inbox-btn', 'Try again'); tb.type = 'button';
-      tb.addEventListener('click', function () { x.state = x.url ? 'ready' : 'wait'; pump(); paintPanel(); paintButton(); });
-      m.appendChild(tb);
+      m.appendChild(button('octo-inbox-btn', 'Try again', function () { x.state = x.url ? 'ready' : 'wait'; pump(); paintPanel(); paintButton(); }));
     }
     if (x.state === 'big') {
-      var ok = el('button', 'octo-inbox-btn', 'Got it'); ok.type = 'button';
-      ok.addEventListener('click', function () { x.state = 'gone'; paintPanel(); paintButton(); });
-      m.appendChild(ok);
+      m.appendChild(button('octo-inbox-btn', 'Got it', function () { x.state = 'gone'; paintPanel(); paintButton(); }));
     }
     r.appendChild(m);
     return r;
+  }
+
+  // ------------------------------------------------------------ keyboard (cards): J/K move, 1-3 pick, L later, X not ours, N none of these
+  function onKey(e) {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      if (S.textFor || S.laterFor) { S.textFor = ''; S.laterFor = ''; paintPanel(); return; }
+      close(); return;
+    }
+    var t = e.target;
+    if (e.metaKey || e.ctrlKey || e.altKey || (t && t.closest && t.closest('input, textarea, select'))) { return; }
+    var cards = Array.prototype.slice.call(S.pop.querySelectorAll('.octo-inbox-card'));
+    if (!cards.length) { return; }
+    var i = -1;
+    cards.forEach(function (c, j) { if (c.getAttribute('data-card') === S.focus) { i = j; } });
+    var k = String(e.key || '').toLowerCase();
+    if (k === 'j' || k === 'k') {
+      e.preventDefault();
+      i = k === 'j' ? Math.min(cards.length - 1, i + 1) : Math.max(0, i - 1);
+      S.focus = cards[i].getAttribute('data-card');
+      cards.forEach(function (c, j) { c.classList.toggle('is-focus', j === i); });
+      cards[i].focus(); return;
+    }
+    var c2 = cards[Math.max(0, i)];
+    if (/^[1-3]$/.test(k)) { var b = c2.querySelectorAll('.octo-inbox-choice')[+k - 1]; if (b && !b.disabled) { e.preventDefault(); b.click(); } return; }
+    var map = { l: 'later', x: 'not_ours', n: 'text' };
+    if (map[k]) { var bb = c2.querySelector('[data-act="' + map[k] + '"]'); if (bb && !bb.disabled) { e.preventDefault(); bb.click(); } }
+  }
+
+  // ------------------------------------------------------------ full view (Open Incoming)
+  function openFull() {
+    close();
+    S.full = true;
+    if (!S.fullEl) {
+      var f = el('div', 'octo-inbox-full'); f.id = 'octo-inbox-full'; f.setAttribute('role', 'dialog'); f.setAttribute('aria-labelledby', 'octo-inbox-full-t'); f.tabIndex = -1;
+      f.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); closeFull(); } });
+      D.body.appendChild(f); S.fullEl = f;
+    }
+    S.fullEl.hidden = false;
+    paintFull();
+    try { S.fullEl.focus({ preventScroll: true }); } catch (e) { S.fullEl.focus(); }
+    load('full'); schedule();
+  }
+  function closeFull() { S.full = false; if (S.fullEl) { S.fullEl.hidden = true; } schedule(); var a = S.btn && S.btn.offsetParent ? S.btn : S.fab; if (a) { try { a.focus(); } catch (e) { /* yut */ } } }
+  function fullKind(it) {
+    if (it.status === 'Needs you' || (it.tier === 'block' && it.status !== 'Done')) { return 'need'; }
+    if (it.status === 'Received' || it.status === 'Reading' || it.status === 'Decided') { return 'work'; }
+    if (it.status === 'Parked') { return 'parked'; }
+    return 'recent';
+  }
+  function paintFull() {
+    var f = S.fullEl; if (!f || !S.full) { return; }
+    while (f.firstChild) { f.removeChild(f.firstChild); }
+    var inner = el('div', 'octo-inbox-full-in');
+    var head = el('div', 'octo-inbox-full-head');
+    var h = el('h2', '', 'Incoming'); h.id = 'octo-inbox-full-t'; head.appendChild(h);
+    var x = button('octo-inbox-btn', null, function () { closeFull(); }); x.appendChild(svg(IC.close, 16)); x.appendChild(el('span', '', 'Close'));
+    head.appendChild(x);
+    inner.appendChild(head);
+    var chips = el('div', 'octo-inbox-fchips'); chips.setAttribute('role', 'group'); chips.setAttribute('aria-label', 'Show');
+    [['all', 'All'], ['need', 'Needs you'], ['work', 'Working on it'], ['recent', 'Recent'], ['parked', 'Parked']].forEach(function (c) {
+      var b = button('octo-inbox-fchip', c[1], function () { S.fullFilter = c[0]; S.fullSel = ''; paintFull(); });
+      b.setAttribute('aria-pressed', S.fullFilter === c[0] ? 'true' : 'false');
+      chips.appendChild(b);
+    });
+    inner.appendChild(chips);
+    var list = S.items.filter(function (it) { return S.fullFilter === 'all' || fullKind(it) === S.fullFilter; });
+    if (!S.fullSel || !list.some(function (it) { return it.id === S.fullSel; })) { S.fullSel = list.length ? list[0].id : ''; }
+    var grid = el('div', 'octo-inbox-fgrid');
+    var ul = el('ul', 'octo-inbox-flist');
+    if (!list.length) { var li0 = el('li'); li0.appendChild(el('p', 'octo-inbox-muted', 'Nothing here yet')); ul.appendChild(li0); }
+    list.forEach(function (it) {
+      var li = el('li');
+      var b = button('octo-inbox-fitem', null, function () { S.fullSel = it.id; paintFull(); });
+      b.setAttribute('aria-current', it.id === S.fullSel ? 'true' : 'false');
+      b.appendChild(el('span', 'octo-inbox-name', it.name || TITLE[it.question] || 'Item'));
+      b.appendChild(el('span', 'octo-inbox-meta', (STATUS_LABEL[it.status] || it.status) + ', ' + when(it.at)));
+      li.appendChild(b); ul.appendChild(li);
+    });
+    grid.appendChild(ul);
+    var det = el('div', 'octo-inbox-fdet');
+    var sel = findItem(S.fullSel);
+    if (sel) {
+      det.appendChild(el('h3', '', sel.name || TITLE[sel.question] || 'Item'));
+      det.appendChild(el('div', 'octo-inbox-meta', [sel.by, when(sel.at), sel.size ? kb(sel.size) : '', sel.hint ? 'File no ' + sel.hint : ''].filter(Boolean).join(', ')));
+      var ol = el('ol', 'octo-inbox-trace');
+      var steps = [
+        ['Received', when(sel.at), true],
+        ['Read', sel.status === 'Received' ? '' : (sel.status === 'Reading' ? 'Reading' : 'Read'), sel.status !== 'Received'],
+        [sel.status === 'Needs you' ? (TITLE[sel.question] || 'Needs your answer') : 'Answer', sel.answer || '', !!sel.answer],
+        ['Decision', sel.decision ? ((sel.decided_by ? sel.decided_by + ': ' : '') + decisionLabel(sel)) : '', !!sel.decision],
+        ['Carried out', sel.status === 'Filed' || sel.status === 'Done' ? (sel.status + (sel.decided_at ? ', ' + when(sel.decided_at) : '')) : (sel.status === 'Decided' ? 'Waiting for next check' : ''), sel.status === 'Filed' || sel.status === 'Done']
+      ];
+      steps.forEach(function (s) {
+        var li = el('li', s[2] ? 'is-done' : '');
+        var dot = el('span', 'octo-inbox-tdot'); if (s[2]) { dot.appendChild(svg(IC.check, 14)); }
+        li.appendChild(dot);
+        var tx = el('div'); tx.appendChild(el('b', '', s[0])); if (s[1]) { tx.appendChild(el('div', 'octo-inbox-meta', s[1])); }
+        li.appendChild(tx); ol.appendChild(li);
+      });
+      det.appendChild(ol);
+      var a = el('div', 'octo-inbox-acts');
+      if (sel.status === 'Needs you' || sel.tier === 'block') { a.appendChild(button('octo-inbox-btn is-primary', 'Answer in Incoming', function () { closeFull(); S.focus = sel.id; S.showAll = true; open(S.btn || S.fab); })); }
+      if (sel.url) { a.appendChild(openLink(sel)); }
+      det.appendChild(a);
+    }
+    grid.appendChild(det);
+    inner.appendChild(grid);
+    f.appendChild(inner);
   }
 
   // ------------------------------------------------------------ drag and drop (only on the box, its button or the floating button)
@@ -53379,10 +53868,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       })(next);
     }
     // 2) rows for the uploaded ones, per drop, up to ten per call
-    var groups = {};
-    S.queue.forEach(function (x) { if (x.state === 'ready') { (groups[x.batch] = groups[x.batch] || []).push(x); } });
-    Object.keys(groups).forEach(function (b) {
-      var g = groups[b];
+    var grp = {};
+    S.queue.forEach(function (x) { if (x.state === 'ready') { (grp[x.batch] = grp[x.batch] || []).push(x); } });
+    Object.keys(grp).forEach(function (b) {
+      var g = grp[b];
       var stillUp = S.queue.some(function (x) { return x.batch === b && (x.state === 'wait' || x.state === 'up'); });
       if (stillUp && g.length < T.addBatch) { return; }    // wait for the rest of this drop (one call per drop when possible)
       var part = g.slice(0, T.addBatch);
@@ -53391,7 +53880,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       req('os_inbox_add', { files: JSON.stringify(files), key_hint: part[0].hint || '', batch: b + '-' + part[0].id }, { retry: false, cacheKey: 'inbox-add-' + part[0].id, timeoutMs: 30000 })
         .then(function (d) {
           var ok = (d && Array.isArray(d.ok)) ? d.ok : [];
-          part.forEach(function (x, k) { x.state = ok[k] ? 'done' : 'fail'; if (ok[k]) { x.doneAt = now(); } });
+          var cp = (d && Array.isArray(d.copies)) ? d.copies : [];
+          part.forEach(function (x, k) { x.state = ok[k] ? 'done' : 'fail'; x.copy = !!cp[k]; if (ok[k]) { x.doneAt = now(); } });
           if (d && d.added) { announce('Received'); }
         }, function () { part.forEach(function (x) { x.state = 'fail'; }); })
         .then(function () { paintPanel(); paintButton(); load('added'); pump(); });
@@ -53408,9 +53898,14 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (busy) { e.preventDefault(); e.returnValue = 'Uploads in progress'; return 'Uploads in progress'; }
   });
   D.addEventListener('visibilitychange', function () { if (!D.hidden && S.enabled) { load('visible'); } schedule(); });
+  // a snoozed card comes back on its own: repaint each minute while open
+  setInterval(function () { if (S.open && !(D.activeElement && D.activeElement.tagName === 'INPUT')) { paintPanel(); paintButton(); } }, 60000);
 
   // ------------------------------------------------------------ boot
-  W.__octoInbox = { barButton: barButton, open: open, close: close, state: function () { return { enabled: S.enabled, ready: S.ready, items: S.items.length, queue: S.queue.length, open: S.open, err: S.err }; } };
+  W.__octoInbox = {
+    barButton: barButton, open: open, close: close, openFull: openFull,
+    state: function () { return { enabled: S.enabled, ready: S.ready, manager: S.manager, items: S.items.length, queue: S.queue.length, open: S.open, full: S.full, err: S.err }; }
+  };
   function boot() {
     if (!W.octo || typeof W.octo.request !== 'function') { setTimeout(boot, 800); return; }
     setTimeout(function () { load('boot'); schedule(); }, T.first);
