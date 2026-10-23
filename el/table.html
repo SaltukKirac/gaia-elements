@@ -3897,6 +3897,20 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render());
     } catch (e) {}
   }
+  // GX-FILL-READY (23.10): the extension marks the page (<html data-gaia-bridge>) at document_idle, after the rows may have been
+  // painted; a row drawn before the mark kept a dim "Fill" (first customer demo). Repaint when the mark appears or changes.
+  let _dtBridgeMark = null;
+  function dtFillBridgeRepaint() {
+    try {
+      const d = document.documentElement;
+      const m = (d.getAttribute('data-gaia-bridge') || '') + '|' + (d.getAttribute('data-gaia-bridge-kayit') || '');
+      if (m === _dtBridgeMark) return;
+      _dtBridgeMark = m;
+      if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render());
+    } catch (e) {}
+  }
+  try { window.addEventListener('gaiaBridgeReady', dtFillBridgeRepaint); } catch (e) {}
+  try { new MutationObserver(dtFillBridgeRepaint).observe(document.documentElement, { attributes: true, attributeFilter: ['data-gaia-bridge', 'data-gaia-bridge-kayit'] }); } catch (e) {}
   // what one row sends: its package (memory first, else in the record), else the record itself (GX-FILL-KAYIT) — mirror_get is walled
   // per viewer on the server (an expert only ever gets their own record); files:true adds _files (the record's documents by field)
   async function dtFillPaketOf(row) {
