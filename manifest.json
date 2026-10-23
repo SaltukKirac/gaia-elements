@@ -1,25 +1,25 @@
 {
   "repo": "SaltukKirac/gaia-elements",
   "channel": "dev",
-  "rev": 71,
-  "updated": "2026-10-23T09:40:58Z",
+  "rev": 72,
+  "updated": "2026-10-23T12:59:24Z",
   "elements": {
     "aithia-pricing": {
-      "commit": "f5cdef09ef56f89e7a6e6d4f87bb9d7c0efd6ff5",
+      "commit": "d33173268149bc693fb961125ae5b4273044e63a",
       "path": "el/aithia-pricing.html",
-      "blob": "62b908389139e9eacf207ff9b13752c25a0dd012",
-      "bytes": 61410,
+      "blob": "e587169d3e8840704169b8ae51c6f584deb9c353",
+      "bytes": 61427,
       "title": "AITHIA pricing page (public, /aithia)",
-      "updated": "10/23/2026 09:36:51",
+      "updated": "10/23/2026 10:01:19",
       "from": "main"
     },
     "architect": {
-      "commit": "b9d98467e9c3eaf7794babdc9967c45f342463aa",
+      "commit": "db7db1fc17da51d841c7c085fc3d1c1c50ae11a0",
       "path": "el/architect.html",
-      "blob": "b243e1007da324eade0817003c79699e7b2f925f",
-      "bytes": 4248028,
+      "blob": "ec697eb242d476582784fce92c114ef2d561a6ed",
+      "bytes": 4266621,
       "title": "AI Architect / GAD (+ Octo shell) - app page",
-      "updated": "2026-10-23T09:40:58Z"
+      "updated": "2026-10-23T12:59:24Z"
     },
     "form": {
       "commit": "9119236c26dae473cef4452168eb7c09df783989",
