@@ -44796,6 +44796,179 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
 }
 
 /* ==========================================================================
+   app-inbox.css  -  OCTO INCOMING canli l1 (23.10.2026). Sahip: CLIENT. Bkz. app-inbox.js.
+   Kurallar YALNIZ kendi kokleri altinda: #octo-wsbar .octo-wsb-inbox (cubuktaki dugme), #octo-inbox-pop,
+   #octo-inbox-fab, #octo-inbox-scrim, #octo-inbox-live. Belirtecler her kokte yeniden bildirilir (app-wsbar.css ile ayni
+   degerler). Tablonun atalarina HICBIR kural yok; panel body'nin cocugu (fixed), transform yalniz kendi okunda.
+   ========================================================================== */
+#octo-inbox-pop,
+#octo-inbox-fab {
+  --octo-accent: #6366f1;
+  --octo-accent-ink: #4f46e5;
+  --octo-accent-soft: rgba(99, 102, 241, .10);
+  --octo-ink: #0f172a;
+  --octo-ink-2: #475569;
+  --octo-ink-3t: #64748b;
+  --octo-line: #e2e8f0;
+  --octo-line-2: #eef2f7;
+  --octo-bg: #f8fafc;
+  --octo-surface: #ffffff;
+  --octo-field: #f6f7f9;
+  --octo-warn: #b45309;
+  --octo-warn-soft: rgba(180, 83, 9, .10);
+  --octo-ok: #188038;
+  --octo-ok-soft: rgba(24, 128, 56, .10);
+  --octo-sh-l: 0 16px 40px rgba(49, 46, 129, .16);
+  --octo-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+  color: var(--octo-ink);
+  font: 400 13px/18px var(--octo-font);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+#octo-inbox-pop *, #octo-inbox-pop *::before, #octo-inbox-pop *::after { box-sizing: border-box; }
+#octo-inbox-pop[hidden], #octo-inbox-fab[hidden], #octo-inbox-scrim[hidden], #octo-inbox-pop [hidden] { display: none !important; }
+.octo-inbox-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ------------------------------------------------ bar button (first item of the left zone) */
+#octo-wsbar .octo-wsb-inbox {
+  flex: 0 0 auto;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  margin-right: 2px;
+  border: 1px solid var(--octo-line);
+  border-radius: var(--octo-r3, 12px);
+  background: var(--octo-surface);
+  color: var(--octo-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+#octo-wsbar .octo-wsb-inbox:hover, #octo-wsbar .octo-wsb-inbox[aria-expanded="true"] { background: var(--octo-field); }
+#octo-wsbar .octo-wsb-inbox.is-over { border-color: var(--octo-accent); background: var(--octo-accent-soft); color: #4f46e5; }
+#octo-wsbar .octo-wsb-inbox-n {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--octo-accent); color: #fff; font: 600 11px/20px var(--octo-font); text-align: center; font-variant-numeric: tabular-nums;
+}
+#octo-wsbar .octo-wsb-inbox-n[data-warn="1"] { background: var(--octo-warn); }
+#octo-wsbar .octo-wsb-inbox-n[hidden] { display: none; }
+#octo-wsbar[data-fit] .octo-wsb-inbox-lab { display: none; }
+#octo-wsbar[data-fit] .octo-wsb-inbox { padding: 0 9px; }
+@media (max-width: 1279px) { #octo-wsbar .octo-wsb-inbox-lab { display: none; } #octo-wsbar .octo-wsb-inbox { padding: 0 9px; } }
+
+/* ------------------------------------------------ floating button (no bar on this page) */
+#octo-inbox-fab {
+  position: fixed;
+  left: calc(16px + env(safe-area-inset-left, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 1452;
+  width: 56px; height: 56px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--octo-line); border-radius: 18px;
+  background: var(--octo-surface); color: var(--octo-accent-ink);
+  box-shadow: var(--octo-sh-l);
+  cursor: pointer;
+}
+#octo-inbox-fab.is-over { border-color: var(--octo-accent); background: var(--octo-accent-soft); }
+#octo-inbox-fab .octo-inbox-fab-n {
+  position: absolute; top: -6px; right: -6px;
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--octo-accent); color: #fff; font: 600 11px/20px var(--octo-font); text-align: center;
+}
+#octo-inbox-fab .octo-inbox-fab-n[data-warn="1"] { background: var(--octo-warn); }
+#octo-inbox-fab .octo-inbox-fab-n[hidden] { display: none; }
+
+/* ------------------------------------------------ panel */
+#octo-inbox-scrim { position: fixed; inset: 0; z-index: 1453; background: rgba(15, 23, 42, .32); }
+#octo-inbox-pop {
+  position: fixed;
+  z-index: 1454;
+  width: min(400px, calc(100vw - 24px));
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--octo-surface);
+  border: 1px solid var(--octo-line);
+  border-radius: 14px;
+  box-shadow: var(--octo-sh-l);
+}
+#octo-inbox-pop:focus { outline: none; }
+#octo-inbox-pop button { font: inherit; color: inherit; cursor: pointer; }
+#octo-inbox-pop button:focus-visible, #octo-inbox-pop a:focus-visible, #octo-inbox-pop input:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+#octo-inbox-pop .octo-inbox-head {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 6px 6px 6px 14px;
+  background: var(--octo-surface); border-bottom: 1px solid var(--octo-line-2);
+}
+#octo-inbox-pop .octo-inbox-head h2 { flex: 1 1 auto; margin: 0; font: 700 15px/20px var(--octo-font); color: var(--octo-ink); }
+#octo-inbox-pop .octo-inbox-seg { display: inline-flex; padding: 2px; border-radius: 10px; background: var(--octo-field); }
+#octo-inbox-pop .octo-inbox-seg button { height: 32px; min-width: 52px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--octo-ink-2); font-weight: 600; font-size: 12px; }
+#octo-inbox-pop .octo-inbox-seg button[aria-pressed="true"] { background: var(--octo-surface); color: var(--octo-ink); box-shadow: 0 1px 2px rgba(15, 23, 42, .10); }
+#octo-inbox-pop .octo-inbox-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 12px; background: transparent; color: var(--octo-ink-2); }
+#octo-inbox-pop .octo-inbox-icon:hover { background: var(--octo-field); color: var(--octo-ink); }
+#octo-inbox-pop .octo-inbox-sec { padding: 12px 14px; border-bottom: 1px solid var(--octo-line-2); }
+#octo-inbox-pop .octo-inbox-sec:last-child { border-bottom: 0; }
+#octo-inbox-pop .octo-inbox-sec h3 { margin: 0 0 6px; color: var(--octo-ink-3t); font: 600 11px/16px var(--octo-font); letter-spacing: .06em; text-transform: uppercase; }
+#octo-inbox-pop .octo-inbox-dz {
+  display: grid; justify-items: center; gap: 8px; padding: 14px 12px;
+  border: 1.5px dashed var(--octo-line); border-radius: 12px; background: var(--octo-bg); text-align: center;
+}
+#octo-inbox-pop .octo-inbox-dz > svg { color: var(--octo-accent); }
+#octo-inbox-pop .octo-inbox-dz.is-over { border-color: var(--octo-accent); background: var(--octo-accent-soft); }
+#octo-inbox-pop .octo-inbox-dz-t { font: 600 14px/20px var(--octo-font); }
+#octo-inbox-pop .octo-inbox-dz-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+#octo-inbox-pop .octo-inbox-hint { color: var(--octo-ink-3t); font-size: 12px; }
+#octo-inbox-pop .octo-inbox-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 44px; padding: 0 14px; border: 1px solid var(--octo-line); border-radius: 10px;
+  background: var(--octo-surface); color: var(--octo-ink); font-weight: 600; white-space: nowrap;
+}
+#octo-inbox-pop .octo-inbox-btn:hover { background: var(--octo-field); }
+#octo-inbox-pop .octo-inbox-btn.is-primary { border-color: var(--octo-accent); background: var(--octo-accent); color: #fff; }
+#octo-inbox-pop .octo-inbox-key { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 10px; }
+#octo-inbox-pop .octo-inbox-key label { font-weight: 600; color: var(--octo-ink-2); }
+#octo-inbox-pop .octo-inbox-key input { width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--octo-line); border-radius: 10px; background: var(--octo-surface); font: inherit; color: var(--octo-ink); }
+#octo-inbox-pop .octo-inbox-opt, #octo-inbox-pop .octo-inbox-muted { color: var(--octo-ink-3t); font-size: 12px; }
+#octo-inbox-pop p.octo-inbox-muted { margin: 4px 0; }
+#octo-inbox-pop .octo-inbox-err { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; padding: 6px 10px; border-radius: 10px; background: var(--octo-warn-soft); color: var(--octo-warn); font-weight: 600; }
+#octo-inbox-pop .octo-inbox-err .octo-inbox-btn { margin-left: auto; height: 36px; }
+#octo-inbox-pop .octo-inbox-row { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--octo-line-2); }
+#octo-inbox-pop h3 + .octo-inbox-row { border-top: 0; }
+#octo-inbox-pop .octo-inbox-ric { flex: 0 0 28px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--octo-field); color: var(--octo-ink-2); }
+#octo-inbox-pop .octo-inbox-row[data-status="Needs you"] .octo-inbox-ric { background: var(--octo-warn-soft); color: var(--octo-warn); }
+#octo-inbox-pop .octo-inbox-rm { flex: 1 1 auto; min-width: 0; display: grid; gap: 4px; }
+#octo-inbox-pop .octo-inbox-rt { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#octo-inbox-pop .octo-inbox-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+#octo-inbox-pop .octo-inbox-chip { flex: 0 0 auto; display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; background: var(--octo-field); color: var(--octo-ink-2); font: 600 11px/22px var(--octo-font); white-space: nowrap; }
+#octo-inbox-pop .octo-inbox-chip.is-ok { background: var(--octo-ok-soft); color: var(--octo-ok); }
+#octo-inbox-pop .octo-inbox-chip.is-warn { background: var(--octo-warn-soft); color: var(--octo-warn); }
+#octo-inbox-pop .octo-inbox-chip.is-ref { background: var(--octo-accent-soft); color: var(--octo-accent-ink); }
+#octo-inbox-pop .octo-inbox-meta { color: var(--octo-ink-3t); font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#octo-inbox-pop .octo-inbox-ans { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--octo-bg); color: var(--octo-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+#octo-inbox-pop .octo-inbox-links { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#octo-inbox-pop .octo-inbox-link { display: inline-flex; align-items: center; min-height: 32px; color: var(--octo-accent-ink); font-weight: 600; text-decoration: none; }
+#octo-inbox-pop .octo-inbox-link:hover { text-decoration: underline; }
+#octo-inbox-pop .octo-inbox-row.is-q .octo-inbox-btn { justify-self: start; height: 36px; }
+#octo-inbox-pop .octo-inbox-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 4px 14px; border-top: 1px solid var(--octo-line-2); }
+
+@media (max-width: 899px) {
+  #octo-inbox-pop {
+    left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto; max-height: 86vh;
+    border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  #octo-inbox-pop .octo-inbox-head, #octo-inbox-pop .octo-inbox-sec {
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+}
+@media (pointer: coarse) {
+  #octo-inbox-pop .octo-inbox-err .octo-inbox-btn, #octo-inbox-pop .octo-inbox-row.is-q .octo-inbox-btn { height: 44px; }
+}
+
+/* ==========================================================================
    app-rail.css  -  OCTO RAIL (os3) + workspace sekmeleri (os3t). Sahip: CLIENT. OCTO_RAIL_SPEC 2.1, 2.7;
    OCTO_TABS_SPEC (2.5 gomulu gorunum ve 2.6 hizli satir EMEKLI).
    Ray #octo-root DISINDA yasar: os1 3.5 belirtecleri #octo-rail altinda YENIDEN
@@ -52761,6 +52934,490 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     mount: mount
   });
 })();
+
+/* file: app-inbox.js */
+/* ==========================================================================
+   app-inbox.js  -  OCTO INCOMING (gelen evrak ve bilgi kutusu), canli l1 (23.10.2026). Sahip: CLIENT.
+   Tasarim: octonom/gelen-kutusu/GELEN_KUTUSU_TASARIM.md; canli kurulum ve isleyis: octonom/gelen-kutusu/canli/OKUBENI.md
+   - Yalniz ozel kanal govdesinde gelir (?gxel=eksper). Sunucu os_inbox_list {enabled:false} derse HICBIR SEY cizilmez.
+   - Dosya baytlari tarayicidan Bubble deposuna gider (POST /fileupload); sunucuya yalniz adres (os_inbox_add).
+   - Liste ve cevaplar sirketin "Gelen Kutusu" tablosundan (os_inbox_list); cevabi ofis laptopundaki Claude Code
+     izleyicisi yazar. Octo Brain yok, Postgres yok.
+   - Hicbir dosya sessizce kaybolmaz: yuklenemeyen dosya listede "Upload stopped" + "Try again" ile kalir; yukleme
+     surerken sayfadan cikis uyarilir.
+   Kurallar: CSS yalniz #octo-inbox-* kokleri; tablonun atalarina dokunulmaz (panel body'nin cocugu, fixed);
+   uzak metin (dosya adi, cevap) YALNIZ textContent ile.
+   ========================================================================== */
+(function (W, D) {
+  'use strict';
+  if (W.__octoInbox) { return; }
+
+  var T = {
+    first: 1200, listOpen: 15000, listClosed: 60000, listHidden: 300000,
+    upParallel: 2, addBatch: 10, maxBytes: 50 * 1024 * 1024, doneKeep: 6000
+  };
+  var S = {
+    enabled: null, ready: false, items: [], err: '', at: 0, loading: false, loaded: false,
+    open: false, filter: 'all', hint: '', queue: [], seq: 0, active: 0, timer: null,
+    btn: null, pill: null, lab: null, fab: null, pop: null, scrim: null, body: null, foot: null, dz: null, fileIn: null, folderIn: null, photoIn: null
+  };
+  var STATUS_LABEL = { 'Received': 'Received', 'Reading': 'Reading', 'Answered': 'Answered', 'Needs you': 'Needs you', 'Could not read': 'Could not read' };
+
+  // ------------------------------------------------------------ helpers
+  function el(tag, cls, txt) {
+    var e = D.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (txt !== undefined && txt !== null) { e.textContent = String(txt); }
+    return e;
+  }
+  function svg(paths, size) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var s = D.createElementNS(NS, 'svg');
+    s.setAttribute('width', String(size || 18)); s.setAttribute('height', String(size || 18));
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor');
+    s.setAttribute('stroke-width', '1.75'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round');
+    s.setAttribute('aria-hidden', 'true');
+    paths.split('|').forEach(function (d) { var p = D.createElementNS(NS, 'path'); p.setAttribute('d', d); s.appendChild(p); });
+    return s;
+  }
+  var IC = {
+    tray: 'M4 13h4l1.5 3h5l1.5-3h4|M6 5h12l3 8v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5z',
+    close: 'M6 6l12 12|M18 6L6 18',
+    upload: 'M12 16V4|M7 9l5-5 5 5|M4 20h16',
+    folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+    camera: 'M4 8h3l2-3h6l2 3h3v11H4z|M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
+    doc: 'M6 3h8l4 4v14H6z|M14 3v4h4',
+    refresh: 'M20 11a8 8 0 1 0-2.3 5.7|M20 4v7h-7'
+  };
+  function now() { return Date.now(); }
+  function narrow() { try { return W.matchMedia('(max-width: 899px)').matches; } catch (e) { return false; } }
+  function coarse() { try { return W.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } }
+  function hhmm(t) { var d = new Date(t); if (isNaN(d.getTime())) { return ''; } var h = d.getHours(), m = d.getMinutes(); return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
+  function when(iso) {
+    var d = new Date(iso); if (isNaN(d.getTime())) { return ''; }
+    var t = new Date(); var same = d.toDateString() === t.toDateString();
+    if (same) { return hhmm(d); }
+    return d.getDate() + '.' + (d.getMonth() + 1) + ' ' + hhmm(d);
+  }
+  function kb(n) { n = Number(n) || 0; if (n >= 1048576) { return (n / 1048576).toFixed(1) + ' MB'; } return Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function req(action, payload, opts) {
+    var o = W.octo;
+    if (!o || typeof o.request !== 'function') { return Promise.reject({ code: 'bridge_missing' }); }
+    return o.request(action, payload || {}, opts || {});
+  }
+  function bumpBar() { try { W.dispatchEvent(new CustomEvent('octo:inbox')); } catch (e) { /* yut */ } }
+  function announce(t) { var l = D.getElementById('octo-inbox-live'); if (l) { l.textContent = ''; setTimeout(function () { l.textContent = t; }, 30); } }
+
+  // ------------------------------------------------------------ server list (badge + panel)
+  function needsCount() {
+    var n = 0;
+    for (var i = 0; i < S.items.length; i++) { if (S.items[i].status === 'Needs you') { n++; } }
+    for (var j = 0; j < S.queue.length; j++) { if (S.queue[j].state === 'fail' || S.queue[j].state === 'big') { n++; } }
+    return n;
+  }
+  function failed() { for (var j = 0; j < S.queue.length; j++) { if (S.queue[j].state === 'fail' || S.queue[j].state === 'big') { return true; } } return false; }
+  function load(why) {
+    if (S.loading) { return; }
+    S.loading = true;
+    if (S.open && !S.loaded) { paintPanel(); }
+    req('os_inbox_list', {}, { cacheKey: 'inbox-list', timeoutMs: 20000 }).then(function (d) {
+      S.loading = false;
+      var was = S.enabled;
+      S.enabled = !!(d && d.enabled);
+      S.ready = !!(d && d.ready);
+      S.items = (d && Array.isArray(d.items)) ? d.items : [];
+      S.err = ''; S.at = now(); S.loaded = true;
+      // a row that reached the table drops its local queue entry
+      dropArrived();
+      if (was !== S.enabled) { bumpBar(); }
+      paintButton(); if (S.open) { paintPanel(); }
+      ensureFab();
+    }, function (e) {
+      S.loading = false;
+      S.err = (e && e.code) || 'provider_error';
+      if (S.enabled === null) { return; }       // first call failed: stay invisible, try again later
+      paintButton(); if (S.open) { paintPanel(); }
+    });
+  }
+  function schedule() {
+    if (S.timer) { clearTimeout(S.timer); }
+    var ms = D.hidden ? T.listHidden : (S.open ? T.listOpen : T.listClosed);
+    if (S.enabled === false) { ms = T.listHidden; }
+    S.timer = setTimeout(function () { load('tick'); schedule(); }, ms);
+  }
+
+  // ------------------------------------------------------------ bar button (wsbar asks for it on every paint)
+  function barButton() {
+    if (!S.enabled) { return null; }
+    if (!S.btn) {
+      var b = el('button', 'octo-wsb-inbox');
+      b.type = 'button';
+      b.id = 'octo-inbox-btn';
+      b.setAttribute('data-key', 'inbox');
+      b.setAttribute('aria-haspopup', 'dialog');
+      b.setAttribute('aria-controls', 'octo-inbox-pop');
+      b.appendChild(svg(IC.tray, 18));
+      S.lab = el('span', 'octo-wsb-inbox-lab', 'Incoming');
+      b.appendChild(S.lab);
+      S.pill = el('span', 'octo-wsb-inbox-n');
+      b.appendChild(S.pill);
+      b.addEventListener('click', function () { toggle(b); });
+      wireDropTarget(b);
+      S.btn = b;
+    }
+    paintButton();
+    return S.btn;
+  }
+  function paintButton() {
+    var n = needsCount();
+    [S.btn, S.fab].forEach(function (b) {
+      if (!b) { return; }
+      var p = b.querySelector('.octo-wsb-inbox-n, .octo-inbox-fab-n');
+      if (p) { p.textContent = n ? String(n) : ''; p.hidden = !n; p.setAttribute('data-warn', failed() ? '1' : '0'); }
+      b.setAttribute('aria-expanded', S.open ? 'true' : 'false');
+      b.setAttribute('aria-label', n ? ('Incoming, ' + n + ' need you') : 'Incoming');
+    });
+  }
+  // No bar on this page (phone without Octo mode, Classic hidden...): a floating button instead, so the box is never lost.
+  function ensureFab() {
+    if (!S.enabled) { if (S.fab) { S.fab.hidden = true; } return; }
+    var barOk = !!(S.btn && D.body.contains(S.btn) && S.btn.offsetParent);
+    if (barOk) { if (S.fab) { S.fab.hidden = true; } return; }
+    if (!S.fab) {
+      var f = el('button', 'octo-inbox-fab');
+      f.id = 'octo-inbox-fab';
+      f.type = 'button';
+      f.setAttribute('aria-haspopup', 'dialog');
+      f.setAttribute('aria-controls', 'octo-inbox-pop');
+      f.appendChild(svg(IC.tray, 22));
+      var n = el('span', 'octo-inbox-fab-n'); n.hidden = true; f.appendChild(n);
+      f.addEventListener('click', function () { toggle(f); });
+      wireDropTarget(f);
+      D.body.appendChild(f);
+      S.fab = f;
+    }
+    S.fab.hidden = false;
+    paintButton();
+  }
+
+  // ------------------------------------------------------------ panel
+  function buildPop() {
+    if (S.pop) { return; }
+    var live = el('div', 'octo-inbox-sr'); live.id = 'octo-inbox-live'; live.setAttribute('role', 'status'); live.setAttribute('aria-live', 'polite');
+    D.body.appendChild(live);
+    var sc = el('div', 'octo-inbox-scrim'); sc.id = 'octo-inbox-scrim'; sc.hidden = true;
+    sc.addEventListener('click', function () { close(); });
+    D.body.appendChild(sc); S.scrim = sc;
+    var p = el('div', 'octo-inbox-pop');
+    p.id = 'octo-inbox-pop';
+    p.setAttribute('role', 'dialog');
+    p.setAttribute('aria-modal', 'false');
+    p.setAttribute('aria-labelledby', 'octo-inbox-title');
+    p.tabIndex = -1;
+    p.hidden = true;
+    var head = el('div', 'octo-inbox-head');
+    var h = el('h2', '', 'Incoming'); h.id = 'octo-inbox-title';
+    head.appendChild(h);
+    var seg = el('div', 'octo-inbox-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Show');
+    [['all', 'All'], ['mine', 'Mine']].forEach(function (x) {
+      var b = el('button', '', x[1]); b.type = 'button'; b.setAttribute('data-f', x[0]);
+      b.addEventListener('click', function () { S.filter = x[0]; paintPanel(); });
+      seg.appendChild(b);
+    });
+    head.appendChild(seg);
+    var x = el('button', 'octo-inbox-icon'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.appendChild(svg(IC.close, 16));
+    x.addEventListener('click', function () { close(); });
+    head.appendChild(x);
+    p.appendChild(head);
+
+    // drop zone
+    var dz = el('div', 'octo-inbox-dz');
+    dz.appendChild(svg(IC.tray, 22));
+    dz.appendChild(el('div', 'octo-inbox-dz-t', 'Drop anything'));
+    var acts = el('div', 'octo-inbox-dz-acts');
+    var ph = btnIcon('Take a photo', IC.camera, 'octo-inbox-btn is-primary is-mob');
+    var ch = btnIcon('Choose files', IC.upload, 'octo-inbox-btn');
+    var fo = btnIcon('Choose folder', IC.folder, 'octo-inbox-btn is-desk');
+    acts.appendChild(ph); acts.appendChild(ch); acts.appendChild(fo);
+    dz.appendChild(acts);
+    dz.appendChild(el('div', 'octo-inbox-hint is-mob', 'Many photos? Send one zip.'));
+    S.fileIn = fileInput(false, false); S.folderIn = fileInput(true, false); S.photoIn = fileInput(false, true);
+    dz.appendChild(S.fileIn); dz.appendChild(S.folderIn); dz.appendChild(S.photoIn);
+    ch.addEventListener('click', function () { S.fileIn.click(); });
+    fo.addEventListener('click', function () { S.folderIn.click(); });
+    ph.addEventListener('click', function () { S.photoIn.click(); });
+    wireDropTarget(dz);
+    S.dz = dz;
+    var keyrow = el('div', 'octo-inbox-key');
+    var lab = el('label', '', 'File no'); lab.setAttribute('for', 'octo-inbox-hint');
+    var inp = el('input'); inp.id = 'octo-inbox-hint'; inp.type = 'text'; inp.autocomplete = 'off'; inp.maxLength = 60;
+    inp.addEventListener('input', function () { S.hint = inp.value; });
+    keyrow.appendChild(lab); keyrow.appendChild(inp); keyrow.appendChild(el('span', 'octo-inbox-opt', 'Optional'));
+    var dsec = el('div', 'octo-inbox-sec');
+    dsec.appendChild(dz); dsec.appendChild(keyrow);
+    p.appendChild(dsec);
+
+    S.body = el('div', 'octo-inbox-list');
+    p.appendChild(S.body);
+    S.foot = el('div', 'octo-inbox-foot');
+    p.appendChild(S.foot);
+    p.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
+    D.body.appendChild(p);
+    S.pop = p;
+  }
+  function btnIcon(label, icon, cls) {
+    var b = el('button', cls); b.type = 'button';
+    b.appendChild(svg(icon, 16)); b.appendChild(el('span', '', label));
+    return b;
+  }
+  function fileInput(folder, photo) {
+    var i = el('input'); i.type = 'file'; i.multiple = true; i.hidden = true;
+    if (folder) { i.setAttribute('webkitdirectory', ''); }
+    if (photo) { i.accept = 'image/*'; i.setAttribute('capture', 'environment'); }
+    i.addEventListener('change', function () { addFiles(i.files); i.value = ''; });
+    return i;
+  }
+  function place(anchor) {
+    if (!S.pop) { return; }
+    if (narrow()) { S.pop.style.left = ''; S.pop.style.top = ''; return; }
+    var r = (anchor || S.btn || S.fab).getBoundingClientRect();
+    var top = r.bottom + 8, left = Math.max(12, Math.min(r.left, W.innerWidth - 412));
+    if (top > W.innerHeight - 200) { top = Math.max(12, r.top - 8 - Math.min(640, W.innerHeight - 24)); }
+    S.pop.style.top = Math.round(top) + 'px';
+    S.pop.style.left = Math.round(left) + 'px';
+  }
+  var anchorEl = null;
+  function toggle(from) { if (S.open) { close(); } else { open(from); } }
+  function open(from) {
+    buildPop();
+    anchorEl = from || S.btn || S.fab;
+    S.open = true;
+    S.pop.hidden = false;
+    S.scrim.hidden = !narrow();
+    place(anchorEl);
+    paintPanel(); paintButton();
+    try { S.pop.focus({ preventScroll: true }); } catch (e) { S.pop.focus(); }
+    load('open'); schedule();
+  }
+  function close() {
+    if (!S.open) { return; }
+    S.open = false;
+    if (S.pop) { S.pop.hidden = true; }
+    if (S.scrim) { S.scrim.hidden = true; }
+    paintButton(); schedule();
+    var a = (S.btn && S.btn.offsetParent) ? S.btn : (S.fab && !S.fab.hidden ? S.fab : null);
+    if (a) { try { a.focus(); } catch (e) { /* yut */ } }
+  }
+  D.addEventListener('pointerdown', function (e) {
+    if (!S.open || narrow() || !S.pop) { return; }
+    var t = e.target;
+    if (S.pop.contains(t) || (S.btn && S.btn.contains(t)) || (S.fab && S.fab.contains(t))) { return; }
+    close();
+  }, true);
+  W.addEventListener('resize', function () { if (S.open) { place(anchorEl); if (S.scrim) { S.scrim.hidden = !narrow(); } } });
+
+  function chip(text, cls) { return el('span', 'octo-inbox-chip' + (cls ? ' ' + cls : ''), text); }
+  function paintPanel() {
+    if (!S.pop || !S.open) { return; }
+    var mob = narrow() || coarse();
+    S.pop.querySelectorAll('.is-mob').forEach(function (x) { x.hidden = !mob; });
+    S.pop.querySelectorAll('.is-desk').forEach(function (x) { x.hidden = mob; });
+    S.pop.querySelectorAll('.octo-inbox-seg button').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-f') === S.filter ? 'true' : 'false'); });
+    var inp = D.getElementById('octo-inbox-hint'); if (inp && D.activeElement !== inp) { inp.value = S.hint; }
+    var body = S.body;
+    while (body.firstChild) { body.removeChild(body.firstChild); }
+
+    // local uploads first: nothing dropped may disappear before the table has it
+    var q = S.queue.filter(function (x) { return x.state !== 'gone'; });
+    if (q.length) {
+      var qs = el('section', 'octo-inbox-sec');
+      qs.appendChild(el('h3', '', 'Your uploads'));
+      q.forEach(function (x) { qs.appendChild(queueRow(x)); });
+      body.appendChild(qs);
+    }
+    var sec = el('section', 'octo-inbox-sec');
+    sec.appendChild(el('h3', '', 'Recent'));
+    if (!S.loaded && (S.loading || !S.err)) {
+      sec.appendChild(el('p', 'octo-inbox-muted', 'Loading Incoming'));
+    } else if (S.err && !S.loaded) {
+      var er = el('div', 'octo-inbox-err');
+      er.appendChild(el('span', '', 'Could not load'));
+      var tb = el('button', 'octo-inbox-btn', 'Try again'); tb.type = 'button';
+      tb.addEventListener('click', function () { load('retry'); });
+      er.appendChild(tb); sec.appendChild(er);
+    } else if (!S.ready) {
+      sec.appendChild(el('p', 'octo-inbox-muted', 'Incoming is not set up'));
+    } else {
+      var items = S.items.filter(function (it) { return S.filter === 'all' || it.mine; });
+      if (!items.length) { sec.appendChild(el('p', 'octo-inbox-muted', 'Nothing here yet')); }
+      items.forEach(function (it) { sec.appendChild(itemRow(it)); });
+      if (S.err) {
+        var st = el('div', 'octo-inbox-err');
+        st.appendChild(el('span', '', 'Could not load'));
+        var tb2 = el('button', 'octo-inbox-btn', 'Try again'); tb2.type = 'button';
+        tb2.addEventListener('click', function () { load('retry'); });
+        st.appendChild(tb2); sec.insertBefore(st, sec.children[1] || null);
+      }
+    }
+    body.appendChild(sec);
+    // footer
+    var f = S.foot;
+    while (f.firstChild) { f.removeChild(f.firstChild); }
+    f.appendChild(el('span', 'octo-inbox-muted', S.at ? ('Checked ' + hhmm(S.at)) : ''));
+    var rb = el('button', 'octo-inbox-icon'); rb.type = 'button'; rb.setAttribute('aria-label', 'Refresh'); rb.appendChild(svg(IC.refresh, 16));
+    rb.addEventListener('click', function () { load('refresh'); });
+    f.appendChild(rb);
+  }
+  function itemRow(it) {
+    var r = el('div', 'octo-inbox-row');
+    r.setAttribute('data-status', it.status || 'Received');
+    var ic = el('span', 'octo-inbox-ric'); ic.appendChild(svg(IC.doc, 16)); r.appendChild(ic);
+    var m = el('div', 'octo-inbox-rm');
+    var top = el('div', 'octo-inbox-rt');
+    top.appendChild(el('span', 'octo-inbox-name', it.name || 'File'));
+    var stc = it.status === 'Needs you' ? 'is-warn' : (it.status === 'Answered' ? 'is-ok' : (it.status === 'Could not read' ? 'is-warn' : ''));
+    top.appendChild(chip(STATUS_LABEL[it.status] || it.status || 'Received', stc));
+    m.appendChild(top);
+    var meta = [];
+    if (!it.mine && it.by) { meta.push(it.by); }
+    meta.push(when(it.at));
+    if (it.size) { meta.push(kb(it.size)); }
+    if (it.hint) { meta.push('File no ' + it.hint); }
+    m.appendChild(el('div', 'octo-inbox-meta', meta.filter(Boolean).join(', ')));
+    if (it.answer) { m.appendChild(el('p', 'octo-inbox-ans', it.answer)); }
+    var line = el('div', 'octo-inbox-links');
+    if (it.ref) { line.appendChild(chip(it.ref, 'is-ref')); }
+    if (it.url) {
+      var a = el('a', 'octo-inbox-link', 'Open file'); a.href = it.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      line.appendChild(a);
+    }
+    if (line.firstChild) { m.appendChild(line); }
+    r.appendChild(m);
+    return r;
+  }
+  function queueRow(x) {
+    var r = el('div', 'octo-inbox-row is-q');
+    var ic = el('span', 'octo-inbox-ric'); ic.appendChild(svg(IC.upload, 16)); r.appendChild(ic);
+    var m = el('div', 'octo-inbox-rm');
+    var top = el('div', 'octo-inbox-rt');
+    top.appendChild(el('span', 'octo-inbox-name', x.name));
+    var label = { wait: 'Waiting', up: 'Uploading', ready: 'Uploading', add: 'Saving', done: 'Received', fail: 'Upload stopped', big: 'Too large to upload' }[x.state] || '';
+    top.appendChild(chip(label, (x.state === 'fail' || x.state === 'big') ? 'is-warn' : (x.state === 'done' ? 'is-ok' : '')));
+    m.appendChild(top);
+    m.appendChild(el('div', 'octo-inbox-meta', kb(x.size)));
+    if (x.state === 'fail') {
+      var tb = el('button', 'octo-inbox-btn', 'Try again'); tb.type = 'button';
+      tb.addEventListener('click', function () { x.state = x.url ? 'ready' : 'wait'; pump(); paintPanel(); paintButton(); });
+      m.appendChild(tb);
+    }
+    if (x.state === 'big') {
+      var ok = el('button', 'octo-inbox-btn', 'Got it'); ok.type = 'button';
+      ok.addEventListener('click', function () { x.state = 'gone'; paintPanel(); paintButton(); });
+      m.appendChild(ok);
+    }
+    r.appendChild(m);
+    return r;
+  }
+
+  // ------------------------------------------------------------ drag and drop (only on the box, its button or the floating button)
+  function hasFiles(e) { try { return Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0; } catch (x) { return false; } }
+  function wireDropTarget(node) {
+    node.addEventListener('dragenter', function (e) { if (!hasFiles(e)) { return; } e.preventDefault(); node.classList.add('is-over'); if (!S.open && node !== S.dz) { open(node); } });
+    node.addEventListener('dragover', function (e) { if (!hasFiles(e)) { return; } e.preventDefault(); try { e.dataTransfer.dropEffect = 'copy'; } catch (x) { /* yut */ } node.classList.add('is-over'); });
+    node.addEventListener('dragleave', function () { node.classList.remove('is-over'); });
+    node.addEventListener('drop', function (e) { if (!hasFiles(e)) { return; } e.preventDefault(); e.stopPropagation(); node.classList.remove('is-over'); addFiles(e.dataTransfer.files); });
+  }
+
+  // ------------------------------------------------------------ uploads
+  function addFiles(list) {
+    var files = Array.prototype.slice.call(list || []).filter(function (f) { return f && f.name; });
+    if (!files.length) { return; }
+    if (!S.open) { open(S.btn || S.fab); }
+    var batch = 'w' + now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+    var hint = String(S.hint || '').trim();
+    files.forEach(function (f) {
+      S.seq++;
+      S.queue.push({ id: 'q' + S.seq, file: f, name: f.name, size: f.size || 0, type: f.type || '', state: f.size > T.maxBytes ? 'big' : 'wait', url: '', batch: batch, hint: hint, at: now() });
+    });
+    S.hint = '';
+    announce(files.length + ' files added');
+    paintPanel(); paintButton(); pump();
+  }
+  function uploadName(n) { var s = String(n || 'file').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/_+/g, '_'); return s.slice(-120) || 'file'; }
+  function base() { var m = /^\/(version-test|version-[a-z0-9]+)(\/|$)/i.exec(location.pathname || ''); return location.origin + (m ? '/' + m[1] : ''); }
+  function readB64(file) {
+    return new Promise(function (res, rej) {
+      var fr = new FileReader();
+      fr.onload = function () { var s = String(fr.result || ''); var i = s.indexOf(','); res(i >= 0 ? s.slice(i + 1) : s); };
+      fr.onerror = function () { rej(fr.error || new Error('read')); };
+      fr.readAsDataURL(file);
+    });
+  }
+  function uploadOne(x) {
+    return readB64(x.file).then(function (b64) {
+      return fetch(base() + '/fileupload', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: uploadName(x.name), contents: b64, private: false })
+      });
+    }).then(function (r) { if (!r.ok) { throw new Error('http ' + r.status); } return r.text(); }).then(function (t) {
+      var u = String(t || '').trim().replace(/^"+|"+$/g, '');
+      if (!/^(https:)?\/\/[a-z0-9-]+\.cdn\.bubble\.io\/f\d+x\d+\//i.test(u)) { throw new Error('bad address'); }
+      return u;
+    });
+  }
+  function pump() {
+    // 1) bytes to Bubble storage, two at a time
+    while (S.active < T.upParallel) {
+      var next = null;
+      for (var i = 0; i < S.queue.length; i++) { if (S.queue[i].state === 'wait') { next = S.queue[i]; break; } }
+      if (!next) { break; }
+      (function (x) {
+        x.state = 'up'; S.active++;
+        uploadOne(x).then(function (u) { x.url = u; x.state = 'ready'; }, function () { x.state = 'fail'; })
+          .then(function () { S.active--; paintPanel(); paintButton(); pump(); });
+      })(next);
+    }
+    // 2) rows for the uploaded ones, per drop, up to ten per call
+    var groups = {};
+    S.queue.forEach(function (x) { if (x.state === 'ready') { (groups[x.batch] = groups[x.batch] || []).push(x); } });
+    Object.keys(groups).forEach(function (b) {
+      var g = groups[b];
+      var stillUp = S.queue.some(function (x) { return x.batch === b && (x.state === 'wait' || x.state === 'up'); });
+      if (stillUp && g.length < T.addBatch) { return; }    // wait for the rest of this drop (one call per drop when possible)
+      var part = g.slice(0, T.addBatch);
+      part.forEach(function (x) { x.state = 'add'; });
+      var files = part.map(function (x) { return { url: x.url, name: x.name, size: x.size, type: x.type }; });
+      req('os_inbox_add', { files: JSON.stringify(files), key_hint: part[0].hint || '', batch: b + '-' + part[0].id }, { retry: false, cacheKey: 'inbox-add-' + part[0].id, timeoutMs: 30000 })
+        .then(function (d) {
+          var ok = (d && Array.isArray(d.ok)) ? d.ok : [];
+          part.forEach(function (x, k) { x.state = ok[k] ? 'done' : 'fail'; if (ok[k]) { x.doneAt = now(); } });
+          if (d && d.added) { announce('Received'); }
+        }, function () { part.forEach(function (x) { x.state = 'fail'; }); })
+        .then(function () { paintPanel(); paintButton(); load('added'); pump(); });
+    });
+  }
+  // a finished upload leaves the local list once the table shows it (or after a few seconds)
+  function dropArrived() {
+    var t = now();
+    S.queue.forEach(function (x) { if (x.state === 'done' && x.doneAt && t - x.doneAt > T.doneKeep) { x.state = 'gone'; } });
+    S.queue = S.queue.filter(function (x) { return x.state !== 'gone' || t - x.at < 1000; });
+  }
+  W.addEventListener('beforeunload', function (e) {
+    var busy = S.queue.some(function (x) { return x.state === 'wait' || x.state === 'up' || x.state === 'add' || x.state === 'ready'; });
+    if (busy) { e.preventDefault(); e.returnValue = 'Uploads in progress'; return 'Uploads in progress'; }
+  });
+  D.addEventListener('visibilitychange', function () { if (!D.hidden && S.enabled) { load('visible'); } schedule(); });
+
+  // ------------------------------------------------------------ boot
+  W.__octoInbox = { barButton: barButton, open: open, close: close, state: function () { return { enabled: S.enabled, ready: S.ready, items: S.items.length, queue: S.queue.length, open: S.open, err: S.err }; } };
+  function boot() {
+    if (!W.octo || typeof W.octo.request !== 'function') { setTimeout(boot, 800); return; }
+    setTimeout(function () { load('boot'); schedule(); }, T.first);
+    setInterval(ensureFab, 3000);
+  }
+  if (D.readyState === 'loading') { D.addEventListener('DOMContentLoaded', boot); } else { boot(); }
+})(window, document);
 
 /* file: app-rail.js */
 /* ==========================================================================
@@ -68368,6 +69025,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     return eb;
   }
 
+  // GELEN-KUTUSU l1 (23.10): app-inbox.js kalici dugmesini verir (sunucu kapali derse null); her boyamada yeniden eklenir.
+  function inboxBtn() {
+    var I = W.__octoInbox;
+    try { return (I && typeof I.barButton === 'function') ? I.barButton() : null; } catch (e) { return null; }
+  }
   function paintBar() {
     var b = S.bar;
     if (!b) { return; }
@@ -68382,6 +69044,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     b.setAttribute('data-classic', S.classic ? '1' : '0');
     if (S.hdrMode) { paintHdr(s, kind, noProc, focusKey); return; }
     clear(b);
+    var ibp = inboxBtn();   // GELEN-KUTUSU l1
+    if (ibp) { b.appendChild(ibp); b.appendChild(el('span', 'octo-wsb-sep')); }
 
     // Workspace secici
     b.appendChild(wsButton(s));
@@ -68419,6 +69083,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     zonesFix();
     clear(S.zl);
     clear(S.zr);
+    var ib = inboxBtn();   // GELEN-KUTUSU l1 (app-inbox.js): yalniz sunucu acik derse; sol bolgenin ilk ogesi
+    if (ib) { S.zl.appendChild(ib); S.zl.appendChild(el('span', 'octo-wsb-sep')); }
     var wb = wsButton(s);
     wb.setAttribute('aria-label', 'Workspace, ' + (sheetName(s) || 'Workspace'));
     wb.setAttribute('data-tip', sheetName(s) || 'Workspace');
@@ -70573,6 +71239,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function mount(err) {
     if (S.mounted) { return; }
     S.mounted = true;
+    W.addEventListener('octo:inbox', function () { S.sig = ''; paintSoon(); });   // GELEN-KUTUSU l1: kutu acilinca / kapaninca
     S.chromeErr = err || '';
     S.variant = (railM() && railM().variant) || '';
     S.zoom = null;
