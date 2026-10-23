@@ -1,24 +1,25 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "eksper",
-    "rev":  41,
-    "updated":  "2026-10-23T03:16:32Z",
+    "rev":  42,
+    "updated":  "2026-10-23T11:27:14Z",
     "elements":  {
                      "aithia-pricing":  {
-                                            "commit":  "898b74e25db0187832a6d32c5c0bb7813a5aa6a2",
+                                            "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
                                             "path":  "el/aithia-pricing.html",
-                                            "blob":  "a9b882806474e9e9cea8f768d7e1efa1ef4e50a5",
-                                            "bytes":  61414,
+                                            "blob":  "e587169d3e8840704169b8ae51c6f584deb9c353",
+                                            "bytes":  61427,
                                             "title":  "AITHIA pricing page (public, /aithia)",
-                                            "updated":  "2026-10-22T11:12:35Z"
+                                            "updated":  "2026-10-23T10:01:19Z",
+                                            "from":  "main"
                                         },
                      "architect":  {
-                                       "commit":  "87b7517339ee1badd7d5fe002d0263fe8f8b973a",
+                                       "commit":  "eab7586132d8372dc209e8ea4f5a81a72b396763",
                                        "path":  "el/architect.html",
-                                       "blob":  "6e4c9c4dc8a26dcabf4132bfc2810015afe2daf7",
-                                       "bytes":  4178408,
+                                       "blob":  "5396f86319b4feaad5a5521e333ff7bc5177f733",
+                                       "bytes":  4320808,
                                        "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-10-23T03:16:32Z"
+                                       "updated":  "2026-10-23T11:27:14Z"
                                    },
                      "form":  {
                                   "commit":  "9119236c26dae473cef4452168eb7c09df783989",
