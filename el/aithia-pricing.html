@@ -6,10 +6,8 @@
 <title>AITHIA | Your AI email colleague</title>
 <meta name="description" content="AITHIA is your AI email colleague. Find the context, prepare the reply, follow through. One subscription with no per-email charges. Choose Focus, Compose or Coordinate.">
 <!--
-  AITHIA pricing and checkout page (public, /aithia). Element name: aithia-pricing (element-deploy/elements.json).
-  The loader injects this whole document with template.innerHTML, so every style rule is scoped under #aithia and
-  the html/head/body wrappers are dropped by the browser. Design tokens: the shared --gx-* set (MARKA_UI_DILI.md
-  section 2); the older Apple variable set is not used here.
+  AITHIA pricing and checkout page (public, /aithia), element aithia-pricing. The loader injects it with
+  template.innerHTML, so every rule is scoped under #aithia. Tokens: the shared --gx-* set (MARKA_UI_DILI.md 2).
 
   How it works
   - One config object at the top of the script: window.AITHIA_PRICING (env, Paddle client-side keys per environment,
@@ -21,15 +19,16 @@
     Try again). Empty price id or key = "Pricing is being set up".
   - maxMailboxes is 1 at launch: the stepper row and the "x N mailboxes" wording appear only when the config raises it.
   - Checkout: Paddle.Checkout.open (overlay), customData { product, plan, source, app_version, from, user_sirket,
-    user_id } (hints from page globals; the server binds by a verified signal). ?aithia_code=<code> (kept for the tab)
-    opens it with that Paddle discount applied (discountCode). A CTA pressed while its preview loads opens on arrival.
+    user_id } (hints from page globals; the server binds by a verified signal). ?aithia_code=<code> = Paddle
+    discountCode, read from this URL, the tab's first URL or a same-site referrer, kept for the tab. A CTA pressed
+    while its preview loads opens on arrival.
   - checkout.error (Paddle could not open the checkout) and a 20 s wait without checkout.loaded show "Checkout is not
     available right now. Try again."; checkout.payment.failed and checkout.payment.error show the payment message.
   - After checkout.completed the page writes the same gx_flagship_pending intent as _gx_product_card.html, moves
     focus to the success card (role=status) and offers "Open AITHIA". States: loading, setup, ready, preview_failed,
     opening, script_failed, closed, error, offline, success.
-  - window.__aithiaDemo { setState, setPrices, mode } exists for the Playwright checks only; it is a no-op on a live host.
-  Docs: template-factory/docs/aithia_2026-10-19/AITHIA_PRICING_PAGE.md. Checks: docs/aithia_2026-10-19/checks/.
+  - window.__aithiaDemo { setState, setPrices, mode }: Playwright checks only; a no-op on a live host.
+  Docs: template-factory/docs/aithia_2026-10-19/AITHIA_PRICING_PAGE.md, checks/ next to it.
   Copy rules: English, ASCII punctuation, brand names fixed (lang="en" translate="no"), no numbers in the markup.
 -->
 <style>
@@ -488,7 +487,7 @@
     return out;
   }
   var CFG=mergeCfg(DEFAULTS,W.AITHIA_PRICING);
-  var DC='';try{var dm=/[?&]aithia_code=([A-Za-z0-9_-]{3,40})(?:&|#|$)/.exec(location.search||'');if(dm){DC=dm[1];sessionStorage.setItem('gx_aithia_code',DC);}else DC=String(sessionStorage.getItem('gx_aithia_code')||'');}catch(e){}
+  var DC='';try{var dx=/[?&]aithia_code=([A-Za-z0-9_-]{3,40})(?:&|#|$)/,dn=(performance.getEntriesByType&&performance.getEntriesByType('navigation')[0])||{},dr=String(document.referrer||''),dm=dx.exec(location.search||'')||dx.exec(String(dn.name||''))||(dr.indexOf(location.origin+'/')===0?dx.exec(dr):null);if(dm){DC=dm[1];sessionStorage.setItem('gx_aithia_code',DC);}else DC=String(sessionStorage.getItem('gx_aithia_code')||'');}catch(e){}
 
   W.AITHIA_PRICING=CFG;
 
