@@ -47492,6 +47492,17 @@ html[data-octo-ws="1"] #stagebar, html[data-octo-ws="1"] .baUfaHaM { transition:
 /* Bubble'in "menuyu ac" dugmesi (Button N, Group os icinde) kipte olu kalirdi. */
 html[data-octo-ws="1"] .baVczaM { visibility: hidden !important; pointer-events: none !important; }
 html[data-octo-ws="1"] [data-octo-ws-gutter="1"] { margin-left: 0 !important; }
+/* ACIL-MOB (22.10 gece): kurucu Bubble menusunu ve barini opacity 0 ile gizledi. 900 px altinda kip kurulmaz;
+   menu (< 450'de tam ekran, z 1504) gorunmez halde ekrani kaplar, telefon bembeyaz kalir. Kip kurulu degilken
+   dar ekranda Bubble'in kendi menusu, bari ve ac dugmesi geri gorunur. Telefon varyanti (os9m) kurulunca
+   html[data-octo-ws] / [data-octo-ws-m] yazilir ve bu kural susar. Bilincli SAPMA: kok disi tek kural. */
+@media (max-width: 899.98px) {
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) #sideMenu,
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baUfaHw,
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) #stagebar,
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baUfaHaM,
+  html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baVczaM { opacity: 1 !important; }
+}
 /* Classic menu: Bubble menusu sol kenarda cekmece (kendi z'si 1504), bar altta; menuyu kapatan ok gizli
    (kapatilirsa Done sonrasi gorunmez kalirdi). */
 html[data-octo-ws-classic="1"] #sideMenu, html[data-octo-ws-classic="1"] .baUfaHw { box-shadow: 12px 0 40px rgba(15, 23, 42, .18) !important; }
@@ -47503,7 +47514,8 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
 #octo-wsb-pop,
 #octo-wsb-board,
 #octo-wsb-toast,
-#octo-wsb-tip {
+#octo-wsb-tip,
+#octo-wsb-empty {
   --octo-accent: #6366f1;
   --octo-accent-soft: rgba(99, 102, 241, .10);
   --octo-grad: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -47552,7 +47564,8 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   outline: 2px solid var(--octo-accent);
   outline-offset: 2px;
 }
-#octo-wsbar[hidden], #octo-wsb-pop[hidden], #octo-wsb-toast[hidden], #octo-wsb-scrim[hidden], #octo-wsbar [hidden] { display: none !important; }
+#octo-wsbar[hidden], #octo-wsb-pop[hidden], #octo-wsb-toast[hidden], #octo-wsb-scrim[hidden], #octo-wsbar [hidden],
+#octo-wsb-sscrim[hidden], #octo-wsb-empty[hidden] { display: none !important; }
 
 /* ---------------------------------------------------------------- cubuk
    Ust kenara asili pil (uzak masaustu baglanti cubugu). Tablonun atasi DEGIL. */
@@ -48725,6 +48738,357 @@ html[data-octo-wsh-dock="1"] [data-octo-ws-dockpad="1"] { padding-left: 72px !im
   #octo-wsb-board .octo-wsb-rec::after { transition: none; }
 }
 
+/* ======================================================== mobil varyant (os9m)
+   OCTO_MOBILE_SPEC 3. Yalniz yeni oznitelikler altinda: html[data-octo-ws-m], [data-mob], #octo-wsb-sscrim,
+   #octo-wsb-empty, .octo-wsb-mslot. Tablonun atalarina (#octo-rail-row, .octo-rail-cell) kural YOK: yer ayirma
+   yeni dugum (os9c data-wsh-slot emsali). 100vw yok (genislik left 0 / right 0); guvenli alanlar 0px yedekli.
+   Katmanlar: pano 244, ray paneli 245, cubuk (ray alt sayfasi acikken) 399, bos durum 1440, Classic scrim 1449,
+   cubuk 1450, alt sayfa perdesi 1451, alt sayfa 1452, bildirim 1453, Bubble menusu 1504, Classic hapi 1505. */
+
+/* Cubuk: ust kenarda tam genislik bant. position absolute (sayfayla kayar, tablonun yapiskan basligini ortmez);
+   JS satir ici top: 'edge' 0, 'band' rayin ust kenari. Auto-hide donusumu mobilde hic yok. */
+#octo-wsbar[data-mob="1"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1450;
+  gap: 4px;
+  height: 52px;
+  max-width: none;
+  margin-left: 0;
+  padding: 0 max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
+  border: 0;
+  border-bottom: 1px solid var(--octo-hair);
+  border-radius: 0;
+  background: var(--octo-surface);
+  box-shadow: none;
+  transform: none !important;
+  transition: none;
+}
+/* Bubble basligi yok: cubuk ust kenarda, guvenli alan kadar uzar. */
+#octo-wsbar[data-mob="1"][data-mtop="edge"] {
+  height: calc(52px + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+}
+/* Ray alt sayfasi acikken perdesinin (400) altinda: cubuk karartilir, ray sayfasinin ustune binmez. */
+#octo-wsbar[data-mob="1"][data-rsheet="1"] { z-index: 399; }
+html[data-octo-ws-m="1"]:has(#octo-rail[data-phone="1"][data-sheet]) #octo-wsbar[data-mob="1"] { z-index: 399; }
+
+/* Bant icerigi (OCTO_MOBILE_SPEC 4): [Workspace (esnek)] [gorunum denetimi (<= %46)] [Menu avatari 44].
+   Workspace sifir tabanla esner: uzun tablo adi gorunum etiketini daraltmaz (kalan alani o alir, ad uc nokta). */
+#octo-wsbar[data-mob="1"] .octo-wsb-ws { flex: 1 1 0; min-width: 0; gap: 8px; padding: 0 8px 0 4px; }
+/* Dugmenin varsayilan ortali metni: genis bantta (gorunum denetimi yokken, Choose workspace) ad ikonun yaninda kalir. */
+#octo-wsbar[data-mob="1"] .octo-wsb-lab { flex: 1 1 auto; min-width: 0; text-align: left; }
+#octo-wsbar[data-mob="1"] .octo-wsb-eyebrow { display: none; }
+#octo-wsbar[data-mob="1"] .octo-wsb-name { max-width: none; white-space: nowrap; font: 600 15px/20px var(--octo-font); }
+#octo-wsbar[data-mob="1"] .octo-wsb-ws:hover { background: transparent; }
+#octo-wsbar[data-mob="1"] .octo-wsb-ws[data-act]:active, #octo-wsbar[data-mob="1"] .octo-wsb-ws[aria-expanded="true"] { background: var(--octo-field); }
+#octo-wsbar[data-mob="1"] .octo-wsb-chip.is-warn { flex: 0 1 auto; min-width: 0; max-width: 46%; white-space: nowrap; }
+#octo-wsbar[data-mob="1"] .octo-wsb-menu { flex: 0 0 44px; }
+/* Dokunusta hover takili kalmasin: dugme zemini sabit, durum avatarda. */
+#octo-wsbar[data-mob="1"] .octo-wsb-menu:hover, #octo-wsbar[data-mob="1"] .octo-wsb-menu[aria-expanded="true"] { background: transparent; }
+#octo-wsbar[data-mob="1"] .octo-wsb-menu.is-av:hover .octo-wsb-av { background: var(--octo-field); }
+#octo-wsbar[data-mob="1"] .octo-wsb-menu.is-av[aria-expanded="true"] .octo-wsb-av { background: var(--octo-line-2); }
+/* Gorunum / surec denetimi: vurgu zemini, etiket uc nokta, Bubble sayaci hapta. */
+#octo-wsbar[data-mob="1"] .octo-wsb-nav {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 46%;
+  height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--octo-r3);
+  background: var(--octo-accent-soft);
+  color: var(--octo-accent);
+  font: 600 14px/18px var(--octo-font);
+  cursor: pointer;
+}
+#octo-wsbar[data-mob="1"] .octo-wsb-nav > svg { flex: 0 0 auto; }
+#octo-wsbar[data-mob="1"] .octo-wsb-nlab { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#octo-wsbar[data-mob="1"] .octo-wsb-nav .octo-wsb-n { flex: 0 0 auto; background: var(--octo-surface); color: var(--octo-accent); }
+#octo-wsbar[data-mob="1"] .octo-wsb-nav .octo-wsb-chev { color: var(--octo-accent); }
+#octo-wsbar[data-mob="1"] .octo-wsb-nav:active, #octo-wsbar[data-mob="1"] .octo-wsb-nav[aria-expanded="true"] { background: rgba(99, 102, 241, .16); }
+
+/* Classic (OCTO_MOBILE_SPEC 2.5): sag ustte hap, yalniz Done; Bubble menusunun (1504) ustunde. Kurucunun
+   opacity 0 gizlemesi mobil Classic'te geri alinir (masaustu Classic'e dokunulmaz). */
+#octo-wsbar[data-mob="1"][data-classic="1"] {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: auto;
+  right: max(8px, env(safe-area-inset-right, 0px));
+  z-index: 1505;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--octo-r3);
+  background: transparent;
+  box-shadow: none;
+}
+#octo-wsbar[data-mob="1"][data-classic="1"] .octo-wsb-done { box-shadow: var(--octo-sh-m); }
+html[data-octo-ws-m="1"][data-octo-ws-classic="1"] #sideMenu,
+html[data-octo-ws-m="1"][data-octo-ws-classic="1"] .baUfaHw,
+html[data-octo-ws-m="1"][data-octo-ws-classic="1"] #stagebar,
+html[data-octo-ws-m="1"][data-octo-ws-classic="1"] .baUfaHaM {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Yer ayirma (kabugun dugumu, tablonun kardesi): yalniz yukseklik (JS satir ici, olculen X); icerik yok. Hucre esnek
+   sutun: dugum flex none, tablo sarmalayicisi X kadar kisalir, sayfa uzamaz. */
+div.octo-wsb-mslot[data-wsm-slot] {
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+/* Rayin paneli (top 44px sabit) ayirmanin altindan; panel tablonun atasi degil. */
+html[data-octo-ws-m="1"] #octo-rail-row > .octo-rail-cell > .octo-tabs-panel { top: calc(44px + var(--octo-wsm-slot, 0px)); }
+
+/* Alt sayfa (menuler): tam genislik, alta yasli, en cok 85vh; satir ici top / left yok. */
+#octo-wsb-pop[data-mob="1"] {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1452;
+  min-width: 0;
+  max-width: none;
+  max-height: 85vh;
+  padding: 0 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  border: 0;
+  border-radius: 16px 16px 0 0;
+  box-shadow: var(--octo-sh-l);
+  overscroll-behavior: contain;
+}
+#octo-wsb-pop[data-mob="1"] .octo-wsb-item { min-height: 48px; padding: 0 16px; border-radius: 0; font-size: 15px; line-height: 20px; }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-item:hover { background: transparent; }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-item:active, #octo-wsb-pop[data-mob="1"] .octo-wsb-item:focus { background: var(--octo-field); }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-find { width: calc(100% - 32px); height: 44px; margin: 12px 16px 6px; }
+/* Sayfa kabi odak alir (dokunusla acilis), cerceve cizilmez; maddelerin odak halkasi aynen. */
+#octo-wsb-pop[data-mob="1"]:focus { outline: none; }
+/* Yapiskan baslik 56 px: h2 + Close (44x44). Kaydirilan icerik altindan gecer (opak zemin). */
+#octo-wsb-pop[data-mob="1"] .octo-wsb-phead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 56px;
+  padding: 0 6px 0 16px;
+  background: var(--octo-surface);
+}
+#octo-wsb-pop[data-mob="1"] .octo-wsb-ptitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--octo-ink);
+  font: 600 16px/22px var(--octo-font);
+}
+#octo-wsb-pop[data-mob="1"] .octo-wsb-pclose {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--octo-r3);
+  background: transparent;
+  color: var(--octo-ink-2);
+  cursor: pointer;
+}
+#octo-wsb-pop[data-mob="1"] .octo-wsb-pclose:active { background: var(--octo-field); }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-pclose:focus-visible { outline-offset: -2px; }
+/* Satirlar: 48 px, 16 px ic dolgu, ikon 18, sayac hapi ve secili isareti sagda. */
+#octo-wsb-pop[data-mob="1"] .octo-wsb-item > svg { width: 18px; height: 18px; }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-item > .octo-wsb-check { width: 16px; height: 16px; margin-left: 0; color: var(--octo-accent); }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-item > .octo-wse-ext { width: 14px; height: 14px; }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-div { margin: 6px 16px; }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-none { padding: 14px 16px; font-size: 14px; line-height: 20px; }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-mhead { padding: 14px 16px 6px; }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-flows { padding: 4px 16px 8px; }
+/* Baskasinin ekrani: etkisiz ilk satir (cubukta cip yok, avatar halkasi). */
+#octo-wsb-pop[data-mob="1"] .octo-wsb-asrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 16px;
+  background: rgba(180, 83, 9, .08);
+  color: var(--octo-warn);
+  font: 600 14px/20px var(--octo-font);
+}
+#octo-wsb-pop[data-mob="1"] .octo-wsb-asrow > svg { flex: 0 0 auto; }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-asrow .octo-wsb-ilab { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Iskelet (Bubble menusu aciliyor ya da surec bari gecikiyor); wsedit Loading satiri ayni olcude. */
+#octo-wsb-pop[data-mob="1"] .octo-wsb-mskel,
+#octo-wsb-pop[data-mob="1"] .octo-wse-mskel { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; color: var(--octo-ink-3t); }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-skbar { flex: 0 0 18px; width: 18px; height: 18px; border-radius: 4px; background: var(--octo-line-2); }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-skline { flex: 0 1 60%; height: 12px; border-radius: 6px; background: var(--octo-line-2); }
+#octo-wsb-pop[data-mob="1"] .octo-wsb-sklab { font-size: 13px; }
+/* Perde: iOS duz alana mousedown gondermez; perde tiki sayfayi kapatir. Cubugun da ustunde. */
+#octo-wsb-sscrim {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1451;
+  background: rgba(15, 23, 42, .28);
+  touch-action: none;
+}
+/* Bildirim mobilde altta, kenarlardan 16 px. */
+#octo-wsb-toast[data-mob="1"] {
+  top: auto;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+  z-index: 1453;
+  max-width: none;
+  transform: none;
+}
+/* Hata bildiriminin Classic menu dugmesi (zoom / menu hatasinin kurtulus yolu) mobilde 44 px dokunma hedefi. */
+#octo-wsb-toast[data-mob="1"] .octo-wsb-tbtn { flex: none; height: 44px; min-width: 44px; }
+#octo-wsb-toast[data-mob="1"] .octo-wsb-ttext { flex: 1 1 auto; min-width: 0; }
+/* Pano: icerik 16 px, alt dolgu guvenli alan dahil; kartta hover donusumu yok. */
+#octo-wsb-board[data-mob="1"] { padding: 0 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+#octo-wsb-board[data-mob="1"] .octo-wsb-card:hover,
+#octo-wsb-board[data-mob="1"] .octo-wsb-card:focus-visible { transform: none; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-card:active { background: var(--octo-field); }
+
+/* Processes Overview telefonda (OCTO_MOBILE_SPEC 6.1): yapiskan 52 px baslik (Processes + New record), tek sutun
+   kart listesi. Kart DOM'u masaustuyle ayni; satir bicimi 28px 1fr auto: sira no, ad (2 satir) ve altinda Bubble
+   sayaci ('<n> records'), sagda ok. Zoom in ipucu gizli (hover yok); Create kartinda kesik cerceve + gorunur Open. */
+#octo-wsb-board[data-mob="1"] .octo-wsb-bhead {
+  flex-wrap: nowrap;
+  gap: 8px;
+  height: 52px;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+#octo-wsb-board[data-mob="1"] .octo-wsb-btw { flex: 1 1 auto; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-btitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 17px/24px var(--octo-font); }
+#octo-wsb-board[data-mob="1"] .octo-wsb-bacts { flex: none; flex-wrap: nowrap; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-bbtn:hover { border-color: var(--octo-line); color: var(--octo-ink); }
+#octo-wsb-board[data-mob="1"] .octo-wsb-bbtn:active { background: var(--octo-field); }
+#octo-wsb-board[data-mob="1"] .octo-wsb-cards { grid-template-columns: 1fr; gap: 8px; padding: 12px 0 0; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 0;
+  align-items: center;
+  height: auto;
+  min-height: 64px;
+  padding: 10px 12px 10px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+#octo-wsb-board[data-mob="1"] .octo-wsb-ctop { display: contents; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-ord { grid-column: 1; grid-row: 1 / span 3; flex: none; width: 28px; height: 28px; line-height: 28px; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-hint { display: none; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-card[data-kind="create"] .octo-wsb-hint { display: inline-block; grid-column: 3; grid-row: 1 / span 3; opacity: 1; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-cname { grid-column: 2; margin-top: 0; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-tipi { grid-column: 2; margin-top: 2px; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-cfoot { grid-column: 2; gap: 4px; margin-top: 2px; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-cfoot:empty { display: none; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-count,
+#octo-wsb-board[data-mob="1"] .octo-wsb-unit { color: var(--octo-ink-3t); font: 400 13px/18px var(--octo-font); letter-spacing: 0; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-cplus { display: none; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-cchev { grid-column: 3; grid-row: 1 / span 3; color: var(--octo-ink-3); }
+#octo-wsb-board[data-mob="1"] .octo-wsb-card[aria-current="true"] .octo-wsb-cchev { color: var(--octo-accent); }
+#octo-wsb-board[data-mob="1"] .octo-wsb-skel { height: 64px; border-radius: 14px; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-state { margin-top: 32px; }
+/* Add process: listenin sonunda kesik cerceveli satir (Editor); Bubble'in Add stage penceresi kabugun ustunde acilir. */
+#octo-wsb-board[data-mob="1"] .octo-wsb-addli { min-width: 0; }
+#octo-wsb-board[data-mob="1"] .octo-wsb-addrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px dashed var(--octo-line);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--octo-accent);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+#octo-wsb-board[data-mob="1"] .octo-wsb-addrow:active { background: var(--octo-field); }
+
+/* Bos durum (OCTO_MOBILE_SPEC 7.6; icerik bos durum diliminde): cubugun altindan sayfanin dibine, saydam zemin. */
+#octo-wsb-empty {
+  position: fixed;
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1440;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: transparent;
+  pointer-events: none;
+}
+html[data-octo-ws-m="1"] #octo-wsb-empty { top: var(--octo-wsm-h, 52px); }
+#octo-wsb-empty *, #octo-wsb-empty *::before, #octo-wsb-empty *::after { box-sizing: border-box; }
+/* Kart (stateBox gorsel dili): yalniz kart tiklanir; en cok 360 px, ikon grid 28, baslik 17/24, birincil dugme 44 px. */
+#octo-wsb-empty .octo-wsb-ecard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  padding: 24px;
+  border: 1px solid var(--octo-line);
+  border-radius: 16px;
+  background: var(--octo-surface);
+  box-shadow: var(--octo-sh-m);
+  text-align: center;
+  pointer-events: auto;
+}
+#octo-wsb-empty .octo-wsb-eico { display: inline-flex; color: var(--octo-ink-3t); }
+#octo-wsb-empty .octo-wsb-etitle { min-height: 24px; margin: 0; color: var(--octo-ink); font: 600 17px/24px var(--octo-font); }
+#octo-wsb-empty .octo-wsb-ebtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--octo-r3);
+  background: var(--octo-accent);
+  color: #fff;
+  font: 600 14px/18px var(--octo-font);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+#octo-wsb-empty .octo-wsb-ebtn:hover, #octo-wsb-empty .octo-wsb-ebtn:active { background: #4f46e5; }
+#octo-wsb-empty .octo-wsb-ebtn:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+
 /* ==========================================================================
    app-wsedit.css  -  OCTO WSEDIT (os9a eki v1). Sahip: CLIENT. OCTO_WSEDIT_SPEC.
    Kurallar YALNIZ kabugun kendi kokleri (#octo-wse-*) ve modulun oznitelikleri (html[data-octo-wse-*])
@@ -48830,6 +49194,23 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-curso
 html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-under-cursor {
   background: #f6f7f9 !important;
 }
+/* os9m (inceleme M1): kurucunun gizlemesi (#sideMenu satir ici opacity 0, 22.10) kutunun ATASININ opakligidir; torun
+   geri alamaz. Secici acikken menu opak; visibility hidden kaldigindan yalniz visible kisi kutusu gorunur. Yalniz mobil
+   varyantta (masaustu birebir; masaustu esi OCTO_MOBILE_SPEC 15 acik isi). */
+html[data-octo-ws="1"][data-octo-ws-m="1"][data-octo-wse-pick="1"] #sideMenu,
+html[data-octo-ws="1"][data-octo-ws-m="1"][data-octo-wse-pick="1"] .baUfaHw { opacity: 1 !important; }
+/* os9m (inceleme M3): telefonda kisi kutusu 16 px yazi (iOS odakta yakinlastirmasin) ve 44 px; yuva ayni yukseklikte
+   (JS yuvanin olcusunden --octo-wse-py / --octo-wse-pw yazar), oneri listesi 8 px altta. */
+html[data-octo-ws="1"][data-octo-ws-m="1"][data-octo-wse-pick="1"] .baUfaIaJ,
+html[data-octo-ws="1"][data-octo-ws-m="1"][data-octo-wse-pick="1"] .baUfaIaJ .twitter-typeahead { height: 44px !important; }
+html[data-octo-ws="1"][data-octo-ws-m="1"][data-octo-wse-pick="1"] .baUfaIaJ input,
+html[data-octo-ws="1"][data-octo-ws-m="1"][data-octo-wse-pick="1"] .baUfaIaJ input.tt-input {
+  height: 44px !important;
+  font-size: 16px !important;
+  line-height: 22px !important;
+}
+html[data-octo-ws="1"][data-octo-ws-m="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-dropdown-menu,
+html[data-octo-ws="1"][data-octo-ws-m="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-menu { top: 52px !important; }
 
 /* ------------------------------------------------ belirtecler */
 #octo-wse-sheet,
@@ -48908,6 +49289,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   border: 0; border-radius: var(--octo-r2); background: transparent; color: var(--octo-accent); font-weight: 600; text-align: left; cursor: pointer;
 }
 #octo-wse-pick .octo-wse-pback:hover { background: var(--octo-accent-soft); }
+/* os9m (OCTO_MOBILE_SPEC 10.2): telefonda secici 375'te sigar (320 px, max-width calc(100vw - 32px)); oneri satirlari
+   zaten 44 px (yukarida), Close da 44 px dokunma hedefi. Yalniz mobil varyantin koku altinda (masaustu aynen). */
+html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose { width: 44px; height: 44px; }
+html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-slot { height: 44px; }
+html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:hover { background: transparent; color: var(--octo-ink-3t); }
+html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: var(--octo-field); }
 
 /* ------------------------------------------------ Menu iskeleti ve yeni sekme isareti (cubugun menusu icinde) */
 #octo-wsb-pop .octo-wse-mskel { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; color: var(--octo-ink-3t); }
@@ -67202,6 +67589,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
    ag cagrisi YOK. Tum uzak metin textContent. Kod yorumlari Turkce, UI metni Ingilizce, em/en dash yok.
 
    Harness dikisleri: window.__octoWsQuery (location.search yerine), window.__OCTO_WS_OFF, octo._wsbar.
+
+   os9m (OCTO_MOBILE_SPEC): 900 px altinda kipin mobil varyanti (S.mob dali; yeni modul degil). Ust kenarda tam
+   genislik kompakt bant (position absolute), rayin hucresinde yer ayirma dugumu (.octo-wsb-mslot), Bubble'in < 450
+   'menu kapali' durumu hata degil (Button N ile yeniden acilir). window.__OCTO_WSM_OFF = true: eski dar ekran
+   davranisi (hicbir sey kurulmaz, pre 'narrow'). >= 900 px davranisi BIREBIR.
    ========================================================================== */
 (function () {
   'use strict';
@@ -67233,6 +67625,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   var A_GUTTER = 'data-octo-ws-gutter';
   var TABLE_ID = 'dynamic-table-wrapper';
   var MIN_W = 900;
+  // os9m mobil varyant (OCTO_MOBILE_SPEC 3.1)
+  var A_MOB = 'data-octo-ws-m';     // html: '1' yalniz mobil varyant kuruluyken
+  var SSCRIM_ID = 'octo-wsb-sscrim'; // alt sayfa perdesi (yalniz mobil)
+  var EMPTY_ID = 'octo-wsb-empty';   // bos durum (her genislik, OCTO_MOBILE_SPEC 7)
+  var PTITLE_ID = 'octo-wsb-ptitle'; // alt sayfa basligi (aria-labelledby)
+  var ETITLE_ID = 'octo-wsb-etitle'; // bos durum basligi (aria-labelledby, aria-live)
 
   // Zamanlar (ms). Harness T_DEFAULT'u okur, hizlandirmak icin T'yi degistirir.
   var T = {
@@ -67240,7 +67638,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     pageStep: 350, toast: 4000, hideDelay: 600, wheelIdle: 220, poll: 100,
     dropGrace: 1500, bootGrace: 4000, variantWait: 600, ours: 1500, reopenEvery: 5000, gfWait: 3000,
     blankConfirm: 5000, blankWait: 8000, rescanAfter: 60000, bootTries: 120,
-    bandEvery: 5000, bandPoll: 1000, tipDelay: 500, tipChain: 600
+    bandEvery: 5000, bandPoll: 1000, tipDelay: 500, tipChain: 600,
+    // os9m (OCTO_MOBILE_SPEC 10.1)
+    emptyWait: 4000, reopenMob: 700, reopenWait: 1500, sheetMs: 200
   };
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
@@ -67276,7 +67676,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     next: bc('bWDdp'),        // Icon RZZ (sonraki sayfa; surec sayisi > 5 iken HEP gorunur, son sayfada da)
     more: bc('bWCKq'),        // Dropdown "More" (InputChanged: WF bWCKw; yalniz deger degisince)
     addStage: bc('bUfHq'),    // + Add stage (Editor)
-    os: bc('bUfFa')           // Group os: margin-left 280 px sabit bosluk
+    os: bc('bUfFa'),          // Group os: margin-left 280 px sabit bosluk
+    // os9m F35: Bubble < 450 hucre ici Dropdown X (telefon surec secicisi; kaynak tum RG listesi, InputChanged WF bVSLg0:
+    // refresh + ayni sayfaya ChangePage). Canli sinifi dogrulanmadi (V2): yoksa yapidan (ddxFind).
+    ddx: bc('bVSLI0')
   };
   // Tablonun acik katmanlari (acikken cubuk etkisiz, pano acilmaz; tablev2 CSS 322-1997).
   var TABLE_LAYERS = '.dt-toolbar-more-menu.is-open, .dt-column-menu.is-open, .dt-filter-panel.is-open, .dt-sort-panel.is-open, ' +
@@ -67299,7 +67702,24 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     wsh: false, appbar: 'top', hdrMode: '', hdrWhy: '', band: { h: 0, right: 0, at: 0, badAt: 0, pend: -1, src: '', aside: 0 }, fit: '', fitW: 0, fitSig: '', fitDropW: 0, fitOk: true, noFit: 0, noFitKey: '', gapAt: 0, resizeDue: false, tileSig: '',
     dockWant: false, dockOn: false, dockNo: false, dockWhy: '', dockPad: '', dock: null, dockApps: null, dockTools: null,
     zl: null, gap: null, zr: null, apps: null, thumb: null, stripObs: null, stripObsRef: null, stripT: null, stripAl: '', slot: null, slotH: 0,
-    tip: null, tipFor: null, tipGone: -1e9
+    tip: null, tipFor: null, tipGone: -1e9,
+    // os9m mobil varyant: kip bayragi (mount yazar), kurulum sayaci, Bubble menusu yeniden acma (kapanis basina),
+    // yer ayirma dugumu ve olcumu, perde, bos durum, Bubble edit kipinde zorunlu Classic, masaustu duzen bellegi
+    mob: false, mounts: 0, mobReopen: 0, mobReopens: 0, mobReopenAt: -1e9, mobClickAt: -1e9,
+    mslot: null, mslotH: 0, mobTop: '', mobH: 0, sscrim: null, empty: null, emptyKind: '', classicEdit: false, layoutDesk: '',
+    // os9m alt sayfalar: klavyeyle acilis, Bubble menusu acma beklemesi (belirtec, bekliyor, acilmadi)
+    menuKb: false, popTok: 0, popWait: false, popFail: false,
+    // os9m bos durum (OCTO_MOBILE_SPEC 7): bekleme kosulu ('none' | 'pick') ve baslangici, karar, neden, cizim imzasi
+    emptyAt: 0, emptyCond: '', emptyDec: '', emptyWhy: '', emptySig: '',
+    // os9m F35: genislik kovasi basina ogrenilen sayfa basi hucre (< 450: n, 450-899: m); Dropdown X vekili adres
+    // degistirdiyse o oturumda kapali (ddxUrl), izlenen adres (ddxU0)
+    pp: { n: 1, m: 5 }, ddxUrl: false, ddxU0: null,
+    // os9m 2.1: 900 gecisinde rayin duzeni (telefon / masaustu) yetismeden bekleme baslangici
+    modeAt: 0,
+    // os9m inceleme: mod kusagi (her 900 gecisi yeniden kurulumunda artar; suren istekler eski kurulumun sonucunu yeni
+    // kuruluma yazmaz, F7); bos durum kosulunun ilk baslangici (bekleme Bubble cizimiyle yeniden baslar, tavan bundan,
+    // F4); Bubble satirlarinin goruldugu sayfa kullanicisi (o sayfada 'none' karari yok; null = gorulmedi)
+    gen: 0, emptyAt0: 0, rowsPu: null
   };
 
   // ------------------------------------------------------------- yardimcilar
@@ -67324,6 +67744,16 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function ssDel(k) { try { W.sessionStorage.removeItem(k); } catch (e) { /* yut */ } }
   function noMo() { try { return octo.noMotion() === true; } catch (e) { return false; } }
   function wide() { var w = W.innerWidth || (D.documentElement && D.documentElement.clientWidth) || 1280; return w >= MIN_W; }
+  // os9m (OCTO_MOBILE_SPEC 2.1): 900 altinda mobil varyant; kill switch eski davranisi (hicbir sey kurulmaz) geri verir.
+  // Esik rayin isPhone()'u ile ayni ifade (ikisi birlikte doner, histerezis yok).
+  function mobOk() { return W.__OCTO_WSM_OFF !== true; }
+  function mob() { return !wide() && mobOk(); }
+  // Rayin duzeni genislige henuz uymuyor mu (kurulu ray telefon duzeninde ama genis, ya da tersi).
+  function railLag() {
+    var M = railM();
+    if (!M || !M.mounted || M.pending) { return false; }
+    return !!M.phone !== !wide();
+  }
   function hoverOk() { try { return !W.matchMedia || W.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { return true; } }
   function fireResize() {
     try { W.dispatchEvent(new Event('resize')); } catch (e) {
@@ -67613,6 +68043,76 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     return out;
   }
+  // os9m 6.3 (F35): secicinin surec secenekleri (More'un suzgeci aynen: devre disi, bos, yer tutucu / BLANK ve 'More'
+  // basligi atlanir). [{ name, index }]
+  function optList(sel) {
+    var out = [];
+    for (var o = 0; sel && o < sel.options.length; o++) {
+      var op = sel.options[o];
+      var ot = clean(op.textContent || op.label);
+      if (op.disabled || !ot || optStub(op) || (o === 0 && (op.value === '' || /^more$/i.test(ot)))) { continue; }
+      out.push({ name: ot, index: o });
+    }
+    return out;
+  }
+  // Dropdown X'i yapidan tanima kumesi: hucre adlari, Bubble'in (gizli olsa da) More secenekleri, os_workspace surec adlari.
+  function ddxKnown(bar, cells) {
+    var known = Object.create(null);
+    for (var c = 0; c < cells.length; c++) { known[cells[c].name] = 1; }
+    var mo = q1('select' + SEL.more, bar) || q1(SEL.more + ' select', bar);
+    var mos = optList(mo);
+    for (var j = 0; j < mos.length; j++) { known[mos[j].name] = 1; }
+    var rs = railStages();
+    for (var r = 0; r < rs.length; r++) { var rn = clean(rs[r].name); if (rn) { known[rn] = 1; } }
+    return known;
+  }
+  // os9m 6.3 (inceleme F2): < 450'de hucre adi (Text O) bos olabilir (V2 'empty'): ad hucre ici Dropdown X'in secili
+  // seceneginden (Bubble degeri hucrenin kendi sureci). Secici sinifli ya da secenekleri surec listesine benzer (yer
+  // tutucu / BLANK, More ya da os_workspace adlari; knownFn tembel kume); yer tutucu secili ya da secici yoksa ''.
+  function cellDdxName(c, knownFn) {
+    var all = null;
+    try { all = c.querySelectorAll('select'); } catch (e) { all = null; }
+    for (var i = 0; all && i < all.length; i++) {
+      var m = all[i];
+      if (!shown(m, c)) { continue; }
+      var hit = matchSel(m, SEL.ddx);
+      if (!hit) {
+        var kn = knownFn();
+        for (var o = 0; o < m.options.length && !hit; o++) {
+          var op = m.options[o], ot = clean(op.textContent || op.label);
+          if (optStub(op) || (ot && kn[ot] === 1)) { hit = true; }
+        }
+      }
+      if (!hit) { continue; }
+      var si = m.selectedIndex, sel = si >= 0 ? m.options[si] : null;
+      var st = sel ? clean(sel.textContent || sel.label) : '';
+      if (!sel || sel.disabled || !st || optStub(sel) || (si === 0 && (sel.value === '' || /^more$/i.test(st)))) { return ''; }
+      return st;
+    }
+    return '';
+  }
+  // Dropdown X: barda hucre icindeki gorunur <select>. Sinif once (.baVaSaLaI0); yoksa yapidan: secenekleri surec
+  // listesine benzeyen ilk secici (yer tutucu / BLANK secenegi, hucre adiyla ya da onekiyle, Bubble'in -gizli olsa da-
+  // More listesiyle ya da taze os_workspace surec adlariyla ortusen metin). Belirsizse null (tahmin yok). moreFind
+  // dokunulmaz: hucre ici seciciyi bilerek disarida birakir.
+  function ddxFind(bar, cells) {
+    var all = null;
+    try { all = bar.querySelectorAll('select'); } catch (e) { all = null; }
+    var hit = null, known = null;
+    for (var i = 0; all && i < all.length; i++) {
+      var m = all[i];
+      if (!inCells(m, bar, cells) || !shown(m, bar)) { continue; }
+      if (matchSel(m, SEL.ddx)) { return m; }
+      if (hit) { continue; }
+      if (!known) { known = ddxKnown(bar, cells); }
+      for (var o = 0; o < m.options.length && !hit; o++) {
+        var op = m.options[o], ot = clean(op.textContent || op.label);
+        if (optStub(op) || (ot && known[ot] === 1)) { hit = m; }
+        for (var k = 0; k < cells.length && !hit && ot; k++) { if (preOf(cells[k].name, ot)) { hit = m; } }
+      }
+    }
+    return hit;
+  }
 
   function snapshot() {
     var side = sideRoot();
@@ -67620,6 +68120,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var s = {
       side: !!side, sideShown: !!side && shown(side, null), bar: false, sheets: [], sheet: -1, lists: [], list: -1, listsHidden: true,
       cells: [], cell: -1, more: null, moreOpts: [], moreSel: -1, prev: null, next: null,
+      // os9m F35: gorunur hucre sayisi; Dropdown X (yalniz mobil), secenekleri, secili indeksi; moreX: surec sirasi
+      // More yerine Dropdown X seceneklerinden; bare: adi Dropdown X'ten gelen (Text O bos, sayacsiz) hucre sayisi
+      seen: 0, mstage: null, mstageOpts: [], mstageSel: -1, moreX: false, bare: 0,
       how: { more: 'none', prev: 'none', next: 'none' },   // bulma yolu (diag): class | structure | none
       can: { addTable: null, addList: null, addStage: null, templates: null, gear: null, person: null },
       flows: null, company: '', person: ''
@@ -67686,16 +68189,26 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     if (bar && shown(bar, null)) {
       s.bar = true;
+      var mobNow = S.mounted ? S.mob : mob();
+      var bareKn = null;
+      var bareKnown = function () { return bareKn || (bareKn = ddxKnown(bar, [])); };
       var cells = bar.querySelectorAll(SEL.cell);
       for (var k = 0; k < cells.length; k++) {
         var c = cells[k];
         if (!shown(c, bar)) { continue; }
+        // os9m F35: sayfa basi hucre ogrenimi gorunur hucreyi sayar (adi bos olan dahil; < 450'de Text O gizli olabilir).
+        s.seen++;
         // Bos hucre (sabit 1x5 RG'nin veri tasimayan hucresi) atlanir; sayaci sirketin tum kayitlarini sayardi.
         var cn = textOf(c.querySelector(SEL.cellName));
+        // os9m 6.3 (inceleme F2): mobilde Text O bossa ad hucre ici Dropdown X'in secili seceneginden (sayac yok: sayac
+        // yalniz adli Text O'lu hucreden, bilinmeyen cizilmez). Masaustu aynen.
+        var bare = false;
+        if (!cn && mobNow) { cn = cellDdxName(c, bareKnown); bare = !!cn; }
         if (!cn) { continue; }
         var cc = c.querySelector(SEL.cellCount);
         var csel = picked(cc);
-        s.cells.push({ name: cn, node: c, count: cc ? numOf(cc) : null, selected: csel });
+        s.cells.push({ name: cn, node: c, count: (cc && !bare) ? numOf(cc) : null, selected: csel });
+        if (bare) { s.bare++; }
         if (csel && s.cell < 0) { s.cell = s.cells.length - 1; }
       }
       // More: barin kendi secicisi; hucre icindeki telefon secicisi (Dropdown X) DEGIL. Sinif yoksa yapidan (partsOf).
@@ -67716,6 +68229,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
           s.moreOpts.push({ name: ot, index: o });
         }
       }
+      // os9m 6.3 (F35): Bubble < 450 hucre ici Dropdown X yalniz mobil varyantta okunur (masaustu aynen). More yoksa
+      // surec sirasi ve adlari onun seceneklerinden (WSBAR 3.2 kurallari aynen); sayac yalniz adli gorunur hucreden.
+      if (mobNow) {
+        var mx = ddxFind(bar, s.cells);
+        if (mx) {
+          s.mstage = mx;
+          s.mstageSel = mx.selectedIndex;
+          s.mstageOpts = optList(mx);
+          if (!mo && s.mstageOpts.length) { s.moreOpts = s.mstageOpts.slice(); s.moreX = true; }
+        }
+      }
       var as = bar.querySelector(SEL.addStage);
       if (as && shown(as, bar)) { s.can.addStage = as; }
     }
@@ -67727,7 +68251,25 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var d = railData();
     return d ? clean(d.sheet.name) : '';
   }
-  function sheetKey(s) { s = s || S.snap; var n = sheetName(s); return n ? (n + '#' + (s && s.sheet >= 0 ? s.sheet : -1)) : ''; }
+  // os9m (inceleme F1): telefon kapali menude Bubble satirlari dusurmus olabilir (V1 'drop'): tablo dizini bilinmiyor
+  // ("yok" degil, OCTO_MOBILE_SPEC 2.2). Ad ayni kaldikca son bilinen anahtar surer: bellek ve tablo degisimi
+  // karsilastirmasi kopmaz, satirlar donunce sahte tablo degisimi (pano kullanicinin seciminin ustune) olmaz.
+  function sheetUnknown(s) { return !!(s && S.mounted && S.mob && s.side && !s.sideShown && !s.sheets.length); }
+  function sheetKey(s) {
+    s = s || S.snap;
+    var n = sheetName(s);
+    if (!n) { return ''; }
+    if (sheetUnknown(s)) { var i = S.sheetSig.lastIndexOf('#'); if (i >= 0 && S.sheetSig.slice(0, i) === n) { return S.sheetSig; } }
+    return n + '#' + (s && s.sheet >= 0 ? s.sheet : -1);
+  }
+  // Mobilde dizini bilinmeyen anahtar (ad#-1, satirlar dusukken okunan) ayni adli anahtarla ayni tablodur. Masaustu aynen.
+  function sameSheet(a, b) {
+    if (a === b) { return true; }
+    if (!S.mob || !a || !b) { return false; }
+    var ia = a.lastIndexOf('#'), ib = b.lastIndexOf('#');
+    if (ia < 0 || ib < 0 || a.slice(0, ia) !== b.slice(0, ib)) { return false; }
+    return a.slice(ia) === '#-1' || b.slice(ib) === '#-1';
+  }
   // os_workspace cevabi yeni tabloya gec gelir: yalniz acik tabloya aitse kullanilir (aksi halde eski tablonun surecleri).
   function railFresh(s) { var d = railData(); return !!d && clean(d.sheet.name) === sheetName(s || S.snap); }
 
@@ -67738,6 +68280,15 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!s || !s.bar) { return 0; }
     if (!s.prev) { return 1; }
     return S.page > 1 ? S.page : 0;
+  }
+  // os9m 6.3 (F35): Bubble barinin sayfa basi hucresi. Masaustunde 5 (birebir). Mobilde genislik kovasi basina
+  // (< 450 / 450-899) gozlenen en cok gorunur hucre; ilk deger < 450 icin 1 (tek sutun RG), digeri icin 5.
+  function ppKey() { return (W.innerWidth || 0) < 450 ? 'n' : 'm'; }
+  function perPage() { return (S.mounted && S.mob) ? (S.pp[ppKey()] || 1) : 5; }
+  function ppLearn(s) {
+    if (!S.mounted || !S.mob || !s || !s.bar || !(s.seen > 0)) { return; }
+    var k = ppKey();
+    if (s.seen > (S.pp[k] || 0)) { S.pp[k] = s.seen; trace('pp:' + k + s.seen); }
   }
   // Ogrenilen ad / sayac bellegi, Bubble'in canli More listesi ya da sayfa kullanicisi (View as) degisince silinir:
   // eski adlar canli listenin onune gecmesin.
@@ -67799,7 +68350,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         }
         // Ayni adli secenekler (inceleme 21.10, sira araligi): bilinen sayfada konumdaki; sayfa bilinmiyorsa hizalama
         // yok (ilkini tahmin etmez; sayac bilinmez, vekil More ile).
-        if (two) { var at = p ? (p - 1) * 5 + i : -1; hit = (at >= 0 && at < total && !used[at] && (names[at] || s.moreOpts[at].name) === c.name) ? at : -1; }
+        if (two) { var at = p ? (p - 1) * perPage() + i : -1; hit = (at >= 0 && at < total && !used[at] && (names[at] || s.moreOpts[at].name) === c.name) ? at : -1; }
         out.push(hit);
         if (hit >= 0) { used[hit] = 1; matched++; }
       }
@@ -67809,14 +68360,14 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         var pn = [], fo = [], tk = [];
         for (var f = 0; f < total; f++) { fo.push(clean(s.moreOpts[f].name)); tk.push(!!used[f]); }
         for (var h = 0; h < s.cells.length; h++) { pn.push(out[h] >= 0 ? '' : s.cells[h].name); }
-        var pk = prefixPick(pn, fo, tk, function (x) { return p ? (p - 1) * 5 + x : -1; });
+        var pk = prefixPick(pn, fo, tk, function (x) { return p ? (p - 1) * perPage() + x : -1; });
         for (var g = 0; g < pk.length; g++) { if (out[g] < 0 && pk[g] >= 0) { out[g] = pk[g]; used[pk[g]] = 1; } }
       }
     }
     // Secenek metni hucre adindan farkliysa (Bubble gosterim alani): bilinen sayfada konuma gore.
     if (!matched && (p || !total)) {
       out = [];
-      for (var j = 0; j < s.cells.length; j++) { out.push(p ? (p - 1) * 5 + j : j); }
+      for (var j = 0; j < s.cells.length; j++) { out.push(p ? (p - 1) * perPage() + j : j); }
     }
     for (var m = 0; m < out.length; m++) {
       var ix = out[m];
@@ -68000,7 +68551,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!n) { return false; }
     try { n.click(); S.ours = now(); trace('px:' + (tag || 'click')); return true; } catch (e) { return false; }
   }
-  function pxSelect(sel, index) {
+  function pxSelect(sel, index, tag) {
     if (!sel) { return false; }
     try {
       sel.selectedIndex = index;
@@ -68008,12 +68559,59 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       try { ev = new Event('change', { bubbles: true }); } catch (e1) { ev = D.createEvent('Event'); ev.initEvent('change', true, false); }
       sel.dispatchEvent(ev);
       S.ours = now();
-      trace('px:more');
+      trace('px:' + (tag || 'more'));
       return true;
     } catch (e) { return false; }
   }
-  // Tarama ve sayfa gezinmesi Bubble'in sayfa okunu tiklar (SA degismez).
-  function pageStep(dir) {
+  // os9m 6.3 (F35): Dropdown X vekilinin durumu: 'off' (W.__OCTO_WSM_DDX === false), 'url' (vekilden sonra adres
+  // degisti: o oturumda kapali), 'other' (baskasinin sayfasi: ham dokumdeki ikinci InputChanged ChangePage
+  // (Current User) riski), 'on'.
+  function ddxState() {
+    if (W.__OCTO_WSM_DDX === false) { return 'off'; }
+    if (S.ddxUrl) { return 'url'; }
+    return viewingAs() ? 'other' : 'on';
+  }
+  // Hedef surecin Dropdown X secenegi (kapidan bagimsiz): secenekler surec sirasiysa (More yok) sira indeksiyle; degilse
+  // ada gore (tek eslesme); yoksa null.
+  function ddxOpt(s, st) {
+    if (!s || !s.mstage) { return null; }
+    if (s.moreX) { return s.moreOpts[st.idx] || null; }
+    var op = null;
+    for (var i = 0; i < s.mstageOpts.length; i++) {
+      var o = s.mstageOpts[i];
+      if (o.name !== st.bname && o.name !== st.name) { continue; }
+      if (op) { return null; }
+      op = o;
+    }
+    return op;
+  }
+  // Hedef surecin Dropdown X secenek indeksi; secili deger degismeyecekse ya da kapali / bulunamazsa -1.
+  function ddxIndex(s, st) {
+    if (!s || !s.mstage || ddxState() !== 'on') { return -1; }
+    var op = ddxOpt(s, st);
+    if (!op || s.mstage.selectedIndex === op.index) { return -1; }
+    return op.index;
+  }
+  // Adres imzasi (harness dikisleri: W.__octoUrlPath, W.__octoWsQuery).
+  function urlSig() {
+    var p = '';
+    try { p = (typeof W.__octoUrlPath === 'string') ? W.__octoUrlPath : String((W.location && W.location.pathname) || ''); } catch (e) { p = ''; }
+    return p + wsQuery();
+  }
+  // Vekilden sonra adres degisirse (ham dokumdeki bWCLC ChangePage riski, V2b) Dropdown X o oturumda kapanir.
+  function ddxWatch(u0) {
+    S.ddxU0 = u0;
+    later('ddxUrl', function () { ddxCheck(true); }, T.zoomWait);
+  }
+  function ddxCheck(fin) {
+    if (S.ddxU0 == null) { return; }
+    if (urlSig() !== S.ddxU0) { S.ddxUrl = true; S.ddxU0 = null; cancel('ddxUrl'); trace('ddx:url'); return; }
+    if (fin) { S.ddxU0 = null; }
+  }
+  // Tarama ve sayfa gezinmesi Bubble'in sayfa okunu tiklar (SA degismez). live (istege bagli): yanlis donerse tik yok
+  // (os9m inceleme F7: 900 gecisinde zoom'un sayfa gezmesi durur).
+  function pageStep(dir, live) {
+    if (live && !live()) { return Promise.resolve(false); }
     var s = snapshot();
     var n = dir > 0 ? s.next : s.prev;
     if (!n) { return Promise.resolve(false); }
@@ -68030,33 +68628,53 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       return moved;
     });
   }
-  function toFirstPage(max) {
+  function toFirstPage(max, live) {
+    if (live && !live()) { return Promise.resolve(false); }
     var s = snapshot();
     if (!s.prev || max <= 0) { if (!s.prev) { S.page = 1; } return Promise.resolve(true); }
-    return pageStep(-1).then(function (moved) { return moved ? toFirstPage(max - 1) : true; });
+    return pageStep(-1, live).then(function (moved) { return moved ? toFirstPage(max - 1, live) : true; });
   }
-  function pagesOf(s) { return Math.max(1, Math.ceil(Math.max(s.moreOpts.length, s.cells.length) / 5)); }
-  // Hedef surec: gorunur hucre; degilse More (yalniz deger degisecekse); degilse sayfayi gezip hucre.
+  function pagesOf(s) { return Math.max(1, Math.ceil(Math.max(s.moreOpts.length, s.cells.length) / perPage())); }
+  // Hedef surec: gorunur hucre; degilse More (yalniz deger degisecekse); os9m mobilde Dropdown X; degilse sayfayi
+  // gezip hucre.
   function pxStage(st) {
     abortScan();
     var s = snapshot();
     S.snap = s;
+    // os9m (inceleme F7): istek surerken 900 gecisi kipi yeniden kurarsa (S.gen) sayfa gezmesi durur (yeni kurulumun
+    // Bubble'ina eski istegin tiki yok). Masaustunde kusak degismez (davranis aynen).
+    var g0 = S.gen;
+    var live = function () { return S.gen === g0; };
     var al = alignCells(s);
     for (var i = 0; i < al.length; i++) { if (al[i] === st.idx) { return Promise.resolve(pxClick(s.cells[i].node, 'cell') ? 'cell' : ''); } }
     if (s.more && s.moreOpts[st.idx] && s.moreSel !== s.moreOpts[st.idx].index) {
       return Promise.resolve(pxSelect(s.more, s.moreOpts[st.idx].index) ? 'more' : '');
     }
+    // os9m 6.3 (F35): Dropdown X Bubble'in telefondaki KENDI surec secicisi (vekil ilkesi); yalniz kendi sayfasinda.
+    var dx = S.mob ? ddxIndex(s, st) : -1;
+    if (dx >= 0) {
+      var u0 = urlSig();
+      if (pxSelect(s.mstage, dx, 'ddx')) { ddxWatch(u0); return Promise.resolve('ddx'); }
+    }
+    // os9m (inceleme F2): hedef Dropdown X'in secili degeri (hucrenin kendi sureci; kapidan bagimsiz, hucre vekili):
+    // secicinin kendi gorunur hucresi tiklanir (sayfa gezmeye dusmez).
+    if (S.mob && s.mstage) {
+      var dop = ddxOpt(s, st);
+      var dcell = (dop && s.mstage.selectedIndex === dop.index) ? upTo(s.mstage, function (x) { return matchSel(x, SEL.cell); }, barRoot()) : null;
+      if (dcell && shown(dcell, null) && pxClick(dcell, 'cell')) { return Promise.resolve('cell'); }
+    }
     var pages = pagesOf(s);
-    var want = Math.floor(st.idx / 5) + 1;
-    return toFirstPage(pages + 1).then(function () {
+    var want = Math.floor(st.idx / perPage()) + 1;
+    return toFirstPage(pages + 1, live).then(function () {
       var steps = want - 1;
       function fwd() {
         if (steps <= 0) { return Promise.resolve(true); }
         steps--;
-        return pageStep(1).then(function (moved) { return moved ? fwd() : false; });
+        return pageStep(1, live).then(function (moved) { return moved ? fwd() : false; });
       }
       return fwd();
     }).then(function () {
+      if (!live()) { trace('px:stale'); return ''; }
       var s2 = snapshot();
       var a2 = alignCells(s2);
       for (var j = 0; j < a2.length; j++) { if (a2[j] === st.idx || (a2[j] < 0 && s2.cells[j].name === (st.bname || st.name))) { return pxClick(s2.cells[j].node, 'cell') ? 'page' : ''; } }
@@ -68094,6 +68712,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function root() { return D.documentElement; }
   function chromeOn() {
     root().setAttribute(A_ON, '1');
+    // os9m: mobil varyantin koku (CSS: rayin paneli ayirmanin altina, Classic gorunurlugu, bos durum).
+    if (S.mob) { root().setAttribute(A_MOB, '1'); }
     // Rayin geometrik sol menu gizleyicisi kipte susar; biraktigi oznitelik silinir (display:none 'gorunur' kuralini bozardi).
     sweepSide();
     if (gutterApply()) { fireResize(); }
@@ -68127,19 +68747,38 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
   function chromeOff() {
     var r = root();
-    var had = r.hasAttribute(A_ON) || r.hasAttribute(A_CLASSIC);
+    var had = r.hasAttribute(A_ON) || r.hasAttribute(A_CLASSIC) || r.hasAttribute(A_MOB);
     r.removeAttribute(A_ON);
     r.removeAttribute(A_CLASSIC);
+    r.removeAttribute(A_MOB);
     var all = null;
     try { all = D.querySelectorAll('[' + A_GUTTER + ']'); } catch (e) { all = null; }
     for (var i = 0; all && i < all.length; i++) { try { all[i].removeAttribute(A_GUTTER); } catch (e1) { /* yut */ } had = true; }
+    // os9m: yer ayirma dugumu ve CSS degiskenleri (tablo eski yuksekligine doner; resize cagiranin).
+    if (mslotSet(0)) { had = true; }
+    mobVar('--octo-wsm-h', '');
+    S.mobTop = '';
+    S.mobH = 0;
     S.classic = false;
     return had;
+  }
+  // os9m: html satir ici CSS degiskeni yalniz degisince; bos deger siler, style bos kalirsa oznitelik de gider.
+  function mobVar(name, v) {
+    var r = root();
+    try {
+      if (r.style.getPropertyValue(name) === v) { return false; }
+      if (v) { r.style.setProperty(name, v); } else { r.style.removeProperty(name); if (!r.getAttribute('style')) { r.removeAttribute('style'); } }
+      return true;
+    } catch (e) { return false; }
   }
   function classic(on) {
     on = !!on;
     if (!S.mounted || S.chromeErr) { return false; }
     if (on === S.classic) { return true; }
+    // os9m 2.4: Bubble edit kipi telefonda zorunlu Classic; kapanis yalniz edit kipi bitince (Bubble'in Done'u).
+    if (!on && S.classicEdit) { return false; }
+    // os9m 2.5: telefonda Bubble menusu kapaliysa (F11) once Button N; Classic CSS'i acilan menuyu gosterir.
+    if (on && S.mob) { sideOpenMob(); }
     S.classic = on;
     closeMenu(false);
     if (on) { root().setAttribute(A_CLASSIC, '1'); abortScan(); } else { root().removeAttribute(A_CLASSIC); }
@@ -68161,6 +68800,53 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.reopenTries++;
     trace('reopen');
     try { n.click(); return true; } catch (e) { return false; }
+  }
+  // os9m 2.2 (F11): "telefon kapali" = #sideMenu var ama Bubble gizlemis (display zinciri) ve Button N gosteriliyor.
+  // Bubble < 450'de tablo / liste seciminde menuyu kendisi kapatir (acik = false): hata degil.
+  function phoneClosed(side) {
+    side = side || sideRoot();
+    if (!side || shown(side, null)) { return false; }
+    var n = q1(SEL.reopen);
+    return !!n && shown(n, null);
+  }
+  // Tikte otomatik yeniden acma: Button N'ye vekil tik (Bubble'in is akisi, sunucu cagrisi yok). Kisma T.reopenMob,
+  // kapanis basina en cok 3 deneme (S.mobReopen; menu gorunur olunca sifirlanir). Menu acilinca kabugun CSS'i onu
+  // gorunmez ve dokunulmaz tutar (okunur).
+  function reopenMob() {
+    var t = now();
+    if (S.mobReopen >= 3 || t - S.mobReopenAt < T.reopenMob || t - S.mobClickAt < 300) { return false; }
+    var n = q1(SEL.reopen);
+    if (!n || !shown(n, null)) { return false; }
+    S.mobReopenAt = t;
+    S.mobClickAt = t;
+    S.mobReopen++;
+    S.mobReopens++;
+    trace('reopen:m');
+    try { n.click(); } catch (e) { return false; }
+    // Bubble'in yeniden cizimi gozlemciye dusmeyebilir: kisa sure sonra yeniden bakilir (kararlar tikte).
+    later('mobReopen', tick, T.reopenMob + 20);
+    return true;
+  }
+  // Istek uzerine acma (alt sayfa, Classic, View as, hesap okumasi oncesi): gorunurse hemen true; degilse Button N
+  // (kismasiz; 300 ms icinde ikinci tik yok) ve T.reopenWait boyunca bekleme. Acilmazsa false.
+  function sideOpenMob() {
+    var side = sideRoot();
+    if (!side) { return Promise.resolve(false); }
+    if (shown(side, null)) { return Promise.resolve(true); }
+    var n = q1(SEL.reopen);
+    if (n && shown(n, null) && now() - S.mobClickAt >= 300) {
+      S.mobClickAt = now();
+      trace('reopen:ask');
+      try { n.click(); } catch (e) { /* yut */ }
+    }
+    return waitFor(function () { var sd = sideRoot(); return !!sd && shown(sd, null); }, T.reopenWait);
+  }
+  // Misafir (mobil): menu kapaliyken Name kutusu menunun icinde gorunur mu (menunun kendi display'i sayilmaz).
+  function guestM() {
+    var side = sideRoot();
+    var g = side ? q1(SEL.guest, side) : null;
+    if (!g) { return false; }
+    return shown(side, null) ? shown(g, null) : shown(g, side);
   }
 
   // ------------------------------------------------------------------ cubuk
@@ -68366,6 +69052,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var s = S.snap || snapshot();
     var kind = viewKind();
     var noProc = !!S.noProc[sheetKey(s)];
+    // os9m: mobil varyant kendi bandini cizer (tek ust cubuk mobilde kapali, hdrSync why 'mob').
+    if (S.mob) { paintMob(s, kind, noProc, focusKey); return; }
     b.setAttribute('data-pinned', (S.hdrMode || S.pinned || !hoverOk()) ? '1' : '0');
     b.setAttribute('data-peek', S.peek ? '1' : '0');
     b.setAttribute('data-classic', S.classic ? '1' : '0');
@@ -68475,11 +69163,185 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     b.style.left = S.classic ? 'calc(50% + 140px)' : '50%';
     b.style.marginLeft = (-Math.round(w / 2)) + 'px';
   }
+
+  // ======================================================= mobil varyant (os9m)
+  // OCTO_MOBILE_SPEC 3-4. Cubuk ust kenarda tam genislik bant (position absolute: sayfayla kayar, tablonun yapiskan
+  // basligini ortmez). Classic'te sag ustte hap (yalniz Done; Bubble edit kipinde Done yok, cubuk gizli).
+  // Bant: [Workspace secici (esnek)] [tek gorunum / surec denetimi (<= %46)] [Menu avatari]. Igne, peek, Edit ve
+  // uygulama kapsulu yok; Viewing as cipi yok (avatar halkasi + Menu sayfasinin ilk satiri).
+  function paintMob(s, kind, noProc, focusKey) {
+    var b = S.bar;
+    b.setAttribute('data-mob', '1');
+    // Auto-hide donusumu mobilde hic devreye girmez (fare olan dar pencere dahil).
+    b.setAttribute('data-pinned', '1');
+    b.setAttribute('data-peek', '0');
+    b.setAttribute('data-classic', S.classic ? '1' : '0');
+    if (railSheet()) { b.setAttribute('data-rsheet', '1'); } else { b.removeAttribute('data-rsheet'); }
+    // placeBar mobilde cagrilmaz: masaustu ortalamasinin satir ici degerleri temizlenir.
+    b.style.left = '';
+    b.style.marginLeft = '';
+    b.hidden = !!(S.classic && S.classicEdit);
+    clear(b);
+    if (S.classic) {
+      if (!S.classicEdit) { b.appendChild(doneBtn()); }
+      mobPlace();
+      restoreFocus(b, focusKey);
+      return;
+    }
+    var wb = wsButton(s);
+    wb.setAttribute('aria-label', 'Workspace, ' + (sheetName(s) || 'Choose workspace'));
+    b.appendChild(wb);
+    if (S.chromeErr) {
+      var ce = el('span', 'octo-wsb-chip is-warn', 'Menu hidden in Bubble');
+      ce.setAttribute('role', 'status');
+      b.appendChild(ce);
+      mobPlace();
+      return;
+    }
+    // Tablo secilmediyse gorunum denetimi yok (tek eylem Workspace secicisi; masaustu noTable kurali).
+    if (!noTable(s)) { b.appendChild(navButton(s, kind)); }
+    b.appendChild(menuBtn(s, true));
+    mobPlace();
+    restoreFocus(b, focusKey);
+  }
+  // OCTO_MOBILE_SPEC 4: tek gorunum / surec denetimi; etiket viewKind()'a gore, sayi yalniz Bubble'dan (bilinmiyorsa
+  // yok). Dokunus Views alt sayfasini acar (gorunumler + surecler).
+  function navButton(s, kind) {
+    var icon = 'grid', label = 'Processes', n = null;
+    if (kind === 'stage') {
+      var cur = curStage(s);
+      if (cur) {
+        label = cur.name || label;
+        var st = stageModel(s);
+        for (var i = 0; i < st.length; i++) { if (st[i].idx === cur.idx) { n = st[i].count; break; } }
+      }
+    } else if (kind === 'list') {
+      icon = 'list';
+      var L = (s && s.list >= 0) ? s.lists[s.list] : null;
+      label = L ? L.name : 'Views';
+      n = L ? L.count : null;
+    } else if (kind === 'all') {
+      icon = 'table';
+      label = 'All records';
+    } else if (kind === 'panel') {
+      icon = 'apps';
+      label = 'Views';
+    }
+    var nb = btn('octo-wsb-nav', 'nav-menu');
+    nb.setAttribute('aria-haspopup', 'menu');
+    nb.setAttribute('aria-expanded', S.menu === 'nav' ? 'true' : 'false');
+    nb.setAttribute('aria-label', 'Views, ' + label);
+    nb.setAttribute('data-key', 'nav');
+    nb.setAttribute('data-kind', kind);
+    nb.appendChild(octo.icon(icon, 16));
+    nb.appendChild(el('span', 'octo-wsb-nlab', label));
+    if (n != null) { nb.appendChild(el('span', 'octo-wsb-n', String(n))); }
+    nb.appendChild(octo.icon('chevron-down', 14, { className: 'octo-wsb-chev' }));
+    return nb;
+  }
+  // Rayin akistaki ilk dugumu (salt okuma; bandNode mantigi): Varyant A satir; B ayirma dugumu, serit ya da sarmalayici.
+  function mobTopNode() {
+    var M = railM();
+    if (!M || !M.mounted || M.pending) { return null; }
+    if (M.variant === 'a' && M.row && isConn(M.row)) { return M.row; }
+    if (M.wrapper && isConn(M.wrapper)) {
+      var p = M.wrapper.parentNode, tb = stripEl();
+      if (S.mslot && S.mslot.parentNode === p) { return S.mslot; }
+      if (tb && tb.parentNode === p) { return tb; }
+      return M.wrapper;
+    }
+    return null;
+  }
+  // Yer ayirma dugumunun yeri: Varyant A hucrenin ILK cocugu; B rayin seridinin hemen onu (serit yoksa sarmalayicinin).
+  // Satira, hucreye, tabloya stil yazilmaz (yeni dugum; os9c data-wsh-slot emsali). {host, before} ya da null.
+  function mslotHost() {
+    var M = railM();
+    if (!M || !M.mounted || M.pending || !M.wrapper || !isConn(M.wrapper)) { return null; }
+    var w = M.wrapper;
+    if (M.variant === 'a') {
+      if (!M.cell || !isConn(M.cell) || w.parentNode !== M.cell) { return null; }
+      var f = M.cell.firstChild;
+      if (f === S.mslot) { f = S.mslot.nextSibling; }
+      return { host: M.cell, before: f };
+    }
+    var p = w.parentNode, tb = stripEl();
+    if (!p) { return null; }
+    return { host: p, before: (tb && tb.parentNode === p) ? tb : w };
+  }
+  // Ayirma yuksekligi X (px): >= 1 dugum yerinde ve --octo-wsm-slot yazili; 0 dugum ve degisken yok. DOM ya da
+  // yukseklik degistiyse true (cagiran TEK resize atar).
+  function mslotSet(x) {
+    x = Math.max(0, Math.round(x || 0));
+    var ch = false;
+    var at = x >= 1 ? mslotHost() : null;
+    if (!at) {
+      if (S.mslot && S.mslot.parentNode) { rm(S.mslot); ch = true; }
+      S.mslotH = 0;
+      mobVar('--octo-wsm-slot', '');
+      return ch;
+    }
+    if (!S.mslot) {
+      S.mslot = el('div', 'octo-wsb-mslot');
+      S.mslot.setAttribute('aria-hidden', 'true');
+      S.mslot.setAttribute('data-wsm-slot', '1');
+    }
+    var hs = x + 'px';
+    if (S.mslot.style.height !== hs) { S.mslot.style.height = hs; ch = true; }
+    if (S.mslot.parentNode !== at.host || (at.before !== S.mslot && S.mslot.nextSibling !== at.before)) { at.host.insertBefore(S.mslot, at.before); ch = true; }
+    S.mslotH = x;
+    mobVar('--octo-wsm-slot', hs);
+    return ch;
+  }
+  // Olcum ve yerlesim (OCTO_MOBILE_SPEC 3.4): railTop < 24 (Bubble basligi yok) 'edge': cubuk top 0, X = cubugun alti -
+  // railTop; railTop >= 24 'band': cubuk railTop'ta (Bubble bandi ustte gorunur), X = cubugun yuksekligi; ray yoksa
+  // 'edge', dugum yok. Degisiklik varsa true (pano yeniden konumlanir; TEK resize cagiranin).
+  function mobSync() {
+    var b = S.bar;
+    if (!b || !S.mob || !S.mounted) { return false; }
+    var n = mobTopNode();
+    var r = n ? docTop(n) : null;
+    var rt = r ? r.top : -1;
+    var mode = (!r || rt < SLOT_TOP) ? 'edge' : 'band';
+    if (b.getAttribute('data-mtop') !== mode) { b.setAttribute('data-mtop', mode); }
+    // Classic hapi fixed (CSS); ayirma yerinde kalir (tablo kipirdamaz), olcum Classic kapaninca surer.
+    if (S.classic) { if (b.style.top) { b.style.top = ''; } return false; }
+    var bt = mode === 'band' ? rt : 0;
+    var tv = bt + 'px';
+    if (b.style.top !== tv) { b.style.top = tv; }
+    var bh = Math.round(b.offsetHeight || 52);
+    var x = !r ? 0 : (mode === 'band' ? bh : Math.max(0, bt + bh - rt));
+    S.mobTop = mode;
+    S.mobH = bt + bh;
+    mobVar('--octo-wsm-h', S.mobH + 'px');
+    var ch = mslotSet(x);
+    if (ch && S.board) { S.board.style.top = boardTop() + 'px'; }
+    return ch;
+  }
+  // Boyamanin sonunda yerlesim: degisiklik boyamanin TEK resize'ina baglanir (flush atar).
+  function mobPlace() { if (mobSync()) { S.resizeDue = true; } }
+  // Gozlemciden: ray yeniden kurulduysa (yeni hucre) dugum olcumsuz ayni karede yerine; tablo yeniden olcer.
+  function mslotFast() {
+    if (!S.mob || !S.mounted || S.mslotH < 1 || railGap()) { return; }
+    if (mslotSet(S.mslotH)) { S.resizeDue = true; S.sig = ''; paintSoon(); }
+  }
+  // Saniyede bir (yalniz mobil, yalniz olcum): Bubble basligi sonradan gelir / gider, ray alt sayfasi acilir / kapanir.
+  function mobPoll() {
+    if (!S.armed || !S.mounted || !S.mob) { return; }
+    // 900 gecisi olaysiz geldiyse (resize / media olayi yok): tik kipi degistirir. Ray beklenirken kip mobil kalirsa
+    // (gecis geri dondu, inceleme F4) yoklama surer.
+    if (!mob()) { tick(); if (S.armed && S.mounted && S.mob) { later('mobPoll', mobPoll, T.bandPoll); } return; }
+    try {
+      if (mobSync()) { S.resizeDue = true; S.sig = ''; paintSoon(); }
+      if (S.bar && S.bar.hasAttribute('data-rsheet') !== railSheet()) { S.sig = ''; paintSoon(); }
+    } catch (e) { logErr(e); }
+    later('mobPoll', mobPoll, T.bandPoll);
+  }
   // ======================================================= tek ust cubuk (os9c)
   // OCTO_WSH_SPEC. ?ws=1 kipinde (varsayilan; ?wsh=0 vazgecer) cubuk Bubble'in baslik bandinin yerinde sayfa basligi olur:
   // ust kipte rayin seridi cubugun uygulama kapsulune benimsenir (rail.tabsHost), alt kipte serit hucrenin dibinde.
   // Bubble'da hicbir sey gizlenmez: opak cubuk bandi orter, zil (bandin sagindaki Bubble denetimleri) acikta kalir.
-  function hdrWant() { return S.wsh && W.__OCTO_WSH_OFF !== true && S.mounted && !S.chromeErr && !!S.bar; }
+  // os9m: ?wsh= / ?appbar= mobilde okunur ve saklanir (masaustune donuste gecerli) ama uygulanmaz.
+  function hdrWant() { return S.wsh && W.__OCTO_WSH_OFF !== true && S.mounted && !S.chromeErr && !!S.bar && !S.mob; }
   // Ray yeniden kuruluyor (300 ms bosluk) ya da wsedit tutuyor: kip, bant ve ev sahibi oldugu gibi kalir (titreme yok).
   function railGap() {
     var M = railM();
@@ -68491,7 +69353,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   // Kip karari: istek + gecerli bant + zil yeri + sigma. Degisirse uygulanir; TEK resize boyamanin sonunda (SPEC 10).
   function hdrSync() {
     var want = hdrWant(), h = 0, why = '', src = 'band';
-    if (!want) { why = !S.wsh ? 'flag' : (W.__OCTO_WSH_OFF === true ? 'off' : 'chrome'); }
+    if (!want) { why = (S.mob && S.mounted) ? 'mob' : (!S.wsh ? 'flag' : (W.__OCTO_WSH_OFF === true ? 'off' : 'chrome')); }
     else if (S.hdrMode && wseHold()) { return; }
     else if (S.hdrMode && railGap() && gapHold()) { return; }
     else {
@@ -68784,7 +69646,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     return [sheetName(s), viewingAs() ? 1 : 0, S.classic ? 1 : 0, s ? s.lists.length : 0, editCan() ? 1 : 0].join('|');
   }
   function bandPoll() {
-    if (!S.armed || !S.mounted || !S.wsh) { return; }
+    if (!S.armed || !S.mounted || !S.wsh || S.mob) { return; }
     try { hdrTick(); } catch (e) { logErr(e); }
     later('bandPoll', bandPoll, T.bandPoll);
   }
@@ -69312,10 +70174,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (!(wse && typeof wse.editFrom === 'function' && wse.editFrom(et))) { toast('Could not open', true); }
       return;
     }
-    if (a === 'ws-menu') { toggleMenu('ws', t); return; }
+    // kb: yalniz mobil alt sayfa odagi icin (OCTO_MOBILE_SPEC 5.5); masaustu menuleri onu okumaz.
+    if (a === 'ws-menu') { toggleMenu('ws', t, kb); return; }
     if (a === 'views-menu') { toggleMenu('views', t); return; }
     if (a === 'stage-menu') { toggleMenu('stages', t); return; }
-    if (a === 'menu') { toggleMenu('menu', t); return; }
+    if (a === 'menu') { toggleMenu('menu', t, kb); return; }
+    // os9m: mobil gorunum denetimi -> Views alt sayfasi (gorunumler + surecler).
+    if (a === 'nav-menu') { toggleMenu('nav', t, kb); return; }
     if (a === 'pin') { setPinned(!S.pinned); return; }
     if (a === 'add-list') { proxyAdd('addList'); return; }
     if (a === 'classic-off') { classic(false); return; }
@@ -69397,39 +70262,78 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
 
   // ------------------------------------------------------------------ menu
-  function toggleMenu(kind, anchor) {
+  function toggleMenu(kind, anchor, kb) {
     if (S.menu === kind) { closeMenu(true); return; }
-    openMenu(kind, anchor);
+    openMenu(kind, anchor, kb);
   }
-  function openMenu(kind, anchor) {
+  function openMenu(kind, anchor, kb) {
     if (!S.mounted || !S.pop || S.chromeErr) { return false; }
+    // os9m: mobilde surec ve gorunum menuleri tek Views alt sayfasidir (openBoard / zoomOut yedekleri dahil);
+    // masaustunde 'nav' turu yok.
+    if (S.mob && (kind === 'stages' || kind === 'views')) { kind = 'nav'; }
+    if (kind === 'nav' && !S.mob) { return false; }
     closeMenu(false);
     S.menu = kind;
     S.findQ = '';
     S.blankAt = 0;
-    var actOf = { ws: 'ws-menu', stages: 'stage-menu', views: 'views-menu', menu: 'menu' };
+    var actOf = { ws: 'ws-menu', stages: 'stage-menu', views: 'views-menu', menu: 'menu', nav: 'nav-menu' };
     S.menuAnchor = anchor || q1('[data-act="' + actOf[kind] + '"]', S.bar) || q1('[data-view="board"]', S.bar) || null;
     S.pop.setAttribute('data-kind', kind);
     S.pop.hidden = false;
+    // os9m: alt sayfa perdesi (iOS duz alana mousedown gondermez; perde tiki kapatir). Hareket: sayfa 200 ms alttan,
+    // perde 120 ms opaklik; az hareket tercihinde anlik. Donusum yalniz alt sayfada (tablonun atasi degil), bitince silinir.
+    if (S.sscrim) {
+      S.sscrim.hidden = false;
+      anim(S.pop, [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], T.sheetMs).then(cancelAnim);
+      anim(S.sscrim, [{ opacity: 0 }, { opacity: 1 }], T.fadeMs).then(cancelAnim);
+    }
     // Menu Bubble'i acilista taze okur (kredi, roller, listeler gozlemciye dusmeyen degisikliklerle).
     S.snap = snapshot();
+    // os9m 5.5: klavyeyle acilis (detail 0 ya da ArrowDown) odagi ilk maddeye, dokunus sayfa kabina tasir.
+    S.menuKb = !!kb;
     if (kind === 'ws') { loadAllSheets(); }
     paintMenu();
     paintBar();
     peek(true);
+    if (S.mob) { popFocus(); }
     try { D.addEventListener('mousedown', onDocDown, true); } catch (e) { /* yut */ }
     trace('menu:' + kind);
     return true;
+  }
+  // os9m 5.5: klavye ilk maddeye (madde yoksa, iskelet beklerken, sayfa kabina; yukleme bitince ilk maddeye);
+  // dokunus sayfa kabina (tabindex -1, cercevesiz): ekran okuyucu basligi okur, klavye acilmaz.
+  function popFocus() {
+    var p = S.pop;
+    if (!p || p.hidden) { return; }
+    if (S.menuKb && p.querySelector('.octo-wsb-find, .octo-wsb-item')) { focusFirstItem(); return; }
+    try { p.focus({ preventScroll: true }); } catch (e) { try { p.focus(); } catch (e2) { /* yut */ } }
   }
   function closeMenu(focusBack) {
     if (!S.menu) { return; }
     var a = S.menuAnchor;
     S.menu = '';
     S.menuAnchor = null;
-    if (S.pop) { S.pop.hidden = true; clear(S.pop); S.pop.removeAttribute('data-kind'); }
+    // os9m: suren Bubble menusu acma beklemesi bu sayfaya artik yazmaz.
+    S.popTok++;
+    S.popWait = false;
+    S.popFail = false;
+    if (S.pop) {
+      S.pop.hidden = true; clear(S.pop); S.pop.removeAttribute('data-kind');
+      // os9m (inceleme M5): suzme sirasinda sabitlenen alt sayfa yuksekligi.
+      if (S.pop.style.minHeight) { S.pop.style.minHeight = ''; }
+    }
+    if (S.sscrim) { S.sscrim.hidden = true; }
     try { D.removeEventListener('mousedown', onDocDown, true); } catch (e) { /* yut */ }
     if (S.bar) { paintBar(); }
-    if (focusBack && a && S.bar) { restoreFocus(S.bar, a.getAttribute && a.getAttribute('data-key')); }
+    if (focusBack && a) {
+      var ak = a.getAttribute && a.getAttribute('data-key');
+      // os9m (inceleme M9, OCTO_MOBILE_SPEC 5.5): bos durum kartindan acilan sayfada odak kartin dugmesine doner (kart
+      // cubugun disinda); kart gizlendiyse cubugun Workspace dugmesine.
+      if (S.empty && ak && ak.indexOf('e-') === 0) {
+        restoreFocus(S.empty, ak);
+        if (!S.empty.contains(D.activeElement) && S.bar) { restoreFocus(S.bar, 'ws'); }
+      } else if (S.bar) { restoreFocus(S.bar, ak); }
+    }
   }
   function onDocDown(e) {
     var t = e && e.target;
@@ -69437,6 +70341,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var wse = wsEdit();
     if (wse && wse.own(t)) { return; }
     if (S.pop && S.pop.contains(t)) { return; }
+    // os9m: alt sayfa perdesi kendi tikiyle kapatir (closeMenu(true), odak tetikleyiciye). mousedown'da kapanirsa perde
+    // gizlenir ve ayni dokunusun mouseup / click'i alttaki tabloya ya da Bubble'a duserdi.
+    if (S.sscrim && S.sscrim.contains(t)) { return; }
     // os9c: kapsuldeki kutucuk yeni bir panel acar; menu ustunde kalmaz.
     if (S.apps && S.apps.contains(t)) { closeMenu(false); return; }
     if (S.bar && S.bar.contains(t)) { return; }
@@ -69476,7 +70383,18 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var list = el('div', 'octo-wsb-list');
     list.setAttribute('role', 'menu');
     var as = viewingAs();
-    if (kind === 'ws') {
+    // os9m 5.1: mobil alt sayfa basligi (yapiskan) + Close. Bubble menusu telefonda kapaliysa (F11) satirlar cizilmez
+    // (gizli dugume vekil tik yok): acilana dek iskelet, acilmazsa hata satiri (S.popFail).
+    var wait = false;
+    if (S.mob) {
+      popHead(p, kind === 'ws' ? 'Workspaces' : (kind === 'nav' ? 'Views' : 'Menu'));
+      wait = s.side && !s.sideShown;
+      if (wait) { popSide(); }
+    }
+    if (kind === 'ws' && wait) {
+      list.setAttribute('aria-label', 'Workspaces');
+      popWaitRows(list, 'Workspaces unavailable');
+    } else if (kind === 'ws') {
       p.setAttribute('role', 'dialog');
       p.setAttribute('aria-label', 'Workspaces');
       list.setAttribute('aria-label', 'Workspaces');
@@ -69488,7 +70406,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         f.setAttribute('aria-label', 'Find workspace');
         f.setAttribute('data-key', 'find');
         f.value = S.findQ;
-        f.addEventListener('input', function () { S.findQ = f.value; paintMenu(); });
+        f.addEventListener('input', function () {
+          // os9m (inceleme M5): alta yasli alt sayfa suzdukce kisalip kutuyu klavyenin altina itmesin: ilk suzmede yukseklik
+          // sabitlenir (closeMenu siler). Masaustu aynen.
+          if (S.mob && !p.style.minHeight) { p.style.minHeight = Math.round(p.getBoundingClientRect().height) + 'px'; }
+          S.findQ = f.value;
+          paintMenu();
+        });
         p.appendChild(f);
       }
       var lq = S.findQ.toLowerCase();
@@ -69503,10 +70427,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         if (sh.selected) { it.appendChild(octo.icon('check', 16, { className: 'octo-wsb-check' })); }
         list.appendChild(it);
       }
-      if (!any) { list.appendChild(el('div', 'octo-wsb-none', 'No match')); }
+      // os9m 5.2: mobilde bos listede arama yokken No match yok (yalniz eylemler); masaustu aynen.
+      if (!any && (!S.mob || lq)) { list.appendChild(el('div', 'octo-wsb-none', 'No match')); }
       var know = typeof W.gaiaKnowBusiness === 'function';
       var adds = s.can.addTable && !as;
-      if (adds || s.can.templates) { list.appendChild(el('div', 'octo-wsb-div')); }
+      if ((adds || s.can.templates) && (!S.mob || list.firstChild)) { list.appendChild(el('div', 'octo-wsb-div')); }
       if (adds && know) { list.appendChild(item('New workspace', 'know', 'plus', { 'data-key': 'know' })); }
       if (adds) {
         var arm = S.blankAt && (now() - S.blankAt) < T.blankConfirm;
@@ -69544,9 +70469,50 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       }
       if (!st.length) { list.appendChild(el('div', 'octo-wsb-none', 'No processes yet')); }
       if (s.can.addStage) { list.appendChild(el('div', 'octo-wsb-div')); list.appendChild(item('Add process', 'add-stage', 'plus', { 'data-key': 'addstage' })); }
+    } else if (kind === 'nav') {
+      // os9m 5.3 (yalniz mobil): gorunumler (Processes, All records, listeler, New list) + Go to process bolumu.
+      // Liste satirlari Bubble menusunden (yalniz menu gorunurken); surecler Bubble barindan. Sayilar yalniz Bubble'dan.
+      list.setAttribute('aria-label', 'Views');
+      var nk = viewKind();
+      var np = !!S.noProc[sheetKey(s)];
+      if (!np && boardOk()) {
+        var nb = item('Processes', 'nav-board', 'grid', { 'data-key': 'n:board' });
+        if (nk === 'board') { navCur(nb); }
+        list.appendChild(nb);
+      }
+      var na = item('All records', 'nav-all', 'table', { 'data-key': 'n:all' });
+      if (nk === 'all') { navCur(na); }
+      list.appendChild(na);
+      if (wait) {
+        popWaitRows(list, 'Lists unavailable');
+      } else {
+        for (var q = 0; q < s.lists.length; q++) {
+          var NL = s.lists[q];
+          var nli = item(NL.name, 'list', 'list', { 'data-idx': q, 'data-name': NL.name, 'data-key': 'vl:' + q });
+          if (NL.count != null) { nli.appendChild(el('span', 'octo-wsb-n', String(NL.count))); }
+          if (nk === 'list' && s.list === q) { navCur(nli); }
+          list.appendChild(nli);
+        }
+        if (s.can.addList) { list.appendChild(item('New list', 'add-list', 'plus', { 'data-key': 'n:addlist' })); }
+      }
+      // Surec bari olmayan rol (Creator, Searcher, SearcherCreator): Processes satiri ve surec bolumu yok.
+      if (!np) { navStages(list, s); }
+    } else if (kind === 'menu' && wait) {
+      // os9m 5.4: menu acilana dek iskelet; acilmazsa okunabilen bilgi + Account menu + Classic menu.
+      list.setAttribute('aria-label', 'Menu');
+      if (as) { p.appendChild(asRow(s)); }
+      if (S.popFail) {
+        if (s.company) { p.appendChild(el('div', 'octo-wsb-mhead', s.company)); }
+        if (s.can.gear) { list.appendChild(item('Account menu', 'account', 'people', { 'data-key': 'acct' })); }
+        list.appendChild(classicItem());
+      } else {
+        list.appendChild(skelRow());
+      }
     } else if (kind === 'menu') {
       p.setAttribute('role', 'presentation');
       list.setAttribute('aria-label', 'Menu');
+      // os9m 5.4: baskasinin ekraninda ilk satir etkisiz 'Viewing as <ad>' (cubukta cip yok).
+      if (S.mob && as) { p.appendChild(asRow(s)); }
       if (s.company) { p.appendChild(el('div', 'octo-wsb-mhead', s.company)); }
       if (s.flows && s.flows.num && s.flows.total) {
         var fl = el('div', 'octo-wsb-flows');
@@ -69558,7 +70524,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (s.can.templates) { list.appendChild(item('Browse AI templates', 'templates', 'apps', { 'data-key': 'tpl' })); }
       // WSEDIT H2: View as, Edit workspace ve hesap maddeleri yerli (app-wsedit.js); modul yoksa os9a maddeleri.
       var wse = wsEdit();
-      if (!(wse && wse.menuItems(list, s, item, 'main', { noEdit: !!S.hdrMode && !S.classic && editCan() }))) {
+      // os9m 5.4: Edit workspace mobilde hic cizilmez (Edit sayfasi telefonda acilmaz).
+      if (!(wse && wse.menuItems(list, s, item, 'main', { noEdit: S.mob || (!!S.hdrMode && !S.classic && editCan()) }))) {
         if (s.can.person) { list.appendChild(item('View as', 'view-as', 'people', { 'data-key': 'viewas' })); }
         if (s.can.gear) { list.appendChild(item('Account menu', 'account', 'people', { 'data-key': 'acct' })); }
       }
@@ -69569,12 +70536,147 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (wse) { wse.menuItems(list, s, item, 'tail'); }
     }
     p.appendChild(list);
+    // os9m 5.1: mobil alt sayfa kipli diyalogdur (baslikla adlandirilir); ic liste role=menu.
+    if (S.mob) {
+      p.setAttribute('role', 'dialog');
+      p.setAttribute('aria-modal', 'true');
+      p.setAttribute('aria-labelledby', PTITLE_ID);
+      p.removeAttribute('aria-label');
+    }
     placeMenu();
-    restoreFocus(p, fk);
+    // os9m (inceleme M5): mobilde yeniden kurulan arama kutusu preventScroll'suz odaklanir (tarayici kutuyu klavyenin
+    // ustunde tutabilsin); digerleri aynen.
+    var ff = (S.mob && fk === 'find') ? q1('.octo-wsb-find', p) : null;
+    if (ff) { try { ff.focus(); } catch (eF) { /* yut */ } } else { restoreFocus(p, fk); }
+  }
+  // ---------------------------------------------------------- mobil alt sayfa
+  // OCTO_MOBILE_SPEC 5.1: yapiskan baslik (h2) + Close (44x44).
+  function popHead(p, title) {
+    var h = el('div', 'octo-wsb-phead');
+    var t = el('h2', 'octo-wsb-ptitle', title);
+    t.id = PTITLE_ID;
+    h.appendChild(t);
+    var c = btn('octo-wsb-pclose', 'pop-close', 'Close');
+    c.setAttribute('data-key', 'pop-close');
+    c.appendChild(octo.icon('close', 18));
+    h.appendChild(c);
+    p.appendChild(h);
+  }
+  // Bubble menusu telefonda kapali (F11): sayfa acikken bir kez acilir (sideOpenMob, en cok T.reopenWait); bitince
+  // sayfa yeniden cizilir. Acildi ama hala gorunmuyorsa da 'acilmadi' sayilir (Bubble her seferinde kapatirsa dongu yok).
+  function popSide() {
+    if (S.popWait || S.popFail) { return; }
+    S.popWait = true;
+    var tok = S.popTok;
+    sideOpenMob().then(function (ok) {
+      if (tok !== S.popTok || !S.menu || !S.pop) { return; }
+      S.popWait = false;
+      S.snap = snapshot();
+      S.popFail = !(ok && S.snap.sideShown);
+      if (!S.popFail && S.menu === 'ws') { loadAllSheets(); }
+      paintMenu();
+      // Klavyeyle acilis: iskelet sirasinda odak sayfa kabindaydi; ilk madde artik var.
+      if (S.menuKb && D.activeElement === S.pop) { focusFirstItem(); }
+    });
+  }
+  function skelRow() {
+    var sk = el('div', 'octo-wsb-mskel');
+    sk.setAttribute('role', 'status');
+    sk.appendChild(el('span', 'octo-wsb-skbar'));
+    sk.appendChild(el('span', 'octo-wsb-sklab', 'Loading'));
+    return sk;
+  }
+  // Bekleme satiri: iskelet; acilmadiysa etkisiz hata satiri + Classic menu (OCTO_MOBILE_SPEC 8).
+  function popWaitRows(list, failText) {
+    if (!S.popFail) { list.appendChild(skelRow()); return; }
+    list.appendChild(el('div', 'octo-wsb-none', failText));
+    list.appendChild(classicItem());
+  }
+  function classicItem() {
+    var cl = item('Classic menu', 'classic', 'sidebar', { 'data-key': 'classic' });
+    cl.setAttribute('role', 'menuitemcheckbox');
+    cl.setAttribute('aria-checked', S.classic ? 'true' : 'false');
+    return cl;
+  }
+  function asRow(s) {
+    var r = el('div', 'octo-wsb-asrow');
+    r.appendChild(octo.icon('people', 16));
+    r.appendChild(el('span', 'octo-wsb-ilab', s.person ? ('Viewing as ' + s.person) : 'Viewing as someone'));
+    return r;
+  }
+  // Secili gorunum / surec: aria-current (ya da radyoda aria-checked) + sagda check isareti.
+  function navCur(n, radio) {
+    if (radio) { n.setAttribute('aria-checked', 'true'); } else { n.setAttribute('aria-current', 'page'); }
+    n.appendChild(octo.icon('check', 16, { className: 'octo-wsb-check' }));
+  }
+  // Views sayfasinin Go to process bolumu (masaustu surec menusunun maddeleri): bar gecikirse T.barWait boyunca 3
+  // iskelet satir, sonra 'Processes unavailable'; sureci olmayan tabloda 'No processes yet'; Create oge aynen.
+  function navStages(list, s) {
+    list.appendChild(el('div', 'octo-wsb-mhead', 'Go to process'));
+    if (!s.bar) {
+      if (!S.noBarSince) { S.noBarSince = now(); }
+      var left = T.barWait - (now() - S.noBarSince);
+      if (left > 0) {
+        later('navWait', function () { if (S.menu === 'nav') { S.snap = snapshot(); paintMenu(); } }, left + 20);
+        var sk = el('div', 'octo-wsb-mskels');
+        sk.setAttribute('role', 'status');
+        sk.setAttribute('aria-busy', 'true');
+        sk.setAttribute('aria-label', 'Loading');
+        for (var j = 0; j < 3; j++) {
+          var r = el('div', 'octo-wsb-mskel');
+          r.appendChild(el('span', 'octo-wsb-skbar'));
+          r.appendChild(el('span', 'octo-wsb-skline'));
+          sk.appendChild(r);
+        }
+        list.appendChild(sk);
+      } else {
+        list.appendChild(el('div', 'octo-wsb-none', 'Processes unavailable'));
+      }
+      return;
+    }
+    var st = stageModel(s);
+    if (!st.length) { list.appendChild(el('div', 'octo-wsb-none', 'No processes yet')); }
+    for (var k = 0; k < st.length; k++) {
+      var x = st[k];
+      var si = item(x.name, 'stage', '', { 'data-idx': k, 'data-name': x.name, 'data-key': 'st:' + k });
+      si.setAttribute('role', 'menuitemradio');
+      si.setAttribute('aria-checked', 'false');
+      si.insertBefore(el('span', 'octo-wsb-ord', String(x.ord)), si.firstChild);
+      if (x.count != null) { si.appendChild(el('span', 'octo-wsb-n', String(x.count))); }
+      if (x.current) { navCur(si, true); }
+      list.appendChild(si);
+    }
+    if (s.can.addStage) { list.appendChild(item('Add process', 'add-stage', 'plus', { 'data-key': 'addstage' })); }
+  }
+  // Bubble menusundeki dugume vekil tik oncesi (telefon kapali menude gizli dugume tik yok): gorunurse hemen; degilse
+  // Button N ile acilir, acilmazsa 'Could not open' + Classic menu. Masaustunde hemen.
+  // os9m (inceleme F1): 'drop' kipinde satirlar menu gorundukten sonra cizilebilir: ready (istege bagli) dogru olana dek
+  // (en cok T.reopenWait) beklenir, sonra vekil (hedef yine yoksa vekilin kendi 'Could not open'u). Istek surerken 900
+  // gecisi kipi yeniden kurarsa (S.gen) sessiz.
+  function mobSide(fn, ready) {
+    var side = sideRoot();
+    if (!S.mob || !side) { return Promise.resolve(fn()); }
+    var g0 = S.gen;
+    var go = function () {
+      if (!ready || ready()) { return fn(); }
+      return waitFor(ready, T.reopenWait).then(function () { return S.gen === g0 ? fn() : false; });
+    };
+    if (shown(side, null)) { return Promise.resolve(go()); }
+    return sideOpenMob().then(function (ok) {
+      if (S.gen !== g0) { trace('px:stale'); return false; }
+      if (!ok) { toast('Could not open', true); return false; }
+      return go();
+    });
+  }
+  function rowIn(rows, name) {
+    for (var i = 0; rows && i < rows.length; i++) { if (rows[i].name === name) { return true; } }
+    return false;
   }
   function placeMenu() {
     var p = S.pop, a = S.menuAnchor;
     if (!p || p.hidden) { return; }
+    // os9m: alt sayfa CSS'le alta yasli (satir ici top / left yok).
+    if (S.mob) { p.style.top = ''; p.style.left = ''; return; }
     var br = S.bar ? S.bar.getBoundingClientRect() : { bottom: 52, left: 0 };
     var vw = D.documentElement.clientWidth || W.innerWidth || 1280;
     p.style.top = Math.round(br.bottom + 6) + 'px';
@@ -69607,6 +70709,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function onPopKey(e) {
     var k = e && e.key;
     if (k === 'Escape' || k === 'Esc') { e.preventDefault(); e.stopPropagation(); closeMenu(true); return; }
+    // os9m 5.5: kipli alt sayfada Tab / Shift+Tab sayfa icinde doner (Close, arama, maddeler).
+    if (k === 'Tab' && S.mob) { popTrap(e); return; }
     if (k !== 'ArrowDown' && k !== 'ArrowUp' && k !== 'Home' && k !== 'End') { if (k === 'Enter' || k === ' ') { e.stopPropagation(); } return; }
     var items = [];
     var all = S.pop.querySelectorAll('.octo-wsb-find, .octo-wsb-item');
@@ -69618,7 +70722,20 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var to = k === 'Home' ? 0 : (k === 'End' ? items.length - 1 : (at + (k === 'ArrowDown' ? 1 : -1) + items.length) % items.length);
     try { items[to].focus(); } catch (e2) { /* yut */ }
   }
+  function popTrap(e) {
+    var f = Array.prototype.filter.call(S.pop.querySelectorAll('button, input'), function (x) {
+      return !x.disabled && !x.hidden && x.getClientRects().length > 0;
+    });
+    e.preventDefault();
+    e.stopPropagation();
+    if (!f.length) { return; }
+    var at = f.indexOf(D.activeElement);
+    var to = e.shiftKey ? (at <= 0 ? f.length - 1 : at - 1) : ((at < 0 || at >= f.length - 1) ? 0 : at + 1);
+    try { f[to].focus(); } catch (x) { /* yut */ }
+  }
   function onPopClick(e) {
+    // os9m 5.1: alt sayfanin Close dugmesi (madde degil, once bakilir); masaustunde yok.
+    if (upTo(e.target, function (x) { return !!x.getAttribute && x.getAttribute('data-act') === 'pop-close'; }, S.pop)) { closeMenu(true); return; }
     var t = upTo(e.target, function (x) { return hasCls(x, 'octo-wsb-item'); }, S.pop);
     if (!t) { return; }
     var a = t.getAttribute('data-act');
@@ -69627,24 +70744,42 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var kb = e.detail === 0;
     // WSEDIT H3: modulun kendi eylemleri (wse-*); ele alindiysa menu kapanir.
     var wse = wsEdit();
+    // os9m: Bubble menusundeki dugumlere giden modul eylemleri telefon kapali menude once menuyu acar.
+    if (wse && S.mob && /^wse-(viewas|item)$/.test(a || '') && !shown(sideRoot(), null)) {
+      closeMenu(false);
+      mobSide(function () { return wse.act(a, t); });
+      return;
+    }
     if (wse && wse.act(a, t)) { closeMenu(false); return; }
     if (a === 'add-table') {
       // Bubble'in '+ Add Table'i onaysiz hemen tablo yazar: iki adim.
       if (!S.blankAt || (now() - S.blankAt) >= T.blankConfirm) { S.blankAt = now(); paintMenu(); restoreFocus(S.pop, 'addtable'); return; }
       S.blankAt = 0;
       closeMenu(false);
-      blankWorkspace();
+      mobSide(blankWorkspace);
       return;
     }
-    if (a === 'sheet') { closeMenu(true); openSheet(name, idx); return; }
-    if (a === 'list') { closeMenu(true); ensureTableTab(); openView('list', name, idx); return; }
+    // os9m: mobSide masaustunde hemen calistirir (davranis aynen); telefonda gizli Bubble dugumune tik yok.
+    if (a === 'sheet') { closeMenu(true); mobSide(function () { return openSheet(name, idx); }, function () { return rowIn(snapshot().sheets, name); }); return; }
+    if (a === 'list') { closeMenu(true); ensureTableTab(); mobSide(function () { return openView('list', name, idx); }, function () { return rowIn(snapshot().lists, name); }); return; }
     if (a === 'stage') { closeMenu(true); ensureTableTab(); zoomIn(idx, { kb: kb }); return; }
     if (a === 'add-stage') { closeMenu(false); proxyAdd('addStage'); return; }
     if (a === 'know') { closeMenu(false); know(); return; }
-    if (a === 'templates') { closeMenu(false); templates(); return; }
-    if (a === 'account') { closeMenu(false); account(); return; }
-    if (a === 'view-as') { closeMenu(false); viewAs(); return; }
+    if (a === 'templates') { closeMenu(false); mobSide(templates); return; }
+    if (a === 'account') { closeMenu(false); mobSide(account); return; }
+    if (a === 'view-as') { closeMenu(false); mobSide(viewAs); return; }
     if (a === 'classic') { closeMenu(false); classic(!S.classic); return; }
+    // os9m 5.3 Views (yalniz mobil): her secim once Table sekmesine doner.
+    if (a === 'nav-board') { closeMenu(true); ensureTableTab(); openBoard(kb); return; }
+    if (a === 'nav-all') {
+      closeMenu(true);
+      ensureTableTab();
+      // Zaten tum kayitlarda (pano ustte): vekil tik yok, yalniz pano kapanir; aksi halde tablo satiri Bubble menusunde.
+      var c0 = ctx();
+      if (c0.key && !c0.list_id && !c0.stage_id) { openView('all'); } else { mobSide(function () { return openView('all'); }, function () { return snapshot().sheet >= 0; }); }
+      return;
+    }
+    if (a === 'add-list') { closeMenu(false); mobSide(function () { return proxyAdd('addList'); }, function () { return !!snapshot().can.addList; }); return; }
   }
 
   // ---------------------------------------------------------------- eylemler
@@ -69676,8 +70811,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var n0 = s.sheets.length;
     var names0 = {};
     for (var i = 0; i < s.sheets.length; i++) { names0[s.sheets[i].name + '#' + i] = 1; }
+    var g0 = S.gen;
     pxClick(s.can.addTable, 'add:table');
     return waitFor(function () { return snapshot().sheets.length > n0; }, T.blankWait).then(function (ok) {
+      // os9m (inceleme F7): istek surerken 900 gecisi kipi yeniden kurdu: yanlis bildirim ve yeni Bubble tiki yok.
+      if (S.gen !== g0) { trace('px:stale'); return false; }
       if (!ok) { toast('Could not open', true); return false; }
       var s2 = snapshot();
       var pick = s2.sheets.length - 1;
@@ -69744,9 +70882,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (sh.selected) { return openBoard(false); }
     abortScan();
     var k0 = sheetKey(s);
+    var g0 = S.gen;
     // Gorunum basarida (tablo degisimi dali / showBoard) 'board' olur; basarisizlikta eski gorunum kalir.
     if (!pxClick(sh.node, 'sheet')) { toast('Could not open', true); return Promise.resolve(false); }
-    return waitFor(function () { var k = sheetKey(S.snap); return !!k && k !== k0; }, T.zoomWait).then(function (ok) {
+    var moved = function () { var k = sheetKey(S.snap); return !!k && k !== k0; };
+    return waitFor(moved, T.zoomWait).then(function (ok) {
+      if (S.gen !== g0) { return staleDone(true, moved, function () { return showBoard(false); }); }
       if (!ok) { toast('Could not open', true); return false; }
       say(sheetName() + ' opened');
       return showBoard(false).then(function () { return true; });
@@ -69769,11 +70910,23 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (!node) { toast('Could not open', true); return Promise.resolve(false); }
     abortScan();
     var k0 = c.key;
+    var g0 = S.gen;
     if (!pxClick(node, kind)) { toast('Could not open', true); return Promise.resolve(false); }
-    return waitFor(function () { return ctx().key !== k0; }, T.zoomWait).then(function (ok) {
+    var moved = function () { return ctx().key !== k0; };
+    return waitFor(moved, T.zoomWait).then(function (ok) {
+      if (S.gen !== g0) { return staleDone(true, moved, function () { return hideBoard(false); }); }
       if (!ok) { toast('Could not open', true); return false; }
       return hideBoard(true).then(function () { say((kind === 'all' ? 'All records' : name) + ' opened'); return true; });
     });
+  }
+  // os9m (inceleme F7): istek surerken 900 gecisi kipi yeniden kurduysa (S.gen) eski kurulumun bekleyicisi dusurulmustur:
+  // yanlis 'Could not open' ve yeni Bubble tiki yok. Vekil Bubble'a ulastiysa (reached) sonuc yeni kurulumda Bubble
+  // baglami gelince sessizce uygulanir (en cok T.zoomWait; yine kusak degisirse ya da zoom basladiysa hicbir sey).
+  function staleDone(reached, test, fn) {
+    trace('px:stale');
+    if (!reached || !S.mounted) { return Promise.resolve(false); }
+    var g1 = S.gen;
+    return waitFor(test, T.zoomWait).then(function (ok) { return (ok && S.mounted && S.gen === g1 && !S.zoom) ? fn() : false; });
   }
 
   // ------------------------------------------------------------------ pano
@@ -69855,6 +71008,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var b = S.board;
     if (!b) { return; }
     b.style.top = boardTop() + 'px';
+    // os9m: pano mod degisiminde sifirdan kurulur (unmount detachBoard); oznitelik yalniz mobilde.
+    if (S.mob && b.getAttribute('data-mob') !== '1') { b.setAttribute('data-mob', '1'); }
     if (b.getAttribute('data-layout') !== S.layout) { b.setAttribute('data-layout', S.layout); }
     if (b.hidden || S.zoom) { return; }
     var s = S.snap || snapshot();
@@ -69864,7 +71019,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var head = el('header', 'octo-wsb-bhead');
     var tw = el('div', 'octo-wsb-btw');
     tw.appendChild(el('h2', 'octo-wsb-btitle', 'Processes'));
-    tw.appendChild(layoutSwitch());
+    // os9m 6.1: telefonda duzen secici yok (Board yalniz masaustu).
+    if (!S.mob) { tw.appendChild(layoutSwitch()); }
     if (S.layout === 'board') { cardsNote(tw); }
     head.appendChild(tw);
     var acts = el('div', 'octo-wsb-bacts');
@@ -69872,8 +71028,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     ab.setAttribute('data-key', 'b:all');
     ab.appendChild(octo.icon('table', 16));
     ab.appendChild(el('span', '', 'All records'));
-    // os9c: tek ust cubukta All records cubukta (pano basliginda ikinci kopya yok).
-    if (!S.hdrMode) { acts.appendChild(ab); }
+    // os9c: tek ust cubukta All records cubukta (pano basliginda ikinci kopya yok). os9m: telefonda Views sayfasinda.
+    if (!S.hdrMode && !S.mob) { acts.appendChild(ab); }
     var canNew = (!!(W.dynamicTable && typeof W.dynamicTable.create === 'function') || typeof W.bubble_fn_create === 'function') && !viewingAs();
     if (canNew) {
       var nr = btn('octo-wsb-bbtn', 'new-record');
@@ -69882,7 +71038,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       nr.appendChild(el('span', '', 'New record'));
       acts.appendChild(nr);
     }
-    if (s.can.addStage) {
+    // os9m 6.1: telefonda Add process baslikta degil, listenin sonunda kesik cerceveli satir (Editor).
+    if (s.can.addStage && !S.mob) {
       var as = btn('octo-wsb-bbtn', 'add-stage');
       as.setAttribute('data-key', 'b:add');
       as.appendChild(octo.icon('plus', 16));
@@ -69939,8 +71096,20 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       }
       if (x.create) { foot.appendChild(octo.icon('plus', 18, { className: 'octo-wsb-cplus' })); }
       c.appendChild(foot);
+      // os9m 6.1: telefonda kart satir bicimi (sira, ad + sayac, sagda ok); Create kartinda ok yerine gorunur 'Open'.
+      if (S.mob && !x.create) { c.appendChild(octo.icon('chevron-right', 16, { className: 'octo-wsb-cchev' })); }
       li.appendChild(c);
       ol.appendChild(li);
+    }
+    // os9m 6.1: Add process listenin sonunda kesik cerceveli satir (Bubble Add stage'i gosteriyorsa; Editor).
+    if (S.mob && s.can.addStage) {
+      var ali = el('li', 'octo-wsb-addli');
+      var ar = btn('octo-wsb-addrow', 'add-stage');
+      ar.setAttribute('data-key', 'b:add');
+      ar.appendChild(octo.icon('plus', 18));
+      ar.appendChild(el('span', '', 'Add process'));
+      ali.appendChild(ar);
+      ol.appendChild(ali);
     }
     b.appendChild(ol);
     restoreFocus(b, fk);
@@ -70096,7 +71265,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function openBoard(kb) {
     if (!boardOk()) {
       // Pano yok (Varyant B, ray hucresi henuz yok): surec menusu.
-      if (!S.noProc[sheetKey()]) { openMenu('stages'); }
+      // os9m 5.1: mobilde surecler Views alt sayfasinda.
+      if (!S.noProc[sheetKey()]) { openMenu(S.mob ? 'nav' : 'stages'); }
       return Promise.resolve(false);
     }
     if (!S.board.hidden) { return Promise.resolve(true); }
@@ -70189,6 +71359,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (cardNode) { cardNode.style.transform = ''; cardNode.removeAttribute('data-approach'); }
     if (b) { b.setAttribute('data-zooming', '1'); }
     var table = !target.tipi || /^table$/i.test(target.tipi);
+    var g0 = S.gen;
     var proxied = cur0 ? Promise.resolve('current') : pxStage(target);
     return proxied.then(function (how) {
       if (!how) { return { ok: false, how: '' }; }
@@ -70203,6 +71374,11 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       return Promise.all([grow, ready]).then(function (r) { return { ok: r[1], how: how }; });
     }).then(function (res) {
       if (b) { b.removeAttribute('data-zooming'); }
+      // os9m 6.3: Dropdown X vekili adresi degistirdiyse o oturumda kapanir (zamanlayici da bakar).
+      if (res.how === 'ddx') { ddxCheck(false); }
+      // os9m (inceleme F7): zoom surerken 900 gecisi kipi yeniden kurdu (S.zoom, hayalet ve pano yeni kurulumun): yanlis
+      // 'Could not open' yok; vekil Bubble'a ulastiysa yeni kurulumda baglam degisince pano kapanir.
+      if (S.gen !== g0) { return staleDone(!!res.how, function () { return ctx().key !== k0; }, function () { return hideBoard(false); }); }
       if (!res.ok) {
         var back = (S.ghost && fromR) ? ghostRun(fullRect(), fromR, false) : Promise.resolve(null);
         return back.then(function () {
@@ -70222,7 +71398,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         S.zoom = null;
         say(target.name + ' opened');
         if (opts.kb) {
-          var pb = S.bar && (S.bar.querySelector('[data-act="stage-menu"]') || S.bar.querySelector('[data-view="board"]'));
+          // os9m: mobil bantta surec denetimi gorunum denetimidir (nav-menu; masaustunde yok).
+          var pb = S.bar && (S.bar.querySelector('[data-act="stage-menu"]') || S.bar.querySelector('[data-view="board"]') || S.bar.querySelector('[data-act="nav-menu"]'));
           if (pb) { try { pb.focus({ preventScroll: true }); } catch (e) { /* yut */ } }
         } else { blurIn(S.board); blurIn(S.bar); }
         return true;
@@ -70231,7 +71408,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   }
   function zoomOut(kb) {
     if (!S.mounted || S.zoom) { return Promise.resolve(false); }
-    if (!boardOk()) { openMenu('stages'); return Promise.resolve(false); }
+    if (!boardOk()) { openMenu(S.mob ? 'nav' : 'stages'); return Promise.resolve(false); }
     if (!S.board.hidden) { return Promise.resolve(true); }
     ensureTableTab();
     trace('zoom:out');
@@ -70248,7 +71425,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     tipHide(false);
     if (e.defaultPrevented) { return; }
     if (S.menu) { e.preventDefault(); closeMenu(true); return; }
-    if (S.classic) {
+    // os9m 2.4: Bubble edit kipinin zorunlu Classic'i Esc ile kapanmaz (Esc Bubble'a kalir).
+    if (S.classic && !S.classicEdit) {
       var t = e.target;
       if (editable(t) && !(S.bar && S.bar.contains(t))) { return; }
       if (q1(SEL.userMenu) && shown(q1(SEL.userMenu), null)) { return; }
@@ -70290,7 +71468,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     t.hidden = false;
     S.lastErr = text;
     trace('toast');
-    later('toast', function () { if (S.toast) { S.toast.hidden = true; } }, T.toast);
+    // os9m (inceleme M2): mobilde eylemli bildirim (tek kurtulus yolu Classic menu) iki kat sure kalir. Masaustu aynen.
+    var ms = (S.mob && t.querySelector('.octo-wsb-tbtn')) ? T.toast * 2 : T.toast;
+    later('toast', function () { if (S.toast) { S.toast.hidden = true; } }, ms);
   }
   function say(text) {
     if (!S.live) { return; }
@@ -70304,6 +71484,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function scanSig(s) { return s.moreOpts.map(function (o) { return o.name; }).join('|') || String(s.cells.length); }
   function scanMaybe(force) {
     if (S.scan || S.zoom || S.classic || S.menu || !boardOpen() || wseHold()) { return; }
+    // os9m 6.3: mobilde yalniz sayfa gorunurken (arka plan sekmesinde Bubble'a tik yok).
+    if (S.mob && docHidden()) { return; }
     var s = S.snap;
     if (!s || !s.bar || !s.next || s.prev) { return; }
     var k = sheetKey(s);
@@ -70311,15 +71493,20 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var sig = scanSig(s);
     var last = S.scannedAt[k];
     if (last && last.sig === sig && !force) { return; }
+    // os9m (inceleme F2): hucre adlari yalniz Dropdown X'ten (Text O bos): sayac okunamaz, tarama bir sey ogrenmez
+    // (Bubble'in oklarina bos tik yok).
+    if (S.mob && s.bare && s.bare === s.cells.length) { S.scannedAt[k] = { at: now(), sig: sig }; return; }
     var st = stageModel(s);
     var missing = false;
     for (var i = 0; i < st.length; i++) { if (st[i].count == null) { missing = true; break; } }
     if (!missing && !force) { S.scannedAt[k] = { at: now(), sig: sig }; return; }
-    S.scan = { key: k, sig: sig, pages: pagesOf(s), at: 1, id: now() };
+    // os9m 6.3: ceil(toplam / perPage()) sayfa; mobilde (< 450'de sayfa basina 1 hucre) en cok 24 sayfa.
+    S.scan = { key: k, sig: sig, pages: S.mob ? Math.min(24, pagesOf(s)) : pagesOf(s), at: 1, id: now() };
     S.page = 1;
     trace('scan:start');
     scanStep(S.scan.id);
   }
+  function docHidden() { try { return D.hidden === true; } catch (e) { return false; } }
   function rescanMaybe() {
     var s = S.snap;
     var k = sheetKey(s);
@@ -70330,6 +71517,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function scanStep(id) {
     var sc = S.scan;
     if (!sc || sc.id !== id || !S.mounted) { return; }
+    // os9m 6.3: mobilde alt sayfa / Classic acilir, pano kapanir ya da sayfa arka plana gecerse tarama durur (Bubble'a
+    // baska tik yok; S.page bilinen sayfada kalir).
+    if (S.mob && (S.menu || S.classic || !boardOpen() || docHidden())) { abortScan(); return; }
     if (sc.at >= sc.pages) { scanBack(id); return; }
     pageStep(1).then(function (moved) {
       if (!S.scan || S.scan.id !== id) { return; }
@@ -70369,6 +71559,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       paintBar();
       paintBoard();
       if (S.menu) { paintMenu(); }
+      // os9m 7.6: bos durum dugumu (her genislik).
+      paintEmpty();
     } catch (e3) { logErr(e3); }
     // os9c: kip degisiminin TEK resize'i boyama bittikten sonra (bolgeler dolu, pano yerinde).
     if (S.resizeDue) { S.resizeDue = false; fireResize(); }
@@ -70387,6 +71579,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (S.live && S.live.contains(n)) { return true; }
       if (S.tip && S.tip.contains(n)) { return true; }
       if (S.slot && S.slot.contains(n)) { return true; }
+      // os9m: alt sayfa perdesi, yer ayirma dugumu, bos durum (rayin ownNode'u da sayar; gozlemci tetiklenmez).
+      if (S.sscrim && S.sscrim.contains(n)) { return true; }
+      if (S.mslot && S.mslot.contains(n)) { return true; }
+      if (S.empty && S.empty.contains(n)) { return true; }
       // WSEDIT H5: modulun dugumleri de kabugun (gozlemci ve rayin ownNode'u saymaz).
       var wse = wsEdit();
       if (wse && wse.own(n)) { return true; }
@@ -70436,6 +71632,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function onMutate(recs) {
     // 'strip' bandi: ray yeniden kurulunca bos dugum gozlemcide (boyamadan once) yeni hucreye; tik beklenmez.
     if (S.hdrMode && S.band.src === 'strip') { slotFast(); }
+    // os9m: ayni kural mobil yer ayirma dugumu icin (yeni hucreye olcumsuz, boyamadan once).
+    if (S.mob && S.mslotH > 0) { mslotFast(); }
+    // os9m (inceleme F4): bos durum beklemesi Bubble menusunun son cizimindan sayilir (yalniz karar beklenirken).
+    if (S.emptyCond && !S.emptyDec && recs && recs.length) { emptyBump(recs); }
     if (S.moTimer) { return; }
     if (recs && recs.length) {
       var w = wrapperEl();
@@ -70496,6 +71696,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     listen(D, 'pointerdown', onTouchTable, true);
     listen(D, 'keydown', onTouchTable, true);
     listen(D, 'visibilitychange', onCardsVis);
+    // os9m 2.1: 900 gecisi resize olayi gelmese de (cerceve / gomulu gorunum) tik: kip degisimi tikin basinda.
+    try {
+      var mq = W.matchMedia ? W.matchMedia('(min-width: ' + MIN_W + 'px)') : null;
+      var onMq = function () { later('mq', tick, 0); };
+      if (mq && typeof mq.addEventListener === 'function') { listen(mq, 'change', onMq); }
+      else if (mq && typeof mq.addListener === 'function') { mq.addListener(onMq); S.listeners.push([{ removeEventListener: function () { mq.removeListener(onMq); } }, 'change', onMq, false]); }
+    } catch (e3) { /* yut */ }
     // Ray ve Bubble gec kurulur: mutasyon yoksa bile 1 sn'de bir bakilir (yalniz ilk kuruluma kadar, tavanli).
     later('boot', bootPoll, 0);
     trace('boot');
@@ -70523,6 +71730,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.armed = false;
     S.counts = {}; S.names = {}; S.memoSig = {}; S.scannedAt = {}; S.noProc = {}; S.sheetSig = ''; S.sig = ''; S.snap = null; S.cur = null; S.full = null;
     S.view = null; S.page = 0; S.chromeErr = ''; S.reopenTries = 0; S.dropAt = 0;
+    S.mobReopen = 0; S.mobReopens = 0; S.mobReopenAt = -1e9; S.mobClickAt = -1e9; S.layoutDesk = ''; S.emptyKind = '';
+    S.emptyAt = 0; S.emptyCond = ''; S.emptyDec = ''; S.emptyWhy = ''; S.emptySig = ''; S.pp = { n: 1, m: 5 }; S.ddxUrl = false; S.ddxU0 = null; S.modeAt = 0;
+    S.emptyAt0 = 0; S.rowsPu = null;
     S.resizeDue = false; S.noFitKey = ''; S.gapAt = 0;
     S.dockNo = false; S.dockWhy = ''; S.dockOn = false;
     S.noFit = 0; S.fitSig = ''; S.fit = ''; S.fitDropW = 0; S.band.right = 0; S.band.pend = -1; S.band.at = 0; S.band.src = ''; S.band.aside = 0;
@@ -70557,28 +71767,64 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     live.setAttribute('aria-live', 'polite');
     D.body.appendChild(live);
     S.live = live;
+    // os9m: mobilde alt sayfa ve bildirim kendi yerlesimiyle; alt sayfa perdesi yalniz mobilde.
+    if (S.mob) {
+      p.setAttribute('data-mob', '1');
+      // Dokunusla acilista odak sayfa kabina (cercevesiz; OCTO_MOBILE_SPEC 5.5).
+      p.setAttribute('tabindex', '-1');
+      t.setAttribute('data-mob', '1');
+      var ss = el('div', 'octo-wsb-sscrim');
+      ss.id = SSCRIM_ID;
+      ss.hidden = true;
+      ss.setAttribute('aria-hidden', 'true');
+      ss.addEventListener('click', function () { closeMenu(true); });
+      D.body.appendChild(ss);
+      S.sscrim = ss;
+    }
+    // Bos durum (OCTO_MOBILE_SPEC 7.6): her genislikte BIR kez, gizli; icerik ve karar bos durum diliminde.
+    var em = D.createElement('section');
+    em.id = EMPTY_ID;
+    em.className = 'octo-wsb-empty';
+    em.hidden = true;
+    em.addEventListener('click', onEmptyClick);
+    D.body.appendChild(em);
+    S.empty = em;
+    S.emptySig = '';
   }
   // Kurulum: cubuk + govde dugumleri BIR kez (sonra yalniz hidden / icerik), gizleme, pano (hucre oturunca).
   function mount(err) {
     if (S.mounted) { return; }
     S.mounted = true;
+    // os9m 2.1: kip bayragi kurulumda yazilir; 900 gecisinde tik sokup yeniden kurar (dugumler sifirdan).
+    S.mob = mob();
+    S.mounts++;
+    S.classicEdit = false;
+    // Board duzeni yalniz masaustu: mobile girerken saklanir, masaustu kurulumunda geri gelir.
+    if (S.mob && S.layout === 'board') { S.layoutDesk = 'board'; setLayout('overview'); }
+    else if (!S.mob && S.layoutDesk) { var ld = S.layoutDesk; S.layoutDesk = ''; setLayout(ld); }
     S.chromeErr = err || '';
     S.variant = (railM() && railM().variant) || '';
     S.zoom = null;
     mountNodes();
     if (!S.chromeErr) { chromeOn(); }
+    // Menu koku yokken (bubble_hidden) gizleme yok ama mobil koku yazilir (rayin paneli ayirmanin altina).
+    else if (S.mob) { root().setAttribute(A_MOB, '1'); }
     S.sig = '';
     S.snap = snapshot();
     S.sheetSig = sheetKey(S.snap);
     S.ctxKey = ctx().key;
     coveredCheck();
-    if (S.wsh) { later('bandPoll', bandPoll, T.bandPoll); }
+    if (S.wsh && !S.mob) { later('bandPoll', bandPoll, T.bandPoll); }
+    if (S.mob) { later('mobPoll', mobPoll, T.bandPoll); }
     trace('mount' + (S.chromeErr ? ':' + S.chromeErr : ''));
     paintSoon();
     flush();
   }
   function unmount(why, hard) {
     if (!S.mounted && !S.bar && !S.board) { if (chromeOff()) { fireResize(); } return; }
+    // os9m (inceleme F7): 900 gecisi yeni kusak: suren istekler (zoom, tablo / gorunum secimi, sayfa gezmesi) dusurulen
+    // bekleyicilerini yeni kurulumda bildirim ya da tik olarak yazmaz.
+    if (why === 'mode') { S.gen++; }
     closeMenu(false);
     // os9c: serit cubukla birlikte silinmesin; kip birakilir (resize asagida chromeOff ile tek olay).
     var hdrMoved = S.hdrMode ? hdrSet('', 0) : false;
@@ -70590,12 +71836,25 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     dropWaiters();
     abortScan();
     detachBoard();
+    // os9m 2.1: masaustunden mobile geciste Board secimi saklanir (cardsDrop duzeni Overview'a dondurur);
+    // masaustu kurulumunda geri gelir.
+    if (why === 'mode' && !S.mob && S.layout === 'board') { S.layoutDesk = 'board'; }
     cardsDrop(hard);
     rm(S.bar); S.bar = null;
     rm(S.pop); S.pop = null;
     rm(S.toast); S.toast = null;
     rm(S.scrim); S.scrim = null;
     rm(S.live); S.live = null;
+    // os9m: perde ve bos durum; yer ayirma dugumu ve mobil koku chromeOff siler (resize asagida tek olay).
+    rm(S.sscrim); S.sscrim = null;
+    rm(S.empty); S.empty = null;
+    // Bos durum turu kurulu kipin durumudur (karar ve bekleme kosul surdukce on kosulda kalir).
+    S.emptyKind = '';
+    S.emptySig = '';
+    cancel('emptySay');
+    cancel('mobPoll');
+    cancel('mobReopen');
+    S.classicEdit = false;
     S.mounted = false;
     S.zoom = null;
     S.peek = false;
@@ -70625,11 +71884,184 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       }
     } catch (e) { S.covered = ''; }
   }
+  // ------------------------------------------------------------- bos durum
+  // OCTO_MOBILE_SPEC 7. Kosul ('none': baglam yok ve Bubble menusunde hic workspace yok; 'pick': yalniz mobil, baglam
+  // yok, tablo secili degil, workspace var) T.emptyWait boyunca SUREKLI dogru kalinca karar: 'own' | 'other' | 'pick'.
+  // Karar kapilari: 'none' icin #sideMenu var ve gorunur (telefon kapaliyken once 2.2 yeniden acma, karar yok);
+  // rayin Home'u yok; Architect onde degil. Misafir ve Bubble edit kipi bu yola zaten gelmez (sert dusus / edit dali).
+  // Karar verilince kosul surdukce kalir (bastirma boyamada, 7.5). quiet: teshis okumasi, durum degismez.
+  function emptyGate(cond, quiet) {
+    if (S.emptyCond !== cond) {
+      if (quiet) { return ''; }
+      S.emptyCond = cond;
+      S.emptyAt = now();
+      S.emptyAt0 = S.emptyAt;
+      S.emptyDec = '';
+      S.emptyWhy = 'wait';
+      later('emptyWait', tick, T.emptyWait + 20);
+      return '';
+    }
+    if (S.emptyDec) { return S.emptyDec; }
+    if (now() - S.emptyAt < T.emptyWait) {
+      if (!quiet) { S.emptyWhy = 'wait'; if (!S.timers.emptyWait) { later('emptyWait', tick, Math.max(0, T.emptyWait - (now() - S.emptyAt)) + 20); } }
+      return '';
+    }
+    var why = '', k = '';
+    var side = sideRoot();
+    if (cond === 'none' && !(side && shown(side, null))) { why = 'side'; }
+    // os9m (inceleme F4): bu sayfa kullanicisinda Bubble satirlari goruldu: liste bosalmasi yeniden cizimdir, 'yok' degil.
+    else if (cond === 'none' && rowsHere()) { why = 'rows'; }
+    else if (railHome()) { why = 'home'; }
+    else if (archFront()) { why = 'front'; }
+    else if (cond === 'pick') { k = 'pick'; }
+    else {
+      var pu = '', cu = '';
+      try { pu = str(octo.page.pageUser()); } catch (e) { pu = ''; }
+      try { var ids = octo.page.ids(); cu = ids ? str(ids.user_id) : ''; } catch (e1) { cu = ''; }
+      if (pu && cu && pu !== cu) { k = 'other'; } else if (!pu || pu === cu) { k = 'own'; } else { why = 'wait'; }
+    }
+    if (quiet) { return k; }
+    S.emptyWhy = why;
+    if (k) { S.emptyDec = k; trace('empty:' + k); }
+    return k;
+  }
+  function emptyReset() {
+    if (!S.emptyCond && !S.emptyDec) { return; }
+    S.emptyCond = '';
+    S.emptyAt = 0;
+    S.emptyAt0 = 0;
+    S.emptyDec = '';
+    S.emptyWhy = '';
+    cancel('emptyWait');
+  }
+  // os9m (inceleme F4): bos durum karari yalniz zamana bagli kalmasin. (1) Bekleme Bubble menusunun son cizimindan
+  // sayilir (menu RG verisinden once cizilir; gozlemci A'nin menu icindeki kayitlari, kabugun kendi dugumleri haric),
+  // tavan kosulun basindan 3 x T.emptyWait (menu hic durulmazsa karar yine verilir). (2) Bubble satirlarinin goruldugu
+  // sayfa kullanicisinda 'none' karari yok (View as ile baska sayfaya geciste yeniden mumkun).
+  function emptyBump(recs) {
+    var side = sideRoot();
+    if (!side || now() - S.emptyAt0 >= 3 * T.emptyWait) { return; }
+    for (var i = 0; i < recs.length; i++) {
+      var t = recs[i] && recs[i].target;
+      if (!t || own(t)) { continue; }
+      try { if (t === side || side.contains(t)) { S.emptyAt = now(); return; } } catch (e) { /* yut */ }
+    }
+  }
+  function pageUserNow() { try { return str(octo.page.pageUser()); } catch (e) { return ''; } }
+  function rowsMark() { S.rowsPu = pageUserNow(); }
+  function rowsHere() { return S.rowsPu !== null && S.rowsPu === pageUserNow(); }
+  // Rayin Home'u (tablosuz Start) ya da ipucu cipi (octo-onb-hint) var mi.
+  function railHome() {
+    var r = rail();
+    try { if (r && r.home) { return true; } } catch (e) { /* yut */ }
+    return !!D.getElementById('octo-onb-hint');
+  }
+  // Architect'in kurulum ekrani onde mi (W._gadSetupFront; rayin homeFrontNow ile ayni kaynak).
+  function archFront() { try { return typeof W._gadSetupFront === 'function' && W._gadSetupFront() === true; } catch (e) { return false; } }
+  // Bos durumun birincil eylemi: { act, label } ya da null (yalniz baslik).
+  function emptyAction(k, s) {
+    if (k === 'other') { return { act: 'e-back', label: 'Back to my page' }; }
+    if (k === 'pick') { return { act: 'e-pick', label: 'Choose workspace' }; }
+    if (k !== 'own') { return null; }
+    if (tplAny(s)) { return { act: 'e-tpl', label: 'Browse AI templates' }; }
+    if (s && s.can.addTable && typeof W.gaiaKnowBusiness === 'function') { return { act: 'e-know', label: 'New workspace' }; }
+    return null;
+  }
+  // OCTO_MOBILE_SPEC 7.5-7.6: dugum her genislikte, boyamada (flush). Bastirma: Classic acik, rayin Home'u ya da ipucu
+  // cipi, Architect onde. Icerik yalniz tur / eylem degisince yeniden kurulur; baslik bos eklenip kisa sure sonra
+  // yazilir (aria-live polite: bir kez duyurulur). Odak kendiliginden tasinmaz.
+  function paintEmpty() {
+    var n = S.empty;
+    if (!n) { return; }
+    var k = S.emptyKind;
+    var why = '';
+    if (k) {
+      if (S.classic) { why = 'classic'; } else if (railHome()) { why = 'home'; } else if (archFront()) { why = 'front'; }
+    }
+    var a = (k && !why) ? emptyAction(k, S.snap || snapshot()) : null;
+    if (k && !why && !a) { why = 'noaction'; }
+    if (k) { S.emptyWhy = why; }
+    if (!k || (why && why !== 'noaction')) {
+      if (!n.hidden) {
+        // os9m (inceleme M9): odak kartin icindeyse gizlenen dugumle kaybolmasin: cubugun Workspace dugmesine.
+        var hadF = false;
+        try { hadF = n.contains(D.activeElement); } catch (eF) { hadF = false; }
+        n.hidden = true;
+        if (hadF && S.bar) { restoreFocus(S.bar, 'ws'); }
+      }
+      return;
+    }
+    var sig = k + '|' + (a ? a.act : '');
+    if (S.emptySig !== sig || !n.firstChild) {
+      S.emptySig = sig;
+      clear(n);
+      n.setAttribute('aria-labelledby', ETITLE_ID);
+      var card = el('div', 'octo-wsb-ecard');
+      var ic = el('span', 'octo-wsb-eico');
+      ic.appendChild(octo.icon('grid', 28));
+      card.appendChild(ic);
+      var h = el('h2', 'octo-wsb-etitle');
+      h.id = ETITLE_ID;
+      h.setAttribute('aria-live', 'polite');
+      card.appendChild(h);
+      if (a) {
+        var b = btn('octo-wsb-ebtn', a.act);
+        b.setAttribute('data-key', a.act);
+        b.appendChild(el('span', '', a.label));
+        card.appendChild(b);
+      }
+      n.appendChild(card);
+      var title = k === 'other' ? 'No workspace on this page' : (k === 'pick' ? 'Pick a workspace' : 'No workspace yet');
+      later('emptySay', function () { if (isConn(h)) { h.textContent = title; } }, 30);
+    }
+    if (n.hidden) { n.hidden = false; }
+  }
+  function onEmptyClick(e) {
+    var t = upTo(e.target, function (x) { return x.hasAttribute && x.hasAttribute('data-act'); }, S.empty);
+    if (!t) { return; }
+    var a = t.getAttribute('data-act');
+    if (a === 'e-tpl') { mobSide(templatesAny); return; }
+    if (a === 'e-know') { know(); return; }
+    if (a === 'e-back') { backToMyPage(); return; }
+    // os9m (inceleme M9): capa kartin dugmesi (kapaninca odak oraya doner).
+    if (a === 'e-pick') { openMenu('ws', t, e.detail === 0); return; }
+  }
+  // Sablonlar (templates() DEGISMEZ): Bubble karti gorunurse kart vekili (bugunku yol), degilse Architect'in tek giris
+  // noktasi W._gadBrowseTemplates (canli Architect tablosuz hesapta sablonlari aciyor), o da yoksa dugme cizilmez.
+  function tplAny(s) { return !!(s && s.can.templates) || typeof W._gadBrowseTemplates === 'function'; }
+  function templatesAny() {
+    var s = snapshot();
+    if (s.can.templates) { return templates(); }
+    try { if (typeof W._gadBrowseTemplates === 'function') { W._gadBrowseTemplates(); trace('templates:gad'); return true; } } catch (e) { /* yut */ }
+    toast('Could not open', true);
+    return false;
+  }
+  // OCTO_MOBILE_SPEC 7.3: kendi sayfasi = kimliksiz [/version-<ad>]/app (kurucunun 22.10 baglanti bicimi); sorgudan
+  // yalniz gxel ham degeriyle (yeniden kodlanmaz) tasinir. wsedit navTo kullanilmaz (sorguyu atar, ?gxel kaybolur).
+  function myPageUrl() {
+    var p = '';
+    try { p = (typeof W.__octoUrlPath === 'string') ? W.__octoUrlPath : String((W.location && W.location.pathname) || ''); } catch (e) { p = ''; }
+    var m = /^(\/version-[a-z0-9-]+)?\/app(?:\/|$)/.exec(p);
+    var g = /[?&]gxel=([^&#]*)/.exec(wsQuery());
+    return ((m && m[1]) || '') + '/app' + (g ? ('?gxel=' + g[1]) : '');
+  }
+  function backToMyPage() {
+    var url = myPageUrl();
+    trace('empty:back');
+    try {
+      if (typeof W.__octoNavigate === 'function') { W.__octoNavigate(url); return true; }
+      W.location.assign(url);
+      return true;
+    } catch (e) { toast('Could not open', true); return false; }
+  }
+
   // On kosullar. Sert dusus (bayrak, dar ekran, Edit Workspace, misafir, ray kapali) hemen geri alir; yumusak
   // dusus (ray yeniden kuruluyor, baglam gec, tablo alani gizli) T.dropGrace boyunca bekler.
-  function preconditions() {
+  function preconditions(quiet) {
     if (W.__OCTO_WS_OFF === true) { return { ok: false, hard: true, why: 'off' }; }
-    if (!wide()) { return { ok: false, hard: true, why: 'narrow' }; }
+    // os9m 2.1: dar ekran yalniz kill switch'le sert dusus; aksi halde mobil varyantin on kosullari.
+    if (!wide() && !mobOk()) { return { ok: false, hard: true, why: 'narrow' }; }
+    if (!wide()) { return preMob(quiet); }
     if (!railArmed()) { return { ok: false, hard: true, why: 'rail' }; }
     if (guest()) { return { ok: false, hard: true, why: 'guest' }; }
     // WSEDIT H1: Edit workspace sayfasi Bubble'in edit kipini sahiplenirken (SA bos, tablo bos) kip geri alinmaz.
@@ -70639,7 +72071,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     // Kriz 22.10: Bubble sol menuyu gizledi; tablo secili degilken de cubuk kurulur (Workspace secicisiyle tablo
     // secilir), yeter ki Bubble'in gizli menusunde en az bir workspace olsun. Hic workspace yoksa eski bekleme.
     var noCtx = !c.key && !hold;
-    if (noCtx && !(snapshot().sheets.length > 0)) { return { ok: false, hard: false, why: 'ctx' }; }
+    if (noCtx && !(snapshot().sheets.length > 0)) {
+      // os9m 7.1: T.emptyWait boyunca bugunku yumusak 'ctx'; sonra karar varsa bos durumla kurulur.
+      var ek = emptyGate('none', quiet);
+      if (!ek) { return { ok: false, hard: false, why: 'ctx' }; }
+      return { ok: true, err: sideRoot() ? '' : 'bubble_hidden', empty: ek };
+    }
+    if (!quiet) { emptyReset(); }
     if (!noCtx && !tableVisible() && !hold) { return { ok: false, hard: false, why: 'table' }; }
     var side = sideRoot();
     if (!side) { return { ok: true, err: 'bubble_hidden' }; }
@@ -70649,11 +72087,89 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     return { ok: true, err: '' };
   }
+  // os9m mobil on kosullar (OCTO_MOBILE_SPEC 2.1, 2.2, 2.4). Sert dusus: ray kapali, misafir. Telefon kapali menu
+  // hata degil (ok, err ''); yalniz #sideMenu hic yoksa bubble_hidden. Bubble edit kipi sert dusus degil (edit: true,
+  // tik zorunlu Classic acar). quiet: teshis okumasi (diag), vekil tik yok.
+  function preMob(quiet) {
+    if (!railArmed()) { return { ok: false, hard: true, why: 'rail' }; }
+    if (guestM()) { return { ok: false, hard: true, why: 'guest' }; }
+    var hold = wseHold();
+    var side = sideRoot();
+    var closed = phoneClosed(side);
+    if (side && !closed && shown(side, null)) { S.mobReopen = 0; }
+    if (editMode() && !hold) {
+      if (closed && !quiet) { reopenMob(); }
+      return { ok: true, err: side ? '' : 'bubble_hidden', edit: true };
+    }
+    var c = ctx();
+    var noCtx = !c.key && !hold;
+    // Telefon kapaliyken satir sayisi "bilinmiyor" (yok degil): karar icin menu acilir (bos durum kapisi 'side').
+    var sn = snapshot();
+    if (sn.sheets.length) { rowsMark(); }
+    var none = noCtx && !(sn.sheets.length > 0);
+    var res = { ok: true, err: side ? '' : 'bubble_hidden' };
+    if (none) {
+      // os9m 7.1: T.emptyWait boyunca yumusak 'ctx'; karar varsa bos durumla kurulur.
+      var ek = emptyGate('none', quiet);
+      res = ek ? { ok: true, err: res.err, empty: ek } : { ok: false, hard: false, why: 'ctx' };
+    } else if (noCtx && noTable(sn)) {
+      // os9m 7.4: baglam yok, tablo secili degil, Bubble menusunde workspace var: T.emptyWait sonra 'pick'.
+      var pk = emptyGate('pick', quiet);
+      if (pk) { res.empty = pk; }
+    } else {
+      if (!quiet) { emptyReset(); }
+      if (!noCtx && !tableVisible() && !hold) { res = { ok: false, hard: false, why: 'table' }; }
+    }
+    // Yeniden acma: kurulu kipte, ayni tikte kurulacaksa (kabugun CSS'i acilan menuyu hemen gizler) ya da karar icin.
+    // Kurulmayacak sayfada acilmaz (acik menu kabuksuz icerigin ustunde kalirdi).
+    if (closed && !quiet && (S.mounted || res.ok || none)) { reopenMob(); }
+    return res;
+  }
+  // os9m 2.4: kurucunun gizlemesi yuzunden Bubble'in menusu telefonda gorunmez; edit kipinde Done'a ulasilsin diye
+  // Classic zorla acilir (mobil Classic CSS'i gorunurlugu geri verir), hapta Done yok (Bubble'in Done'u bitirir).
+  // Edit isaretleri kaybolunca Classic kapanir. Tutuyorsa true (tik burada durur).
+  function mobEdit(ed) {
+    if (ed && !S.classicEdit) {
+      classic(true);
+      S.classicEdit = S.classic;
+      trace('edit:m');
+    } else if (!ed && S.classicEdit) {
+      S.classicEdit = false;
+      classic(false);
+      trace('edit:m:off');
+    }
+    if (!S.classicEdit) { return false; }
+    abortScan();
+    // Tablo / baglam temel cizgileri edit oncesindeki kalir (edit kipinin bos SA'si ve sablon adlari yazilmaz):
+    // Done sonrasi ayni tablo "degisti" sayilmaz.
+    var sig = 'edit:m~' + (S.classic ? 1 : 0) + '~' + (railSheet() ? 1 : 0);
+    if (sig !== S.sig) { S.sig = sig; paintSoon(); }
+    checkWaiters();
+    return true;
+  }
   function tick() {
     if (!S.armed) { return; }
     if (W.__OCTO_WS_OFF === true) { shutdown(); return; }
     S.ticks = (S.ticks || 0) + 1;
+    // os9m 2.1: 900 gecisi (masaustu <-> mobil) dugumleri sifirdan kurar; ayni tikte yeniden kurulur (sert degil, S.view kalir).
+    // Ray kendi duzenini 60 ms + bir kare sonra degistirir (media dinleyicisi daha once tikler): ray yetisene dek (en cok
+    // T.dropGrace) eski kip kalir; yoksa tek ust cubuk telefon duzenindeki rayla olculur ve 'fit' reddi kalici olurdu.
+    if (S.mounted && S.mob !== mob()) {
+      if (railLag()) {
+        if (!S.modeAt) { S.modeAt = now(); }
+        if (now() - S.modeAt < T.dropGrace) { later('modeLag', tick, 50); return; }
+      }
+      S.modeAt = 0;
+      unmount('mode', false);
+    } else if (S.modeAt) {
+      // os9m (inceleme F3/F4): genislik ray yetismeden esigin berisine dondu: bekleme biter (bayat baslangic sonraki
+      // gercek geciste ray bekcisini atlatmasin).
+      S.modeAt = 0;
+      cancel('modeLag');
+    }
     var pc = preconditions();
+    // os9m 7.1: bos durum turu (kosul bozulunca bosalir; dugum gizlenir, normal yol devralir).
+    if (S.mounted && (pc.empty || '') !== S.emptyKind) { S.emptyKind = pc.empty || ''; S.sig = ''; paintSoon(); }
     if (!pc.ok) {
       if (!S.mounted) { return; }
       if (pc.hard) { unmount(pc.why, false); return; }
@@ -70665,7 +72181,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     }
     S.dropAt = 0;
     if (S.mounted && (pc.err || '') !== S.chromeErr) { unmount('err', false); }
-    if (!S.mounted) { mount(pc.err); }
+    // Kurulumun ilk boyamasi bos durumu dogru cizsin: tur kurulumdan once yazilir.
+    if (!S.mounted) { S.emptyKind = pc.empty || ''; mount(pc.err); }
+    // os9m: mobil koku ve yer ayirma (menu koku yokken de; cubuk icerigi ortmesin).
+    if (S.mob) {
+      if (!root().hasAttribute(A_MOB)) { root().setAttribute(A_MOB, '1'); }
+      if (mobSync()) { S.resizeDue = true; S.sig = ''; paintSoon(); }
+    }
     if (S.chromeErr) { S.snap = snapshot(); paintSoon(); return; }
     S.reopenTries = 0;
     if (!root().hasAttribute(A_ON)) { root().setAttribute(A_ON, '1'); }
@@ -70678,8 +72200,14 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (M && (M.variant || '') !== S.variant) { S.variant = M.variant || ''; S.sig = ''; }
     var s = snapshot();
     S.snap = s;
+    // os9m (inceleme F4): bu sayfa kullanicisinda Bubble satirlari goruldu (bos durum 'none' karari yok).
+    if (s.sheets.length) { rowsMark(); }
+    // os9m 6.3: sayfa basi hucre ogrenimi (genislik kovasi basina en cok gorunur hucre).
+    if (S.mob) { ppLearn(s); }
     // os9c: bant yuksekligi, zil taramasi, rayin yeni seridi.
     if (S.wsh) { hdrTick(); }
+    // os9m 2.4: Bubble edit kipi telefonda zorunlu Classic; bu surede pano, tarama ve vekiller susar.
+    if (S.mob && mobEdit(!!pc.edit)) { return; }
     // WSEDIT H1b: Edit workspace / View as gecisi tutarken pano, tarama ve baglam mantigi susar (Bubble'in bari
     // modulun; edit kipinin sablon adlari sure bellegine yazilmaz).
     if (wseHold()) {
@@ -70706,7 +72234,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     } else { S.noBarSince = 0; if (sk && S.noProc[sk]) { delete S.noProc[sk]; } }
     ensureBoard();
     // Baglam degisimi: tablo degisti -> kartlar; kabugun baslatmadigi surec / liste degisimi -> pano kapanir.
-    var sheetChanged = !!sk && !!S.sheetSig && sk !== S.sheetSig && !S.zoom;
+    // os9m (inceleme F1): satirlar dusukken okunan dizinsiz anahtar (ad#-1) ayni adli anahtarla degisim sayilmaz.
+    var sheetChanged = !!sk && !!S.sheetSig && sk !== S.sheetSig && !sameSheet(sk, S.sheetSig) && !S.zoom;
     if (sheetChanged) {
       S.cur = null;
       S.page = 0;
@@ -70741,7 +72270,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       [!!s.can.addTable, !!s.can.addList, !!s.can.addStage, !!s.can.templates, !!s.can.gear, !!s.can.person].join(''),
       s.flows ? (s.flows.num + '/' + s.flows.total) : '',
       // os9c: kip ve Edit kapisi (Bubble kisi kutusunu ya da menu okumasini gec acabilir).
-      S.hdrMode + (S.hdrMode && editCan() ? ':e' : '')].join('~');
+      S.hdrMode + (S.hdrMode && editCan() ? ':e' : ''),
+      // os9m: bos durum turu ve bastirma kaynaklari (rayin Home'u / ipucu cipi, Architect onde)
+      S.emptyKind + (S.emptyKind ? (':' + (railHome() ? 1 : 0) + (archFront() ? 1 : 0)) : '')].join('~');
     if (sig !== S.sig) { S.sig = sig; paintSoon(); }
     checkWaiters();
     if (!S.scan) { scanMaybe(false); }
@@ -70752,7 +72283,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var s = snapshot();
     var g = [];
     try { var all = D.querySelectorAll('[' + A_GUTTER + ']'); for (var i = 0; i < all.length; i++) { g.push(str(all[i].className).slice(0, 60)); } } catch (e) { g = []; }
-    var pc = S.armed ? preconditions() : { ok: false, why: 'flag' };
+    var pc = S.armed ? preconditions(true) : { ok: false, why: 'flag' };
     return {
       // kriz 22.10: flag = son boot'ta okunan etkin bayrak (varsayilan acik dahil), yalniz octo_ws '1' degil
       flag: S.flag, armed: S.armed, mounted: S.mounted, variant: S.variant, pre: pc.ok ? (pc.err || 'ok') : pc.why,
@@ -70770,8 +72301,35 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         src: S.hdrMode ? S.band.src : bandEff().src, slot: !!(S.slot && isConn(S.slot)), aside: S.band.aside,
         adopted: !!(stripEl() && S.apps && stripEl().parentNode === S.apps), covered: S.hdrMode ? bandCovered() : [],
         dock: { want: S.dockWant, on: S.dockOn, pad: S.dockPad, why: S.dockWhy }
-      }
+      },
+      // os9m (OCTO_MOBILE_SPEC 10.1): salt okunur
+      mounts: S.mounts,
+      mob: {
+        on: !!(S.mounted && S.mob), side: !s.side ? 'none' : (s.sideShown ? 'open' : 'closed'), reopens: S.mobReopens,
+        h: S.mobH, top: S.mobTop, slot: S.mslotH, edit: S.classicEdit, covered: (S.mounted && S.mob && S.classic) ? hapCovered() : '',
+        // 6.3: sayfa basi hucre (masaustu 5), Dropdown X vekili ('on' | 'off' | 'other' | 'url') ve okunuyor mu
+        pp: perPage(), ddx: ddxState(), ddxSeen: !!s.mstage, ddxOpts: s.mstageOpts.length,
+        // inceleme: adi Dropdown X'ten gelen hucre (F2); 900 gecisi ray bekleniyor ('wait' | '', F3/F4); yoklama kurulu mu
+        bare: s.bare, mode: S.modeAt ? 'wait' : '', poll: !!S.timers.mobPoll
+      },
+      // 7: tur ('own' | 'other' | 'pick' | ''), neden ('wait' | 'side' | 'rows' | 'home' | 'front' | 'classic' | 'noaction' |
+      // ''), since: kosulun suregeldigi sure (ms; kosul yoksa 0; bekleme Bubble cizimiyle yeniden baslar, inceleme F4)
+      empty: { kind: S.emptyKind || '', why: S.emptyWhy || '', since: S.emptyAt0 ? Math.round(now() - S.emptyAt0) : 0, cond: S.emptyCond }
     };
+  }
+  // os9m V8: Classic hapinin altinda (sag ust) Bubble denetimi var mi: 'bubble' | ''.
+  function hapCovered() {
+    try {
+      var r = S.bar && !S.bar.hidden ? S.bar.getBoundingClientRect() : null;
+      if (!r || !r.width || typeof D.elementsFromPoint !== 'function') { return ''; }
+      var all = D.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      for (var i = 0; i < all.length; i++) {
+        var n = all[i];
+        if (own(n) || n === D.body || n === D.documentElement) { continue; }
+        if (ctrlOf(n)) { return 'bubble'; }
+      }
+    } catch (e) { /* yut */ }
+    return '';
   }
 
   /* ======================================================================
@@ -70817,6 +72375,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   // Overview / Board: pano kapaliyken yalniz S.layout yazilir; Overview'a donus ucustaki kart istegini keser.
   function setLayout(name) {
     if (name !== 'overview' && name !== 'board') { return S.layout; }
+    // os9m 6.4: Board duzeni yalniz masaustu; mobilde ret (kart ag cagrisi hic baslamaz).
+    if (name === 'board' && S.mounted && S.mob) { return S.layout; }
     if (name === S.layout) { return S.layout; }
     S.layout = name;
     trace('layout:' + name);
@@ -71595,7 +73155,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   // Kapi: bos dize ya da neden; ilk dusen kural kazanir (0A.4: ilk kural duzen).
   function cardsGate(s) {
     s = s || S.snap;
-    if (S.layout !== 'board') { return 'layout'; }
+    // os9m 6.4: Board (ve kart ag cagrisi) yalniz masaustu.
+    if (S.layout !== 'board' || (S.mounted && S.mob)) { return 'layout'; }
     if (W.__OCTO_WS_CARDS_OFF === true) { return 'off'; }
     if (typeof W.__octoWsBridge !== 'function' && !httpOrigin()) { return 'origin'; }
     if (viewingAs()) { return 'viewas'; }
@@ -72035,7 +73596,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         on: S.armed, mounted: S.mounted, view: S.mounted ? viewKind() : '', zoom: !!S.zoom, sheet: sheetName(),
         stage: cur ? cur.name : '', list: curListName(), menu: S.menu, classic: S.classic, pinned: S.pinned, scanning: !!S.scan,
         noProc: !!S.noProc[sheetKey()], err: S.chromeErr, viewingAs: S.mounted ? viewingAs() : false,
-        hdr: S.hdrMode, fit: S.fit
+        hdr: S.hdrMode, fit: S.fit,
+        // os9m: mobil varyant kurulu mu, bos durum turu (OCTO_MOBILE_SPEC 10.1)
+        mob: !!(S.mounted && S.mob), empty: S.emptyKind || ''
       };
     },
     snapshot: function () {
@@ -72255,6 +73818,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function wsbar() { return octo._wsbar || null; }
   function barActive() { var b = wsbar(); try { return !!(b && b.active()); } catch (e) { return false; } }
   function barState() { var b = wsbar(); try { return (b && b.state()) || {}; } catch (e) { return {}; } }
+  // os9m (OCTO_MOBILE_SPEC 10.2): 900 altinda os9a cubugunun mobil varyanti kurulu mu (kira, View as ve Back to my
+  // view mobilde yasar; Edit workspace sayfasi telefonda acilmaz).
+  function barMob() { return barState().mob === true; }
   function classicOn() { return root().getAttribute('data-octo-ws-classic') === '1'; }
   function classicOff() { var b = wsbar(); try { if (b && classicOn()) { b.classic(false); } } catch (e) { /* yut */ } }
   function repaintBar() { var b = wsbar(); try { if (b && typeof b.repaint === 'function') { b.repaint(); } } catch (e) { /* yut */ } }
@@ -72859,7 +74425,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     [S.scrim, S.sheet, S.pickBox, S.note].forEach(function (n) { if (!isConn(n)) { D.body.appendChild(n); } });
   }
   function gateEdit() {
-    if (off() || !barActive() || guest()) { return false; }
+    // os9m 10.2: Edit workspace sayfasi telefonda acilmaz (32-36 px hedefler; masaustu).
+    if (off() || !barActive() || guest() || barMob()) { return false; }
     // Bellek baska sayfa kullanicisinin menusune aitse kullanilmaz (menuItems ile ayni kural; os9c Edit dugmesi).
     if (S.items && S.itemsPU !== pageUserId()) { S.items = null; S.itemsSig = ''; S.gfFail = false; }
     if (editMode()) { return true; }
@@ -73967,7 +75534,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     checkWaiters();
     if (off()) { teardown('off'); idleCheck(); return; }
     var wsOn = root().getAttribute('data-octo-ws') === '1';
-    if (!wide() || guest()) { teardown(!wide() ? 'narrow' : 'guest'); idleCheck(); return; }
+    // os9m 10.2: dar ekran dususu yalniz mobil cubuk yokken; mobilde kira ve View as yasar.
+    var narrow = !wide();
+    var drop = narrow && !barMob();
+    if (drop || guest()) { teardown(drop ? 'narrow' : 'guest'); idleCheck(); return; }
+    // Edit sayfasi acikken 900 altina inildi: yalniz sayfa kapanir (teardown('narrow')'in sayfa kolu; Done vekili yok).
+    if (narrow && S.edit) { trace('edit:narrow'); finishEdit(S.edit, false); idleCheck(); return; }
     // Kira: Classic acilinca oznitelik kalkar (CSS de Classic'te gizlemez); cubugun menusu kapandiysa gizli menu kapanir.
     if (S.gfOurs) {
       if (classicOn()) { root().removeAttribute(A_GF); }
