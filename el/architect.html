@@ -47970,10 +47970,11 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
 #octo-wsb-board .octo-wsb-gname { font: 700 14px/18px var(--octo-font); color: var(--octo-ink); }
 #octo-wsb-board .octo-wsb-grow { height: 36px; margin: 0 16px; border-bottom: 1px solid var(--octo-line-2); }
 
-/* ---------------------------------------------------------------- pano duzeni (os9b, OCTO_BOARD_SPEC 0A)
-   Overview = yukaridaki os9a kurallari AYNEN (varsayilan). Board kurallari yalniz #octo-wsb-board[data-layout="board"]
-   altinda EKLENIR. Kokte, hucrede ve satirda transform / filter / will-change / contain YOK; transform yalniz
-   pinch sirasinda sutun li'sinde ve hayalette (ikisi de tablonun atasi degil). Canlandirilan yalniz opacity ve transform. */
+/* ---------------------------------------------------------------- pano duzeni (os9b, OCTO_BOARD_SPEC 0A, 0C.1)
+   Board varsayilan duzendir (0C.1, layoutDefault); Overview = yukaridaki os9a kurallari AYNEN, bir tik uzakta.
+   Board kurallari yalniz #octo-wsb-board[data-layout="board"] altinda EKLENIR. Kokte, hucrede ve satirda
+   transform / filter / will-change / contain YOK; transform yalniz pinch sirasinda sutun li'sinde ve hayalette
+   (ikisi de tablonun atasi degil). Canlandirilan yalniz opacity ve transform. */
 
 /* Duzen secici: h2'nin hemen saginda sessiz bolmeli denetim (32 px hap, tik alani 44 px). Iki duzende de. */
 #octo-wsb-board .octo-wsb-lay {
@@ -48020,6 +48021,54 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
 #octo-wsb-board .octo-wsb-lbtn[aria-pressed="true"] > span { background: var(--octo-surface); box-shadow: var(--octo-sh-s); color: var(--octo-ink); }
 #octo-wsb-board .octo-wsb-lbtn:focus-visible { outline: none; }
 #octo-wsb-board .octo-wsb-lbtn:focus-visible > span { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+
+/* Kart basligi secicisi (0C.7.3, yalniz Board): duzen secicisinin teknigi aynen (44 px tik alani, 28 px ic hap,
+   600 12/16, ink-2); hover ve acik durumda field zemini; cerceve ve golge yok; odak halkasi ic span'da. */
+#octo-wsb-board .octo-wsb-tbtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+#octo-wsb-board .octo-wsb-tin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px 0 12px;
+  border-radius: var(--octo-r9);
+  color: var(--octo-ink-2);
+  font: 600 12px/16px var(--octo-font);
+  white-space: nowrap;
+}
+#octo-wsb-board .octo-wsb-tin > svg { flex: 0 0 auto; }
+#octo-wsb-board .octo-wsb-tval { min-width: 0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#octo-wsb-board .octo-wsb-tbtn:hover > .octo-wsb-tin,
+#octo-wsb-board .octo-wsb-tbtn[aria-expanded="true"] > .octo-wsb-tin { background: var(--octo-field); color: var(--octo-ink); }
+#octo-wsb-board .octo-wsb-tbtn[aria-busy="true"] { cursor: progress; }
+#octo-wsb-board .octo-wsb-tbtn:focus-visible { outline: none; }
+#octo-wsb-board .octo-wsb-tbtn:focus-visible > .octo-wsb-tin { outline: 2px solid var(--octo-accent); outline-offset: 2px; }
+/* Menudeki Automatic maddesinin soluk otomatik alan basligi. */
+#octo-wsb-pop .octo-wsb-tauto {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--octo-ink-3t);
+  font: 400 12px/16px var(--octo-font);
+}
+/* Hover / odak zemininde (--octo-field) ink-3t 4,5:1'in altina duser (~4,44:1): orada ink-2. */
+#octo-wsb-pop .octo-wsb-item:hover > .octo-wsb-tauto,
+#octo-wsb-pop .octo-wsb-item:focus > .octo-wsb-tauto { color: var(--octo-ink-2); }
 
 /* Board koku: dikey kaymaz, tek eksen yatay serittir; baslik akista (yapiskan degil). */
 #octo-wsb-board[data-layout="board"] {
@@ -48229,6 +48278,8 @@ html[data-octo-ws="1"] .octo-tabs-side { display: none !important; }
   font: 500 13px/18px var(--octo-font);
   color: var(--octo-ink);
 }
+/* 0C.6.2: degeri olmayan kartin durust etiketi soluk (yaklasik 7,6:1), italik yok; gercek baslik ink 500 kalir. */
+#octo-wsb-board .octo-wsb-rref[data-empty="1"] { color: var(--octo-ink-2); font-weight: 400; }
 #octo-wsb-board .octo-wsb-rage {
   padding-top: 1px;
   white-space: nowrap;
@@ -49471,7 +49522,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   // Yeniden giris bekcisi: blok HTM'ye iki kez girerse ikinci kopya sessizce cikar.
   if (window.octo && window.octo.__loaded) { return; }
 
-  var VERSION = 'octo 2026-10-20.os9b';
+  var VERSION = 'octo 2026-10-22.os9b';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var K_STATE = 'octo.v1';
@@ -67584,11 +67635,12 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
    Ray (app-rail.js) iki kanca tasir: ownNode kabuk dugumlerini tanir; sol menu gizleyicisi kipte susar.
 
    Veri YALNIZ Bubble DOM'undan (adlar, Bubble'in kendi sayaclari) ve rayin baglamindan / os_workspace
-   cevabindan (surec adlari, tipi). os9b (OCTO_BOARD_SPEC): panonun Board duzeninde kart verisi tablonun
-   aynasindan, tablonun kendi Bubble kopru yoluyla (mirror_query, salt okunur); Overview duzeninde (varsayilan)
-   ag cagrisi YOK. Tum uzak metin textContent. Kod yorumlari Turkce, UI metni Ingilizce, em/en dash yok.
+   cevabindan (surec adlari, tipi). os9b (OCTO_BOARD_SPEC): panonun Board duzeninde (0C: varsayilan) kart verisi
+   tablonun aynasindan, tablonun kendi Bubble kopru yoluyla (mirror_query, salt okunur); Overview duzeninde ag
+   cagrisi YOK. Tum uzak metin textContent. Kod yorumlari Turkce, UI metni Ingilizce, em/en dash yok.
 
-   Harness dikisleri: window.__octoWsQuery (location.search yerine), window.__OCTO_WS_OFF, octo._wsbar.
+   Harness dikisleri: window.__octoWsQuery (location.search yerine), window.__OCTO_WS_OFF, octo._wsbar,
+   window.__octoWsLayoutDefault ('overview' | 'board', os9b 0C.1.1).
 
    os9m (OCTO_MOBILE_SPEC): 900 px altinda kipin mobil varyanti (S.mob dali; yeni modul degil). Ust kenarda tam
    genislik kompakt bant (position absolute), rayin hucresinde yer ayirma dugumu (.octo-wsb-mslot), Bubble'in < 450
@@ -67706,7 +67758,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     // os9m mobil varyant: kip bayragi (mount yazar), kurulum sayaci, Bubble menusu yeniden acma (kapanis basina),
     // yer ayirma dugumu ve olcumu, perde, bos durum, Bubble edit kipinde zorunlu Classic, masaustu duzen bellegi
     mob: false, mounts: 0, mobReopen: 0, mobReopens: 0, mobReopenAt: -1e9, mobClickAt: -1e9,
-    mslot: null, mslotH: 0, mobTop: '', mobH: 0, sscrim: null, empty: null, emptyKind: '', classicEdit: false, layoutDesk: '',
+    mslot: null, mslotH: 0, mobTop: '', mobH: 0, sscrim: null, empty: null, emptyKind: '', classicEdit: false, layoutDesk: '', layoutDeskBy: '',
     // os9m alt sayfalar: klavyeyle acilis, Bubble menusu acma beklemesi (belirtec, bekliyor, acilmadi)
     menuKb: false, popTok: 0, popWait: false, popFail: false,
     // os9m bos durum (OCTO_MOBILE_SPEC 7): bekleme kosulu ('none' | 'pick') ve baslangici, karar, neden, cizim imzasi
@@ -70262,6 +70314,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   }
 
   // ------------------------------------------------------------------ menu
+  // kb: klavyeyle acildi (0C.7.5: Title: menusunde odak isaretli maddeye gider; os9m 5.5: mobil alt sayfada ilk maddeye).
   function toggleMenu(kind, anchor, kb) {
     if (S.menu === kind) { closeMenu(true); return; }
     openMenu(kind, anchor, kb);
@@ -70269,15 +70322,20 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   function openMenu(kind, anchor, kb) {
     if (!S.mounted || !S.pop || S.chromeErr) { return false; }
     // os9m: mobilde surec ve gorunum menuleri tek Views alt sayfasidir (openBoard / zoomOut yedekleri dahil);
-    // masaustunde 'nav' turu yok.
+    // masaustunde 'nav' turu yok. 0C Title: secicisi yalniz masaustu Board basligindadir (OCTO_MOBILE_SPEC 6.4).
     if (S.mob && (kind === 'stages' || kind === 'views')) { kind = 'nav'; }
     if (kind === 'nav' && !S.mob) { return false; }
+    if (kind === 'title' && S.mob) { return false; }
+    var actOf = { ws: 'ws-menu', stages: 'stage-menu', views: 'views-menu', menu: 'menu', nav: 'nav-menu', title: 'title-menu' };
+    // 0C.7.5: Title: secicisinin capasi panonun basligindadir; dugme yoksa (gorunmuyor) menu acilmaz.
+    var an = anchor || (kind === 'title' ? (S.board ? q1('[data-act="title-menu"]', S.board) : null)
+      : (q1('[data-act="' + actOf[kind] + '"]', S.bar) || q1('[data-view="board"]', S.bar))) || null;
+    if (kind === 'title' && !an) { return false; }
     closeMenu(false);
     S.menu = kind;
     S.findQ = '';
     S.blankAt = 0;
-    var actOf = { ws: 'ws-menu', stages: 'stage-menu', views: 'views-menu', menu: 'menu', nav: 'nav-menu' };
-    S.menuAnchor = anchor || q1('[data-act="' + actOf[kind] + '"]', S.bar) || q1('[data-view="board"]', S.bar) || null;
+    S.menuAnchor = an;
     S.pop.setAttribute('data-kind', kind);
     S.pop.hidden = false;
     // os9m: alt sayfa perdesi (iOS duz alana mousedown gondermez; perde tiki kapatir). Hareket: sayfa 200 ms alttan,
@@ -70293,8 +70351,13 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     S.menuKb = !!kb;
     if (kind === 'ws') { loadAllSheets(); }
     paintMenu();
+    if (!S.menu) { return false; }   // boyama menuyu kapatti (Title: gorunmuyor)
     paintBar();
-    peek(true);
+    if (kind === 'title') {
+      // Pano capasi cubukta degil: aria-expanded yerinde yazilir (sonraki boyama S.menu'den ayni degeri boyar).
+      if (S.menuAnchor) { S.menuAnchor.setAttribute('aria-expanded', 'true'); }
+      if (kb) { focusPicked(); }
+    } else { peek(true); }
     if (S.mob) { popFocus(); }
     try { D.addEventListener('mousedown', onDocDown, true); } catch (e) { /* yut */ }
     trace('menu:' + kind);
@@ -70310,9 +70373,11 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   }
   function closeMenu(focusBack) {
     if (!S.menu) { return; }
-    var a = S.menuAnchor;
+    var a = menuAnc();
+    var ak = (a && a.getAttribute) ? (a.getAttribute('data-key') || '') : '';
     S.menu = '';
     S.menuAnchor = null;
+    S.titleOpts = [];
     // os9m: suren Bubble menusu acma beklemesi bu sayfaya artik yazmaz.
     S.popTok++;
     S.popWait = false;
@@ -70325,8 +70390,13 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     if (S.sscrim) { S.sscrim.hidden = true; }
     try { D.removeEventListener('mousedown', onDocDown, true); } catch (e) { /* yut */ }
     if (S.bar) { paintBar(); }
+    // 0C.7.5: panodaki capa (b:) panoda geri bulunur; digerleri cubukta.
+    if (ak.indexOf('b:') === 0) {
+      if (a && isConn(a)) { a.setAttribute('aria-expanded', 'false'); }
+      if (focusBack && S.board) { restoreFocus(S.board, ak); }
+      return;
+    }
     if (focusBack && a) {
-      var ak = a.getAttribute && a.getAttribute('data-key');
       // os9m (inceleme M9, OCTO_MOBILE_SPEC 5.5): bos durum kartindan acilan sayfada odak kartin dugmesine doner (kart
       // cubugun disinda); kart gizlendiyse cubugun Workspace dugmesine.
       if (S.empty && ak && ak.indexOf('e-') === 0) {
@@ -70335,12 +70405,27 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       } else if (S.bar) { restoreFocus(S.bar, ak); }
     }
   }
+  // Capa yeniden boyandiysa kopuktur: ayni data-key ile yeniden bulunur (b: anahtarlari panoda, os9m e- anahtarlari
+  // bos durum kartinda, digerleri cubukta).
+  function menuAnc() {
+    var a = S.menuAnchor;
+    if (a && !isConn(a)) {
+      var ak = (a.getAttribute && a.getAttribute('data-key')) || '';
+      var sc = ak.indexOf('b:') === 0 ? S.board : (ak.indexOf('e-') === 0 ? S.empty : S.bar);
+      var an = (ak && sc) ? q1('[data-key="' + ak.replace(/"/g, '') + '"]', sc) : null;
+      if (an) { S.menuAnchor = a = an; }
+    }
+    return a;
+  }
   function onDocDown(e) {
     var t = e && e.target;
     // WSEDIT: modulun dugumune atilan olay (Bubble menusunu kapatan gizli nobetci) os9a menusunu kapatmaz.
     var wse = wsEdit();
     if (wse && wse.own(t)) { return; }
     if (S.pop && S.pop.contains(t)) { return; }
+    // 0C.7.5: capaya tik menuyu kapatip yeniden acmaz (tik kendisi kapatir).
+    var an = menuAnc();
+    if (an && isConn(an) && an.contains(t)) { return; }
     // os9m: alt sayfa perdesi kendi tikiyle kapatir (closeMenu(true), odak tetikleyiciye). mousedown'da kapanirsa perde
     // gizlenir ve ayni dokunusun mouseup / click'i alttaki tabloya ya da Bubble'a duserdi.
     if (S.sscrim && S.sscrim.contains(t)) { return; }
@@ -70534,6 +70619,12 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       cl.setAttribute('aria-checked', S.classic ? 'true' : 'false');
       list.appendChild(cl);
       if (wse) { wse.menuItems(list, s, item, 'tail'); }
+    } else if (kind === 'title') {
+      // 0C.7.4: kart basligi secicisi. Dugme artik gorunmuyorsa (duzen, zoom, View as, kapi) menu kapanir.
+      if (!titleCtlOk() || !boardOpen() || S.zoom) { closeMenu(false); return; }
+      p.setAttribute('role', 'presentation');
+      list.setAttribute('aria-label', 'Card title');
+      titleItems(list, s);
     }
     p.appendChild(list);
     // os9m 5.1: mobil alt sayfa kipli diyalogdur (baslikla adlandirilir); ic liste role=menu.
@@ -70672,27 +70763,78 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     for (var i = 0; rows && i < rows.length; i++) { if (rows[i].name === name) { return true; } }
     return false;
   }
+  // Title: menusunun maddeleri. Kaynak yalniz bu oturumda gorulen ekranlarin tam listeleri (WT menu, deger yok).
+  // Maddeler data-idx ile S.titleOpts kapanis dizisine bagli: DOM'a alan anahtari yazilmaz; basliklar ve surec adlari
+  // yalniz textContent. Grup basi: All records (her kartta gecerli) + gorulen ve eslenen her surecin fazladan alanlari.
+  function titleItems(list, s) {
+    var tm = titleMenu(s);
+    var opts = S.titleOpts = [];
+    var au = item('Automatic', 'title-auto', '', { 'data-key': 'tt:auto' });
+    au.setAttribute('role', 'menuitemradio');
+    au.setAttribute('aria-checked', tm.pick ? 'false' : 'true');
+    // Soluk otomatik alan basligi (birincil _ref ise bos); yalniz metin, oznitelik yok.
+    if (tm.auto) { au.appendChild(el('span', 'octo-wsb-tauto', tm.auto)); }
+    if (!tm.pick) { au.appendChild(octo.icon('check', 16, { className: 'octo-wsb-check' })); }
+    list.appendChild(au);
+    function group(name, fields) {
+      if (!fields.length) { return; }
+      var g = el('div', 'octo-wsb-tgrp');
+      g.setAttribute('role', 'group');
+      g.setAttribute('aria-label', name);
+      var h = el('div', 'octo-wsb-mhead', name);
+      h.setAttribute('aria-hidden', 'true');
+      g.appendChild(h);
+      for (var i = 0; i < fields.length; i++) {
+        var f = fields[i], n = opts.length;
+        opts.push({ key: f.key, header: f.header });
+        var it = item(f.header, 'title-pick', '', { 'data-idx': n, 'data-key': 'tt:' + n });
+        var on = !!tm.pick && f.key === tm.pick;
+        it.setAttribute('role', 'menuitemradio');
+        it.setAttribute('aria-checked', on ? 'true' : 'false');
+        if (on) { it.appendChild(octo.icon('check', 16, { className: 'octo-wsb-check' })); }
+        g.appendChild(it);
+      }
+      list.appendChild(g);
+    }
+    group('All records', tm.all);
+    for (var k = 0; k < tm.stages.length; k++) { group(tm.stages[k].name, tm.stages[k].fields); }
+    // Bos durum menu kipinde de duyulur: madde degil (ok tuslari atlar), menunun aciklamasi (aria-describedby).
+    if (!opts.length) {
+      var no = el('div', 'octo-wsb-none', 'No fields to choose');
+      no.id = 'octo-wsb-tnone';
+      list.appendChild(no);
+      list.setAttribute('aria-describedby', no.id);
+    }
+    // Bu tabloda All records henuz ogrenilmediyse sonraki adim (UXS:18): tek tikla tum kayitlar ekrani.
+    if (!tm.seenAll) {
+      list.appendChild(el('div', 'octo-wsb-div'));
+      list.appendChild(item('Open All records', 'title-all', 'table', { 'data-key': 'tt:all' }));
+    }
+  }
   function placeMenu() {
-    var p = S.pop, a = S.menuAnchor;
+    var p = S.pop;
     if (!p || p.hidden) { return; }
     // os9m: alt sayfa CSS'le alta yasli (satir ici top / left yok).
     if (S.mob) { p.style.top = ''; p.style.left = ''; return; }
     var br = S.bar ? S.bar.getBoundingClientRect() : { bottom: 52, left: 0 };
     var vw = D.documentElement.clientWidth || W.innerWidth || 1280;
     p.style.top = Math.round(br.bottom + 6) + 'px';
-    // Cubuk yeniden boyandiysa capa kopuktur: ayni data-key ile yeniden bulunur.
-    if (a && !isConn(a) && S.bar) {
-      var ak = a.getAttribute && a.getAttribute('data-key');
-      var an = ak ? q1('[data-key="' + ak.replace(/"/g, '') + '"]', S.bar) : null;
-      if (an) { S.menuAnchor = a = an; }
-    }
+    // Cubuk ya da pano yeniden boyandiysa capa kopuktur: ayni data-key ile yeniden bulunur (menuAnc).
+    var a = menuAnc();
     var ar = (a && isConn(a) && !a.hidden) ? a.getBoundingClientRect() : br;
     var w = p.offsetWidth || 300;
     var left = Math.round(ar.left);
     // os9c: sag bolgenin menusu (Menu avatari) dugmenin sagina hizali.
     if (S.hdrMode && a && S.zr && S.zr.contains(a)) { left = Math.max(8, Math.round(ar.right - w)); }
-    // os9d: dock'taki Menu: dock'un 8 px saginda, alt kenari dugmenin alt kenarina hizali (ekrana sigdirilir).
-    if (S.hdrMode && a && S.dock && S.dock.contains(a)) {
+    // 0C.7.5: Board basligindaki Title: secicisi dugmenin 6 px altinda, sol kenari dugmeyle hizali (ekrana sigdirilir).
+    // Dock dalindan ONCE: capa panoda, dock'ta degil.
+    if (a && isConn(a) && S.board && S.board.contains(a)) {
+      var bh = D.documentElement.clientHeight || W.innerHeight || 800;
+      var bp = p.offsetHeight || 240;
+      p.style.top = Math.max(8, Math.min(bh - bp - 8, Math.round(ar.bottom + 6))) + 'px';
+      left = Math.round(ar.left);
+    } else if (S.hdrMode && a && S.dock && S.dock.contains(a)) {
+      // os9d: dock'taki Menu: dock'un 8 px saginda, alt kenari dugmenin alt kenarina hizali (ekrana sigdirilir).
       var vh = D.documentElement.clientHeight || W.innerHeight || 800;
       var ph = p.offsetHeight || 240;
       left = DOCK_W + 8;
@@ -70706,11 +70848,26 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var f = S.pop.querySelector('.octo-wsb-find') || S.pop.querySelector('.octo-wsb-item');
     if (f) { try { f.focus(); } catch (e) { /* yut */ } }
   }
+  // 0C.7.5: klavyeyle acilan Title: menusunde odak isaretli maddeye (yoksa ilk maddeye).
+  function focusPicked() {
+    if (!S.pop) { return; }
+    var f = S.pop.querySelector('.octo-wsb-item[aria-checked="true"]') || S.pop.querySelector('.octo-wsb-item');
+    if (f) { try { f.focus(); } catch (e) { /* yut */ } }
+  }
   function onPopKey(e) {
     var k = e && e.key;
     if (k === 'Escape' || k === 'Esc') { e.preventDefault(); e.stopPropagation(); closeMenu(true); return; }
-    // os9m 5.5: kipli alt sayfada Tab / Shift+Tab sayfa icinde doner (Close, arama, maddeler).
+    // os9m 5.5: kipli alt sayfada Tab / Shift+Tab sayfa icinde doner (Close, arama, maddeler). Masaustu kurali asagida.
     if (k === 'Tab' && S.mob) { popTrap(e); return; }
+    // Ikinci inceleme (WAI-ARIA menu dugmesi): Tab / Shift+Tab menuyu kapatir, odak capaya doner ve tarayicinin Tab'i
+    // oradan surer (preventDefault yok). Cubugun son dugmesinden Tab'in panoya yolu (tabOut, ust cubuk) aynen.
+    if (k === 'Tab') {
+      closeMenu(true);
+      var an = null;
+      try { an = D.activeElement; } catch (e0) { an = null; }
+      if (!e.shiftKey && S.hdrMode && S.bar && an && S.bar.contains(an)) { tabOut({ target: an, preventDefault: function () { e.preventDefault(); } }); }
+      return;
+    }
     if (k !== 'ArrowDown' && k !== 'ArrowUp' && k !== 'Home' && k !== 'End') { if (k === 'Enter' || k === ' ') { e.stopPropagation(); } return; }
     var items = [];
     var all = S.pop.querySelectorAll('.octo-wsb-find, .octo-wsb-item');
@@ -70751,6 +70908,14 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       return;
     }
     if (wse && wse.act(a, t)) { closeMenu(false); return; }
+    // 0C.7.5: kart basligi secimi. Secenek kapanis dizisinden okunur (kapanmadan once), odak Title:'a doner.
+    if (a === 'title-pick' || a === 'title-auto') {
+      var to = a === 'title-pick' ? (S.titleOpts[idx] || null) : null;
+      closeMenu(true);
+      if (a === 'title-auto') { titleChoose(''); } else if (to) { titleChoose(to.key, to.header); }
+      return;
+    }
+    if (a === 'title-all') { closeMenu(false); ensureTableTab(); openView('all'); return; }
     if (a === 'add-table') {
       // Bubble'in '+ Add Table'i onaysiz hemen tablo yazar: iki adim.
       if (!S.blankAt || (now() - S.blankAt) >= T.blankConfirm) { S.blankAt = now(); paintMenu(); restoreFocus(S.pop, 'addtable'); return; }
@@ -71019,8 +71184,16 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var head = el('header', 'octo-wsb-bhead');
     var tw = el('div', 'octo-wsb-btw');
     tw.appendChild(el('h2', 'octo-wsb-btitle', 'Processes'));
-    // os9m 6.1: telefonda duzen secici yok (Board yalniz masaustu).
-    if (!S.mob) { tw.appendChild(layoutSwitch()); }
+    // os9m 6.1: telefonda duzen secici ve 0C Title: secicisi yok (Board yalniz masaustu); baslikta yalniz Processes
+    // + New record.
+    if (!S.mob) {
+      tw.appendChild(layoutSwitch());
+      if (S.layout === 'board') {
+        // 0C.7.1: kart basligi secicisi duzen secicisinden sonra, altyazidan once (gorunum secimi; bacts'ta degil).
+        var tc = titleCtl();
+        if (tc) { tw.appendChild(tc); }
+      }
+    }
     if (S.layout === 'board') { cardsNote(tw); }
     head.appendChild(tw);
     var acts = el('div', 'octo-wsb-bacts');
@@ -71144,7 +71317,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var a = t.getAttribute('data-act');
     // detail 0 = klavye (Enter / Space): odak zoom sonunda cubuga; fare tiklamasinda odak birakilir.
     var kb = e.detail === 0;
-    if (a === 'layout') { setLayout(t.getAttribute('data-layout')); return; }
+    if (a === 'layout') { setLayout(t.getAttribute('data-layout'), 'user'); return; }
+    if (a === 'title-menu') { toggleMenu('title', t, kb); return; }
     if (S.layout === 'board' && colsClick(e, t, a, kb)) { return; }
     if (a === 'zoom') { zoomIn(Number(t.getAttribute('data-idx')), { kb: kb }); return; }
     if (a === 'all') { openView('all'); return; }
@@ -71156,6 +71330,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var k = e && e.key;
     if (k === 'Enter' || k === ' ' || k === 'Spacebar') { e.stopPropagation(); return; }
     if (layKey(e)) { return; }
+    if (titleKey(e)) { return; }
     if (S.layout === 'board') { colsKey(e); return; }
     if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') { return; }
     var cards = Array.prototype.slice.call(S.board.querySelectorAll('.octo-wsb-card'));
@@ -71675,6 +71850,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     S.bootTries = 0;
     S.view = null;
     S.touched = false;
+    S.layout = layoutDefault();   // 0C.1.2: her kurulum varsayilan duzenle baslar (?ws=0 + ?ws=1 dahil)
+    S.layoutBy = 'default';
     try { S.pinned = octo.state.get(PIN_KEY, true) !== false; } catch (e) { S.pinned = true; }
     try {
       if (typeof MutationObserver === 'function') {
@@ -71730,7 +71907,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     S.armed = false;
     S.counts = {}; S.names = {}; S.memoSig = {}; S.scannedAt = {}; S.noProc = {}; S.sheetSig = ''; S.sig = ''; S.snap = null; S.cur = null; S.full = null;
     S.view = null; S.page = 0; S.chromeErr = ''; S.reopenTries = 0; S.dropAt = 0;
-    S.mobReopen = 0; S.mobReopens = 0; S.mobReopenAt = -1e9; S.mobClickAt = -1e9; S.layoutDesk = ''; S.emptyKind = '';
+    S.mobReopen = 0; S.mobReopens = 0; S.mobReopenAt = -1e9; S.mobClickAt = -1e9; S.layoutDesk = ''; S.layoutDeskBy = ''; S.emptyKind = '';
     S.emptyAt = 0; S.emptyCond = ''; S.emptyDec = ''; S.emptyWhy = ''; S.emptySig = ''; S.pp = { n: 1, m: 5 }; S.ddxUrl = false; S.ddxU0 = null; S.modeAt = 0;
     S.emptyAt0 = 0; S.rowsPu = null;
     S.resizeDue = false; S.noFitKey = ''; S.gapAt = 0;
@@ -71799,9 +71976,17 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     S.mob = mob();
     S.mounts++;
     S.classicEdit = false;
-    // Board duzeni yalniz masaustu: mobile girerken saklanir, masaustu kurulumunda geri gelir.
-    if (S.mob && S.layout === 'board') { S.layoutDesk = 'board'; setLayout('overview'); }
-    else if (!S.mob && S.layoutDesk) { var ld = S.layoutDesk; S.layoutDesk = ''; setLayout(ld); }
+    // os9m 2.1 + 0C.1.7: Board duzeni yalniz masaustu. Mobil kurulum Overview'a gecer; by 'mode' S.layoutBy'i
+    // degistirmez (telefonun zorunlu Overview'u kisinin secimi sayilmaz). Masaustu kurulumu unmount('mode')'un sakladigi
+    // masaustu duzenini ve secenini (S.layoutDesk / S.layoutDeskBy; TEK yazim yeri unmount) geri yazar; saklanan yoksa
+    // ve kimse secmediyse masaustu varsayilani (telefondaki cardsDrop layoutDefault'tan 'overview' yazmis olabilir).
+    if (S.mob) { if (S.layout === 'board') { setLayout('overview', 'mode'); } }
+    else if (S.layoutDesk) {
+      var ld = S.layoutDesk, lb = S.layoutDeskBy;
+      S.layoutDesk = ''; S.layoutDeskBy = '';
+      setLayout(ld, 'mode');
+      if (lb) { S.layoutBy = lb; }
+    } else if (S.layoutBy === 'default') { setLayout(layoutDefault(), 'mode'); }
     S.chromeErr = err || '';
     S.variant = (railM() && railM().variant) || '';
     S.zoom = null;
@@ -71836,9 +72021,12 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     dropWaiters();
     abortScan();
     detachBoard();
-    // os9m 2.1: masaustunden mobile geciste Board secimi saklanir (cardsDrop duzeni Overview'a dondurur);
-    // masaustu kurulumunda geri gelir.
-    if (why === 'mode' && !S.mob && S.layout === 'board') { S.layoutDesk = 'board'; }
+    // os9m 2.1 + 0C.1.7: masaustunden mobile geciste masaustu duzeni ve secen (layoutBy) saklanir, cardsDrop'tan ONCE
+    // (cardsDrop varsayilana dondurur); masaustu kurulumunda geri gelir. S.layoutDesk'in tek yazim yeri.
+    // Birlesim incelemesi (0C.1.2): saklanan yalniz bir sonraki kip disi geri almaya dek yasar; telefonda Bubble'a
+    // yol vermek (rail, guest, ctx, table, err) masaustundeki gibi varsayilana dondurur.
+    if (why === 'mode') { if (!S.mob) { S.layoutDesk = S.layout; S.layoutDeskBy = S.layoutBy; } }
+    else { S.layoutDesk = ''; S.layoutDeskBy = ''; }
     cardsDrop(hard);
     rm(S.bar); S.bar = null;
     rm(S.pop); S.pop = null;
@@ -72334,20 +72522,30 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
 
   /* ======================================================================
      WSB-CARDS (os9b)  -  OCTO_BOARD_SPEC. Processes panosunun iki duzeni:
-     - Overview (VARSAYILAN): os9a sayacli surec kartlari AYNEN (yukaridaki paintBoard, klavye, pinch, hayalet).
-     - Board (yalniz kullanici secince): Trello bicimi yatay surec seridi. Sutun basi os9a karti (.octo-wsb-card,
-       ayni zoom sozlesmesi, Bubble'in kendi sayaci); altinda o surecin en yeni en cok 6 kaydi (Kesim 2), en altta
-       'Open all <n>'. Salt okunur: surukle-birak YOK.
+     - Board (0C: VARSAYILAN, layoutDefault): Trello bicimi yatay surec seridi. Sutun basi os9a karti
+       (.octo-wsb-card, ayni zoom sozlesmesi, Bubble'in kendi sayaci); altinda o surecin en yeni en cok 6 kaydi
+       (Kesim 2), en altta 'Open all <n>'. Salt okunur: surukle-birak YOK. Varsayilan Board kayit alamazsa (tablerr,
+       tablo beklemesi T.openWait, kesin ret ya da ilk yuklemede gecici hata) sayfada bir kez Overview'a cekilir
+       (layoutAuto, canli satir 'Showing Overview'); kullanici sectiyse cekilmez.
+     - Overview: os9a sayacli surec kartlari AYNEN (yukaridaki paintBoard, klavye, pinch, hayalet). Bir tik uzakta;
+       __OCTO_WS_CARDS_OFF eski varsayilani da geri getirir.
      Kesim 2 kart verisi tablonun aynasindan, tablonun kendi Bubble kopru yoluyla (mirror_query; yenileme basina 2
      cagri). Kayit verisi YALNIZ bu kapanisin belleginde; localStorage / sessionStorage / octo.state / octo.cache'e
      yazilmaz; kayit kimligi DOM'a yazilmaz (kart data-key = r:<k>:<i>, kimlik kapanis haritasinda). Uzak metin
-     (_ref) yalniz textContent. trace yalniz olay adi tutar. Duzen secimi yalniz S.layout'ta (sayfa omru).
+     (_ref) yalniz textContent. trace yalniz olay adi tutar. Duzen secimi yalniz S.layout'ta (sayfa omru). 0C.7.9:
+     octo.state'e yalniz Title: seciminin alan anahtari (sema) yazilir, karma kullanici|tablo altinda; deger asla.
      ====================================================================== */
   (function () {
     var add = {
       perCol: 6, recTtl: 300000, recMin: 30000, recDeb: 3000, recCap: 12, recAbort: 30000, recRetryA: 1500, recRetryB: 4000,
       recCaption: 300, staleMs: 300000, openWait: 30000, openPoll: 250, revealWait: 2000, searchMax: 8000, dragSlop: 8,
-      tableWait: 4000
+      tableWait: 4000,
+      // Ikinci inceleme (0C.1.5 b): tablo YUKLERKEN beklenen sure. TV2'nin ayna cagrisi 25 sn'de vazgecer ve 1,5 / 4 /
+      // 8 sn arayla yeniden dener (TV2:5760, 5787; Render ucretsiz plan soguk acilisi 30-60 sn): en kotu ~115 sn.
+      openLoad: 120000,
+      // 0C.12: B oncesi ogrenme beklemesi, yalniz baslik cagrisi geciktirmesi ve otomatik sinir, ogrenme yoklamasi ve
+      // basarili okumanin tazeleme araligi.
+      titleWait: 1500, titleDeb: 400, titleMax: 3, titleLearn: 500, titleBeat: 5000
     };
     for (var k in add) { if (Object.prototype.hasOwnProperty.call(add, k)) { T[k] = add[k]; T_DEFAULT[k] = add[k]; } }
   })();
@@ -72355,28 +72553,60 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     return {
       byTable: {}, tidOf: {}, refused: {}, seq: 0, ctrl: null, inflight: null, phase: 'off', why: 'layout', at: 0, calls: [],
       liveChg: 0, cntSig: '', loadAt: 0, sk: '', pu: null, shown: {}, painted: {}, errTid: '', errAt: 0, tblSince: 0,
-      errCls: '', cap: '', capPend: false, capNode: null
+      errCls: '', cap: '', capPend: false, capNode: null, tinf: null, tw: 0, tpvN: 0
     };
   }
-  S.layout = 'overview';
+  // 0C.1.2: duzen modul yuklenirken, boot'ta ve cardsDrop'ta varsayilana (layoutDefault) doner; kimin sectigi
+  // S.layoutBy ('default' | 'user' | 'auto'); otomatik geri cekilme sayfada bir kez (S.layAuto). Depoya yazilmaz.
+  S.layout = layoutDefault();
+  S.layoutBy = 'default';
+  S.layAuto = false;
   S.cards = cardsFresh();
   S.colScroll = {};
   S.press = null;
   S.lastRec = null;
   S.colsShown = false;
+  // 0C.7: Title: menusunun secenekleri (kapanis dizisi, data-idx), kullanici kimligi okunamazken secim (sayfa bellegi),
+  // depodan WT'ye aktarilmis secimin notu (karma kullanici|tablo) ve secim sayaci.
+  S.titleOpts = [];
+  S.pickMem = {};
+  S.pickFor = '';
+  S.pickGen = 0;
+  var TITLE_KEY = 'wsb.title';   // octo.state: { "<fnv1a(user_id)>|<tid>": "<alan anahtari>" } (yalniz sema)
+  var TITLE_MAX = 30;
+  // Secicinin gizlendigi kart nedenleri (0C.7.1): kapi kesin kapali ya da yalniz sayac seridi.
+  var TITLE_OFF = { off: 1, origin: 1, viewas: 1, mirror: 1, rail: 1, tablerr: 1, layout: 1 };
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  var CARDS_OFF = { layout: 1, off: 1, origin: 1, viewas: 1, mirror: 1, rail: 1 };
+  var CARDS_OFF = { layout: 1, off: 1, origin: 1, viewas: 1, mirror: 1, tablerr: 1, rail: 1 };
+  var SYS4 = ['_id', '_ref', '_surec', '_modified'];
   var BID_RE = /^\d{13}x\d{15,}$/;
   function isArr(a) { return Object.prototype.toString.call(a) === '[object Array]'; }
   function nonEmpty(a) { return isArr(a) && a.length > 0; }
   function isCellLi(x) { return hasCls(x, 'octo-wsb-cell'); }
 
   // ------------------------------------------------------------- duzen secici
+  // 0C.1.1: varsayilan duzen. Harness dikisi W.__octoWsLayoutDefault ('overview' | 'board'; __octoWsDefaultOff
+  // deseni) once; kart kapatma anahtari (__OCTO_WS_CARDS_OFF) eski varsayilani da geri getirir; yoksa Board.
+  // 0C.1.7 + os9m 6.4: mobil kipte her zaman Overview (Board yalniz masaustu). Saf islev: S.layoutDesk'e dokunmaz
+  // (masaustu duzeni yalniz unmount('mode')'da saklanir).
+  function layoutDefault() {
+    if (S.mob) { return 'overview'; }
+    var v = W.__octoWsLayoutDefault;
+    if (v === 'overview' || v === 'board') { return v; }
+    if (W.__OCTO_WS_CARDS_OFF === true) { return 'overview'; }
+    return 'board';
+  }
   // Overview / Board: pano kapaliyken yalniz S.layout yazilir; Overview'a donus ucustaki kart istegini keser.
-  function setLayout(name) {
+  // by (0C.1.3): 'user' (varsayilan; tik ve api.layout), 'default', 'auto' (layoutAuto) ya da 'mode' (telefon kipi,
+  // octo-mobile): 'mode' S.layoutBy'i degistirmez, masaustune donuste varsayilan korunur. S.layoutBy ayni adli
+  // erken donusten ONCE yazilir: zaten basili Board'a tik da kullanici secimi sayilir.
+  function setLayout(name, by) {
     if (name !== 'overview' && name !== 'board') { return S.layout; }
-    // os9m 6.4: Board duzeni yalniz masaustu; mobilde ret (kart ag cagrisi hic baslamaz).
+    // os9m 6.4: Board duzeni yalniz masaustu; mobilde ret (kart ag cagrisi hic baslamaz). Ret S.layoutBy yazimindan
+    // ONCE: reddedilen istek kullanici secimi sayilmaz.
     if (name === 'board' && S.mounted && S.mob) { return S.layout; }
+    if (by !== 'default' && by !== 'auto' && by !== 'mode') { by = 'user'; }
+    if (by !== 'mode') { S.layoutBy = by; }
     if (name === S.layout) { return S.layout; }
     S.layout = name;
     trace('layout:' + name);
@@ -72395,6 +72625,37 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     S.dirty = true;
     flush();
     return S.layout;
+  }
+  // Tablonun beklenen suresi (0C.1.5 b, ikinci inceleme): tablo yukluyorsa (soguk ayna, TV2'nin tekrar zinciri)
+  // T.openLoad, bostaysa (stats yok, baska tablonun stats'i) T.openWait.
+  function tableLimit() {
+    var t = gmStatus();
+    return (t && t.loading === true) ? Math.max(T.openWait, T.openLoad) : T.openWait;
+  }
+  // 0C.1.5: varsayilan Board kayit alamazsa Overview'a cekilir. Yalniz kimse secmediyse (layoutBy 'default') ve duzen
+  // Board iken; sayfada bir kez (S.layAuto, yalniz shutdown siler). Sonra Board'a basan kullanici tasarlanmis durumu
+  // gorur (Records unavailable ya da Could not load records + Try again). Pano gorunmuyorsa (tablo gorunumu, zoom,
+  // arka plan sekmesi) simdi gecilmez, kullaniciya gormedigi duzen soylenmez: pano gorunur olunca ayni durum (kapi,
+  // ret, hata beklemesi) cardsTick'te yeniden denetlenir (sekme icin onCardsVis). Doner: gecis yapildi mi.
+  function layoutAuto(why) {
+    // os9m: mobilde Board yok, geri cekilme de yok (kapi zaten 'layout').
+    if (S.mob || S.layoutBy !== 'default' || S.layout !== 'board' || S.layAuto) { return false; }
+    var hid = false;
+    try { hid = D.hidden === true; } catch (e) { hid = false; }
+    if (!S.mounted || hid || !boardOpen() || S.zoom) { return false; }
+    // Ikinci inceleme: odak panodaysa (Title:, Try again, kart) ya da acik Title: menusundeyse yeniden boyama onu
+    // dusurur (Board'a ozel dugum, menu kapanir): odak iki duzende de olan Overview dugmesine konur, body'ye dusmez.
+    var fa = null;
+    try { fa = D.activeElement; } catch (e1) { fa = null; }
+    var inB = !!fa && ((S.board && S.board.contains(fa)) || (S.menu === 'title' && S.pop && S.pop.contains(fa)));
+    S.layAuto = true;
+    setLayout('overview', 'auto');
+    var fb = null;
+    try { fb = D.activeElement; } catch (e2) { fb = null; }
+    if (inB && !(fb && S.board && S.board.contains(fb))) { restoreFocus(S.board, 'lay:overview'); }
+    trace('layout:auto:' + why);
+    say('Showing Overview');
+    return true;
   }
   function layoutSwitch() {
     var g = el('div', 'octo-wsb-lay');
@@ -72427,6 +72688,61 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     return true;
   }
 
+  // ------------------------------------------------------------- kart basligi secici (0C.7)
+  // Gorunurluk: Board duzeni, baslik modulu var, View as degil, ret yok ve kart nedeni kapali bir kapi degil (kapi
+  // 'table' beklemesinde de gorunur: kartlar gelince baslik satiri kaymaz).
+  function titleCtlOk() {
+    var C = S.cards;
+    return S.layout === 'board' && !!wtl() && !viewingAs() && C.phase !== 'refused' && !TITLE_OFF[C.why];
+  }
+  // Secicinin tablosu: bu sayfanin kapidan gecmis tablosu, yoksa tablonun stats'i YALNIZ bu sayfaya aitse (cardsGate'in
+  // sahiplik denetimi). Workspace degisiminde tablo yeni yukleme bitene dek eski tablonun stats'ini tasir: o anki secim
+  // ve menu eski tabloya yazilmasin ('' = Automatic, bos menu).
+  function titleTid() {
+    var C = S.cards, k = C.tidOf[sheetKey()];
+    if (k) { return k; }
+    var t = gmStatus(), tb = t && t.stats && t.stats.table, d = railData();
+    if (tb && str(tb.id) && ((d && str(tb.id) === str(d.sheet.id)) || clean(tb.name) === sheetName(S.snap))) { return str(tb.id); }
+    return '';
+  }
+  // button.octo-wsb-tbtn > span.octo-wsb-tin > 'Title:' + span.octo-wsb-tval + chevron-down. Erisilebilir ad gorunur
+  // metindir (aria-label yok); baslik sema, yalniz textContent ve title.
+  function titleCtl() {
+    if (!titleCtlOk()) { return null; }
+    var tid = titleTid(), pk = titlePick(tid), hd = pk ? pickHeader(tid, pk) : '';
+    var v = hd || 'Automatic';
+    var b = btn('octo-wsb-tbtn', 'title-menu');
+    b.setAttribute('data-key', 'b:title');
+    b.setAttribute('aria-haspopup', 'menu');
+    b.setAttribute('aria-expanded', S.menu === 'title' ? 'true' : 'false');
+    if (S.cards.tinf && S.cards.tinf.pick) { b.setAttribute('aria-busy', 'true'); }
+    var sp = el('span', 'octo-wsb-tin');
+    sp.appendChild(el('span', '', 'Title:'));
+    sp.appendChild(D.createTextNode(' '));
+    var tv = el('span', 'octo-wsb-tval', v);
+    tv.title = v;
+    sp.appendChild(tv);
+    sp.appendChild(octo.icon('chevron-down', 12));
+    b.appendChild(sp);
+    return b;
+  }
+  // Secim cagrisi (T8, pick) ucustayken dugme mesgul; tam boyama beklenmeden yerinde yazilir.
+  function titleBusyPaint() {
+    var tb = S.board ? q1('[data-key="b:title"]', S.board) : null;
+    if (!tb) { return; }
+    if (S.cards && S.cards.tinf && S.cards.tinf.pick) { tb.setAttribute('aria-busy', 'true'); } else { tb.removeAttribute('aria-busy'); }
+  }
+  // 0C.7.5: Title: dugmesinde ArrowDown menuyu acar, odak isaretli maddeye (Enter / Space dogal tik).
+  function titleKey(e) {
+    if (!e || e.key !== 'ArrowDown') { return false; }
+    var t = upTo(e.target, function (x) { return hasCls(x, 'octo-wsb-tbtn'); }, S.board);
+    if (!t) { return false; }
+    e.preventDefault();
+    e.stopPropagation();
+    if (S.menu !== 'title') { openMenu('title', t, true); } else { focusPicked(); }
+    return true;
+  }
+
   // ------------------------------------------------------------- Board cizimi
   // Altyazi onceligi: gecici hata > ret > View as > yukleniyor > onizleme > bayat (yalniz Board'da cizilir).
   function cardsCaption() {
@@ -72435,6 +72751,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     if (viewingAs() || (C.phase === 'off' && C.why === 'viewas')) { return 'Records hidden in View as'; }
     if (C.phase === 'error') { return 'Could not load records'; }
     if (C.phase === 'refused') { return 'Records unavailable'; }
+    // 0C.1.6: tablo hata verdi (kapi tablerr): yalniz sayac + ayni ret altyazisi.
+    if (C.phase === 'off' && C.why === 'tablerr') { return 'Records unavailable'; }
     var ent = cardsDrawable();
     if (C.phase === 'loading' && !ent) { return (now() - C.loadAt >= T.recCaption - 5) ? 'Loading records' : ''; }
     if (ent) {
@@ -72633,9 +72951,9 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     } else if (recs.length) {
       var ol = el('ol', 'octo-wsb-recs');
       ol.setAttribute('aria-label', x.name);
-      // RECORD-TITLE: kart, basligina deger veren alanlar sutunu icin hala izinliyse o basligi, degilse _ref yedegini gosterir.
-      var tal = titleAllow(ent ? ent.tid : '', x.id);
-      recs = recs.map(function (rr) { return recView(rr, tal); });
+      // RECORD-TITLE (0C.5.4): baslik su anki izinlerle ve secimle bellekteki degerlerden; dusen alan siradaki izinliye.
+      var tal = titleAllow(ent ? ent.tid : '', x.id), tpk = titlePick(ent ? ent.tid : '', ent ? ent.mapIds : null);
+      recs = recs.map(function (rr) { return recView(rr, tal, tpk, ent); });
       for (var i = 0; i < recs.length; i++) { var r = el('li'); r.appendChild(recCard(recs[i], k, i)); ol.appendChild(r); }
       li.appendChild(ol);
       C.painted[k] = recs;
@@ -72650,14 +72968,17 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     if (!col || x.count === 0) { return []; }
     return col.recs.slice(0, Math.min(T.perCol, x.count != null ? x.count : T.perCol));
   }
-  // Kart: _ref (2 satir) + son degisiklik yasi (sagda, aria-hidden); dugmenin adi '<ref> Updated <Mon D, YYYY>'.
+  // Kart: baslik (2 satir) + son degisiklik yasi (sagda, aria-hidden); dugmenin adi '<baslik> Updated <Mon D, YYYY>'.
+  // Degeri olmayan kartta baslik durust etikettir (0C.6), data-empty="1" ile soluk (ink-2, 400); yas kartlari ayirir.
   function recCard(r, k, i) {
     var b = btn('octo-wsb-rec', 'open');
     b.setAttribute('data-col', String(k));
     b.setAttribute('data-i', String(i));
     b.setAttribute('data-key', 'r:' + k + ':' + i);
     b.setAttribute('draggable', 'false');
-    b.appendChild(el('span', 'octo-wsb-rref', r.ref));
+    var rt = el('span', 'octo-wsb-rref', r.ref);
+    if (r.untitled) { rt.setAttribute('data-empty', '1'); }
+    b.appendChild(rt);
     if (r.mod != null) {
       var day = 'Updated ' + fmtDay(r.mod);
       var ag = el('span', 'octo-wsb-rage', fmtAge(r.mod));
@@ -72687,15 +73008,17 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var ms = Date.parse(t);
     return isFinite(ms) ? ms : null;
   }
-  // Baslik yerine Bubble kimligi, talep paketleri (octo1. / octo2.) ve cihaz anahtari satirlari ASLA gosterilmez.
+  // Baslik yerine Bubble kimligi, talep paketleri (octo1. / octo2.) ve cihaz anahtari satirlari ASLA gosterilmez: bos
+  // doner, cagiran durust etiketi yazar (0C.6).
   function safeRef(v) {
     var t = clean(v);
-    if (!t || /^\d{13}x\d{15,}$/.test(t) || /^octo[12]\./.test(t) || t.indexOf('octo-cihaz1.') >= 0) { return 'Untitled record'; }
+    if (!t || /^\d{13}x\d{15,}$/.test(t) || /^octo[12]\./.test(t) || t.indexOf('octo-cihaz1.') >= 0) { return ''; }
     return t;
   }
   // RECORD-TITLE (OCTO_RECORD_TITLE_SPEC): baslik alani app-wstitle.js'te, kullanicinin bu sayfada gordugu ekranlarin
   // gorunur sutunlarindan secilir (sutun duvari: bir kart yalniz kendisini listeleyen gorulmus ekranin alanlari).
-  // Modul yoksa ya da hata verirse os9b aynen (_ref, yoksa Untitled record).
+  // Modul yoksa ya da hata verirse os9b aynen (_ref, yoksa NO_TITLE).
+  var NO_TITLE = 'No title to show';
   function wtl() { var m = octo._wstitle; return (m && typeof m.titleOf === 'function') ? m : null; }
   // Bubble'in kendi surec secimi: vurgulu hucre, yoksa More'un gercek secenegi; ad -> surec kimligi.
   // '' = secim yok, null = secim var ama kimligi bilinmiyor.
@@ -72720,34 +73043,108 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   // (yapilandirma yeni, durum eski olabilir); tablonun yukledigi ekran su anki baglamla (screen / stage / list, gec gelen
   // #bubble-options) ayni; Bubble'in surec cubugu ayni sureci gosteriyor (tum kayitlarda secili surec ve liste yok).
   // Tablo sunucunun ekran cevabini verirse (srvScreen) o yetkilidir. 100 ms boyunca ayni cevap (boyama basina tek okuma).
+  // 0C.3.3: her cikis nedenini S.tscWhy'ye yazar ('' = ogrenildi); neden degisince tek iz 'title:scope:<kod>'. Istemci
+  // kaynakli tum kayitlar kapsami ayrica stats.total > 0 ister (yalniz ekran kimligi tasiyan YeniKayit ekrani istemcide
+  // 'all' gorunur, sunucu ona satir vermez; filtreyle 0 satir donen okuma o tur ogretmez).
   function titleScope() {
     var m = wtl();
-    if (!m) { return null; }
+    if (!m) { tscWhy('module'); return null; }
     var t0 = now();
     if (S.tscAt && t0 - S.tscAt < 100) { return S.tscVal; }
-    var out = null;
+    var out = null, why = '';
     try {
       // Baska kullanicinin ekrani (View as, ya da sayfa kullanicisi kartlarin kullanicisi degil): hic ogrenilmez.
       var C0 = S.cards, pu0 = str(octo.page.pageUser());
-      if (viewingAs() || (C0 && C0.pu != null && pu0 !== C0.pu)) { throw new Error('other user'); }
       var t = gmStatus();
-      var sc = (t && !t.loading && t.stats && t.stats.screen) ? m.scope() : null;
-      if (sc && (sc.kind === 'all' || sc.kind === 'stage')) {
-        var okc = true;
-        if (sc.src !== 'server') {
-          var c = ctx(), scr = t.stats.screen;
-          okc = str(c.screen_id) === str(scr.screen).trim() && str(c.stage_id) === str(scr.stage).trim() && str(c.list_id) === str(scr.list).trim();
-          var ch = okc ? chromeStageId() : null;
-          if (sc.kind === 'stage') { okc = okc && ch === sc.id; }
-          else { okc = okc && ch === '' && !!S.snap && S.snap.list < 0; }
-        }
-        var tid = cardsTid();
-        if (okc && tid) { m.observe(tid, sc); out = sc; }
+      var sc = null;
+      if (viewingAs()) { why = 'viewas'; }
+      else if (C0 && C0.pu != null && pu0 !== C0.pu) { why = 'user'; }
+      else if (!t) { why = 'nostatus'; }
+      else if (t.loading) { why = 'loading'; }
+      else if (!t.stats || !t.stats.screen) { why = 'noscreen'; }
+      else {
+        sc = m.scope();
+        if (!sc || (sc.kind !== 'all' && sc.kind !== 'stage')) { why = (sc && sc.kind === 'list') ? 'list' : 'none'; }
       }
-    } catch (e) { out = null; }
+      if (!why && sc.src !== 'server') {
+        var c = ctx(), scr = t.stats.screen;
+        var ch = null;
+        if (!(str(c.screen_id) === str(scr.screen).trim() && str(c.stage_id) === str(scr.stage).trim() && str(c.list_id) === str(scr.list).trim())) { why = 'ctx'; }
+        else if (!S.snap) { why = 'snap'; }
+        else {
+          ch = chromeStageId();
+          if (sc.kind === 'stage') { if (ch !== sc.id) { why = 'chrome'; } }
+          else if (ch !== '') { why = 'chrome'; }
+          else if (S.snap.list >= 0) { why = 'snap'; }
+          else if (!(Number(t.stats.total) > 0)) { why = 'empty'; }
+        }
+      }
+      if (!why) {
+        var tid = cardsTid();
+        if (!tid) { why = 'tid'; }
+        else if (!m.observe(tid, sc)) { why = 'notready'; }   // adaylar hazir degil (yapilandirma sutunlari bos)
+        else { out = sc; }
+      }
+    } catch (e) { out = null; why = why || 'none'; }
     S.tscAt = t0;
     S.tscVal = out;
+    tscWhy(why);
     return out;
+  }
+  function tscWhy(why) {
+    if (S.tscWhy === why) { return; }
+    S.tscWhy = why;
+    trace('title:scope:' + why);
+  }
+  // T6 (0C.3.1): ogrenme her duzende (Overview, gizli pano, zoom, Classic), ag yok. Imza degisince ya da son basarili
+  // okumadan T.titleBeat gecince titleScope okunur; basarida imza saklanir, yoklama durur. Basarisizken ogrenme
+  // bekleniyorsa (titlePending) T.titleLearn aralikla yeniden bakilir, ayni baglam anahtari icin en cok tableLimit():
+  // tablonun DOM'u Gozlemci A'yi uyandirmaz, yalniz tikle ogrenmek tablo gorunumundeki yuklemeleri kacirirdi.
+  function titleSig() {
+    var t = gmStatus(), n = 0;
+    // Yapilandirma metni buyuk olabilir: tek metin dugumunun uzunlugu kopyasiz okunur.
+    try {
+      var cf = D.getElementById('bubble-table-config'), tn = cf ? cf.firstChild : null;
+      n = !cf ? 0 : ((tn && tn.nodeType === 3 && !tn.nextSibling) ? tn.length : str(cf.textContent).length);
+    } catch (e) { n = 0; }
+    var sc = t && t.stats && t.stats.screen;
+    return [ctx().key, sc ? str(sc.key) : '', t ? (t.loading ? 1 : 0) : -1, n, t ? str((t.last || {}).error) : ''].join('|');
+  }
+  function titleLearn() {
+    // Telefonda yoklama yeniden kurulmaz (cardsTick'in mobil dali; geride kalan geri cagirma da burada durur).
+    if (S.mounted && S.mob) { cancel('titleLearn'); return false; }
+    if (!wtl()) { cancel('titleLearn'); tscWhy('module'); return false; }
+    var sig = titleSig(), t0 = now();
+    if (sig === S.tlSig && t0 - S.tlAt < T.titleBeat) { return true; }
+    if (sig !== S.tlSig) { S.tscAt = 0; }
+    if (titleScope()) {
+      S.tlSig = sig;
+      S.tlAt = t0;
+      S.tlKey = null;
+      cancel('titleLearn');
+      return true;
+    }
+    var k = ctx().key;
+    if (S.tlKey !== k) { S.tlKey = k; S.tlSince = t0; }
+    if (titlePending() && t0 - S.tlSince < tableLimit()) {
+      if (!S.timers.titleLearn) { later('titleLearn', function () { S.tscAt = 0; cardsTick('learn'); }, T.titleLearn); }
+    } else { cancel('titleLearn'); }
+    return false;
+  }
+  // 0C.3.2: ogrenme bekleniyor mu. Modul var, View as degil, sayfa kullanicisi kartlarinki, tablo durumu var; ve tablo
+  // yukleniyor ya da ekran yok ya da kapsam tum kayitlar / surec. Liste ekraninda, View as'ta ve modulsuz yanlis.
+  function titlePending() {
+    var m = wtl();
+    if (!m || viewingAs()) { return false; }
+    var pu = '';
+    try { pu = str(octo.page.pageUser()); } catch (e) { pu = ''; }
+    if (S.cards && S.cards.pu != null && pu !== S.cards.pu) { return false; }
+    var t = gmStatus();
+    if (!t) { return false; }
+    if (t.loading || !t.stats || !t.stats.screen) { return true; }
+    var sc = null;
+    try { sc = m.scope(); } catch (e1) { sc = null; }
+    return !!sc && (sc.kind === 'all' || sc.kind === 'stage');
   }
   // Bir sutunun kartinin kullanabilecegi alanlar (gorulen ekranlardan); modul yoksa null.
   function titleAllow(tid, col) {
@@ -72762,34 +73159,231 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     titleScope();
     try { var s = m.select(tid, cols); return isArr(s) ? s.filter(function (x) { return typeof x === 'string' && x && x.charAt(0) !== '_'; }).slice(0, 6) : []; } catch (e) { return []; }
   }
-  function titlePlan(tid, rows, sent, colOf, cols) { var m = wtl(); if (!m || !rows.length) { return null; } try { return m.plan(tid, rows, sent, colOf, cols); } catch (e) { return null; } }
+  // prefer: onceki birincil (yapiskan, 0C.4.3); birlesimde ve uygunsa korunur, gosterilmis basliklar ziplamaz.
+  function titlePlan(tid, rows, sent, colOf, cols, prefer) {
+    var m = wtl();
+    if (!m || !rows.length) { return null; }
+    try { return m.plan(tid, rows, sent, colOf, cols, prefer ? { prefer: prefer } : undefined); } catch (e) { return null; }
+  }
+  // Kullanicinin onayli secimi (0C.7; uykudaki secim ''); modul yoksa ''. 0C.7.10: yalniz ESLENEN bir sutun icin
+  // gorulmus ekranin tam listesindeyse onayli (tum kayitlar + eslenen surecler); eslenmeyen surecin ekraninda gorulen
+  // secim uyur. cols: eslenen surec kimlikleri (verilmezse onbellek girdisinden, yoksa su anki surec modelinden).
+  function titlePick(tid, cols) {
+    var m = wtl();
+    if (!m || !tid || typeof m.pick !== 'function') { return ''; }
+    try { return str(m.pick(tid, isArr(cols) ? cols : titleMapIds(tid))); } catch (e) { return ''; }
+  }
+  function titleMapIds(tid) {
+    var e = S.cards.byTable[tid];
+    if (e && isArr(e.mapIds)) { return e.mapIds; }
+    var st = stageModel(S.snap), mp = cardsMap(st), ids = [];
+    for (var k in mp) { if (Object.prototype.hasOwnProperty.call(mp, k)) { ids.push(str(st[k].id)); } }
+    return ids;
+  }
   function titleReset() {
-    S.tscAt = 0; S.tscVal = null;
+    S.tscAt = 0; S.tscVal = null; S.tlSig = ''; S.tlAt = 0; S.tlKey = null;
+    S.pickFor = '';   // 0C.7.9: WT secimi de silinir; depodan bir sonraki tikte yeniden aktarilir
     var m = wtl();
     if (m && typeof m.reset === 'function') { try { m.reset(); } catch (e) { /* yut */ } }
   }
-  // Alan basligi devrede degilse (izinli alan yok) kart os9b'dir: safeRef aynen.
-  function os9bTitle(row) {
-    var s = safeRef(row._ref);
-    return { text: s, q: s === 'Untitled record' ? '' : s, untitled: s === 'Untitled record', keys: [] };
+  // 0C.7.4: Title: menusunun verisi (alan anahtari + baslik, deger yok). all: tum kayitlar ekrani; stages: gorulen ve
+  // eslenen her surecin fazladan alanlari, grup adi surec adi (stageModel, veri); auto: otomatik birincilin basligi.
+  function titleMenu(s) {
+    var out = { pick: '', auto: '', all: [], stages: [], seenAll: false };
+    var m = wtl(), tid = titleTid();
+    if (!m || !tid || typeof m.menu !== 'function') { return out; }
+    var st = stageModel(s || S.snap), maps = cardsMap(st), ids = [], nameOf = {};
+    for (var k in maps) { if (Object.prototype.hasOwnProperty.call(maps, k)) { var x = st[k]; ids.push(str(x.id)); nameOf[str(x.id)] = x.name; } }
+    var mm = null;
+    try { mm = m.menu(tid, ids); } catch (e) { mm = null; }
+    if (!mm) { return out; }
+    out.pick = titlePick(tid, ids);
+    out.auto = (mm.auto && mm.auto.header) ? str(mm.auto.header) : '';
+    out.all = isArr(mm.all) ? mm.all : [];
+    out.seenAll = mm.seenAll === true;
+    var sg = isArr(mm.stages) ? mm.stages : [];
+    for (var i = 0; i < sg.length; i++) {
+      var g = sg[i] || {};
+      if (nameOf[str(g.col)] && isArr(g.fields) && g.fields.length) { out.stages.push({ name: nameOf[str(g.col)], fields: g.fields }); }
+    }
+    return out;
   }
-  function recTitle(row, tp, allow) {
+  // Onayli secimin basligi: gorulen her ekranin tam listesinden (WT menu, sutunsuz: pick() ile ayni kapsam).
+  function pickHeader(tid, key) {
+    var m = wtl();
+    if (!m || !tid || !key || typeof m.menu !== 'function') { return ''; }
+    try {
+      var mm = m.menu(tid), ls = isArr(mm.all) ? mm.all.slice() : [];
+      (isArr(mm.stages) ? mm.stages : []).forEach(function (g) { if (g && isArr(g.fields)) { ls = ls.concat(g.fields); } });
+      for (var i = 0; i < ls.length; i++) { if (ls[i] && ls[i].key === key) { return str(ls[i].header); } }
+    } catch (e) { /* yut */ }
+    return '';
+  }
+  // 0C.7.9: 32 bit FNV-1a, 8 hex (karma yardimcisi kodda yoktu). Carpim kaydirma toplamiyla (ES5, Math.imul yok).
+  function fnv1a(s) {
+    s = str(s);
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+    }
+    return ('0000000' + (h >>> 0).toString(16)).slice(-8);
+  }
+  // Oturum kullanicisi #bubble-options'tan (octo.page.ids); sayfa kullanicisi (pageUser) DEGIL. Okunamazsa ''.
+  function pickUser() {
+    try { var ids = octo.page.ids(); return ids ? str(ids.user_id).trim() : ''; } catch (e) { return ''; }
+  }
+  // Depo anahtari '<fnv1a(user_id)>|<tid>'; kullanici kimligi yoksa '' (depoya yazilmaz).
+  function pickKey(tid) { var u = pickUser(); return (u && tid) ? (fnv1a(u) + '|' + tid) : ''; }
+  function pickStore() {
+    var o = null;
+    try { o = octo.state.get(TITLE_KEY, null); } catch (e) { o = null; }
+    var out = {};
+    if (!o || typeof o !== 'object' || isArr(o)) { return out; }
+    for (var k in o) { if (Object.prototype.hasOwnProperty.call(o, k) && typeof o[k] === 'string' && o[k]) { out[k] = o[k]; } }
+    return out;
+  }
+  // Kayitli secim: depodan (kullanici biliniyorsa), yoksa sayfa belleginden. Kimlik sonradan okunursa kimliksiz not
+  // ('|tid'; #bubble-options ayri elemandir, gec gelir) depodaki her girdiden YENIDIR (pickSet kimlik biliniyorken onu
+  // siler): once o doner ve depoya tasinir (kullanicinin bu sayfadaki eyleminin ertelenmis yazimi; not silinir).
+  // Kimliksiz Automatic acik bos nottur: depodaki eski secim geri gelmez.
+  function pickGet(tid) {
+    var pk = pickKey(tid), mk = '|' + tid;
+    if (pk) {
+      if (Object.prototype.hasOwnProperty.call(S.pickMem, mk)) { var nv = str(S.pickMem[mk]); pickSet(tid, nv); return nv; }
+      var o = pickStore();
+      if (o[pk]) { return o[pk]; }
+      return Object.prototype.hasOwnProperty.call(S.pickMem, pk) ? str(S.pickMem[pk]) : '';
+    }
+    return str(S.pickMem[mk]);
+  }
+  // Yalniz kullanici eyleminde, api.titleField(key)'de ve pickGet'in kimliksiz not tasimasinda. Anahtar silinip sona
+  // eklenir; TITLE_MAX asilinca bastaki duser; '' (Automatic) girdiyi siler. Kullanici kimligi okunamazsa depoya
+  // yazilmaz, secim yalniz S.pickMem'de ('' de saklanir: kimlik gelince depodaki eski secimi siler).
+  function pickSet(tid, key) {
+    var k = clean(key);
+    if (k.charAt(0) === '_') { k = ''; }
+    var pk = pickKey(tid), mk = pk || ('|' + tid);
+    if (k || !pk) { S.pickMem[mk] = k; } else { delete S.pickMem[mk]; }
+    // Kimlik biliniyorken son soz kullanicinindir: kimliksiz eski not pickGet'te geri gelmesin.
+    if (pk) { delete S.pickMem['|' + tid]; }
+    if (!pk) { return k; }
+    var o = pickStore(), keys = Object.keys(o).filter(function (x) { return x !== pk; });
+    if (k) { keys.push(pk); o[pk] = k; }
+    while (keys.length > TITLE_MAX) { keys.shift(); }
+    var nw = {};
+    for (var i = 0; i < keys.length; i++) { nw[keys[i]] = o[keys[i]]; }
+    try { if (keys.length) { octo.state.set(TITLE_KEY, nw); } else { octo.state.del(TITLE_KEY); } } catch (e) { /* yut */ }
+    return k;
+  }
+  // cardsTick'te titleLearn'den sonra: tablo (ve kullanici) basina depo bir kez okunur, WT'ye aktarilir (S.pickFor
+  // notu). Gorulmemis ekranin alani uyur (WT pick: ''), yazim yok. Kimlik bir an okunamazsa (ayni tablonun karmali
+  // notundan kimliksiz nota gecis) bos kaynak gecerli secimi silmez; kimlik donunce depo yeniden aktarilir.
+  function pickSync(tid) {
+    var m = wtl();
+    if (!m || !tid || typeof m.setPick !== 'function') { return; }
+    var mk = '|' + tid, pk = pickKey(tid) || mk;
+    if (S.pickFor === pk) { return; }
+    var was = S.pickFor;
+    S.pickFor = pk;
+    var v = pickGet(tid);
+    if (!v && pk === mk && was && was !== mk && was.slice(-mk.length) === mk) { return; }
+    try { m.setPick(tid, v); } catch (e) { /* yut */ }
+    if (S.mounted) { paintSoon(); }   // dugme ve basliklar aktarilan secimle (tik tek basina boyamaz)
+  }
+  // 0C.7.7: secim WT'ye yazilir, basliklar bellekteki degerlerden yeniden boyanir (ag yok); sonra cardsTick('pick'):
+  // secim cekilmemisse !need dalinda T8 (1 kosu, titleMax disinda, tavan icinde). Tavan doluysa secim saklanir.
+  function applyPick(tid, key) {
+    var m = wtl();
+    if (m && typeof m.setPick === 'function') { try { m.setPick(tid, key); } catch (e) { /* yut */ } }
+    S.pickFor = pickKey(tid) || ('|' + tid);
+    S.pickGen++;
+    paintSoon();
+    cardsTick('pick');
+  }
+  // Kullanicinin secimi (menu ya da api.titleField): depo, canli satir, uygulama. Baslik bilinmiyorsa (secim uyuyor)
+  // canli satir yazilmaz: 'Titles show' yanlis olurdu.
+  function titleChoose(key, hdr) {
+    var tid = titleTid();
+    if (!tid || !wtl() || viewingAs()) { return false; }
+    var k = pickSet(tid, key);
+    var h = k ? (hdr || pickHeader(tid, k)) : '';
+    if (!k) { say('Titles set to automatic'); } else if (h) { say('Titles show ' + h); }
+    trace('title:pick');
+    applyPick(tid, k);
+    return true;
+  }
+  // Modul yokken (os9b yolu, 0C.5.6): _ref temizse baslik odur, degilse durust etiket (untitled bayraktan okunur).
+  function os9bTitle(row) {
+    var s = safeRef(row && row._ref);
+    if (s) { return { text: s, q: s, untitled: false, empty: '', keys: [] }; }
+    return { text: NO_TITLE, q: '', untitled: true, empty: 'none', keys: [] };
+  }
+  // opt {pick, fetched}: kullanicinin secimi ve bu kayit icin cekilen alanlar (etiket E1 / E2, 0C.6).
+  function recTitle(row, tp, allow, opt) {
     var m = wtl();
     if (m) {
       try {
-        var t = m.titleOf(row, tp, allow);
-        if (t && typeof t.text === 'string' && t.text) { return { text: t.text, q: str(t.q), untitled: !!t.untitled, keys: isArr(t.keys) ? t.keys.slice() : [] }; }
+        var t = m.titleOf(row, tp, allow, opt);
+        if (t && typeof t.text === 'string' && t.text) {
+          return { text: t.text, q: str(t.q), untitled: !!t.untitled, empty: str(t.empty), keys: isArr(t.keys) ? t.keys.slice() : [] };
+        }
       } catch (e) { /* yut */ }
     }
     return os9bTitle(row);
   }
-  // Boyamada: basliga deger veren alan kartin sutunu icin artik izinli degilse (ekranda gizlendi, kaldirildi) kart, yeni
-  // yuklemeyi beklemeden _ref yedegini gosterir. Modul yoksa alanli baslik hic gosterilmez.
-  function recView(r, allow) {
-    if (!r || !r.tk || !r.tk.length || !r.rf) { return r; }
-    if (!allow) { return r.rf; }
-    for (var i = 0; i < r.tk.length; i++) { if (!Object.prototype.hasOwnProperty.call(allow, r.tk[i])) { return r.rf; } }
+  // Boyamada (0C.5.4): baslik kaydin bellekteki degerlerinden (r.v) su anki izinlerle yeniden yazilir; izinden dusen
+  // alanin degeri r.v ve r.f'ten de silinir, kart siradaki izinli alana duser (yeni yukleme ve ag yok). Sonuc izinli
+  // anahtarlar + secim + plan surumu imzasiyla (r.vk) saklanir. Modul yoksa (allow null) os9b yedegi; r.v yoksa os9b kaydi.
+  // Budama "cekildi" bilgisini de siler (r.f): alan yeniden izinli olunca (yeniden gosterildi, yeniden secildi) eksik
+  // sayilir; ent.pg artar ve titleWant imzasina girer, budamadan once denenmis kume yeniden denenebilir.
+  function recView(r, allow, pick, ent) {
+    if (!r || !r.v) { return r; }
+    if (!allow) { return r.rf || r; }
+    var cut = false;
+    for (var vk in r.v) { if (Object.prototype.hasOwnProperty.call(r.v, vk) && vk !== '_ref' && !Object.prototype.hasOwnProperty.call(allow, vk)) { delete r.v[vk]; cut = true; } }
+    if (isArr(r.f)) {
+      var f2 = r.f.filter(function (x) { return Object.prototype.hasOwnProperty.call(allow, x); });
+      if (f2.length !== r.f.length) { cut = true; }
+      r.f = f2;
+    }
+    if (cut && ent) { ent.pg = (ent.pg || 0) + 1; }
+    var sig = Object.keys(allow).sort().join('\u0001') + '|' + str(pick) + '|' + (ent ? ent.tpv : 0) + '|' + S.pickGen;
+    if (r.vk === sig) { return r; }
+    var tt = recTitle(r.v, ent ? ent.tp : null, allow, { pick: str(pick), fetched: isArr(r.f) ? r.f.slice() : [] });
+    r.ref = tt.text; r.q = tt.q; r.untitled = tt.untitled; r.empty = tt.empty; r.vk = sig;
     return r;
+  }
+  // RECORD-TITLE (0C.4.4): B'nin ve yalniz baslik cagrisinin (T8) ortak basligi. put: [{row, rid, rs, keep}] (kimlik ve
+  // sutun belli). Duvar: sel'deki ama kartin sutunu icin izinli olmayan deger hemen silinir. Her satira v (_ref + izinli
+  // ham degerler, yalniz bellekte), f (cekilmis izinli alanlar) ve tt (baslik) yazilir; plan ent varsa ent.tp'ye (tpv
+  // artar). keep (yalniz T8): bu istekte olmayan ama kartin daha once cektigi alanlar; degerleri satira T8 cagirani
+  // koyar, burada ayni duvardan gecer. Plan yalniz sel'le olculur (keep birlesimin disindadir).
+  function titleApply(tid, ent, put, sel, cols, prefer) {
+    var m = wtl();
+    var inn = [], colOf = {}, alw = {};
+    for (var u = 0; u < put.length; u++) {
+      var pr = put[u], row = pr.row;
+      pr.al = null;
+      if (!m) { continue; }
+      if (!Object.prototype.hasOwnProperty.call(alw, pr.rs)) { alw[pr.rs] = titleAllow(tid, pr.rs) || {}; }
+      var aw = alw[pr.rs], al = {}, v = { _ref: row._ref }, f = [];
+      var ks = isArr(pr.keep) && pr.keep.length ? sel.concat(pr.keep.filter(function (x) { return sel.indexOf(x) < 0; })) : sel;
+      for (var k = 0; k < ks.length; k++) {
+        if (Object.prototype.hasOwnProperty.call(aw, ks[k])) { al[ks[k]] = aw[ks[k]]; f.push(ks[k]); v[ks[k]] = row[ks[k]]; } else { delete row[ks[k]]; }
+      }
+      pr.v = v; pr.f = f; pr.aw = aw;
+      if (f.length) { pr.al = al; inn.push(row); colOf[pr.rid] = pr.rs; }
+    }
+    var tp = inn.length ? titlePlan(tid, inn, sel, function (x) { return colOf[str(x._id).trim()] || ''; }, cols, prefer) : null;
+    var tpv = ++S.cards.tpvN;
+    if (ent) { ent.tp = tp; ent.tpv = tpv; }
+    var pk = titlePick(tid, cols);
+    for (var w = 0; w < put.length; w++) {
+      var p2 = put[w];
+      p2.tt = (m && p2.v) ? recTitle(p2.v, tp, p2.aw, { pick: pk, fetched: p2.f.slice() }) : os9bTitle(p2.row);
+    }
+    return { tp: tp, tpv: tpv };
   }
   // Sutun genisligi: tek layout okumasi (serit genisligi + Create genisligi + serit ust konumu), sonra tek yazma.
   function colWidth(ol) {
@@ -72997,7 +73591,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       var maps = cardsMap(st);
       list = (x && ent && maps[k] && x.id) ? recsOf(x, ent.cols[x.id] || null) : [];
     }
-    return recView(list[i] || null, titleAllow(ent ? ent.tid : '', x ? x.id : ''));   // RECORD-TITLE: boyanmamis yolda da
+    var etid = ent ? ent.tid : '';
+    return recView(list[i] || null, titleAllow(etid, x ? x.id : ''), titlePick(etid, ent ? ent.mapIds : null), ent);   // RECORD-TITLE: boyanmamis yolda da
   }
   // Kart tiki: zoom + tablonun hazir olmasini bekle + reveal + tablonun kendi Open yolu (start), surec turu ne olursa
   // olsun (canli bulgu 21.10: NOD surecleri Visual to text, ekran tablo). Tablo turu olmayan surecte bekleme
@@ -73075,7 +73670,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     function done() {
       try { if (W.dynamicTable && typeof W.dynamicTable.start === 'function') { W.dynamicTable.start(); } } catch (e) { /* yut */ }
       trace('rec:start');
-      say(rec.ref + ' opened');
+      say(rec.untitled ? 'Record opened' : rec.ref + ' opened');   // 0C.6.4: etiket canli satira girmez
       return true;
     }
     function step() {
@@ -73095,9 +73690,9 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var gm = gmObj();
     var t = gmStatus();
     var win = (r && typeof r.windowed === 'boolean') ? r.windowed : !!(t && t.windowed === true);
-    // RECORD-TITLE T3: arama terimi q (kaydin _ref'i, yoksa basligin parcalari bosluklu); basliksiz kayitta arama yok.
+    // RECORD-TITLE T3: arama terimi q (kaydin _ref'i, yoksa basligin parcalari bosluklu); etiketli kayitta arama yok.
     var term = rec.untitled ? '' : str(Object.prototype.hasOwnProperty.call(rec, 'q') ? rec.q : rec.ref);
-    if (!win || !r || !nonEmpty(r.missing) || !gm || typeof gm.search !== 'function' || !term || term === 'Untitled record') {
+    if (!win || !r || !nonEmpty(r.missing) || !gm || typeof gm.search !== 'function' || !term) {
       toast('Could not find record', false);
       return Promise.resolve(false);
     }
@@ -73164,9 +73759,16 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var t = gmStatus();
     var stt = t && t.stats;
     var tb = stt && stt.table;
-    if (!t || t.loading || !stt || !tb || !str(tb.id)) { return 'table'; }
+    // 0C.1.6: tablo hata verdi ve stats bu sayfanin degil: hic yazilmadi (ayna kapali: aynaCancel stats'i null'lar, hata
+    // yolu stats'tan once doner, TV2:5723, 6198-6202) ya da onceki workspace'in stats'i (ikinci inceleme: aynaLoad
+    // stats'i sifirlamaz, TV2:6149; ayni ornek workspace degisiminde yeniden yukler). Sahiplik 'table' kuraliyla ayni
+    // (kimlik rayin tablosu ya da ad su anki workspace). Bu sayfanin onbellekte girdisi yok. Yoksa kapi 'table' kalirdi.
+    var C = S.cards;
     var d = railData();
-    if (!(d && str(tb.id) === str(d.sheet.id)) && clean(tb.name) !== sheetName(s)) { return 'table'; }
+    var mine = !!(tb && str(tb.id)) && ((d && str(tb.id) === str(d.sheet.id)) || clean(tb.name) === sheetName(s));
+    if (t && !t.loading && t.last && t.last.error && !mine && !C.byTable[C.tidOf[sheetKey(s)]]) { return 'tablerr'; }
+    if (!t || t.loading || !stt || !tb || !str(tb.id)) { return 'table'; }
+    if (!mine) { return 'table'; }
     if (!s || !railFresh(s)) { return 'rail'; }
     var st = stageModel(s), any = false;
     for (var i = 0; i < st.length; i++) { if (st[i].id) { any = true; break; } }
@@ -73194,6 +73796,9 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     C.ctrl = null;
     C.inflight = null;
     cancel('cardsCap');
+    // T8 (0C.4.3): yalniz baslik cagrisi da kesilir; gec cevabi canlilik denetiminde duser.
+    if (C.tinf) { try { if (C.tinf.ctrl) { C.tinf.ctrl.abort(); } } catch (e1) { /* yut */ } C.tinf = null; titleBusyPaint(); }
+    cancel('cardsTitle');
     if (had) {
       trace('cards:abort');
       if (C.phase === 'loading') { C.phase = 'off'; C.why = why || ''; }
@@ -73210,10 +73815,16 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       if (hard) { C.calls = []; }
     }
     titleReset();   // RECORD-TITLE: baslik secimi de onbellekle birlikte gider
+    S.titleOpts = [];
+    // 0C.7.9: kimliksiz secim yalniz sayfa omru (shutdown siler; Bubble kipine yol vermek silmez). 0C.1.5 otomatik
+    // geri cekilme de sayfa basina bir kez: Bubble kipine yol verip geri gelmek onu yeniden acmaz.
+    if (hard) { S.pickMem = {}; S.layAuto = false; }
+    cancel('titleLearn');
     cancel('cardsTbl');
     cancel('cardsDeb');
     cancel('cardsNote');
-    S.layout = 'overview';
+    S.layout = layoutDefault();   // 0C.1.2: geri alma ve shutdown varsayilana doner
+    S.layoutBy = 'default';
     S.colScroll = {};
     S.press = null;
     S.lastRec = null;
@@ -73262,23 +73873,41 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       }
       var pu = '';
       try { pu = str(octo.page.pageUser()); } catch (e0) { pu = ''; }
-      if (C.pu != null && pu !== C.pu) { cardsAbort('user'); C.byTable = {}; C.tidOf = {}; C.refused = {}; C.errTid = ''; titleReset(); trace('cards:user'); }
+      if (C.pu != null && pu !== C.pu) {
+        cardsAbort('user'); C.byTable = {}; C.tidOf = {}; C.refused = {}; C.errTid = ''; titleReset(); trace('cards:user');
+        // Kimliksiz secim notu ('|tid') kullanici tasimaz: pickGet'in yedegi yeni kullaniciya onceki kisinin secimini vermesin.
+        for (var pm in S.pickMem) { if (Object.prototype.hasOwnProperty.call(S.pickMem, pm) && pm.charAt(0) === '|') { delete S.pickMem[pm]; } }
+      }
       C.pu = pu;
+      // T6 (0C.3.1): baslik ogrenmesi kapidan once, her duzende; ag yok.
+      // os9m 6.4 birlesim incelemesi: telefonda ogrenme ve secim aktarimi yok. Board, Title: ve T8 yalniz masaustu;
+      // masaustune donus unmount('mode') -> cardsDrop -> titleReset ile ogreneni zaten siler (500 ms yoklama bosa).
+      if (S.mob) { cancel('titleLearn'); }
+      else {
+        try { titleLearn(); } catch (eL) { logErr(eL); }
+        // 0C.7.9: kayitli kart basligi secimi tablo basina bir kez WT'ye (uykuda olabilir).
+        try { pickSync(cardsTid()); } catch (eP) { logErr(eP); }
+      }
       var g = cardsGate(S.snap);
       if (g !== 'table') { C.tblSince = 0; }
       if (CARDS_OFF[g]) {
+        // 0C.1.5 (a): tablo hata verdi; varsayilan Board yalniz sayac seridi yerine Overview'a cekilir (cagri yok).
+        if (g === 'tablerr' && layoutAuto('tablerr')) { return Promise.resolve(false); }
         if (C.inflight) { cardsAbort(g); }
         cardsPhase('off', g);
         return Promise.resolve(false);
       }
       if (g === 'table') {
-        // Tablo DOM'u Gozlemci A'yi tetiklemez: pano acikken 500 ms aralikla T.openWait boyunca yeniden bakilir.
+        var ce = (C.tidOf[sk] && !C.refused[C.tidOf[sk]]) ? (C.byTable[C.tidOf[sk]] || null) : null;
+        // Tablo DOM'u Gozlemci A'yi tetiklemez: pano acikken 500 ms aralikla sinira (tableLimit: yuklerken T.openLoad,
+        // bostayken T.openWait) kadar yeniden bakilir. 0C.1.5 (b): sinirdaki ilk tikte varsayilan Board hala kartsizsa
+        // Overview'a cekilir. Yukleyen tablo kesilmez: soguk ayna ilk yuklemede 30 sn'yi asar, sonra kartlari verir.
         if (boardOpen() && !S.zoom) {
           if (!C.tblSince) { C.tblSince = now(); }
-          if (now() - C.tblSince < T.openWait && !S.timers.cardsTbl) { later('cardsTbl', function () { cardsTick('show'); }, 500); }
+          if (now() - C.tblSince >= tableLimit()) { if (!ce && layoutAuto('table')) { return Promise.resolve(false); } }
+          else if (!S.timers.cardsTbl) { later('cardsTbl', function () { cardsTick('show'); }, 500); }
         }
         if (!C.inflight && C.phase !== 'refused' && C.phase !== 'error') {
-          var ce = (C.tidOf[sk] && !C.refused[C.tidOf[sk]]) ? (C.byTable[C.tidOf[sk]] || null) : null;
           cardsPhase(ce ? 'ready' : 'off', ce ? '' : 'table');
         }
         return Promise.resolve(false);
@@ -73286,7 +73915,12 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       if (g === 'hidden') { return Promise.resolve(false); }
       var tid = cardsTid();
       C.tidOf[sk] = tid;
-      if (C.refused[tid]) { cardsPhase('refused', C.refused[tid]); return Promise.resolve(false); }
+      // 0C.1.5: ret pano gizliyken geldiyse varsayilan Board'un geri cekilmesi pano gorunur olunca yapilir.
+      if (C.refused[tid]) {
+        if (layoutAuto('refused')) { return Promise.resolve(false); }
+        cardsPhase('refused', C.refused[tid]);
+        return Promise.resolve(false);
+      }
       if (C.inflight) {
         if (C.inflight.tid === tid) { return C.inflight.p || Promise.resolve(false); }
         cardsAbort('table');
@@ -73307,8 +73941,12 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       }
       if (!need) {
         // Gecici hata beklemesi: duzen gidis donusu ya da kisa bir kapi (off / viewas / rail) hata durumunu silmez.
+        // 0C.1.5: hic kart yokken (pano gizliyken gelen) hata varsayilan Board'u pano gorunur olunca geri ceker.
+        if (errHold && !ent && layoutAuto('error')) { return Promise.resolve(false); }
         if (errHold) { cardsPhase('error', C.errCls || 'timeout'); }
         else if (C.phase !== 'error' || C.errTid !== tid) { cardsPhase(ent ? 'ready' : 'off', ''); }
+        // T8 (0C.4.3): B'den sonra ogrenilen alanlar yalniz baslik cagrisiyla tamamlanir (kapi acik, pano gorunur).
+        titleArm(tid);
         return Promise.resolve(C.phase === 'ready');
       }
       if (!cardsRoom()) {
@@ -73357,72 +73995,76 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       }
       // version-test: dev veritabani kimlikleri canli aynayla eslesmez -> yalniz sayac + Records unavailable.
       if (nG && !nM) { return { error: 'nomap' }; }
-      var res = { ok: true, cols: cols, groups: nG, mapped: nM, mirror: a.mirror || null };
+      var mapIds = Object.keys(idTo);
+      var res = { ok: true, cols: cols, groups: nG, mapped: nM, mirror: a.mirror || null, ids: ids, grp: grpOf, mapIds: mapIds, sel: [], tp: null, tpv: 0 };
       if (!ids.length) { return res; }
       var order = {};
       for (var o = 0; o < ids.length; o++) { order[ids[o]] = o; }
-      // RECORD-TITLE T1: sistem alanlarina, eslenen sutunlarin gorulen ekranlardaki baslik adaylari (en cok 6) eklenir;
-      // hic yoksa os9b aynen.
-      var tsel = titleSel(tid, Object.keys(idTo));
-      var sel = ['_id', '_ref', '_surec', '_modified'].concat(tsel);
-      return cardsCall('mirror_query', { query: { table: tid, ids: ids, select: sel, limit: ids.length }, wait_ms: 4000 }, ctrl, live).then(function (b) {
-        if (!live() || !b.ok) { return b; }
-        var rows = rowsOf(b.data);
-        if (!rows) { return { error: 'shape' }; }
-        // RECORD-TITLE: izinler cevap geldiginde (o anki gozlemlerle) yeniden okunur.
-        S.tscAt = 0;
-        // Kart B'deki (daha taze) _surec'e gore yerlesir; eslesmeyen satir duser, eksik satir doldurulmaz.
-        // Postgres motoru ayni normalize adli kullanici sutununu sistem alanindan once okur (SRV:25126-25131, SAPMA):
-        // istenmeyen _id'li satir kullanilmaz; Bubble kimligi bicimi tasimayan _surec'e guvenilmez, kart A grubuna
-        // gore yerlesir. Hicbir satir istenen kimligi tasimiyorsa kart cizilemez: sessiz bos sutun yerine kesin ret.
-        var bad = 0, placed = 0, put = [], inn = [], colOf = {};
-        for (var r = 0; r < rows.length; r++) {
-          var row = rows[r] || {};
-          var rid = str(row._id).trim();
-          if (!rid || order[rid] == null) { bad++; continue; }
-          var rs = str(row._surec).trim();
-          if (!idTo[rs] && !BID_RE.test(rs)) { rs = grpOf[rid] || ''; }
-          if (!idTo[rs]) { continue; }
-          // RECORD-TITLE T2: kartin sutunu icin izinli olmayan alanin degeri hemen atilir; secim izinli degerlerden.
-          var al = null;
-          if (tsel.length) {
-            var aw = titleAllow(tid, rs) || {};
-            al = {};
-            for (var tk = 0; tk < tsel.length; tk++) {
-              if (Object.prototype.hasOwnProperty.call(aw, tsel[tk])) { al[tsel[tk]] = aw[tsel[tk]]; } else { delete row[tsel[tk]]; }
+      // T7 (0C.4.2): tabloda hic ekran ogrenilmemisse ve ogrenme bekleniyorsa B en cok T.titleWait bekler (cagri yok,
+      // iskelet ve altyazi yerinde); sonra canlilik ve secim yeniden okunur.
+      var m0 = wtl(), w0 = now();
+      var hold = !!m0 && !viewingAs() && typeof m0.known === 'function' && m0.known(tid) === 0 && titlePending();
+      C.tw = 0;
+      var pre = hold ? waitFor(function () { return !live() || titleSel(tid, mapIds).length > 0 || m0.known(tid) > 0 || !titlePending(); }, T.titleWait) : Promise.resolve(true);
+      return pre.then(function () {
+        if (!live()) { return res; }
+        if (hold) { C.tw = Math.round(now() - w0); }
+        // RECORD-TITLE T1: sistem alanlarina onayli secim ve eslenen sutunlarin gorulen ekranlardaki baslik adaylari (en
+        // cok 6) eklenir; hic yoksa os9b aynen.
+        var tsel = titleSel(tid, mapIds);
+        var sel = SYS4.concat(tsel);
+        return cardsCall('mirror_query', { query: { table: tid, ids: ids, select: sel, limit: ids.length }, wait_ms: 4000 }, ctrl, live).then(function (b) {
+          if (!live() || !b.ok) { return b; }
+          var rows = rowsOf(b.data);
+          if (!rows) { return { error: 'shape' }; }
+          // RECORD-TITLE: izinler cevap geldiginde (o anki gozlemlerle) yeniden okunur.
+          S.tscAt = 0;
+          // Kart B'deki (daha taze) _surec'e gore yerlesir; eslesmeyen satir duser, eksik satir doldurulmaz.
+          // Postgres motoru ayni normalize adli kullanici sutununu sistem alanindan once okur (SRV:25126-25131, SAPMA):
+          // istenmeyen _id'li satir kullanilmaz; Bubble kimligi bicimi tasimayan _surec'e guvenilmez, kart A grubuna
+          // gore yerlesir. Hicbir satir istenen kimligi tasimiyorsa kart cizilemez: sessiz bos sutun yerine kesin ret.
+          var bad = 0, placed = 0, put = [];
+          for (var r = 0; r < rows.length; r++) {
+            var row = rows[r] || {};
+            var rid = str(row._id).trim();
+            if (!rid || order[rid] == null) { bad++; continue; }
+            var rs = str(row._surec).trim();
+            if (!idTo[rs] && !BID_RE.test(rs)) { rs = grpOf[rid] || ''; }
+            if (!idTo[rs]) { continue; }
+            put.push({ row: row, rs: rs, rid: rid });
+          }
+          // RECORD-TITLE T2 (0C.4.4): duvar, kayit degerleri ve baslik ortak yardimcida.
+          var ta = titleApply(tid, null, put, tsel, mapIds, '');
+          for (var u = 0; u < put.length; u++) {
+            var pr = put[u], tt = pr.tt;
+            if (!cols[pr.rs]) { cols[pr.rs] = { recs: [] }; }
+            var rec = { id: pr.rid, ref: tt.text, q: tt.q, untitled: tt.untitled, empty: tt.empty, mod: modMs(pr.row._modified), o: order[pr.rid] };
+            if (pr.v) {
+              var fb = os9bTitle(pr.row);
+              rec.v = pr.v;
+              rec.f = pr.f;
+              rec.rf = { id: pr.rid, ref: fb.text, q: fb.q, untitled: fb.untitled, empty: fb.empty, mod: rec.mod, o: rec.o };
             }
-            if (!Object.keys(al).length) { al = null; }
+            cols[pr.rs].recs.push(rec);
+            placed++;
           }
-          put.push({ row: row, rs: rs, rid: rid, al: al });
-          if (al) { inn.push(row); colOf[rid] = rs; }
-        }
-        var tp = inn.length ? titlePlan(tid, inn, tsel, function (x) { return colOf[str(x._id).trim()] || ''; }, Object.keys(idTo)) : null;
-        for (var u = 0; u < put.length; u++) {
-          var pr = put[u];
-          if (!cols[pr.rs]) { cols[pr.rs] = { recs: [] }; }
-          var tt = pr.al ? recTitle(pr.row, tp, pr.al) : os9bTitle(pr.row);
-          var rec = { id: pr.rid, ref: tt.text, q: tt.q, untitled: tt.untitled, mod: modMs(pr.row._modified), o: order[pr.rid] };
-          if (tt.keys.length) {
-            var fb = os9bTitle(pr.row);
-            rec.tk = tt.keys;
-            rec.rf = { id: pr.rid, ref: fb.text, q: fb.q, untitled: fb.untitled, mod: rec.mod, o: rec.o };
+          if (bad && !placed) { return { error: 'shape' }; }
+          for (var cs in cols) {
+            if (!Object.prototype.hasOwnProperty.call(cols, cs)) { continue; }
+            cols[cs].recs.sort(function (x, y) {
+              var xn = x.mod == null, yn = y.mod == null;
+              if (xn !== yn) { return xn ? 1 : -1; }
+              if (!xn && x.mod !== y.mod) { return y.mod - x.mod; }
+              return x.o - y.o;
+            });
+            if (cols[cs].recs.length > T.perCol) { cols[cs].recs.length = T.perCol; }
           }
-          cols[pr.rs].recs.push(rec);
-          placed++;
-        }
-        if (bad && !placed) { return { error: 'shape' }; }
-        for (var cs in cols) {
-          if (!Object.prototype.hasOwnProperty.call(cols, cs)) { continue; }
-          cols[cs].recs.sort(function (x, y) {
-            var xn = x.mod == null, yn = y.mod == null;
-            if (xn !== yn) { return xn ? 1 : -1; }
-            if (!xn && x.mod !== y.mod) { return y.mod - x.mod; }
-            return x.o - y.o;
-          });
-          if (cols[cs].recs.length > T.perCol) { cols[cs].recs.length = T.perCol; }
-        }
-        res.mirror = b.mirror || res.mirror;
-        return res;
+          res.mirror = b.mirror || res.mirror;
+          res.sel = tsel;
+          res.tp = ta.tp;
+          res.tpv = ta.tpv;
+          return res;
+        });
       });
     });
     var fin = p.then(function (res) {
@@ -73434,7 +74076,11 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
         var m = res.mirror || {};
         C.byTable[tid] = {
           tid: tid, at: now(), cols: res.cols, groups: res.groups, mapped: res.mapped, k: K, fresh: m.fresh === true,
-          fs: Math.max(0, Number(m.freshness_s) || 0), preview: m.preview === true, cnt: cnt, liveChg: liveChg
+          fs: Math.max(0, Number(m.freshness_s) || 0), preview: m.preview === true, cnt: cnt, liveChg: liveChg,
+          // 0C.4.3: yalniz baslik cagrisinin girdileri (B kimlikleri, kimlik -> surec, eslenen sutunlar, gonderilen
+          // alanlar, plan ve surumu, denenen kumeler, otomatik tekrar sayisi); yalniz kapanis belleginde.
+          ids: res.ids || [], grp: res.grp || {}, mapIds: res.mapIds || [], sel: res.sel || [], tp: res.tp || null, tpv: res.tpv || 0,
+          tried: {}, tn: 0
         };
         cardsLru();
         C.at = C.byTable[tid].at;
@@ -73442,12 +74088,22 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
         C.errTid = '';
         trace('cards:ready');
         cardsPhase('ready', '');
+        // B ucustayken ogrenilen alan ya da yapilan secim (tsel B gitmeden sabitlendi) bir sonraki tiki beklemez.
+        titleArm(tid);
         return true;
       }
       var cls = (res && res.error) || 'shape';
-      if (res && res.transient) { C.errTid = tid; C.errAt = now(); C.errCls = cls; trace('cards:error'); cardsPhase('error', cls); return false; }
+      // 0C.1.5 (c): varsayilan Board kesin ret (nomap dahil) ya da hic kart yokken gecici hata alirsa Overview'a cekilir;
+      // ret ve hata beklemesi saklanir, Board'a basan kullanici tasarlanmis durumu gorur (ek cagri yok).
+      if (res && res.transient) {
+        C.errTid = tid; C.errAt = now(); C.errCls = cls; trace('cards:error');
+        if (!C.byTable[tid] && layoutAuto('error')) { return false; }
+        cardsPhase('error', cls);
+        return false;
+      }
       C.refused[tid] = cls;
       trace('cards:refused');
+      if (layoutAuto('refused')) { return false; }
       cardsPhase('refused', cls);
       return false;
     }, function (err) {
@@ -73459,6 +74115,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       C.errTid = tid;
       C.errAt = now();
       C.errCls = 'shape';
+      if (!C.byTable[tid] && layoutAuto('error')) { return false; }
       cardsPhase('error', 'shape');
       return false;
     });
@@ -73466,6 +74123,137 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     cardsPhase('loading', '');
     later('cardsCap', function () { if (S.cards.phase === 'loading' && S.cards.seq === seq) { paintSoon(); } }, T.recCaption);
     return fin;
+  }
+  // T8 (0C.4.3): yalniz baslik cagrisi gerekir mi. Faz ready ve B kimlikleri var; ucusta istek yok; secilecek
+  // alanlarin (titleSel) en az biri bir sutunda eksik; bu durum denenmemis; tavanda 1 kosuluk yer var (yoksa kume
+  // basina tek iz 'cards:cap'); otomatik cagri tablo ve sayfa basina en cok T.titleMax (eksik anahtar onayli secimse
+  // sinir atlanir, tavan atlanmaz). Eksik SUTUN BASINA (duvar sutun basinadir; tablo capindaki ent.sel yetmez): sutunun
+  // su an izinli istenen alani o sutunun bir kartinda cekilmemis (rec.f'te yok: B'den sonra ogrenildi, B aninda
+  // duvarliydi ya da izinden dusup budandi). Imza: istenen kume + eksik (sutun, alan) ciftleri + budama sayaci (ent.pg).
+  // Doner: {want, sig, pick} ya da null.
+  function titleWant(tid, ent) {
+    var C = S.cards;
+    if (C.phase !== 'ready' || !ent || C.byTable[tid] !== ent || !isArr(ent.ids) || !ent.ids.length || !isArr(ent.sel)) { return null; }
+    if (C.inflight || C.tinf) { return null; }
+    var want = titleSel(tid, ent.mapIds);
+    if (!want.length) { return null; }
+    var miss = [], pairs = [];
+    for (var cs in ent.cols) {
+      if (!Object.prototype.hasOwnProperty.call(ent.cols, cs)) { continue; }
+      var rl = (ent.cols[cs] && ent.cols[cs].recs) || [];
+      var aw = rl.length ? titleAllow(tid, cs) : null;
+      if (!aw) { continue; }
+      for (var i = 0; i < want.length; i++) {
+        var k = want[i];
+        if (!Object.prototype.hasOwnProperty.call(aw, k)) { continue; }
+        for (var j = 0; j < rl.length; j++) {
+          var r = rl[j];
+          // rec.ask: T8 bu alani bu kart icin sordu, sunucu karti dondurmedi (cardsTitles): eksik sayilmaz.
+          if (r && !(r.v && isArr(r.f) && r.f.indexOf(k) >= 0) && !(r.ask && r.ask[k] === 1)) {
+            pairs.push(cs + '\u0002' + k);
+            if (miss.indexOf(k) < 0) { miss.push(k); }
+            break;
+          }
+        }
+      }
+    }
+    if (!miss.length) { return null; }
+    pairs.sort();
+    var sig = want.join('\u0001') + '\u0003' + pairs.join('\u0001') + '\u0003' + (ent.pg || 0);
+    if (ent.tried[sig]) { return null; }
+    if (cardsCalls1h() + 1 > 2 * T.recCap) {
+      if (ent.capSig !== sig) { ent.capSig = sig; trace('cards:cap'); }
+      return null;
+    }
+    var pk = titlePick(tid, ent.mapIds), forPick = !!pk && miss.indexOf(pk) >= 0;
+    if (!forPick && ent.tn >= T.titleMax) { return null; }
+    return { want: want, sig: sig, pick: forPick };
+  }
+  // T8 kurulumu: kosullar tutarsa T.titleDeb sonra cardsTitles (cagri aninda yeniden denetlenir). cardsTick'in !need
+  // dalindan ve B ile T8 donunce: ucustayken ogrenilen alan ya da yapilan secim bir sonraki tiki beklemez (kopru
+  // cevabi ve tablonun DOM'u Gozlemci A'yi uyandirmaz).
+  function titleArm(tid) {
+    if (S.timers.cardsTitle) { return; }
+    if (titleWant(tid, S.cards.byTable[tid] || null)) { later('cardsTitle', function () { cardsTitles(tid); }, T.titleDeb); }
+  }
+  // Tek deneme, 1 kosu, tekrar yok (B kalibinin aynisi: ids + select, group_by yok). Cagri aninda kosullar yeniden
+  // denetlenir. Canlilik: ayni seq, ayni ucus ve ayni onbellek girdisi; arada baslayan tam yukleme cevabi dusurur (o
+  // yukleme yeni alanlari zaten tasir). Basarida yalniz basliklar degisir (kart yeri, sirasi, mod, ent.at ve odak
+  // aynen, duyuru yok); basarisizlikta kume denenmis sayilir, eski basliklar ve faz kalir.
+  function cardsTitles(tid) {
+    var C = S.cards;
+    if (!C || !S.mounted || cardsGate(S.snap) !== '' || C.tidOf[sheetKey()] !== tid) { return Promise.resolve(false); }
+    var ent = C.byTable[tid] || null;
+    var w = titleWant(tid, ent);
+    if (!w) { return Promise.resolve(false); }
+    var ctrl = null;
+    try { ctrl = (typeof AbortController === 'function') ? new AbortController() : null; } catch (e) { ctrl = null; }
+    var mine = { seq: C.seq, ctrl: ctrl, tid: tid, pick: w.pick };
+    C.tinf = mine;
+    titleBusyPaint();   // 0C.7.2: secimin cagrisi ucustayken Title: aria-busy
+    var live = function () { return mine.seq === S.cards.seq && S.cards.tinf === mine && S.cards.byTable[tid] === ent; };
+    // Basari ve basarisizlikta: ucustayken degisen istek (yeni secim, yeni ogrenilen alan) yeniden kurulur.
+    var fail = function () { ent.tried[w.sig] = 1; trace('cards:title:fail'); titleBusyPaint(); titleArm(tid); return false; };
+    trace('cards:title');
+    var q = { query: { table: tid, ids: ent.ids.slice(), select: SYS4.concat(w.want), limit: ent.ids.length }, wait_ms: 4000 };
+    return cardsCall('mirror_query', q, ctrl, live, { once: true }).then(function (b) {
+      if (!live()) { return false; }
+      C.tinf = null;
+      var rows = (b && b.ok) ? rowsOf(b.data) : null;
+      if (!rows) { return fail(); }
+      // Yerlesim mevcut kartlardan: kimlik -> kart ve sureci (B'nin yerlesimi aynen).
+      var at = {};
+      for (var cs in ent.cols) {
+        if (!Object.prototype.hasOwnProperty.call(ent.cols, cs)) { continue; }
+        var rl = ent.cols[cs].recs || [];
+        for (var i = 0; i < rl.length; i++) { at[rl[i].id] = { rec: rl[i], rs: cs }; }
+      }
+      // Ikinci inceleme: degerler BIRLESTIRILIR, degistirilmez. Bu istekte olmayan ama kartin daha once cektigi alan
+      // (birlesimin sinirindan dustu) degeriyle kalir (keep); daha dar bir T8 gosterilmis basliklari silmez ve alan
+      // birlesime donunce yeniden cekilmez.
+      var put = [], back = {};
+      for (var r = 0; r < rows.length; r++) {
+        var row = rows[r] || {}, a = at[str(row._id).trim()];
+        if (!a || back[a.rec.id]) { continue; }
+        back[a.rec.id] = 1;
+        var keep = [], ov = a.rec.v, of = a.rec.f;
+        if (ov && isArr(of)) {
+          for (var j = 0; j < of.length; j++) {
+            var ky = str(of[j]);
+            if (ky && ky.charAt(0) !== '_' && w.want.indexOf(ky) < 0 && keep.indexOf(ky) < 0) { keep.push(ky); row[ky] = ov[ky]; }
+          }
+        }
+        put.push({ row: row, rid: a.rec.id, rs: a.rs, rec: a.rec, keep: keep });
+      }
+      // Istenip donmeyen kart (B'den sonra silindi ya da gizlendi): bu istegin alanlari o kart icin SORULMUS sayilir
+      // (rec.ask, yalniz alan anahtari, kapanis belleginde). titleWant onu eksik saymaz: sonraki titleArm ve budama ayni
+      // karsiliksiz cagriyi yeniden kurmaz. Cekilmis sayilmaz (rec.f degismez), etiket aynen; tam yukleme kartlari yeniden kurar.
+      for (var id0 in at) {
+        if (!Object.prototype.hasOwnProperty.call(at, id0) || back[id0]) { continue; }
+        var rk = at[id0].rec, ask = rk.ask || (rk.ask = {});
+        for (var wk = 0; wk < w.want.length; wk++) { ask[w.want[wk]] = 1; }
+      }
+      titleApply(tid, ent, put, w.want, ent.mapIds, ent.tp && ent.tp.primary);
+      for (var u = 0; u < put.length; u++) {
+        var pr = put[u], rec = pr.rec;
+        if (!pr.v) { continue; }
+        rec.v = pr.v; rec.f = pr.f;
+        rec.ref = pr.tt.text; rec.q = pr.tt.q; rec.untitled = pr.tt.untitled; rec.empty = pr.tt.empty;
+        delete rec.vk;
+      }
+      ent.sel = w.want.slice();
+      ent.tried[w.sig] = 1;
+      if (!w.pick) { ent.tn++; }
+      titleBusyPaint();
+      paintSoon();
+      titleArm(tid);
+      return true;
+    }, function (err) {
+      if (!live()) { return false; }
+      C.tinf = null;
+      logErr(err);
+      return fail();
+    });
   }
   function cardsLru() {
     var C = S.cards;
@@ -73492,9 +74280,9 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     return null;
   }
   // Gecici hatada 2 tekrar (T.recRetryA, T.recRetryB); kesin ret ve sekil hatasi tekrar edilmez. Her deneme tavana
-  // sayilir; tavanda yeni deneme yapilmaz (son gecici sonuc doner).
-  function cardsCall(op, payload, ctrl, live) {
-    var delays = [T.recRetryA, T.recRetryB];
+  // sayilir; tavanda yeni deneme yapilmaz (son gecici sonuc doner). opt.once: tek deneme (T8, 0C.4.3).
+  function cardsCall(op, payload, ctrl, live, opt) {
+    var delays = (opt && opt.once) ? [] : [T.recRetryA, T.recRetryB];
     function attempt(n, last) {
       if (cardsCalls1h() >= 2 * T.recCap) { trace('cards:cap'); return Promise.resolve(last || { error: 'cap', transient: true }); }
       S.cards.calls.push(now());
@@ -73579,6 +74367,20 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     };
   }
 
+  // 0C.12: kart basligi teshisi; yalniz kod, sayi ve bayrak (alan adi ve deger yok).
+  function titleDiag() {
+    var C = S.cards, m = wtl();
+    var tid = C.tidOf[sheetKey()] || cardsTid();
+    var ent = tid ? (C.byTable[tid] || null) : null;
+    var kn = 0;
+    try { kn = (m && tid && typeof m.known === 'function') ? Number(m.known(tid)) || 0 : 0; } catch (e) { kn = 0; }
+    return {
+      why: S.tscWhy == null ? 'none' : S.tscWhy, known: kn, sel: (ent && isArr(ent.sel)) ? ent.sel.length : 0, wait: C.tw || 0,
+      refetch: ent ? (ent.tn || 0) : 0, tried: (ent && ent.tried) ? Object.keys(ent.tried).length : 0, pick: !!titlePick(tid),
+      learnPoll: !!S.timers.titleLearn
+    };
+  }
+
   // ================================================================= API
   var api = {
     boot: boot,
@@ -73627,7 +74429,12 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   // os9b (OCTO_BOARD_SPEC 0A.6, 8): duzen ve kayit kartlari. Yalniz sayi ve bayrak; kayit kimligi ya da degeri YOK.
   (function () {
     var baseState = api.state, baseSnap = api.snapshot, baseDiag = api.diag;
-    api.state = function () { var o = baseState(); o.layout = S.layout; o.cards = S.cards.phase; o.cardsWhy = S.cards.why; return o; };
+    api.state = function () {
+      var o = baseState(); o.layout = S.layout; o.layoutBy = S.layoutBy; o.cards = S.cards.phase; o.cardsWhy = S.cards.why;
+      // 0C.12: kart basligi secimi yalniz bayrak (alan adi yok).
+      o.title = { pick: !!titlePick(titleTid()), busy: !!(S.cards.tinf && S.cards.tinf.pick) };
+      return o;
+    };
     api.snapshot = function () {
       var o = baseSnap();
       o.layout = S.layout;
@@ -73635,8 +74442,15 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       for (var i = 0; i < o.stages.length; i++) { o.stages[i].mapped = maps[i] === true; o.stages[i].shown = S.cards.shown[i] || 0; }
       return o;
     };
-    api.diag = function () { var o = baseDiag(); o.cards = cardsDiag(); return o; };
-    api.layout = function (name) { return (name === undefined) ? S.layout : setLayout(name); };
+    api.diag = function () { var o = baseDiag(); o.cards = cardsDiag(); o.title = titleDiag(); return o; };
+    // 0C.12: yazarsa kullanici secimi (layoutBy 'user'); imza aynen.
+    api.layout = function (name) { return (name === undefined) ? S.layout : setLayout(name, 'user'); };
+    // 0C.12: argumansiz onayli secimin anahtari ya da ''; key verilirse kullanici secimi gibi (depo, canli satir,
+    // uygulama); null ya da '' Automatic. Doner: onayli secim (uyuyorsa '').
+    api.titleField = function (key) {
+      if (arguments.length && key !== undefined) { titleChoose(key == null ? '' : str(key)); }
+      return titlePick(titleTid());
+    };
     api.refreshCards = function (force) { return refreshCards(!!force); };
     api.openRecord = function (k, i) { return openRecord(Number(k), Number(i), false, null); };
   })();
@@ -75699,10 +76513,10 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
 
 /* file: app-wstitle.js */
 /* ==========================================================================
-   app-wstitle.js  -  OCTO RECORD TITLE (os9b eki v1.2). Sahip: CLIENT. OCTO_RECORD_TITLE_SPEC.
+   app-wstitle.js  -  OCTO RECORD TITLE (os9b eki v1.3). Sahip: CLIENT. OCTO_RECORD_TITLE_SPEC, Board spec 0C.
 
    os9b Board kartinin basligi kaydin _ref'iydi (Bubble RefereDeger); insanlarin actigi kayitlarda bos oldugu icin
-   kartlarin cogu 'Untitled record' diyordu. Bu modul musteriye hicbir sey sordurmadan baslik alanini secer:
+   kartlarin cogu basliksizdi. Bu modul musteriye hicbir sey sordurmadan baslik alanini secer:
    - GORULEN EKRANLAR: pano, kullanicinin bu sayfada actigi her ekranin (tum kayitlar ekrani ya da bir surecin ekrani)
      gorunur sutunlarini, guvenli okundugunda (tablo yuklemiyor, tablonun ekrani su anki baglamla ayni) hatirlar;
    - SUTUN DUVARI (Board spec 2.8): bir kart yalniz o kaydi listeleyen ve gorulmus bir ekranda gorunen alanlari
@@ -75712,7 +76526,10 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
      anahtari sutunlari aday olmaz;
    - secim panonun zaten cektigi ornek kayitlarin GERCEK degerlerinden (katman + doluluk + benzersizlik); gerekirse
      iki alan 'A \u00b7 B'; _ref iyi doluysa _ref kalir (rayin cipiyle ayni ad);
-   - kayit basligi: secilen alan, yoksa siradaki izinli alan, yoksa _ref, yoksa 'Untitled record' (uydurma yok).
+   - kayit basligi (0C.5): kullanicinin secimi (Title:), birincil, siradaki izinli alan, _ref, seyrek ama ayirt edici
+     alan (spare); hicbiri yoksa durust etiket: '<baslik> not filled in' ya da 'No title to show' (uydurma yok);
+   - kullanicinin secimi (0C.7) tablo basina tek alan anahtari; bu oturumda gorulen bir ekranin tam listesinde yoksa
+     uyur. Doluluk ve ayirt edicilik kapilarini atlar, gizlilik vetolarini ve deger maskelerini asla.
 
    Bubble'da ve sunucuda SIFIR degisiklik; ayna mirror_query select'i alanlari adiyla verir (SRV 25115-25134).
    Kayit degerleri yalniz bu kapanisin belleginde; DOM'a ve depolamaya yazilmaz, diag() deger tasimaz (yalniz alan
@@ -75727,9 +76544,10 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
 
   var D = document;
   var W = window;
-  var UNTITLED = 'Untitled record';
-  var MAX_CANDS = 5;   // ekran basina aday
-  var MAX_SEL = 6;     // B sorgusuna eklenen alan (gorulen ekranlarin birlesimi)
+  // Degeri olmayan kart (0C.6): alan biliniyor ve bos -> '<baslik> not filled in'; bilinen alan yok ya da maskeli -> E2.
+  var EMPTY_NONE = 'No title to show';
+  var MAX_CANDS = 5;   // ekran basina aday (top); tam liste (full) sinirsiz
+  var MAX_SEL = 6;     // B sorgusuna eklenen alan (secim + gorulen ekranlarin birlesimi)
   // fillT1 / fill: doluluk kapisi (kimlik adli / diger); distT1 / dist: farkli deger payi (en az 2 farkli deger);
   // maxLen: ortalama uzunluk (kimlik adli haric); pairBelow / pairMin / pairLen: ikinci alan kurali; shape: tarih /
   // tutar / telefon bicimli deger payi; refFill: _ref'in kalmasi; stableRows: plan bu kadar satirla kalici olur.
@@ -75737,7 +76555,8 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   var T_DEFAULT = {};
   (function () { for (var k in T) { if (Object.prototype.hasOwnProperty.call(T, k)) { T_DEFAULT[k] = T[k]; } } })();
 
-  var S = { plans: {}, seen: {}, cfgText: null, cfgCols: null, last: null };
+  // seen[tid][kapsam] = {top, full}; pick[tid] = onayli alan anahtari; tp[tid] = tablonun son plani (menu otomatigi).
+  var S = { plans: {}, seen: {}, pick: {}, tp: {}, cfgText: null, cfgCols: null, last: null };
 
   function str(v) { return (v == null) ? '' : String(v); }
   function clean(v) { return str(v).replace(/\s+/g, ' ').trim().slice(0, 120); }
@@ -75902,11 +76721,13 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     } catch (e) { /* yut */ }
     return null;
   }
-  // Su anki ekranin adaylari (gorunur sira; vetolar sinirdan once; katman, sonra sira; en cok MAX_CANDS).
+  // Su anki ekranin adaylari (gorunur sira; vetolar sinirdan once; katman, sonra sira). fields: ilk MAX_CANDS (B'nin
+  // birlesimi), all: vetolardan sonraki tam liste (silme ve secim bununla). Yapilandirma sutunlari bossa ekran hazir
+  // degildir (src ''): tablo gecisinde bos liste kaydedilip o ekranin alanlari silinmez (0C.3.4).
   function candidates() {
     var cols = cfgColumns();
     var st = tableState();
-    if (!cols.length || !st) { return { fields: [], src: st ? 'state' : '' }; }
+    if (!cols.length || !st) { return { fields: [], all: [], src: '' }; }
     var by = {};
     cols.forEach(function (c) { by[c.jid] = c; });
     var list = [], seen = {};
@@ -75920,7 +76741,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       out.push({ key: c.key, header: c.header, tier: tier, pos: i, num: canon(c.type) === 'number' || c.int, int: c.int });
     }
     out.sort(function (a, b) { return (a.tier - b.tier) || (a.pos - b.pos); });
-    return { fields: out.slice(0, MAX_CANDS), src: 'state' };
+    return { fields: out.slice(0, MAX_CANDS), all: out, src: 'state' };
   }
 
   // ---------------------------------------------------------- ekran kapsami (Board spec 2.8)
@@ -75947,8 +76768,9 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     return { kind: 'none', id: '', src: '' };
   }
   function scopeKey(sc) { return sc.kind === 'stage' ? 'stage:' + sc.id : 'all'; }
-  // Gorulen ekran: guvenli okunmus kapsamda su anki ekranin adaylari (tablo basina, sayfa omru; reset siler). Ayni
-  // ekranin onceki gozleminde olup simdi olmayan alan (gizlendi, kaldirildi) BUTUN ekranlarin kaydindan duser.
+  // Gorulen ekran: guvenli okunmus kapsamda su anki ekranin adaylari, {top: ilk MAX_CANDS, full: tam liste} (tablo
+  // basina, sayfa omru; reset siler). Ayni ekranin onceki gozleminin TAM listesinde olup simdi olmayan alan (gizlendi,
+  // kaldirildi) BUTUN ekranlarin top ve full kaydindan duser; yalniz ilk 5'ten kayan alan (sira degisti) silinmez.
   function observe(tid, sc) {
     tid = str(tid);
     if (!tid || !sc || (sc.kind !== 'all' && sc.kind !== 'stage')) { return false; }
@@ -75959,24 +76781,63 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var prev = t[k] || null;
     if (prev) {
       var now = {};
-      c.fields.forEach(function (f) { now[f.key] = 1; });
-      var gone = prev.filter(function (f) { return !now[f.key]; }).map(function (f) { return f.key; });
+      c.all.forEach(function (f) { now[f.key] = 1; });
+      var gone = prev.full.filter(function (f) { return !now[f.key]; }).map(function (f) { return f.key; });
       if (gone.length) {
-        for (var s in t) { if (own(t, s)) { t[s] = t[s].filter(function (f) { return gone.indexOf(f.key) < 0; }); } }
+        var keep = function (f) { return gone.indexOf(f.key) < 0; };
+        for (var s in t) { if (own(t, s)) { t[s] = { top: t[s].top.filter(keep), full: t[s].full.filter(keep) }; } }
       }
     }
-    t[k] = c.fields.slice();
+    t[k] = { top: c.fields.slice(), full: c.all.slice() };
     return true;
   }
-  // Bir sutunun (surec kimligi) kartinin kullanabilecegi alanlar: tum kayitlar ekrani + o surecin ekrani (gorulduyse).
+  // Ogrenilmis kapsam sayisi (adayi olmayan kapsam da sayilir).
+  function known(tid) { var t = S.seen[str(tid)]; return t ? Object.keys(t).length : 0; }
+  // Kapsam listelerinin tam listesinde k alani (alan bilgisiyle) ya da null.
+  function inFull(ls, k) {
+    for (var i = 0; i < ls.length; i++) {
+      var l = (ls[i] && ls[i].full) || [];
+      for (var j = 0; j < l.length; j++) { if (l[j].key === k) { return l[j]; } }
+    }
+    return null;
+  }
+  // Kullanicinin secimi (0C.7): tablo basina tek alan anahtari; '' ya da null secimi siler (Automatic). Sistem alani
+  // (_ ile baslayan) secilemez.
+  function setPick(tid, key) {
+    tid = str(tid);
+    if (!tid) { return false; }
+    var k = clean(key);
+    if (!k || k.charAt(0) === '_') { delete S.pick[tid]; } else { S.pick[tid] = k; }
+    return true;
+  }
+  // Onayli secim: kayitli anahtar, bu oturumda gorulen bir ekranin TAM listesinde (cols verilirse yalniz tum kayitlar
+  // ekrani ve o sutunlarin surec ekranlari) varsa; yoksa uyur ve '' doner. Tam liste vetolardan sonradir.
+  function pick(tid, cols) {
+    tid = str(tid);
+    var k = str(S.pick[tid]), t = S.seen[tid];
+    if (!k || !t) { return ''; }
+    var ls = [];
+    if (isArr(cols)) { ls.push(t.all); cols.forEach(function (c) { ls.push(t['stage:' + str(c)]); }); }
+    else { for (var s in t) { if (own(t, s)) { ls.push(t[s]); } } }
+    return inFull(ls, k) ? k : '';
+  }
+  // Bir sutunun (surec kimligi) kartinin kullanabilecegi alanlar: tum kayitlar ekrani + o surecin ekrani (gorulduyse),
+  // ilk 5'leri; onayli secim bu iki ekrandan birinin tam listesindeyse o da eklenir.
   function allowed(tid, col) {
     var t = S.seen[str(tid)];
     var o = {};
     if (!t) { return o; }
-    [t.all, t['stage:' + str(col)]].forEach(function (l) { (l || []).forEach(function (f) { if (!own(o, f.key)) { o[f.key] = f; } }); });
+    var ls = [t.all, t['stage:' + str(col)]];
+    ls.forEach(function (l) { ((l && l.top) || []).forEach(function (f) { if (!own(o, f.key)) { o[f.key] = f; } }); });
+    var pk = str(S.pick[str(tid)]);
+    if (pk && !own(o, pk)) { var pf = inFull(ls, pk); if (pf) { o[pk] = pf; } }
     return o;
   }
-  // Sutunlarin izinli alanlarinin birlesimi (katman, sonra sira; en cok MAX_SEL).
+  // Sutunlarin izinli alanlarinin birlesimi: onayli secim once, sonra katman ve sira; toplam en cok MAX_SEL.
+  // Ikinci inceleme (0C.4.3): sinir asilinca KALACAK alanlar onceligle secilir: onayli secim, tablonun son planinin
+  // birincili ve ikinci alani (yapiskan: gosterilmis basliklar ziplamaz), tum kayitlar ekraninin ilk 5'i (her kartta
+  // gecerli), sonra yalniz surec ekraninda olan alanlar (katman, sira). Farkli ekranlarin sira numaralari
+  // karsilastirilamaz: bir surecin ekrani butun kartlarin basligini birlesimden itemez. Kalanlarin sirasi aynen.
   function unionOf(tid, cols) {
     var o = {}, out = [];
     (cols || []).forEach(function (col) {
@@ -75984,6 +76845,17 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       for (var k in a) { if (own(a, k) && !own(o, k)) { o[k] = 1; out.push(a[k]); } }
     });
     out.sort(function (a, b) { return (a.tier - b.tier) || (a.pos - b.pos); });
+    if (out.length > MAX_SEL) {
+      var keep = {}, n = 0, sn = S.seen[str(tid)] || {}, tp = S.tp[str(tid)] || null;
+      var put = function (k) { k = str(k); if (n < MAX_SEL && k && own(o, k) && !own(keep, k)) { keep[k] = 1; n++; } };
+      put(S.pick[str(tid)]);
+      if (tp) { put(tp.primary); put(tp.secondary); }
+      ((sn.all && sn.all.top) || []).forEach(function (f) { put(f.key); });
+      out.forEach(function (f) { put(f.key); });
+      out = out.filter(function (f) { return own(keep, f.key); });
+    }
+    var pk = str(S.pick[str(tid)]);
+    for (var i = 1; pk && i < out.length; i++) { if (out[i].key === pk) { out.unshift(out.splice(i, 1)[0]); break; } }
     return out.slice(0, MAX_SEL);
   }
 
@@ -76072,26 +76944,38 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     if (!t1 && st.len > T.maxLen) { return false; }
     return st.shape < T.shape;
   }
+  // Seyrek ama ayirt edici (spare, 0C.5.2): doluluk kapisi yok sayilir ama en az 1 dolu satir; tek dolu satir yalniz
+  // katman 1 ve 3'te (katman 2 duz metin en az 2 dolu ve ayirt edici); dolu >= 2 ise d >= max(2, ceil(dist x dolu));
+  // uzunluk (katman 1 haric) ve bicim payi aynen. Az cesitli alan (AXA, Istanbul) boylece baslik olamaz.
+  function spareOk(st, tier) {
+    if (!st.filled || (st.filled === 1 && tier === 2)) { return false; }
+    if (st.filled >= 2 && st.d < Math.max(2, Math.ceil(T.dist * st.filled))) { return false; }
+    if (tier !== 1 && st.len > T.maxLen) { return false; }
+    return st.shape < T.shape;
+  }
 
   // ---------------------------------------------------------- secim
   // Iki kip: (a) pano: alanlar gorulen ekranlardan, her satir yalniz kendi sutununun izinli alanlarini kullanir
   // (colOf); (b) dogrudan (birimler, colOf yok): su anki ekranin adaylari her satirda.
   // Plan anahtari tablo + aday kumesi (sirali): kume degisirse yeni plan; ayni kumede sira degisse de ayni plan.
   function planKey(tid, fields) { return str(tid) + '|' + fields.map(function (f) { return f.key; }).sort().join('\u0001'); }
-  function fieldKeys(p) { return p.order.filter(function (k) { return k !== '_ref'; }); }
-  // B sorgusuna eklenecek alanlar: kalici plan varsa onun uygun alanlarinin tumu (kayit basina yedek dahil), yoksa adaylar.
+  // B sorgusuna eklenecek alanlar (0C.4.1): her zaman onayli secim once, sonra gorulen ekranlarin birlesimi; toplam en
+  // cok MAX_SEL. Kalici plan kumeyi daraltmaz: kayit basina yedek zinciri uymayan alanlarin degerine de ihtiyac duyar.
+  // Birim kipinde (cols yok) su anki ekranin adaylari, onayli secim tam listedeyse once.
   function select(tid, cols) {
-    var u = isArr(cols) ? unionOf(tid, cols) : candidates().fields;
-    if (!u.length) { return []; }
-    var p = tid ? S.plans[planKey(tid, u)] : null;
-    if (p && p.stable) { return fieldKeys(p); }
-    return u.map(function (f) { return f.key; });
+    if (isArr(cols)) { return unionOf(tid, cols).map(function (f) { return f.key; }); }
+    var c = candidates();
+    var out = c.fields.map(function (f) { return f.key; });
+    var pk = pick(tid);
+    if (pk && c.all.some(function (f) { return f.key === pk; })) { out = [pk].concat(out.filter(function (k) { return k !== pk; })); }
+    return out.slice(0, MAX_SEL);
   }
   function rank(a, b) { return (a.tier - b.tier) || (b.score - a.score) || (a.pos - b.pos); }
   // sent: B sorgusunda gercekten istenen alanlar. Ucustayken kume degistiyse yalniz gonderilenler puanlanir ve plan
   // kalici olmaz. colOf(row): satirin sutunu (pano kipi); bir alan yalniz izinli oldugu satirlarda olculur. allCols:
-  // select'in kullandigi sutunlar (plan ayni anahtarla saklanir); yoksa satirlarin sutunlari.
-  function plan(tid, rows, sent, colOf, allCols) {
+  // select'in kullandigi sutunlar (plan ayni anahtarla saklanir); yoksa satirlarin sutunlari. opt.prefer: onceki
+  // birincil (yapiskan, 0C.4.3): birlesimde ve uygunsa korunur, gosterilmis basliklar ziplamaz.
+  function plan(tid, rows, sent, colOf, allCols, opt) {
     var cols = null;
     if (typeof colOf === 'function') {
       var cs = {};
@@ -76102,7 +76986,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var fields = cols ? unionOf(tid, cols) : candidates().fields;
     var key = tid ? planKey(tid, fields) : '';
     var have = key ? S.plans[key] : null;
-    if (have && have.stable) { return have.primary ? have : null; }
+    if (have && have.stable) { S.tp[str(tid)] = have; return (have.primary || have.spare.length) ? have : null; }
     var drift = false;
     if (isArr(sent)) {
       var kept = fields.filter(function (f) { return sent.indexOf(f.key) >= 0; });
@@ -76120,44 +77004,113 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       scored.push({ key: f.key, f: f, tier: f.tier, pos: f.pos, ok: fits(st, f.tier === 1), st: st, score: st.ratio * Math.sqrt(st.fill) });
     }
     var good = scored.filter(function (x) { return x.ok; }).sort(rank);
-    var p = { tid: str(tid), primary: null, secondary: null, order: [], fields: {}, n: rows.length, stable: false, scored: scored, why: '' };
-    // _ref iyi doluysa ve ayirt ediciyse birincil kalir (ajanlarin yazdigi ad; rayin cipiyle ayni).
+    var spare = scored.filter(function (x) { return !x.ok && spareOk(x.st, x.tier); }).sort(rank);
+    var p = { tid: str(tid), primary: null, secondary: null, order: [], spare: [], fields: {}, n: rows.length, stable: false, scored: scored, why: '' };
+    // _ref iyi doluysa ve ayirt ediciyse birincil kalir (ajanlarin yazdigi ad; rayin cipiyle ayni). Yapiskan birincil
+    // (opt.prefer) uygun bir alansa _ref'in onune gecer; uygun degilse yok sayilir.
     var rs = stats(rows, null, null);
-    if (rs.fill >= T.refFill && fits(rs, true)) { p.primary = '_ref'; p.order.push('_ref'); }
+    var refOk = rs.fill >= T.refFill && fits(rs, true);
+    var pref = str(opt && opt.prefer), pg = null;
+    for (var g = 0; pref && pref !== '_ref' && g < good.length; g++) { if (good[g].key === pref) { pg = good[g]; break; } }
+    if (refOk && !pg) { p.primary = '_ref'; p.order.push('_ref'); }
     good.forEach(function (x) { p.order.push(x.key); p.fields[x.key] = x.f; });
-    if (!p.primary && good.length) { p.primary = good[0].key; }
+    if (!p.primary && good.length) { p.primary = (pg || good[0]).key; }
+    // Kayit basina yedek (spare): fields'a girer, order'a girmez (titleOf zincirinde _ref'ten sonra).
+    spare.forEach(function (x) { p.spare.push(x.key); p.fields[x.key] = x.f; });
     if (p.primary) {
-      var pst = p.primary === '_ref' ? rs : good[0].st;
+      var pst = p.primary === '_ref' ? rs : (pg || good[0]).st;
       if (pst.ratio < T.pairBelow) {
         // Ikinci alan: katman 2 / 3, cok ayirt edici (>= 0.9) ve kisa (<= 24); yoksa ikinci alan yok.
         var sec = good.filter(function (x) { return x.key !== p.primary && x.tier >= 2 && x.st.ratio >= T.pairMin && x.st.len <= T.pairLen; });
         if (sec.length) { p.secondary = sec[0].key; }
       }
       p.why = p.secondary ? 'pair' : (p.primary === '_ref' ? 'ref' : 'field');
-    } else { p.why = 'no fit'; }
-    // Ornek kucukse plan kalici olmaz: sonraki yukleme yeniden dener. Kalici 'uygun alan yok' select'i bosaltir
-    // (os9b'nin dort alani) ta ki aday kumesi degisene kadar.
-    p.stable = !drift && rows.length >= T.stableRows;
+    } else { p.why = p.spare.length ? 'spare' : 'no fit'; }
+    // Ornek kucukse plan kalici olmaz: sonraki yukleme yeniden dener. 'Uygun alan yok' plani (birincil ve spare yok)
+    // hic kalici olmaz (0C.5.3): her yuklemede yeniden puanlanir (yalniz islemci).
+    var any = !!(p.primary || p.spare.length);
+    p.stable = !drift && rows.length >= T.stableRows && any;
     if (key) { S.plans[key] = p; }
+    if (tid) { S.tp[str(tid)] = p; }
     S.last = { why: p.why };
-    return p.primary ? p : null;
+    return any ? p : null;
+  }
+  // Alan bilgisi once kartin izinlerinden (gorulen ekranin adayi), sonra planin alanlarindan (0C.5.1).
+  function infoOf(p, k, allow) {
+    if (allow && own(allow, k) && isObj(allow[k])) { return allow[k]; }
+    return (p && isObj(p.fields) && own(p.fields, k)) ? p.fields[k] : null;
   }
   function partOf(row, p, k, allow) {
     if (k === '_ref') { var r = refOf(row); return r ? { text: r, q: r } : null; }
     if (allow && !own(allow, k)) { return null; }
-    var f = p.fields[k];
+    var f = infoOf(p, k, allow);
     return f ? valOf(row, f) : null;
   }
-  // Kayit basligi (spec 5): birincil (+ ikinci alan), yoksa siradaki izinli alan, yoksa _ref, yoksa Untitled record.
-  // allow: bu kartin kullanabilecegi alanlar (pano kipi; yoksa planin hepsi). Arama terimi: kaydin _ref'i (os9b),
-  // yoksa iki parca bosluklu (tablonun aramasi kelimeleri VE'ler), 2 karakterden kisa terim arama yapmaz.
-  // keys: basliga deger veren kullanici alanlari (pano, o alan izinden duserse karti _ref yedegine dusurur).
-  function titleOf(row, p, allow) {
+  // Etiket E1 icin bos: deger yok ya da yer tutucu. Maskeli deger (Bubble kimligi, paket, cihaz anahtari, baglanti,
+  // e-posta, telefon, nesne) bos sayilmaz: alan doludur ama gosterilmez (E2).
+  function blank(v) {
+    if (isArr(v)) { v = v.length ? v[0] : ''; }
+    if (v == null) { return true; }
+    if (typeof v === 'number') { return !isFinite(v); }
+    if (typeof v !== 'string') { return false; }
+    var t = v.replace(/\s+/g, ' ').trim();
+    return !t || placeholder(t);
+  }
+  function emptyOf(header) { var h = clean(header); return h ? h + ' not filled in' : EMPTY_NONE; }
+  // Degeri olmayan kart (0C.6): kartin izinli ve CEKILMIS alanlari baslik sirasiyla (secim, birincil _ref degilse,
+  // p.order, spare); bunlardan hicbiri yoksa kalan izinliler (katman, sonra gorunur sira). Hepsi bos ya da yer tutucu
+  // ise E1 '<ilk alanin basligi> not filled in'; maskeli ya da gosterilmeyen deger varsa ya da cekilmis alan yoksa E2.
+  // fetched verilmezse (birim kipi) planin alanlari cekilmis sayilir. Baslik semadir (alan basligi), kayit verisi degil.
+  function label(r, p, allow, fetched, pk) {
+    var got = {};
+    if (isArr(fetched)) { fetched.forEach(function (k) { got[str(k)] = 1; }); }
+    else if (isObj(fetched)) { for (var k0 in fetched) { if (own(fetched, k0) && fetched[k0]) { got[k0] = 1; } } }
+    else if (p && isObj(p.fields)) { for (var k1 in p.fields) { if (own(p.fields, k1)) { got[k1] = 1; } } }
+    var used = {};
+    function add(list, k) {
+      k = str(k);
+      if (!k || k === '_ref' || own(used, k) || !own(got, k) || (allow && !own(allow, k))) { return; }
+      var f = infoOf(p, k, allow);
+      if (f) { used[k] = 1; list.push(f); }
+    }
+    var g = [];
+    add(g, pk);
+    if (p) {
+      add(g, p.primary);
+      (isArr(p.order) ? p.order : []).forEach(function (k) { add(g, k); });
+      (isArr(p.spare) ? p.spare : []).forEach(function (k) { add(g, k); });
+    }
+    if (!g.length && allow) {
+      for (var k2 in allow) { if (own(allow, k2)) { add(g, k2); } }
+      g.sort(function (a, b) { return (a.tier - b.tier) || (a.pos - b.pos); });
+    }
+    var none = { text: EMPTY_NONE, q: '', untitled: true, empty: 'none', hdr: '', src: 'none', keys: [] };
+    if (!g.length) { return none; }
+    for (var i = 0; i < g.length; i++) { if (!blank(r[g[i].key])) { return none; } }
+    var h = clean(g[0].header);
+    return h ? { text: emptyOf(h), q: '', untitled: true, empty: 'field', hdr: h, src: 'none', keys: [] } : none;
+  }
+  // Kayit basligi (0C.5): ilk temiz deger kazanir: (1) kullanicinin secimi (opt.pick) tek basina, kartin sutunu icin
+  // izinliyse; (2) birincil (+ ikinci alan 'A \u00b7 B'); (3) p.order'daki siradaki uygun alan; (4) _ref; (5) p.spare
+  // (katman 1 / 2'de tarih / tutar bicimli deger kullanilmaz); (6) durust etiket (label). Plan null olsa da 1, 4, 6.
+  // allow: bu kartin kullanabilecegi alanlar (pano kipi; yoksa planin hepsi). opt.fetched: bu kayit icin cekilen
+  // alanlar (etiket icin). Arama terimi: kaydin _ref'i (2+ karakter, os9b), yoksa kazanan degerin q'su (iki parca
+  // bosluklu: tablonun aramasi kelimeleri VE'ler); 2 karakterden kisa terim ve etiket arama yapmaz.
+  // keys: basliga deger veren kullanici alanlari (pano, o alan izinden duserse karti yedege dusurur).
+  function titleOf(row, p, allow, opt) {
     var r = isObj(row) ? row : {};
+    var o = isObj(opt) ? opt : {};
     var ref = refOf(r);
     function out(text, q, src, keys) {
       q = ref.length >= 2 ? ref : str(q);
-      return { text: text, q: q.length >= 2 ? q : '', untitled: false, src: src, keys: keys.filter(function (k) { return k !== '_ref'; }) };
+      return { text: text, q: q.length >= 2 ? q : '', untitled: false, empty: '', hdr: '', src: src, keys: keys.filter(function (k) { return k !== '_ref'; }) };
+    }
+    // Secim yalniz doluluk ve ayirt edicilik kapilarini atlar: duvar (allow), vetolar (tam liste) ve maskeler (valOf) aynen.
+    var pk = clean(o.pick);
+    if (pk.charAt(0) === '_') { pk = ''; }
+    if (pk) {
+      var pv = partOf(r, p, pk, allow);
+      if (pv) { return out(pv.text, pv.q, 'pick', [pk]); }
     }
     if (p && p.primary) {
       var a = partOf(r, p, p.primary, allow);
@@ -76172,34 +77125,70 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       }
     }
     if (ref) { return out(ref, ref, 'ref', []); }
-    return { text: UNTITLED, q: '', untitled: true, src: 'none', keys: [] };
+    var sp = (p && isArr(p.spare)) ? p.spare : [];
+    for (var j = 0; j < sp.length; j++) {
+      var f = infoOf(p, sp[j], allow);
+      var w = f ? partOf(r, p, sp[j], allow) : null;
+      if (w && !((f.tier === 1 || f.tier === 2) && dateAmt(w.text))) { return out(w.text, w.q, 'spare', [sp[j]]); }
+    }
+    return label(r, p, allow, o.fetched, pk);
   }
-  function reset() { S.plans = {}; S.seen = {}; S.cfgText = null; S.cfgCols = null; S.last = null; }
+  // Kart basligi secicisinin secenekleri (0C.7.4): yalniz bu oturumda gorulen ekranlarin TAM listeleri (vetolardan
+  // sonra; gizli alan yok), deger yok. all: tum kayitlar ekrani (her kartta gecerli); stages: eslenen (cols) ve
+  // gorulen her surecin kendi fazladan alanlari (yalniz o sutunda); auto: tablonun son planinin birincili, gorulen
+  // listelerdeyse (_ref ya da birincil yoksa null); seenAll: tum kayitlar ekrani bu tabloda ogrenildi mi.
+  function menu(tid, cols) {
+    tid = str(tid);
+    var t = own(S.seen, tid) ? S.seen[tid] : {};
+    function hk(f) { return { key: f.key, header: f.header }; }
+    var inAll = {}, inAny = {};
+    var all = ((t.all && t.all.full) || []).map(function (f) { inAll[f.key] = 1; inAny[f.key] = 1; return hk(f); });
+    var ids = [];
+    if (isArr(cols)) { cols.forEach(function (c) { c = str(c); if (c && ids.indexOf(c) < 0) { ids.push(c); } }); }
+    else { for (var s in t) { if (own(t, s) && s.indexOf('stage:') === 0) { ids.push(s.slice(6)); } } }
+    var stages = [];
+    ids.forEach(function (c) {
+      var l = own(t, 'stage:' + c) ? t['stage:' + c] : null;
+      var fs = ((l && l.full) || []).filter(function (f) { return !own(inAll, f.key); }).map(function (f) { inAny[f.key] = 1; return hk(f); });
+      if (fs.length) { stages.push({ col: c, fields: fs }); }
+    });
+    var auto = null, tp = S.tp[tid];
+    if (tp && tp.primary && tp.primary !== '_ref' && own(inAny, tp.primary) && tp.fields[tp.primary]) { auto = hk(tp.fields[tp.primary]); }
+    return { auto: auto, all: all, stages: stages, seenAll: !!t.all };
+  }
+  function reset() { S.plans = {}; S.seen = {}; S.pick = {}; S.tp = {}; S.cfgText = null; S.cfgCols = null; S.last = null; }
   function r2(x) { return Math.round(x * 100) / 100; }
-  // Teshis: alan adlari ve olculer; kayit degeri YOK.
+  // Teshis: alan adlari ve olculer; kayit degeri YOK. seen: kapsam basina ilk 5 (anahtar:katman); full: kapsam basina
+  // tam liste sayisi; pick: tablo basina kayitli secimin anahtari (uyuyor olabilir).
   function diag() {
     var c = candidates();
     var plans = [];
     for (var k in S.plans) {
       if (!own(S.plans, k)) { continue; }
       var p = S.plans[k];
-      plans.push({ tid: p.tid, primary: p.primary, secondary: p.secondary, order: p.order.slice(), n: p.n, stable: p.stable, why: p.why,
+      plans.push({ tid: p.tid, primary: p.primary, secondary: p.secondary, order: p.order.slice(), spare: (p.spare || []).slice(), n: p.n, stable: p.stable, why: p.why,
         scored: (p.scored || []).map(function (x) { return { key: x.key, tier: x.tier, ok: x.ok, fill: r2(x.st.fill), ratio: r2(x.st.ratio), len: Math.round(x.st.len), shape: r2(x.st.shape) }; }) });
     }
-    var seen = {};
+    var seen = {}, full = {}, pk = {};
     for (var t in S.seen) {
       if (!own(S.seen, t)) { continue; }
-      seen[t] = {};
-      for (var s in S.seen[t]) { if (own(S.seen[t], s)) { seen[t][s] = S.seen[t][s].map(function (f) { return f.key + ':' + f.tier; }); } }
+      seen[t] = {}; full[t] = {};
+      for (var s in S.seen[t]) {
+        if (!own(S.seen[t], s)) { continue; }
+        seen[t][s] = S.seen[t][s].top.map(function (f) { return f.key + ':' + f.tier; });
+        full[t][s] = S.seen[t][s].full.length;
+      }
     }
+    for (var q in S.pick) { if (own(S.pick, q)) { pk[q] = S.pick[q]; } }
     var sc = scope();
-    return { src: c.src, candidates: c.fields.map(function (f) { return f.key + ':' + f.tier; }), scope: sc.kind, scopeSrc: sc.src, seen: seen, plans: plans, last: S.last ? S.last.why : '' };
+    return { src: c.src, candidates: c.fields.map(function (f) { return f.key + ':' + f.tier; }), scope: sc.kind, scopeSrc: sc.src, seen: seen, full: full, pick: pk, plans: plans, last: S.last ? S.last.why : '' };
   }
 
   var api = {
     candidates: candidates, select: select, plan: plan, titleOf: titleOf, scope: scope, observe: observe, allowed: allowed,
+    setPick: setPick, pick: pick, menu: menu, known: known, emptyOf: emptyOf,
     clean: clean, safe: function (v) { var r = rawOf(v); return r == null ? '' : clean(String(r)); }, fold: fold, reset: reset, diag: diag,
-    UNTITLED: UNTITLED, T: T, T_DEFAULT: T_DEFAULT
+    EMPTY_NONE: EMPTY_NONE, T: T, T_DEFAULT: T_DEFAULT
   };
   try { Object.defineProperty(octo, '_wstitle', { value: api, writable: false, enumerable: false, configurable: true }); } catch (e) { /* yut */ }
 })();
