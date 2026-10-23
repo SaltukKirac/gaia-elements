@@ -48573,6 +48573,159 @@ html[data-octo-wsh="bottom"] #octo-wsb-board { bottom: calc(56px + env(safe-area
 }
 #octo-wsb-tip[hidden] { display: none !important; }
 
+/* ======================================================== yan dock (os9d, ?dock=1)
+   OCTO_WSH_SPEC 14. Dock cubugun cocugu, ekranin sol kenarinda sabit (72 px, tam yukseklik). Uygulama seridi ustte
+   dikey, Edit ve Menu altta. Bubble'in sayfa grubu 72 px saga (gutter margin-left ya da ana grubun padding-left'i;
+   tablonun atalarina transform / filter vb. yok, yalniz kenar boslugu). */
+html[data-octo-wsh-dock="1"] [data-octo-ws-gutter="1"] { margin-left: 72px !important; }
+html[data-octo-wsh-dock="1"] [data-octo-ws-dockpad="1"] { padding-left: 72px !important; box-sizing: border-box !important; }
+#octo-wsbar .octo-wsb-dock {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 8px 0 10px;
+  background: var(--octo-surface);
+  box-shadow: inset -1px 0 0 var(--octo-hair);
+  white-space: normal;
+}
+#octo-wsbar .octo-wsb-dock .octo-wsb-apps {
+  flex: 1 1 auto;
+  display: block;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* Kisa ekranda liste kayar: ince kaydirma cubugu tasmanin isareti (gizli olsaydi alt kutucuklar kayip gorunurdu). */
+  scrollbar-width: thin;
+  scrollbar-color: var(--octo-line) transparent;
+}
+#octo-wsbar .octo-wsb-dock .octo-wsb-apps::-webkit-scrollbar { width: 4px; }
+#octo-wsbar .octo-wsb-dock .octo-wsb-apps::-webkit-scrollbar-thumb { border-radius: 2px; background: var(--octo-line); }
+#octo-wsbar .octo-wsb-dock .octo-wsb-thumb { display: none !important; }
+#octo-wsbar .octo-wsb-dock .octo-wsb-apps > .octo-tabs {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  height: auto;
+  padding: 0;
+  overflow: visible;
+}
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab {
+  position: relative;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 72px;
+  min-width: 0;
+  height: 54px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--octo-ink-2);
+  font: 500 10px/12px var(--octo-font);
+}
+/* Kelimeler dock'ta hep gorunur; merdivenin tight kurallari ve Soon Mail gizlemesi dock'a dokunmaz. */
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab .octo-tabs-word,
+#octo-wsbar[data-dock="1"][data-fit="tight"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab:not([aria-selected="true"]) .octo-tabs-word {
+  display: block;
+  max-width: 66px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#octo-wsbar[data-dock="1"][data-fit="tight"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab[data-tab="mail"][data-state="soon"] { display: inline-flex; }
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-tabs-ico {
+  width: 40px;
+  height: 28px;
+  border-radius: 10px;
+}
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-tabs-ico > svg { width: 20px; height: 20px; }
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-tabs-badge { right: 4px; bottom: -2px; }
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-tabs-soon { top: 2px; right: 6px; }
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab:hover { background: transparent; }
+@media (hover: hover) {
+  #octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab:not([aria-selected="true"]):not([data-state="soon"]):not([data-state="off"]):hover { color: var(--octo-ink); }
+  #octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab:not([aria-selected="true"]):not([data-state="soon"]):not([data-state="off"]):hover .octo-tabs-ico { background: var(--octo-field); }
+}
+/* Odak halkasi dugmenin icinde (liste kaydirici kutusu disariya tasani kirpar). */
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: -2px; }
+/* Kurulu degil / bagli degil: kelime soluk (kapsuldeki kuralin dock karsiligi; dock taban rengi onu ezerdi). */
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab:is([data-state="unset"], [data-state="unlinked"]):not([aria-selected="true"]) { color: var(--octo-ink-3t); }
+/* Secili: kuyu accent-soft, ikon accent, kelime ink 600, solda 3 px gosterge. */
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab[aria-selected="true"] { color: var(--octo-ink); font-weight: 600; }
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab[aria-selected="true"] .octo-tabs-ico { background: var(--octo-accent-soft); color: var(--octo-accent); }
+#octo-wsbar[data-dock="1"] .octo-wsb-dock .octo-wsb-apps .octo-tabs-tab[aria-selected="true"]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15px;
+  width: 3px;
+  height: 24px;
+  border-radius: 0 3px 3px 0;
+  background: var(--octo-accent);
+}
+#octo-wsbar .octo-wsb-dsep { flex: 0 0 1px; height: 1px; margin: 8px 20px; background: var(--octo-line); }
+#octo-wsbar .octo-wsb-dtools { flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; }
+#octo-wsbar .octo-wsb-dbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 72px;
+  height: 54px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--octo-ink-2);
+  font: 500 10px/12px var(--octo-font);
+  cursor: pointer;
+}
+#octo-wsbar .octo-wsb-dbtn:focus-visible { outline: 2px solid var(--octo-accent); outline-offset: -2px; }
+#octo-wsbar .octo-wsb-dico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 28px;
+  border-radius: 10px;
+}
+#octo-wsbar .octo-wsb-dbtn .octo-wsb-av {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--octo-r9);
+  background: var(--octo-field);
+  box-shadow: inset 0 0 0 1px var(--octo-line);
+  color: var(--octo-ink-2);
+  font: 700 11px/12px var(--octo-font);
+  letter-spacing: .02em;
+}
+#octo-wsbar .octo-wsb-dbtn .octo-wsb-av[data-as="1"] { box-shadow: 0 0 0 2px var(--octo-warn); color: var(--octo-warn); }
+@media (hover: hover) {
+  #octo-wsbar .octo-wsb-dbtn:hover { color: var(--octo-ink); }
+  #octo-wsbar .octo-wsb-dbtn:hover .octo-wsb-dico,
+  #octo-wsbar .octo-wsb-dbtn:hover .octo-wsb-av { background: var(--octo-line-2); }
+}
+#octo-wsbar .octo-wsb-dbtn[aria-expanded="true"] { color: var(--octo-ink); }
+#octo-wsbar .octo-wsb-dbtn[aria-expanded="true"] .octo-wsb-av { background: var(--octo-line-2); }
+/* Dokunmatik: dock kutucuklari zaten 72x54 (44 px hedef ustu). */
+
 @media (prefers-reduced-motion: reduce) {
   #octo-wsbar .octo-wsb-thumb { transition: none; }
   #octo-wsbar, #octo-wsb-board .octo-wsb-card, #octo-wsb-board .octo-wsb-cell, #octo-wsb-board .octo-wsb-hint { transition: none; }
@@ -67081,6 +67234,10 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   var TIP_ID = 'octo-wsb-tip';
   var WSH_KEY = 'octo_wsh';        // os9c tek ust cubuk (OCTO_WSH_SPEC 1)
   var APPBAR_KEY = 'octo_appbar';  // os9c alt bar karsilastirmasi
+  var DOCK_KEY = 'octo_dock';      // os9d yan dock karsilastirmasi (OCTO_WSH_SPEC 14)
+  var A_DOCK = 'data-octo-wsh-dock';       // html: '1' yalniz dock acikken (icerik 72 px saga)
+  var A_DOCKPAD = 'data-octo-ws-dockpad';  // gutter yoksa tam genislikteki Bubble ana grubu (padding-left)
+  var DOCK_W = 72;
   var A_WSH = 'data-octo-wsh';      // html: 'top' | 'bottom' (yalniz tek ust cubuk acikken)
   var A_ON = 'data-octo-ws';
   var A_CLASSIC = 'data-octo-ws-classic';
@@ -67151,6 +67308,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     lastErr: '', trace: [], covered: '', full: null,
     // os9c tek ust cubuk
     wsh: false, appbar: 'top', hdrMode: '', hdrWhy: '', band: { h: 0, right: 0, at: 0, badAt: 0, pend: -1, src: '', aside: 0 }, fit: '', fitW: 0, fitSig: '', fitDropW: 0, fitOk: true, noFit: 0, noFitKey: '', gapAt: 0, resizeDue: false, tileSig: '',
+    dockWant: false, dockOn: false, dockNo: false, dockWhy: '', dockPad: '', dock: null, dockApps: null, dockTools: null,
     zl: null, gap: null, zr: null, apps: null, thumb: null, stripObs: null, stripObsRef: null, stripT: null, stripAl: '', slot: null, slotH: 0,
     tip: null, tipFor: null, tipGone: -1e9
   };
@@ -67249,11 +67407,19 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var q = wsQuery();
     var m = /[?&]wsh=(1|on|0|off)(?=&|#|$)/i.exec(q);
     var off = ssGet(WSH_KEY) === '0';
-    if (m) { off = !/^(1|on)$/i.test(m[1]); ssSet(WSH_KEY, off ? '0' : '1'); if (off) { ssDel(APPBAR_KEY); } }
+    if (m) { off = !/^(1|on)$/i.test(m[1]); ssSet(WSH_KEY, off ? '0' : '1'); if (off) { ssDel(APPBAR_KEY); ssDel(DOCK_KEY); } }
     var a = /[?&]appbar=(bottom|top|0|off)(?=&|#|$)/i.exec(q);
-    if (a) { if (/^bottom$/i.test(a[1])) { ssSet(APPBAR_KEY, 'bottom'); ssSet(WSH_KEY, '1'); off = false; } else { ssDel(APPBAR_KEY); } }
+    // Alt bar karsilastirmasi dock'u kapatir (dock varsayilan; ikisi birlikte olmaz).
+    if (a) { if (/^bottom$/i.test(a[1])) { ssSet(APPBAR_KEY, 'bottom'); ssSet(WSH_KEY, '1'); ssSet(DOCK_KEY, '0'); off = false; } else { ssDel(APPBAR_KEY); } }
+    // os9d (kurucu 22.10): yan dock tek ust cubugun VARSAYILANI (ust kapsulun yerine). ?dock=0|off sekme oturumu
+    // boyunca vazgecer (octo_dock '0', ust kapsul), ?dock=1|on vazgecmeyi kaldirir (tek ust cubugu da acar). Harness
+    // eski 'dock yoksa kapsul' davranisini window.__octoDockDefaultOff = true ile ister.
+    var dk = /[?&]dock=(1|on|0|off)(?=&|#|$)/i.exec(q);
+    if (dk) { if (/^(1|on)$/i.test(dk[1])) { ssSet(DOCK_KEY, '1'); ssSet(WSH_KEY, '1'); off = false; } else { ssSet(DOCK_KEY, '0'); } }
     S.wsh = !off;
     S.appbar = ssGet(APPBAR_KEY) === 'bottom' ? 'bottom' : 'top';
+    var dc = ssGet(DOCK_KEY);
+    S.dockWant = dc === '1' ? true : (dc === '0' ? false : W.__octoDockDefaultOff !== true);
   }
 
   // ------------------------------------------------------------------- ray
@@ -68263,16 +68429,27 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var va = asChip(s);
     if (va) { S.zr.appendChild(va); }
     if (S.classic) { S.zr.appendChild(doneBtn()); }
-    var eb = editBtn();
-    if (eb) { S.zr.appendChild(el('span', 'octo-wsb-sep')); S.zr.appendChild(eb); }
-    S.zr.appendChild(menuBtn(s, true));
+    if (S.dockOn && !S.classic) {
+      // os9d: Edit ve Menu dock'un altinda (dikey dugmeler); ust cubukta yalniz cip ve Done.
+      paintDockTools(s);
+    } else {
+      // Classic'te Bubble cekmecesi (z 1504) dock'u orter: Menu ust cubukta (Done'un yaninda), dock araclari bos.
+      if (S.dockTools) { clear(S.dockTools); }
+      var eb = editBtn();
+      if (eb) { S.zr.appendChild(el('span', 'octo-wsb-sep')); S.zr.appendChild(eb); }
+      S.zr.appendChild(menuBtn(s, true));
+    }
+    b.setAttribute('data-dock', S.dockOn ? '1' : '0');
+    if (S.dock) { if (S.dockOn && S.classic) { S.dock.setAttribute('inert', ''); } else { S.dock.removeAttribute('inert'); } }
     tipsOf(v.g);
     tipsOf(S.zr);
+    orientSync();
+    if (S.dockOn) { dockReveal(null); }
     placeHdr();
     // Hicbir seviye sigmadi: bu genislikte pill (24 px genisleyince yeniden denenir; salinma yok).
     if (!fitHdr(v.g, v.mb)) {
       // Yalniz yeni ret bir kez boyatir (tutma surerken hdrSync kipi birakamaz; her karede boyama olmasin).
-      var nf = vwNow() - rightRes(S.band.src, S.band.h), nk = fitKey();
+      var nf = roomNow(S.band.src, S.band.h), nk = fitKey();
       if (nf !== S.noFit || nk !== S.noFitKey) { S.noFit = nf; S.noFitKey = nk; S.sig = ''; paintSoon(); }
     }
     labelTiles();
@@ -68346,7 +68523,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         S.band.badAt = 0;
         if (src === 'strip') { S.slotH = be.sh; }
         if (!S.hdrMode || !S.band.at) { bandScan(h); }
-        var room = vwNow() - rightRes(src, h);
+        var room = roomNow(src, h);
         // Giriste zil olculemediyse (Bubble penceresi acik) kip acilmaz: cubuk zili ortmesin.
         if (!S.hdrMode && !S.band.at) { want = false; why = 'busy'; }
         else if (room < 640) { want = false; why = 'bell'; }
@@ -68354,7 +68531,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
         else { S.noFit = 0; S.noFitKey = ''; }
       }
     }
-    var mode = want ? ((S.appbar === 'bottom' && railCell()) ? 'bottom' : 'top') : '';
+    var mode = want ? ((S.appbar === 'bottom' && railCell() && !S.dockWant) ? 'bottom' : 'top') : '';
     S.hdrWhy = why;
     if (mode !== S.hdrMode) { if (hdrSet(mode, h, src)) { S.resizeDue = true; paintSoon(); } return; }
     if (mode && (h !== S.band.h || src !== S.band.src)) {
@@ -68376,17 +68553,171 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (b) { b.setAttribute('data-hdr', '1'); }
     }
     var moved = false;
+    // os9d: dock yalniz ust kipte ve istendiyse (kayma basarisiz olduysa bu sayfa omru boyunca yok).
+    S.dockOn = mode === 'top' && S.dockWant && !S.dockNo;
     // 'strip' bandi: bos dugum serit ayrilmadan once yerine girer, kip kalkarken serit donmeden once cikar (tablo kipirdamaz).
     var slotMoved = slotSync(!!mode);
     if (mode === 'top') { zonesFix(); moved = stripSync(); } else { moved = stripSync(); if (mode) { zonesFix(); } }
     if (mode) { slotMoved = slotSync(false) || slotMoved; }
+    var padMoved = dockApply();
     if (!mode) { hdrClean(); }
     S.fit = '';
     S.fitSig = '';
     if (S.board) { S.board.style.top = boardTop() + 'px'; }
     S.sig = '';
     trace('wsh:' + (mode || 'off') + (S.hdrWhy ? ':' + S.hdrWhy : '') + (S.band.src === 'strip' ? ':strip' : ''));
-    return moved || slotMoved || prev === 'bottom' || mode === 'bottom';
+    return moved || slotMoved || padMoved || prev === 'bottom' || mode === 'bottom';
+  }
+  // ======================================================= yan dock (os9d)
+  // OCTO_WSH_SPEC 14. Dock cubugun cocugu (position fixed, sol kenar): cubugun tik / klavye / ipucu / inert / own
+  // kurallari aynen gecerli. Uygulama seridi dock'un ust bolgesinde dikey; Edit ve Menu altta. Bubble'in sayfa grubu
+  // 72 px saga kayar (gutter margin-left ya da tam genislikteki ana grubun padding-left'i); kayma tutmazsa dock geri
+  // alinir (why 'dockpad'), ust kapsul kalir. DOM degistiyse true (cagiran tek resize atar).
+  function ensureDock() {
+    if (S.dock) { return S.dock; }
+    var d = el('div', 'octo-wsb-dock');
+    d.setAttribute('data-wsh-dock', '1');
+    var sep = el('span', 'octo-wsb-dsep');
+    sep.setAttribute('aria-hidden', 'true');
+    var tools = el('div', 'octo-wsb-dtools');
+    d.appendChild(sep);
+    d.appendChild(tools);
+    d.addEventListener('keydown', onDockKey);
+    S.dock = d;
+    S.dockTools = tools;
+    return d;
+  }
+  function dockApply() {
+    var ch = dockPadSync();
+    if (S.dockOn) {
+      // Kayma tuttu mu: tablo sarmalayicisi dock'un saginda olmali (yoksa dock tablonun ilk sutununu orterdi).
+      var w = wrapperEl(), r = null;
+      try { r = w ? w.getBoundingClientRect() : null; } catch (e) { r = null; }
+      if (!r || r.left < DOCK_W - 2) {
+        S.dockNo = true;
+        S.dockWhy = 'dockpad';
+        S.dockOn = false;
+        trace('dock:pad');
+        ch = dockPadSync() || ch;
+        // Kapsul (odakli serit icinde) dock'tan cubuga tasinir: odak geri verilir.
+        var ae = null;
+        try { ae = (S.apps && D.activeElement && S.apps.contains(D.activeElement)) ? D.activeElement : null; } catch (e1) { ae = null; }
+        zonesFix();
+        if (ae) { try { ae.focus({ preventScroll: true }); } catch (e2) { /* yut */ } }
+        ch = true;
+      } else { S.dockWhy = ''; }
+    }
+    if (S.bar) { if (S.hdrMode) { S.bar.setAttribute('data-dock', S.dockOn ? '1' : '0'); } }
+    orientSync();
+    return ch;
+  }
+  function dockPadTarget() {
+    var g = q1('[' + A_GUTTER + ']');
+    if (g && isConn(g)) { return { n: g, kind: 'gutter' }; }
+    var w = wrapperEl(), vw = vwNow(), best = null;
+    for (var x = w ? w.parentNode : null, hop = 0; x && x.nodeType === 1 && x !== D.body && x !== D.documentElement && hop < 40; x = x.parentNode, hop++) {
+      var r = null;
+      try { r = x.getBoundingClientRect(); } catch (e) { r = null; }
+      if (r && r.left <= 1 && r.width >= vw - 2) { best = x; }
+    }
+    return best ? { n: best, kind: 'pad' } : null;
+  }
+  function dockPadSync() {
+    var r = root(), ch = false;
+    var cur = q1('[' + A_DOCKPAD + ']');
+    if (S.dockOn) {
+      if (r.getAttribute(A_DOCK) !== '1') { r.setAttribute(A_DOCK, '1'); ch = true; }
+      var t = dockPadTarget();
+      if (t && t.kind === 'pad') {
+        if (cur !== t.n) { if (cur) { cur.removeAttribute(A_DOCKPAD); } t.n.setAttribute(A_DOCKPAD, '1'); ch = true; }
+      } else if (cur) { cur.removeAttribute(A_DOCKPAD); ch = true; }
+      S.dockPad = t ? (t.kind + ':' + str(t.n.className).slice(0, 40)) : '';
+      return ch;
+    }
+    if (r.hasAttribute(A_DOCK)) { r.removeAttribute(A_DOCK); ch = true; }
+    var all = null;
+    try { all = D.querySelectorAll('[' + A_DOCKPAD + ']'); } catch (e2) { all = null; }
+    for (var i = 0; all && i < all.length; i++) { all[i].removeAttribute(A_DOCKPAD); ch = true; }
+    S.dockPad = '';
+    return ch;
+  }
+  // Dock'un alt araclari: Edit (yalniz canEdit, Classic'te yok) ve Menu (avatar). Her boyamada yeniden kurulur.
+  function paintDockTools(s) {
+    var t = S.dockTools;
+    if (!t) { return; }
+    clear(t);
+    if (editCan() && !S.classic) {
+      var eb = btn('octo-wsb-dbtn', 'edit', 'Edit workspace');
+      eb.setAttribute('data-key', 'edit');
+      var ei = el('span', 'octo-wsb-dico');
+      ei.appendChild(octo.icon('pencil', 20));
+      eb.appendChild(ei);
+      eb.appendChild(el('span', 'octo-wsb-dlab', 'Edit'));
+      t.appendChild(eb);
+    }
+    var mn = btn('octo-wsb-dbtn octo-wsb-dmenu', 'menu', 'Menu');
+    mn.setAttribute('aria-haspopup', 'menu');
+    mn.setAttribute('aria-expanded', S.menu === 'menu' ? 'true' : 'false');
+    mn.setAttribute('data-key', 'menu');
+    var av = el('span', 'octo-wsb-av');
+    av.setAttribute('aria-hidden', 'true');
+    var ini = initials(s.person);
+    if (ini) { av.textContent = ini; } else { av.appendChild(octo.icon('people', 16)); }
+    if (viewingAs()) { av.setAttribute('data-as', '1'); }
+    mn.appendChild(av);
+    mn.appendChild(el('span', 'octo-wsb-dlab', 'Menu'));
+    t.appendChild(mn);
+    tipsOf(t);
+  }
+  // Seridin yonu: dock'tayken dikey (kabugun yazdigi isaretli; birakinca kalkar).
+  function orientSync() {
+    var tb = stripEl();
+    if (!tb) { return; }
+    var v = !!(S.dockOn && S.apps && tb.parentNode === S.apps);
+    if (v) {
+      if (tb.getAttribute('aria-orientation') !== 'vertical') { tb.setAttribute('aria-orientation', 'vertical'); }
+      tb.setAttribute('data-wsh-or', '1');
+    } else if (tb.getAttribute('data-wsh-or')) { tb.removeAttribute('aria-orientation'); tb.removeAttribute('data-wsh-or'); }
+  }
+  // Yukari / Asagi: siradaki etkin kutucuk secilir (rayin sol / sag ok kuralinin dikeyi; yuklenen kutucuk atlanir).
+  function onDockKey(e) {
+    var k = e && e.key;
+    if (k !== 'ArrowUp' && k !== 'ArrowDown') { return; }
+    var t = e.target;
+    if (!hasCls(t, 'octo-tabs-tab') || !S.apps || !S.apps.contains(t)) { return; }
+    var tiles = Array.prototype.filter.call(S.apps.querySelectorAll('.octo-tabs-tab'), function (x) {
+      var st = x.getAttribute('data-state') || '';
+      // Rayin sol / sag listesiyle ayni (navTabs): Start (onb) kurulum kutucugu oklarla gezilmez.
+      if (x.getAttribute('data-tab') === 'onb') { return false; }
+      if (st === 'soon' || st === 'off') { return false; }
+      if (st === 'loading' && x.getAttribute('aria-selected') !== 'true') { return false; }
+      return !x.hidden && x.getClientRects().length > 0;
+    });
+    var i = tiles.indexOf(t);
+    if (i < 0 || tiles.length < 2) { return; }
+    e.preventDefault();
+    e.stopPropagation();
+    var n = tiles[(i + (k === 'ArrowDown' ? 1 : -1) + tiles.length) % tiles.length];
+    // Roving tabindex hemen (rayin onTabsKey'i gibi; boyama bir kare sonra).
+    for (var j = 0; j < tiles.length; j++) { tiles[j].setAttribute('tabindex', tiles[j] === n ? '0' : '-1'); }
+    try { n.click(); } catch (x0) { /* yut */ }
+    try { n.focus({ preventScroll: true }); } catch (x1) { try { n.focus(); } catch (x2) { /* yut */ } }
+    dockReveal(n);
+  }
+  // Kisa ekranda uygulama listesi kayar: odakli (yoksa secili) kutucuk listenin gorunur alanina getirilir. Yalniz
+  // listenin kendi scrollTop'u (scrollIntoView Bubble'in kaydirici atalarini da kaydirirdi).
+  function dockReveal(tile) {
+    var a = S.apps;
+    if (!S.dockOn || !a || !S.dock || a.parentNode !== S.dock || a.scrollHeight <= a.clientHeight + 1) { return; }
+    var t = tile;
+    if (!t) {
+      try { t = (D.activeElement && a.contains(D.activeElement)) ? D.activeElement : null; } catch (e) { t = null; }
+      if (!t) { t = a.querySelector('.octo-tabs-tab[aria-selected="true"]'); }
+    }
+    if (!t || !t.getClientRects().length) { return; }
+    var ar = a.getBoundingClientRect(), tr = t.getBoundingClientRect();
+    if (tr.top < ar.top) { a.scrollTop -= Math.ceil(ar.top - tr.top); }
+    else if (tr.bottom > ar.bottom) { a.scrollTop += Math.ceil(tr.bottom - ar.bottom); }
   }
   function hdrClean() {
     var r = root();
@@ -68410,6 +68741,12 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (S.thumb) { S.thumb.hidden = true; S.thumb.setAttribute('data-still', '1'); }
     S.tileSig = '';
     unlabelTiles();
+    // os9d: dock ve icerik kaymasi kalkar (serit hdrSet'te hucreye dondu).
+    S.dockOn = false;
+    dockPadSync();
+    orientSync();
+    if (S.dock) { rm(S.dock); }
+    if (b) { b.removeAttribute('data-dock'); }
   }
   // Saniyede bir (bandPoll) ve her tikte: bant yuksekligi, zil taramasi (T.bandEvery), rayin yeni seridi.
   function hdrTick() {
@@ -68425,8 +68762,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       if (S.hdrWhy !== 'bell' && S.hdrWhy !== 'fit') { S.sig = ''; paintSoon(); return; }
       if (now() - S.band.at > T.bandEvery && bandScan(h0)) { S.sig = ''; paintSoon(); return; }
       // 'strip': rayin sag sutunu daraldi (Collapse) ya da genisledi; zil ayirmasi degismese de yer degisir.
-      if (S.hdrWhy === 'bell' && be0.src === 'strip' && vwNow() - rightRes('strip', h0) >= 640) { S.sig = ''; paintSoon(); return; }
-      if (S.hdrWhy === 'fit' && (vwNow() - rightRes(be0.src, h0) >= S.noFit + 24 || fitKey() !== S.noFitKey)) { S.sig = ''; paintSoon(); }
+      if (S.hdrWhy === 'bell' && be0.src === 'strip' && roomNow('strip', h0) >= 640) { S.sig = ''; paintSoon(); return; }
+      if (S.hdrWhy === 'fit' && (roomNow(be0.src, h0) >= S.noFit + 24 || fitKey() !== S.noFitKey)) { S.sig = ''; paintSoon(); }
       return;
     }
     // Kill switch ya da bayrak kalkti: boyama kipi birakir.
@@ -68532,6 +68869,9 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (Math.round(r.top + sy) >= h) { return 0; }
     return Math.max(0, Math.round(vwNow() - r.left + 8));
   }
+  // Cubugun kullanilabilir genisligi: gorunum - sag ayirma - (istenen ve geri alinmamis) dock. Karar, ret anahtari
+  // (noFit) ve yeniden deneme ayni sayiyi kullanir (os9d inceleme: farkli sayi her saniye boyatirdi).
+  function roomNow(src, h) { return vwNow() - rightRes(src, h) - ((S.dockWant && !S.dockNo) ? DOCK_W : 0); }
   // Cubugun sag ayirmasi: zil; 'strip' bandinda zil ile rayin sag sutunundan buyugu (640 px kurali kalan genislige).
   function rightRes(src, h) { return src === 'strip' ? Math.max(S.band.right, asideRes(h)) : S.band.right; }
   // Bos dugum: 'strip' bandinda serit yerinden ayrildiginda (ust kip: kapsulde; alt kip: hucrenin dibinde) seridin
@@ -68666,13 +69006,17 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       S.gap.setAttribute('aria-hidden', 'true');
       S.zr = el('div', 'octo-wsb-zr');
     }
-    var want = [S.zl, S.gap];
-    if (S.hdrMode === 'top') { want.push(ensureApps()); }
+    var want = [];
+    // os9d: dock ilk cocuk (Tab sirasi dock -> sol bolge -> sag bolge); kapsul dock'un ust bolgesinde.
+    if (S.dockOn) { want.push(ensureDock()); }
+    want.push(S.zl, S.gap);
+    if (S.hdrMode === 'top' && !S.dockOn) { want.push(ensureApps()); }
     want.push(S.zr);
     var kids = Array.prototype.slice.call(b.childNodes);
     for (var i = 0; i < kids.length; i++) { if (want.indexOf(kids[i]) < 0) { b.removeChild(kids[i]); } }
     // Kapsul yerinde kalir (yalniz digerleri onune / arkasina): seridin odagi ve dinleyicileri korunur.
     for (var j = 0; j < want.length; j++) { if (b.childNodes[j] !== want[j]) { b.insertBefore(want[j], b.childNodes[j] || null); } }
+    if (S.dockOn) { var ap = ensureApps(); if (ap.parentNode !== S.dock || S.dock.firstChild !== ap) { S.dock.insertBefore(ap, S.dock.firstChild); } }
   }
   // Classic'te de sol 0: Bubble cekmecesi (z 1504) cubugun solunu orter, sag bolge (Done, Menu) acikta kalir.
   function placeHdr() {
@@ -68687,7 +69031,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     if (b.style.height !== hs) { b.style.height = hs; }
     if (b.style.right !== rs) { b.style.right = rs; }
     if (b.style.getPropertyValue('--octo-wsb-r') !== hr) { b.style.setProperty('--octo-wsb-r', hr); }
-    if (b.style.left !== '0px') { b.style.left = '0px'; }
+    var ls = (S.dockOn ? DOCK_W : 0) + 'px';
+    if (b.style.left !== ls) { b.style.left = ls; }
     if (b.style.marginLeft) { b.style.marginLeft = ''; }
   }
   // title (tarayici ipucu) yerli tooltip'e tasinir: cift ipucu olmaz. Etiketi gizlenebilen gorunumler ad tasir.
@@ -68769,7 +69114,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     return a;
   }
   function stripEl() { var M = railM(); var tb = (M && M.parts) ? M.parts.tabs : null; return (tb && isConn(tb)) ? tb : null; }
-  function stripHost() { return (S.hdrMode === 'top' && S.apps && S.bar && S.apps.parentNode === S.bar && isConn(S.apps)) ? S.apps : null; }
+  function stripHost() { return (S.hdrMode === 'top' && S.apps && S.bar && isConn(S.apps) && (S.apps.parentNode === S.bar || (!!S.dock && S.apps.parentNode === S.dock && S.bar.contains(S.dock)))) ? S.apps : null; }
   // Serit kipe gore: ust kipte kapsul, degilse hucre (rayin kendi yeri). Tasidiysa true.
   function stripSync() {
     var r = rail();
@@ -68831,7 +69176,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
   function placeThumb() {
     var th = S.thumb, tb = stripEl();
     if (!th) { return; }
-    var sel = (S.hdrMode === 'top' && tb && tb.parentNode === S.apps) ? tb.querySelector('.octo-tabs-tab[aria-selected="true"]') : null;
+    var sel = (S.hdrMode === 'top' && !S.dockOn && tb && tb.parentNode === S.apps) ? tb.querySelector('.octo-tabs-tab[aria-selected="true"]') : null;
     var r = (sel && sel.getClientRects().length) ? sel.getBoundingClientRect() : null;
     if (!r || !r.width) { th.hidden = true; th.setAttribute('data-still', '1'); return; }
     var cr = S.apps.getBoundingClientRect();
@@ -68921,6 +69266,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var r = t.getBoundingClientRect(), br = S.bar.getBoundingClientRect();
     var vw = D.documentElement.clientWidth || W.innerWidth || 1280;
     var w = S.tip.offsetWidth || 80;
+    if (S.dock && S.dock.contains(t)) {
+      // os9d: dock ogesinin ipucu saga acilir, dikey ortali.
+      var th = S.tip.offsetHeight || 26;
+      S.tip.style.left = Math.round(r.right + 8) + 'px';
+      S.tip.style.top = Math.max(8, Math.round(r.top + r.height / 2 - th / 2)) + 'px';
+      return;
+    }
     var left = Math.max(8, Math.min(vw - 8 - w, Math.round(r.left + r.width / 2 - w / 2)));
     S.tip.style.left = left + 'px';
     S.tip.style.top = Math.round(br.bottom + 6) + 'px';
@@ -69248,6 +69600,13 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var left = Math.round(ar.left);
     // os9c: sag bolgenin menusu (Menu avatari) dugmenin sagina hizali.
     if (S.hdrMode && a && S.zr && S.zr.contains(a)) { left = Math.max(8, Math.round(ar.right - w)); }
+    // os9d: dock'taki Menu: dock'un 8 px saginda, alt kenari dugmenin alt kenarina hizali (ekrana sigdirilir).
+    if (S.hdrMode && a && S.dock && S.dock.contains(a)) {
+      var vh = D.documentElement.clientHeight || W.innerHeight || 800;
+      var ph = p.offsetHeight || 240;
+      left = DOCK_W + 8;
+      p.style.top = Math.max(8, Math.min(vh - ph - 8, Math.round(ar.bottom - ph))) + 'px';
+    }
     if (left + w > vw - 16) { left = Math.max(16, vw - 16 - w); }
     p.style.left = left + 'px';
   }
@@ -70176,6 +70535,7 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     S.counts = {}; S.names = {}; S.memoSig = {}; S.scannedAt = {}; S.noProc = {}; S.sheetSig = ''; S.sig = ''; S.snap = null; S.cur = null; S.full = null;
     S.view = null; S.page = 0; S.chromeErr = ''; S.reopenTries = 0; S.dropAt = 0;
     S.resizeDue = false; S.noFitKey = ''; S.gapAt = 0;
+    S.dockNo = false; S.dockWhy = ''; S.dockOn = false;
     S.noFit = 0; S.fitSig = ''; S.fit = ''; S.fitDropW = 0; S.band.right = 0; S.band.pend = -1; S.band.at = 0; S.band.src = ''; S.band.aside = 0;
     cardsDrop(true);
     return true;
@@ -70419,7 +70779,8 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
       wsh: {
         want: S.wsh, on: !!S.hdrMode, mode: S.hdrMode, why: S.hdrWhy, appbar: S.appbar, h: S.band.h, right: S.band.right, fit: S.fit,
         src: S.hdrMode ? S.band.src : bandEff().src, slot: !!(S.slot && isConn(S.slot)), aside: S.band.aside,
-        adopted: !!(stripEl() && S.apps && stripEl().parentNode === S.apps), covered: S.hdrMode ? bandCovered() : []
+        adopted: !!(stripEl() && S.apps && stripEl().parentNode === S.apps), covered: S.hdrMode ? bandCovered() : [],
+        dock: { want: S.dockWant, on: S.dockOn, pad: S.dockPad, why: S.dockWhy }
       }
     };
   }
@@ -72388,8 +72749,19 @@ html[data-octo-ws="1"][data-octo-wse-pick="1"] .baUfaIaJ .tt-suggestion.tt-is-un
     var vw = D.documentElement.clientWidth || W.innerWidth || 1280;
     var w = p.offsetWidth || 320;
     var left = Math.round(ar.left);
+    var top = Math.round(br.bottom + 6);
+    // os9d: yan dock acikken secici dock'un ustune binmez; capa dock'taysa (sabit Menu) capadan yerlesir: alt kenari
+    // capanin alt kenarina hizali, ekrana sigdirilir (cubuk sayfayla kayar, dock kaymaz).
+    if (root().getAttribute('data-octo-wsh-dock') === '1') {
+      left = Math.max(left, 80);
+      if (a && isConn(a) && a.closest && a.closest('.octo-wsb-dock')) {
+        var vh = D.documentElement.clientHeight || W.innerHeight || 800;
+        var ph = p.offsetHeight || 220;
+        top = Math.max(8, Math.min(vh - ph - 8, Math.round(ar.bottom - ph)));
+      }
+    }
     if (left + w > vw - 16) { left = Math.max(16, vw - 16 - w); }
-    p.style.top = Math.round(br.bottom + 6) + 'px';
+    p.style.top = Math.max(8, top) + 'px';
     p.style.left = left + 'px';
     var slot = q1('.octo-wse-slot', p);
     var sr = slot ? slot.getBoundingClientRect() : null;
