@@ -376,6 +376,8 @@
     cursor: pointer;
   }
   #bdf-root .bdf-ek-evrak-ac:focus-visible { outline: none; box-shadow: var(--gx-ring, 0 0 0 3px rgba(99, 102, 241, 0.35)); }
+  #bdf-root .bdf-ek-evrak-pin { position: sticky; top: 0; z-index: 4; margin-bottom: 12px; }
+  #bdf-root .bdf-ek-evrak-pin .field-wrapper.bdf-ek-evrak { position: static; margin-bottom: 0; }
   #bdf-root .bdf-ek-evrak-not {
     font-size: 12px;
     line-height: 1.4;
@@ -14744,6 +14746,36 @@
         host.append(info, actions);
       }
 
+      // EK-EVRAK: düzenleme panelinde sabit yuva (#bdfEkEvrakPin, aşama düzeninin hemen üstü); alanın güncel sarmalayıcısı oraya taşınır ve
+      // aşama alanlarındaki dosya alanlarıyla aynı yoldan Bubble yükleyicisine bağlanır. Alan yoksa yuva boşalır ve gizlenir.
+      function bdf_ekEvrakSabitle(field, wrappersByKey) {
+        let pin = byId("bdfEkEvrakPin");
+        if (!field) { if (pin) { pin.innerHTML = ""; pin.style.display = "none"; } return; }
+        const wrapper = wrappersByKey && wrappersByKey.get(field.key);
+        if (!wrapper || !editStageLayout || !editStageLayout.parentNode) return;
+        if (!pin) {
+          pin = document.createElement("div");
+          pin.id = "bdfEkEvrakPin";
+          pin.className = "bdf-ek-evrak-pin";
+          editStageLayout.parentNode.insertBefore(pin, editStageLayout);
+        }
+        pin.style.display = "";
+        if (wrapper.parentNode !== pin) { pin.innerHTML = ""; pin.appendChild(wrapper); }
+        wrapper.style.display = "";
+        const key = String(field.key || "").trim();
+        const mountEl = state.externalUploaderMountByField?.[key];
+        const uploaderId = String(state.externalUploaderIdByField?.[key] || "").trim();
+        if (!mountEl || !uploaderId) return;
+        const allowMultiple = (typeof state.externalUploaderAllowMultipleByField?.[key] !== "undefined")
+          ? Boolean(state.externalUploaderAllowMultipleByField[key])
+          : (field.type === "multifile" || field.allowMultiple === true);
+        const maxFiles = (typeof state.externalUploaderMaxFilesByField?.[key] !== "undefined" && state.externalUploaderMaxFilesByField[key])
+          ? bdf_readInt(state.externalUploaderMaxFilesByField[key], allowMultiple ? bdf_getDefaultExternalMaxFiles() : 1)
+          : bdf_getUploaderMaxFiles(field, allowMultiple);
+        bdf_syncExternalUploaderHostHeight(mountEl);
+        bdf_scheduleExternalUploaderMountForField({ field, mountEl, allowMultiple, accept: String(field?.ui?.accept || ""), maxFiles, uploaderId });
+      }
+
       function runEditModeFilterRender() {
         if (!state.config) return;
         const isEditUiActive = IS_EDITING_MODE || isEditPanelOpen;
@@ -14914,6 +14946,12 @@
           editStageChip.textContent = statusLabel;
         }
 
+        // EK-EVRAK (26.10.2026 gece): kayıtlı dosyanın düzenleme panelinde "Ek Evrak" aşama sekmelerinden bağımsız, panelin en üstünde
+        // sabit yuvada durur (aşama listesine ve dosya sayfalamasına girmez). Alan bu kayıtta yoksa hiçbir şey değişmez.
+        const bdfEkAlan = fields.find((f) => f && bdf_isUploadLikeFieldType(String(f.type || "").toLowerCase()) &&
+          String(f.label || f.name || "").trim().toLocaleLowerCase("tr") === "ek evrak") || null;
+        if (bdfEkAlan) selectedFields = selectedFields.filter((f) => f && f.key !== bdfEkAlan.key);
+
         const uploaderPaging = applyEditUploaderPaging(selectedFields, {
           stageKey: editSelectedStage,
           searchMode,
@@ -14929,6 +14967,7 @@
           searchMode,
           retryCount: 0
         });
+        try { bdf_ekEvrakSabitle(bdfEkAlan, wrappersByKey); } catch (_) { }
 
       }
 
