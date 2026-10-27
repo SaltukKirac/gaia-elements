@@ -4257,7 +4257,9 @@
         // 30.07: varsayılan 10 → 30. Evrak akışında kullanıcı 16 fotoğraf yükledi, 10'dan
         // sonrası SESSİZCE atılıyordu (hem burada hem dahili handleFiles aynı 10'u kullanır).
         // Bubble input'u (MULTIFILEUPLOADER_MAX_FILES) verilirse yine o kazanır.
-        const n = bdf_readInt(raw, 30);
+        // 27.10.2026 (NOD toplantısı: "34 fotoğraftan 20'sini aldı, sınır varsa kalksın"): varsayılan 30 → 200. Ekspertiz dosyası
+        // 30+ fotoğraf + evrakla geliyor; fazlası sessizce atılıyordu (bdf_applyUrlLimit SONUNCULARI tutar).
+        const n = bdf_readInt(raw, 200);
         return Math.max(1, n);
       }
 
