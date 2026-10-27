@@ -5896,7 +5896,66 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   function aynaScrolled() { try { const w = els && els.container ? els.container.querySelector('.wtHolder') : null; return !!(w && w.scrollTop > 0); } catch (e) { return false; } }
   function aynaSameRows(a, b) { try { if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false; for (let i = 0; i < a.length; i++) { if (a[i] !== b[i] && JSON.stringify(a[i]) !== JSON.stringify(b[i])) return false; } return true; } catch (e) { return false; } }
+  // GX-GONE (27.10): rows the viewer deleted from this table leave the grid at once. Bubble deletes the record, but the mirror
+  // learns of a delete only at its next full pull (count mismatch → mirror_resync, ~20+ min), so every mirror answer until then
+  // still held the row (founder 27.10: "siliyor ama anında tabloya yansımıyor"). The ids live per tab (sessionStorage, 30 min,
+  // a page reload keeps them); a row the mirror later shows with a newer _modified than it had at the delete (the delete did not
+  // happen and the record was edited) comes back.
+  const DT_GONE_KEY = 'gx_table_gone_v1', DT_GONE_TTL_MS = 30 * 60000;
+  let _dtGone = null;
+  function dtGoneMap() {
+    if (_dtGone) return _dtGone;
+    _dtGone = new Map();
+    try {
+      const o = JSON.parse(sessionStorage.getItem(DT_GONE_KEY) || '{}') || {}, now = Date.now();
+      Object.keys(o).forEach(id => { const e = o[id]; if (e && now - Number(e.at) < DT_GONE_TTL_MS) _dtGone.set(id, { at: Number(e.at), mod: Number(e.mod) || 0 }); });
+    } catch (e) {}
+    return _dtGone;
+  }
+  function dtGoneSave() {
+    try {
+      const o = {}; dtGoneMap().forEach((v, k) => { o[k] = v; });
+      if (Object.keys(o).length) sessionStorage.setItem(DT_GONE_KEY, JSON.stringify(o)); else sessionStorage.removeItem(DT_GONE_KEY);
+    } catch (e) {}
+  }
+  // the grid's rows without the deleted ones (the same array when nothing is hidden); AYNA.goneHidden = how many it hid
+  function dtGoneFilter(rows) {
+    const g = dtGoneMap();
+    if (!g.size || !Array.isArray(rows)) { AYNA.goneHidden = 0; return rows; }
+    const now = Date.now();
+    let hid = 0, dirty = false;
+    const out = rows.filter(r => {
+      const id = rowIdOf(r), e = id ? g.get(id) : null;
+      if (!e) return true;
+      if (now - e.at >= DT_GONE_TTL_MS) { g.delete(id); dirty = true; return true; }
+      const m = aynaLiveTime(r && r._modified);
+      if (m && e.mod && m > e.mod) { g.delete(id); dirty = true; return true; }   // edited after the delete: the record lives on
+      hid++; return false;
+    });
+    if (dirty) dtGoneSave();
+    AYNA.goneHidden = hid;
+    return hid ? out : rows;
+  }
+  // deleteSelected: remember the ids (with each row's _modified as the grid had it) and take the rows off the grid now
+  function dtGoneAdd(ids) {
+    try {
+      if (!Array.isArray(ids) || !ids.length) return;
+      const want = new Set(ids.map(String)), g = dtGoneMap(), now = Date.now(), mods = new Map();
+      const seen = Array.isArray(AYNA.painted) ? AYNA.painted : state.rawRows;
+      (seen || []).forEach(r => { const id = rowIdOf(r); if (id && want.has(id)) mods.set(id, aynaLiveTime(r && r._modified)); });
+      want.forEach(id => g.set(id, { at: now, mod: mods.get(id) || 0 }));
+      dtGoneSave();
+      if (AYNA.cfg && aynaAlive() && Array.isArray(AYNA.painted)) {   // mirror rows: the filtered repaint (on a timer: a background tab gets no animation frame)
+        aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
+        if (AYNA.stats && !AYNA.loading && !AYNA.last) aynaSetStatus(aynaWindowed() ? 'window' : 'ready', AYNA.stats);
+      } else if (Array.isArray(state.rawRows) && state.columns.length) {   // Bubble rows: Bubble's own reload follows; hide them until it does
+        const keep = state.rawRows.filter(r => !want.has(rowIdOf(r))).map(r => { const o = Object.assign({}, r); delete o.__sourceIndex; return o; });
+        if (keep.length !== state.rawRows.length) refreshTable(keep);
+      }
+    } catch (e) { log('[GX-GONE] ' + ((e && e.message) || e)); }
+  }
   function aynaPaint(rows, columns, first) {
+    rows = dtGoneFilter(rows);   // GX-GONE
     AYNA.painted = rows;   // AYNA-LIVE: what the grid shows, compared with a refreshed answer
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // AYNA-LIVE: a deferred paint never lands over a newer one
     const c = els && els.container;
@@ -6278,6 +6337,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (tb && tb.parentNode) tb.parentNode.insertBefore(el, tb.nextSibling); else if (wrap) wrap.insertBefore(el, wrap.firstChild);
       }
       const n = (x) => (typeof x === 'number' ? x.toLocaleString('en-US') : x);
+      const hid = AYNA.goneHidden || 0;   // GX-GONE: rows the viewer deleted are not counted
+      if (hid && info && typeof info.total === 'number' && (kind === 'ready' || kind === 'window')) info = Object.assign({}, info, { total: Math.max(0, info.total - hid) });
       if (kind === 'loading') el.textContent = 'Loading rows' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
       else if (kind === 'refreshing') el.textContent = (info && info.windowed && info.total) ? ('Rows 1–' + n(info.rows) + ' of ' + n(info.total) + ' · refreshing…') : (n(info && info.rows || 0) + ' rows · refreshing' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…');
       else if (kind === 'paging') el.textContent = 'Loading page ' + n(info.page) + '…';
@@ -6393,6 +6454,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // the live repaint: same soft fade as aynaPaint, on timers instead of animation frames (a frame may never come in a
   // throttled / headless page, and the rows must not wait for one: AYNA.painted already says they are on screen)
   function aynaLivePaint(rows, columns) {
+    rows = dtGoneFilter(rows);   // GX-GONE
     AYNA.painted = rows;
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // shared with aynaPaint: the newest paint wins
     const c = els && els.container;
@@ -6485,7 +6547,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (total > AYNA.fullLoadMax) return { grew: true };   // it became a big screen → the normal load decides (window mode)
       if (!page.length || offset >= total) break;
     }
-    const changed = !aynaSameRows(aynaLivePainted(), rows);
+    const changed = !aynaSameRows(aynaLivePainted(), dtGoneFilter(rows));   // GX-GONE: a row the viewer deleted is no change
     if (changed) aynaLivePaint(rows, cfg.columns);
     AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now() });
     if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }
@@ -6506,7 +6568,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + size + '|' + page, { data: d, at: Date.now() });
     AYNA.win.total = total;
     if (page > aynaPages()) { AYNA.win.page = aynaPages(); aynaRequery(); return { changed: true, total: total }; }   // rows went away: the last page that still exists
-    const changed = !aynaSameRows(aynaLivePainted(), rows);
+    const changed = !aynaSameRows(aynaLivePainted(), dtGoneFilter(rows));   // GX-GONE
     if (changed) aynaLivePaint(rows, cfg.columns);
     if (page === 1 && !AYNA.criteria.where && !AYNA.criteria.text && !AYNA.criteria.order_by) AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now(), windowed: true, total: total });
     AYNA.stats = Object.assign({}, AYNA.stats, { rows: rows.length, total: total, page: page, pages: aynaPages(), size: size, ms: Date.now() - t0, fresh: d.mirror ? d.mirror.fresh : AYNA.stats.fresh, cached: false });
@@ -7957,6 +8019,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     publishSelectedUniqueIds();
     if (typeof window.bubble_fn_delete === 'function') {
       window.bubble_fn_delete(ids);
+      dtGoneAdd(ids);   // GX-GONE (27.10): the rows leave the grid now, not at the mirror's next full pull
       aynaLiveBoost('delete');   // AYNA-LIVE
     }
     return ids;
