@@ -1,81 +1,81 @@
 {
-    "repo":  "SaltukKirac/gaia-elements",
-    "channel":  "eksper",
-    "rev":  44,
-    "updated":  "2026-10-26T14:55:45Z",
-    "elements":  {
-                     "aithia-pricing":  {
-                                            "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
-                                            "path":  "el/aithia-pricing.html",
-                                            "blob":  "e587169d3e8840704169b8ae51c6f584deb9c353",
-                                            "bytes":  61427,
-                                            "title":  "AITHIA pricing page (public, /aithia)",
-                                            "updated":  "2026-10-23T10:01:19Z",
-                                            "from":  "main"
-                                        },
-                     "architect":  {
-                                       "commit":  "33a5e8b0d9de87a68aef6fea0965a5260efb384e",
-                                       "path":  "el/architect.html",
-                                       "blob":  "e05a316c6634f174353246ad5aea313ef6dcbaaf",
-                                       "bytes":  4322435,
-                                       "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-10-23T12:03:46Z"
-                                   },
-                     "form":  {
-                                  "commit":  "bbee6c69616c3bb86d0df80435e3a6214559c594",
-                                  "path":  "el/form.html",
-                                  "blob":  "091d8e4e5e23f84e872701fbfe403d2c95d72cf7",
-                                  "bytes":  848551,
-                                  "title":  "Dynamic form - app page",
-                                  "updated":  "2026-10-26T14:55:45Z"
-                              },
-                     "onboarding":  {
-                                        "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
-                                        "path":  "el/onboarding.html",
-                                        "blob":  "054f1a108f13ff366d14489d07ba1e1b8a4feaf6",
-                                        "bytes":  58373,
-                                        "title":  "Onboarding widget",
-                                        "updated":  "2026-09-30T13:10:00Z"
-                                    },
-                     "pricing":  {
-                                     "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
-                                     "path":  "el/pricing.html",
-                                     "blob":  "2f84ca306744bf37ed5760f9610d90b8413025ed",
-                                     "bytes":  23322,
-                                     "title":  "Pricing page (public, /pricing)",
-                                     "updated":  "2026-09-24T21:46:46Z"
-                                 },
-                     "prompt-builder":  {
-                                            "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
-                                            "path":  "el/prompt-builder.html",
-                                            "blob":  "e836e467272cbadcdef2856cafbcd06b3e22b281",
-                                            "bytes":  119543,
-                                            "title":  "Prompt Builder",
-                                            "updated":  "2026-09-24T20:35:50Z"
-                                        },
-                     "table":  {
-                                   "commit":  "0e1cec885fe17560a86986b18284209973565e9e",
-                                   "path":  "el/table.html",
-                                   "blob":  "e2b5031c3b767a99eaa3c702dc29e8c26fa8cad4",
-                                   "bytes":  580909,
-                                   "title":  "Dynamic table (tablev2) - app page",
-                                   "updated":  "2026-10-22T09:25:05Z"
-                               },
-                     "template-page":  {
-                                           "commit":  "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
-                                           "path":  "el/template-page.html",
-                                           "blob":  "ea4781cce9230c7fff12a9102a770d9e64326336",
-                                           "bytes":  286439,
-                                           "title":  "Template detail page (public, /template/\u003cslug\u003e)",
-                                           "updated":  "2026-10-22T09:24:24Z"
-                                       },
-                     "templates-button":  {
-                                              "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
-                                              "path":  "el/templates-button.html",
-                                              "blob":  "6cf68a5b55f2523f9a360a021b3e65b24c1c05dd",
-                                              "bytes":  28003,
-                                              "title":  "Flagship home mount (templates button)",
-                                              "updated":  "2026-09-24T21:46:46Z"
-                                          }
-                 }
+  "repo": "SaltukKirac/gaia-elements",
+  "channel": "eksper",
+  "rev": 45,
+  "updated": "2026-10-27T11:33:03Z",
+  "elements": {
+    "aithia-pricing": {
+      "commit": "d33173268149bc693fb961125ae5b4273044e63a",
+      "path": "el/aithia-pricing.html",
+      "blob": "e587169d3e8840704169b8ae51c6f584deb9c353",
+      "bytes": 61427,
+      "title": "AITHIA pricing page (public, /aithia)",
+      "updated": "2026-10-23T10:01:19Z",
+      "from": "main"
+    },
+    "architect": {
+      "commit": "33a5e8b0d9de87a68aef6fea0965a5260efb384e",
+      "path": "el/architect.html",
+      "blob": "e05a316c6634f174353246ad5aea313ef6dcbaaf",
+      "bytes": 4322435,
+      "title": "AI Architect / GAD (+ Octo shell) - app page",
+      "updated": "2026-10-23T12:03:46Z"
+    },
+    "form": {
+      "commit": "90e3f0ef0ea6d5c1404a6d487449bab26f5fac01",
+      "path": "el/form.html",
+      "blob": "4aee0599f4878832372b7177b8b2194b9e237f68",
+      "bytes": 848808,
+      "title": "Dynamic form - app page",
+      "updated": "2026-10-27T11:33:03Z"
+    },
+    "onboarding": {
+      "commit": "f39ee569c4627b019ecd98938b52097296c54535",
+      "path": "el/onboarding.html",
+      "blob": "054f1a108f13ff366d14489d07ba1e1b8a4feaf6",
+      "bytes": 58373,
+      "title": "Onboarding widget",
+      "updated": "2026-09-30T13:10:00Z"
+    },
+    "pricing": {
+      "commit": "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+      "path": "el/pricing.html",
+      "blob": "2f84ca306744bf37ed5760f9610d90b8413025ed",
+      "bytes": 23322,
+      "title": "Pricing page (public, /pricing)",
+      "updated": "2026-09-24T21:46:46Z"
+    },
+    "prompt-builder": {
+      "commit": "d9f50da4f263f293ed5a5e36000d01b769733e07",
+      "path": "el/prompt-builder.html",
+      "blob": "e836e467272cbadcdef2856cafbcd06b3e22b281",
+      "bytes": 119543,
+      "title": "Prompt Builder",
+      "updated": "2026-09-24T20:35:50Z"
+    },
+    "table": {
+      "commit": "0e1cec885fe17560a86986b18284209973565e9e",
+      "path": "el/table.html",
+      "blob": "e2b5031c3b767a99eaa3c702dc29e8c26fa8cad4",
+      "bytes": 580909,
+      "title": "Dynamic table (tablev2) - app page",
+      "updated": "2026-10-22T09:25:05Z"
+    },
+    "template-page": {
+      "commit": "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
+      "path": "el/template-page.html",
+      "blob": "ea4781cce9230c7fff12a9102a770d9e64326336",
+      "bytes": 286439,
+      "title": "Template detail page (public, /template/<slug>)",
+      "updated": "2026-10-22T09:24:24Z"
+    },
+    "templates-button": {
+      "commit": "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+      "path": "el/templates-button.html",
+      "blob": "6cf68a5b55f2523f9a360a021b3e65b24c1c05dd",
+      "bytes": 28003,
+      "title": "Flagship home mount (templates button)",
+      "updated": "2026-09-24T21:46:46Z"
+    }
+  }
 }
