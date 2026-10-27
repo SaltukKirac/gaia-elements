@@ -45728,6 +45728,10 @@ button.octo-tabs-crumb:hover { background: var(--octo-line-2); color: var(--octo
 .octo-tabs-meta.is-size { min-width: 52px; text-align: right; }
 .octo-tabs-body > .octo-rail-err { padding: 8px 16px; }
 
+/* WhatsApp (RAY-KALDIR 27.10): raydaki eslestirme karti panelde, okunur genislikte */
+.octo-tabs-wa { padding: 12px; flex: 0 0 auto; max-width: 560px; }
+.octo-tabs-wa > .octo-rail-card { margin: 0; }
+
 /* Tasks */
 .octo-tabs-tasks { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; flex: 1 1 auto; }
 .octo-tabs-tasklist .octo-rail-item { min-height: 40px; padding: 4px 8px; }
@@ -53346,9 +53350,11 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   if (CARDS.indexOf('mine') < 0) { CARDS.splice(CARDS.indexOf('jobs') + 1, 0, 'mine'); } CARD_ICON.mine = 'people'; CARD_LABEL.mine = 'My tasks'; // mytasks
   // Workspace sekmeleri (OCTO_TABS_SPEC 2): sabit sira, Table her zaman ilk ve acilista secili. Telefon hizli
   // satiri (.octo-rail-quick) ve rayin %50 gomulu gorunumu EMEKLI; ayni serit telefonda da tablonun ustunde.
-  var TABS = ['table', 'calendar', 'drive', 'notes', 'tasks', 'sheet', 'mail'];
-  var TAB_ICON = { table: 'table', calendar: 'calendar', drive: 'folder', notes: 'doc', tasks: 'check', sheet: 'sheet', mail: 'mail' };
-  var TAB_LABEL = { table: 'Table', calendar: 'Calendar', drive: 'Drive', notes: 'Notes', tasks: 'Tasks', sheet: 'Sheet', mail: 'Mail' };
+  // RAY-KALDIR (27.10 kurucu): WhatsApp eslestirme karti sagdaki raydan seride (sol dock) sekme olarak tasindi;
+  // sunucu modulu yoksa sekme hic gorunmez (kartin cardVisible kurali).
+  var TABS = ['table', 'calendar', 'drive', 'notes', 'tasks', 'sheet', 'mail', 'wa'];
+  var TAB_ICON = { table: 'table', calendar: 'calendar', drive: 'folder', notes: 'doc', tasks: 'check', sheet: 'sheet', mail: 'mail', wa: 'chat' };
+  var TAB_LABEL = { table: 'Table', calendar: 'Calendar', drive: 'Drive', notes: 'Notes', tasks: 'Tasks', sheet: 'Sheet', mail: 'Mail', wa: 'WhatsApp' };
   var TAB_BADGE = { unset: 'plus', unlinked: 'plug', error: 'alert' };
   var PANEL_ID = 'octo-tabs-panel';
   var DRIVE_PAGE = 50, DRIVE_DEPTH = 6, TASKS_TAB = 20, TASK_MAX = 200;
@@ -53555,6 +53561,16 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     if (v === '0' || v === 'off') { try { octo.state.set('rail.off', true); } catch (e1) { /* yut */ } }
     else if (v === '1' || v === 'on' || v === 'b') { try { octo.state.del('rail.off'); } catch (e2) { /* yut */ } }
     M.forceB = (v === 'b');
+    // RAY-KALDIR (27.10 kurucu): sag ray sutunu varsayilan KAPALI (kartlar cizilmez, tablo tam genislik; sekmeler
+    // ve paneli yasar). ?railpanel=1 sutunu bu tarayicida geri getirir, ?railpanel=0 yine kapatir.
+    var pm = /[?&]railpanel=([^&#]*)/.exec(railQuery());
+    if (pm) {
+      var pv = String(pm[1] || '').toLowerCase().trim();
+      if (pv === '1' || pv === 'on') { try { octo.state.set('rail.aside', true); } catch (e5) { /* yut */ } }
+      else if (pv === '0' || pv === 'off') { try { octo.state.del('rail.aside'); } catch (e6) { /* yut */ } }
+    }
+    try { M.asideOn = octo.state.get('rail.aside', false) === true; } catch (e7) { M.asideOn = false; }
+    if (typeof W.__OCTO_RAIL_ASIDE === 'boolean') { M.asideOn = W.__OCTO_RAIL_ASIDE; }   // harness dikisi
     // ?rail=debug teshis hapi sekme oturumu boyunca kalir (?gxel gibi); ?rail=debug=0 ve ?rail=1 kaldirir.
     if (v === 'debug') { ssSet(DBG_KEY, '1'); }
     else if (v === 'debug=0' || v === '1' || v === 'on') { ssDel(DBG_KEY); }
@@ -54664,7 +54680,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var a = M.aside;
     a.setAttribute('data-phone', phone ? '1' : '');
     a.setAttribute('data-collapsed', (M.collapsed && !phone) ? '1' : '');
-    a.setAttribute('data-empty', (M.empty && !phone) ? '1' : '');
+    a.setAttribute('data-empty', (M.empty && (!phone || !M.asideOn)) ? '1' : '');
     if (M.sheet && phone) { a.setAttribute('data-sheet', M.sheet); } else { a.removeAttribute('data-sheet'); }
     if (M.row) { M.row.setAttribute('data-phone', phone ? '1' : ''); }
     var tb = M.parts.tabs, pn = M.parts.panel;
@@ -54836,6 +54852,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
   // Gosterecek kart yoksa ray masaustunde hic cizilmez (genislik 0, tablo tam genislik). Workspace
   // okunamadiysa (hata satiri) ray gorunur kalir. Degisimde tek resize: tablo yeni genisligi olcer.
   function railEmpty() {
+    if (!M.asideOn) { return true; }
     if (M.wsErr && !data()) { return false; }
     return !anyCard();
   }
@@ -55286,7 +55303,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     function fallback() {
       var done = false, ta = null;
       var prev = D.activeElement;
-      var host = M.aside || D.body;
+      var host = (M.tab === 'wa' && M.parts.panel) ? M.parts.panel : (M.aside || D.body);   // RAY-KALDIR: ray gizli, kart panelde
       try {
         ta = D.createElement('textarea');
         ta.value = t;
@@ -56181,6 +56198,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     if (k === 'onb') { return onbNeeded() ? 'ready' : 'off'; }
     if (k === 'table') { return 'ready'; }
     if (k === 'mail') { return mailTabState(); }
+    if (k === 'wa') { return cardVisible('wa') ? 'ready' : 'off'; }
     if (!RES[k]) { return 'soon'; }
     if (!data()) { return (M.handle && M.handle.busy) ? 'loading' : 'off'; }
     if (!railOk()) { return 'off'; }
@@ -56354,6 +56372,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
       var k = TABS[i], b = btns[k];
       if (!b) { continue; }
       var st = tabState(k), on = (k === M.tab);
+      if (k === 'wa') { var wOff = (st === 'off' && !on); if (b.hidden !== wOff) { b.hidden = wOff; } }
       var sig = st + '|' + (on ? '1' : '0');
       if (b.getAttribute('data-sig') === sig) { continue; }
       b.setAttribute('data-sig', sig);
@@ -56384,7 +56403,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var rb = M.parts.railBtn;
     if (rb) {
       // Telefon: gosterecek kart yoksa Rail dugmesi de yok (bos alt sayfa acilmaz).
-      var rOn = anyCard();
+      var rOn = M.asideOn && anyCard();
       if (rb.hidden === rOn) { rb.hidden = !rOn; }
       rb.setAttribute('aria-expanded', M.sheet === 'all' ? 'true' : 'false');
       var n = pendingCount();
@@ -56413,6 +56432,7 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     var st = tabState(k);
     try {
       if (k === 'mail') { panelMail(st); }
+      else if (k === 'wa') { panelWa(st); }
       else if (st === 'unset' || st === 'unlinked' || st === 'off' || st === 'soon') { panelSetup(k, st); }
       else if (k === 'drive') { panelDrive(); }
       else if (k === 'tasks') { panelTasks(); }
@@ -56893,6 +56913,37 @@ html[data-octo-ws-m="1"] #octo-wse-pick .octo-wse-pclose:active { background: va
     t.restore = false;
   }
 
+  // RAY-KALDIR (27.10): WhatsApp sekmesi. Govde raydaki eslestirme kartinin AYNI cizimidir (PAINT.wa: kod, Copy code,
+  // Open WhatsApp, eslesmis telefonlar, Unpair); kartin basligi ve yenileme dugmesi panel cubuguna gecer.
+  function panelWa(st) {
+    var c = M.c.wa || {};
+    var d = isObj(c.d) ? c.d : null;
+    var busy = !!(c.h && c.h.busy);
+    var gone = [];
+    for (var g in (c.gone || {})) { if (Object.prototype.hasOwnProperty.call(c.gone, g)) { gone.push(g); } }
+    var sig = 'wa|' + st + '|' + (waLoginNo() ? 1 : 0) + '|' + (busy ? 1 : 0) + '|' + str(c.err) + '|' + (c.stale ? 1 : 0) + '|' +
+      (c.minting ? 1 : 0) + '|' + str(c.mintErr) + '|' + (c.uerr ? 1 : 0) + '|' + (c.copied ? 1 : 0) + '|' + gone.join(',') + '|' +
+      (d ? JSON.stringify([d.number, d.code, d.expires_at, d.uses, d.uses_max, d.wa_link, d.bindings]) : '');
+    if (M.panelSig === sig) { return; }
+    keepFocus(M.parts.panel, function () {
+      var keep = panelReset('wa', sig);
+      barTitle('WhatsApp');
+      if (!waLoginNo()) { barRefresh(function () { cardRefresh('wa'); }, busy); }
+      var body = M.parts.pbody;
+      var box = el('div', 'octo-tabs-wa');
+      var sec = el('section', 'octo-rail-card');
+      sec.setAttribute('data-card', 'wa');
+      if (st === 'off') { sec.appendChild(muted('WhatsApp is not available')); }
+      else {
+        try { PAINT.wa(sec); } catch (e) { logErr(e); }
+        var hd = sec.querySelector('.octo-rail-card-head');
+        if (hd) { sec.removeChild(hd); }
+      }
+      if (sec.firstChild) { box.appendChild(sec); }
+      body.appendChild(box);
+      body.scrollTop = keep;
+    });
+  }
   // ------------------------------------------------------------ Tasks (dogal liste)
   function panelTasks() {
     var t = tvOf('tasks');
