@@ -333,58 +333,6 @@
     display: none;
   }
 
-  /* EK-EVRAK (26.10.2026): kayıtlı dosyada en üstte küçük sabit "Ek Evrak" kutusu */
-  #bdf-root .field-wrapper.bdf-ek-evrak {
-    position: sticky;
-    top: 0;
-    z-index: 4;
-    background: var(--gx-surface, #ffffff);
-    border: 1px solid var(--gx-line-soft, #e2e8f0);
-    border-left: 3px solid var(--gx-primary, #6366f1);
-    border-radius: var(--gx-r-md, 10px);
-    padding: 8px 12px;
-    margin-bottom: 12px;
-    box-shadow: var(--gx-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.06));
-  }
-  /* küçük kutu: kapalıyken yükleyici sayfada kalır (Bubble yükleyicisi bağlı kalsın diye display:none DEĞİL), yalnız yüksekliği 0;
-     "Add documents" ya da üzerine belge sürüklemek açar. Açıkken yükleyici kendi normal boyutunda. */
-  #bdf-root .field-wrapper.bdf-ek-evrak.is-collapsed .control-stack {
-    height: 0;
-    min-height: 0 !important;
-    overflow: hidden;
-    visibility: hidden;
-  }
-  #bdf-root .field-wrapper.bdf-ek-evrak.is-collapsed .field-control.file-field-control {
-    min-height: 0 !important;   /* genel kural 196px !important (satır ~2601); daha özgül seçici burada kazanır */
-  }
-  #bdf-root .field-wrapper.bdf-ek-evrak.is-collapsed .field-row { min-height: 0; }
-  #bdf-root .bdf-ek-evrak-satir {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  #bdf-root .bdf-ek-evrak-ac {
-    min-height: 44px;
-    padding: 0 14px;
-    border-radius: var(--gx-r-pill, 999px);
-    border: 1px solid var(--gx-primary, #6366f1);
-    background: var(--gx-surface, #ffffff);
-    color: var(--gx-primary-deep, #4f46e5);
-    font: 600 13px/1 var(--gx-font, Inter, system-ui, sans-serif);
-    cursor: pointer;
-  }
-  #bdf-root .bdf-ek-evrak-ac:focus-visible { outline: none; box-shadow: var(--gx-ring, 0 0 0 3px rgba(99, 102, 241, 0.35)); }
-  #bdf-root .bdf-ek-evrak-pin { position: sticky; top: 0; z-index: 4; margin-bottom: 12px; }
-  #bdf-root .bdf-ek-evrak-pin .field-wrapper.bdf-ek-evrak { position: static; margin-bottom: 0; }
-  #bdf-root .bdf-ek-evrak-not {
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--gx-ink-2, #475569);
-    margin-top: 4px;
-  }
-
   /* FOLDER-UP (22.10.2026): "Choose a folder" (yalnız çoklu alan, masaüstü) */
   #bdf-root .file-folder-row {
     display: flex;
@@ -4257,7 +4205,9 @@
         // 30.07: varsayılan 10 → 30. Evrak akışında kullanıcı 16 fotoğraf yükledi, 10'dan
         // sonrası SESSİZCE atılıyordu (hem burada hem dahili handleFiles aynı 10'u kullanır).
         // Bubble input'u (MULTIFILEUPLOADER_MAX_FILES) verilirse yine o kazanır.
-        const n = bdf_readInt(raw, 30);
+        // 27.10.2026 (NOD toplantısı: "34 fotoğraftan 20'sini aldı, sınır varsa kalksın"): varsayılan 30 → 200. Ekspertiz dosyası
+        // 30+ fotoğraf + evrakla geliyor; fazlası sessizce atılıyordu (bdf_applyUrlLimit SONUNCULARI tutar).
+        const n = bdf_readInt(raw, 200);
         return Math.max(1, n);
       }
 
@@ -14746,36 +14696,6 @@
         host.append(info, actions);
       }
 
-      // EK-EVRAK: düzenleme panelinde sabit yuva (#bdfEkEvrakPin, aşama düzeninin hemen üstü); alanın güncel sarmalayıcısı oraya taşınır ve
-      // aşama alanlarındaki dosya alanlarıyla aynı yoldan Bubble yükleyicisine bağlanır. Alan yoksa yuva boşalır ve gizlenir.
-      function bdf_ekEvrakSabitle(field, wrappersByKey) {
-        let pin = byId("bdfEkEvrakPin");
-        if (!field) { if (pin) { pin.innerHTML = ""; pin.style.display = "none"; } return; }
-        const wrapper = wrappersByKey && wrappersByKey.get(field.key);
-        if (!wrapper || !editStageLayout || !editStageLayout.parentNode) return;
-        if (!pin) {
-          pin = document.createElement("div");
-          pin.id = "bdfEkEvrakPin";
-          pin.className = "bdf-ek-evrak-pin";
-          editStageLayout.parentNode.insertBefore(pin, editStageLayout);
-        }
-        pin.style.display = "";
-        if (wrapper.parentNode !== pin) { pin.innerHTML = ""; pin.appendChild(wrapper); }
-        wrapper.style.display = "";
-        const key = String(field.key || "").trim();
-        const mountEl = state.externalUploaderMountByField?.[key];
-        const uploaderId = String(state.externalUploaderIdByField?.[key] || "").trim();
-        if (!mountEl || !uploaderId) return;
-        const allowMultiple = (typeof state.externalUploaderAllowMultipleByField?.[key] !== "undefined")
-          ? Boolean(state.externalUploaderAllowMultipleByField[key])
-          : (field.type === "multifile" || field.allowMultiple === true);
-        const maxFiles = (typeof state.externalUploaderMaxFilesByField?.[key] !== "undefined" && state.externalUploaderMaxFilesByField[key])
-          ? bdf_readInt(state.externalUploaderMaxFilesByField[key], allowMultiple ? bdf_getDefaultExternalMaxFiles() : 1)
-          : bdf_getUploaderMaxFiles(field, allowMultiple);
-        bdf_syncExternalUploaderHostHeight(mountEl);
-        bdf_scheduleExternalUploaderMountForField({ field, mountEl, allowMultiple, accept: String(field?.ui?.accept || ""), maxFiles, uploaderId });
-      }
-
       function runEditModeFilterRender() {
         if (!state.config) return;
         const isEditUiActive = IS_EDITING_MODE || isEditPanelOpen;
@@ -14946,12 +14866,6 @@
           editStageChip.textContent = statusLabel;
         }
 
-        // EK-EVRAK (26.10.2026 gece): kayıtlı dosyanın düzenleme panelinde "Ek Evrak" aşama sekmelerinden bağımsız, panelin en üstünde
-        // sabit yuvada durur (aşama listesine ve dosya sayfalamasına girmez). Alan bu kayıtta yoksa hiçbir şey değişmez.
-        const bdfEkAlan = fields.find((f) => f && bdf_isUploadLikeFieldType(String(f.type || "").toLowerCase()) &&
-          String(f.label || f.name || "").trim().toLocaleLowerCase("tr") === "ek evrak") || null;
-        if (bdfEkAlan) selectedFields = selectedFields.filter((f) => f && f.key !== bdfEkAlan.key);
-
         const uploaderPaging = applyEditUploaderPaging(selectedFields, {
           stageKey: editSelectedStage,
           searchMode,
@@ -14967,7 +14881,6 @@
           searchMode,
           retryCount: 0
         });
-        try { bdf_ekEvrakSabitle(bdfEkAlan, wrappersByKey); } catch (_) { }
 
       }
 
@@ -15006,22 +14919,11 @@
         if (formEl) formEl.style.display = isEditUiActive ? "none" : "grid";
 
         let previousGroup = null;
-        // EK-EVRAK (26.10.2026): "Ek Evrak" adlı dosya alanı (NOD x GAIA, dosyaya özel sonradan gelen belge) kayıtlı dosyada formun
-        // en üstünde küçük sabit kutu olarak çizilir; yeni kayıtta gizlenir (ana yükleme Evraklar). Yükleme yolu değişmez (Bubble yükleyicisi).
-        // Alan adı başka bir şirkette yoksa hiçbir şey değişmez.
-        const bdfEkEvrakField = (config.fields || []).find((f) => f && bdf_isUploadLikeFieldType(String(f.type || "").toLowerCase()) &&
-          String(f.label || f.name || "").trim().toLocaleLowerCase("tr") === "ek evrak") || null;
-        const bdfEkEvrakGizli = !!bdfEkEvrakField && String(config.mode || "").trim().toLowerCase() === "create" && !readCurrentUniqueId();
-        const bdfAlanSirasi = bdfEkEvrakField ? [bdfEkEvrakField, ...config.fields.filter((f) => f !== bdfEkEvrakField)] : config.fields;
-        bdfAlanSirasi.forEach((field, index) => {
+        config.fields.forEach((field, index) => {
 
           const wrapper = document.createElement("div");
           wrapper.className = "field-wrapper";
           wrapper.dataset.fieldKey = field.key;
-          if (field === bdfEkEvrakField) {
-            wrapper.classList.add("bdf-ek-evrak");
-            if (bdfEkEvrakGizli) wrapper.style.display = "none";
-          }
 
           const normalizedType = String(field.type || "").toLowerCase();
           // F14: grouping comes from the column type only (no header/label-name semantics).
@@ -16721,31 +16623,9 @@
 
           row.append(labelColumn, controlStack);
           wrapper.append(row);
-          if (field === bdfEkEvrakField) {   // EK-EVRAK: kapalı başlar; düğme ya da sürüklenen belge açar (metin sabit, veri yok)
-            const ekSatir = document.createElement("div");
-            ekSatir.className = "bdf-ek-evrak-satir";
-            const ekNot = document.createElement("div");
-            ekNot.className = "bdf-ek-evrak-not";
-            ekNot.textContent = "Add documents that arrived after this file was created. Each one is read and placed in the file. The result appears in the table.";
-            const ekAc = document.createElement("button");
-            ekAc.type = "button";
-            ekAc.className = "bdf-ek-evrak-ac";
-            ekAc.setAttribute("aria-expanded", "false");
-            ekAc.textContent = "Add documents";
-            const ekAyarla = (acik) => {
-              wrapper.classList.toggle("is-collapsed", !acik);
-              ekAc.setAttribute("aria-expanded", acik ? "true" : "false");
-              ekAc.textContent = acik ? "Hide" : "Add documents";
-            };
-            ekAc.addEventListener("click", () => ekAyarla(wrapper.classList.contains("is-collapsed")));
-            wrapper.addEventListener("dragenter", () => ekAyarla(true));
-            ekSatir.append(ekNot, ekAc);
-            wrapper.append(ekSatir);
-            ekAyarla(false);
-          }
           formEl.append(wrapper);
 
-          if (index === 0 && config.autoFocusFirstInvalid && field !== bdfEkEvrakField) {
+          if (index === 0 && config.autoFocusFirstInvalid) {
             setTimeout(() => {
               const focusTarget = wrapper.querySelector("input:not(.bdf-people-search), textarea, select, button.bdf-people-trigger");   // GX-FORM-PEOPLE (07.10)
               if (focusTarget) focusTarget.focus();
