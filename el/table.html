@@ -4384,6 +4384,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (p === null || p === undefined || p < 0) return;
     const sourceIndex = state.displayRows[p]?.__sourceIndex;
     if (sourceIndex === undefined) return;
+    const rawRow = state.rawRows[sourceIndex];
+    if (rawRow && rawRow.__gxPend) { showWakeToast('This record is still being saved. It opens in a moment.', 'info'); return; }   // GX-PEND: no record id yet
 
     prioritizeSelection(sourceIndex);
     start();
@@ -6130,8 +6132,95 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
     } catch (e) { log('[GX-GONE] ' + ((e && e.message) || e)); }
   }
+  /* GX-PEND (29.10, Ömer): a record saved in the form shows in the table at once ("Claim Hazırla dediğim anda tabloya düşsün").
+     The mirror learns of Bubble's create 10-20 s later at best (29.10: it stalled for 27 min), so the row waited for it.
+     Now the table builds the row from what the form handed Bubble (output_full_obj: the same field names as the table's
+     columns) and shows it until the mirror's own row arrives: a real row created from 20 s before the save on (and with the
+     same Plaka when both have one) replaces it. With "Claim Hazırla" the form's Durum "Claim Hazırlanıyor" travels along, so
+     the Claim cell says "Preparing…" at once. Only new records (output3 = no unique id), only mirror screens; the row has no
+     _id (no open / Fill / delete on it) and lives per tab (sessionStorage, 30 min, a page reload keeps it).
+     Off: window.__gxNoPend = true. */
+  const DT_PEND_KEY = 'gx_table_pend_v1', DT_PEND_TTL_MS = 30 * 60000, DT_PEND_EARLY_MS = 20000;
+  let _dtPend = null;
+  function dtPendList() {
+    if (_dtPend) return _dtPend;
+    _dtPend = [];
+    try {
+      const a = JSON.parse(sessionStorage.getItem(DT_PEND_KEY) || '[]'), now = Date.now();
+      if (Array.isArray(a)) a.forEach(e => { if (e && e.row && now - Number(e.at) < DT_PEND_TTL_MS) _dtPend.push(e); });
+    } catch (e) {}
+    return _dtPend;
+  }
+  function dtPendSave() {
+    try { const a = dtPendList(); if (a.length) sessionStorage.setItem(DT_PEND_KEY, JSON.stringify(a)); else sessionStorage.removeItem(DT_PEND_KEY); } catch (e) {}
+  }
+  function dtPendPlaka(row) {
+    try { for (const k in row) { if (dtNormKey(k) === 'plaka') return String(row[k] == null ? '' : row[k]).trim().toLocaleUpperCase('tr-TR').replace(/\s+/g, ''); } } catch (e) {}
+    return '';
+  }
+  // the grid's rows plus the saved records the mirror has not shown yet (the same array when there are none)
+  function dtPendMerge(rows) {
+    if (!Array.isArray(rows)) return rows;
+    const base = rows.some(r => r && r.__gxPend) ? rows.filter(r => !(r && r.__gxPend)) : rows;
+    if (window.__gxNoPend) return base;
+    const list = dtPendList();
+    if (!list.length) return base;
+    const now = Date.now(), key = AYNA.screenKey || '';
+    const taken = new Set();
+    let dirty = false;
+    const keep = list.filter(e => {
+      if (now - e.at >= DT_PEND_TTL_MS) { dirty = true; return false; }
+      if (e.key !== key) return true;   // another screen's record: kept for when that screen is back
+      const pl = dtPendPlaka(e.row);
+      for (let i = 0; i < base.length; i++) {
+        const r = base[i]; if (!r || taken.has(i)) continue;
+        const c = aynaLiveTime(r._created);
+        if (!c || c < e.at - DT_PEND_EARLY_MS) continue;
+        const rp = dtPendPlaka(r);
+        if (pl && rp && pl !== rp) continue;
+        taken.add(i); dirty = true; return false;   // the mirror's own row is here
+      }
+      return true;
+    });
+    if (dirty) { _dtPend = keep; dtPendSave(); }
+    if (aynaWindowed() && (AYNA.win.page !== aynaPages() || AYNA.criteria.where || AYNA.criteria.text)) return base;   // a filtered / earlier page: the new row belongs elsewhere
+    const add = keep.filter(e => e.key === key).map(e => Object.assign({}, e.row));
+    return add.length ? base.concat(add) : base;
+  }
+  // the form's submit (aynaSaveWatch): a create → the row from its fields, painted now
+  function dtPendFromSubmit(payload) {
+    try {
+      if (window.__gxNoPend || !payload || typeof payload !== 'object') return;
+      if (String(payload.output3 || '').trim()) return;   // an existing record: the mirror row is already on screen
+      let obj = payload.output_full_obj;
+      if ((!obj || typeof obj !== 'object') && typeof payload.output_full_json === 'string') { try { obj = JSON.parse(payload.output_full_json); } catch (e) { obj = null; } }
+      if (!obj || typeof obj !== 'object' || !AYNA.cfg || !aynaAlive() || !Array.isArray(AYNA.painted)) return;
+      const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
+      const want = new Map(cols.map(c => [dtNormKey(c), c]));
+      const now = Date.now(), iso = new Date(now).toISOString();
+      const row = { __gxPend: true, _created: iso, _modified: iso };
+      let n = 0;
+      Object.keys(obj).forEach(k => {
+        const col = want.get(dtNormKey(k)); if (!col) return;
+        let v = obj[k];
+        if (v === null || v === undefined || v === '') return;
+        if (Array.isArray(v)) { v = v.filter(x => typeof x === 'string' || typeof x === 'number').map(String); if (!v.length) return; }
+        else if (typeof v === 'object') return;   // a file / structured value: the mirror's row brings it
+        row[col] = v; n++;
+      });
+      if (!n) return;
+      const list = dtPendList(), key = AYNA.screenKey || '';
+      // one create can reach Bubble twice (an autosave, then Save): a second submit within 15 s replaces the first row
+      const last = list.length ? list[list.length - 1] : null;
+      if (last && last.key === key && now - last.at < 15000) list.pop();
+      list.push({ at: now, key: key, row: row });
+      dtPendSave();
+      aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
+      log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
+    } catch (e) { log('[GX-PEND] ' + ((e && e.message) || e)); }
+  }
   function aynaPaint(rows, columns, first) {
-    rows = dtGoneFilter(rows);   // GX-GONE
+    rows = dtPendMerge(dtGoneFilter(rows));   // GX-GONE + GX-PEND
     AYNA.painted = rows;   // AYNA-LIVE: what the grid shows, compared with a refreshed answer
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // AYNA-LIVE: a deferred paint never lands over a newer one
     const c = els && els.container;
@@ -6653,7 +6742,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // the live repaint: same soft fade as aynaPaint, on timers instead of animation frames (a frame may never come in a
   // throttled / headless page, and the rows must not wait for one: AYNA.painted already says they are on screen)
   function aynaLivePaint(rows, columns) {
-    rows = dtGoneFilter(rows);   // GX-GONE
+    rows = dtPendMerge(dtGoneFilter(rows));   // GX-GONE + GX-PEND
     AYNA.painted = rows;
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // shared with aynaPaint: the newest paint wins
     const c = els && els.container;
@@ -6746,7 +6835,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (total > AYNA.fullLoadMax) return { grew: true };   // it became a big screen → the normal load decides (window mode)
       if (!page.length || offset >= total) break;
     }
-    const changed = !aynaSameRows(aynaLivePainted(), dtGoneFilter(rows));   // GX-GONE: a row the viewer deleted is no change
+    const changed = !aynaSameRows(aynaLivePainted(), dtPendMerge(dtGoneFilter(rows)));   // GX-GONE: a row the viewer deleted is no change; GX-PEND
     if (changed) aynaLivePaint(rows, cfg.columns);
     AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now() });
     if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }
@@ -6767,7 +6856,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + size + '|' + page, { data: d, at: Date.now() });
     AYNA.win.total = total;
     if (page > aynaPages()) { AYNA.win.page = aynaPages(); aynaRequery(); return { changed: true, total: total }; }   // rows went away: the last page that still exists
-    const changed = !aynaSameRows(aynaLivePainted(), dtGoneFilter(rows));   // GX-GONE
+    const changed = !aynaSameRows(aynaLivePainted(), dtPendMerge(dtGoneFilter(rows)));   // GX-GONE + GX-PEND
     if (changed) aynaLivePaint(rows, cfg.columns);
     if (page === 1 && !AYNA.criteria.where && !AYNA.criteria.text && !AYNA.criteria.order_by) AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now(), windowed: true, total: total });
     AYNA.stats = Object.assign({}, AYNA.stats, { rows: rows.length, total: total, page: page, pages: aynaPages(), size: size, ms: Date.now() - t0, fresh: d.mirror ? d.mirror.fresh : AYNA.stats.fresh, cached: false });
@@ -6915,7 +7004,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       try {
         const f = window.bubble_fn_submit;
         if (typeof f !== 'function' || f.__gxSave) return;
-        const w = function () { try { return f.apply(this, arguments); } finally { setTimeout(after, 0); } };
+        const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first
         w.__gxSave = true; w.__gxRaw = f;
         window.bubble_fn_submit = w;
       } catch (e) {}
