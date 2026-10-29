@@ -2,25 +2,33 @@
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "omer",
     "kisi":  "Omer",
-    "rev":  1,
-    "main_rev":  23,
-    "updated":  "2026-10-16T13:57:07Z",
+    "rev":  2,
+    "main_rev":  51,
+    "updated":  "2026-10-29T08:49:29Z",
     "elements":  {
+                     "aithia-pricing":  {
+                                            "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
+                                            "path":  "el/aithia-pricing.html",
+                                            "blob":  "e587169d3e8840704169b8ae51c6f584deb9c353",
+                                            "bytes":  61427,
+                                            "title":  "AITHIA pricing page (public, /aithia)",
+                                            "updated":  "2026-10-23T10:01:19Z"
+                                        },
                      "architect":  {
-                                       "commit":  "26ba458eb05f8ecb1f32351542eb4e0c9e8f304c",
+                                       "commit":  "78ebd4b30d2905ee2ec7b73ac966c328c93bf559",
                                        "path":  "el/architect.html",
-                                       "blob":  "1034e55b4e1d3fef73e0c39cd86ae90150f0569d",
-                                       "bytes":  3215313,
+                                       "blob":  "d436f51dffb9027d4c3c6da61b92228a4bd8e412",
+                                       "bytes":  4269832,
                                        "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-10-01T12:44:04Z"
+                                       "updated":  "2026-10-27T16:50:45Z"
                                    },
                      "form":  {
-                                  "commit":  "464dbb234e00de94f9bdf7598b16c593801a9c60",
+                                  "commit":  "f825886151c4cce8a991534529af95a2c5928fd6",
                                   "path":  "el/form.html",
-                                  "blob":  "ffeec3f6a1c51174355bc0a109f45998f2ceac0f",
-                                  "bytes":  819615,
+                                  "blob":  "41ee43ca3c36508448d9ac1537358feb1883fd74",
+                                  "bytes":  841507,
                                   "title":  "Dynamic form - app page",
-                                  "updated":  "2026-10-07T15:02:09Z"
+                                  "updated":  "2026-10-28T15:04:45Z"
                               },
                      "onboarding":  {
                                         "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
@@ -47,22 +55,22 @@
                                             "updated":  "2026-09-24T20:35:50Z"
                                         },
                      "table":  {
-                                   "commit":  "c4aa60abcc14e7d8b5f9018bcad444943d49095e",
+                                   "commit":  "45f253858f54bd2cd3e269a9c7dfdf6599bbd048",
                                    "path":  "el/table.html",
-                                   "blob":  "949ab5b46e0e2523b7e8f97954f8466fde554c85",
-                                   "bytes":  616321,
+                                   "blob":  "8be2fd25aa12429bc966e917f77aefe1cd1b5cd6",
+                                   "bytes":  591476,
                                    "title":  "Dynamic table (tablev2) - app page",
-                                   "updated":  "2026-10-16T13:57:07Z",
+                                   "updated":  "2026-10-29T08:49:29Z",
                                    "kaynak":  "omer",
-                                   "taban":  "6dfdc8c3f3f3b11a22299a870726e9f87b4dd550"
+                                   "taban":  "975b3f75fe356fc6503d0990bce19b2593a96c4c"
                                },
                      "template-page":  {
-                                           "commit":  "c77b2c8ced887610e63a4c135e346c781bc86100",
+                                           "commit":  "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
                                            "path":  "el/template-page.html",
-                                           "blob":  "fac7d73737fb945cd19d7b950b74144054a3000c",
-                                           "bytes":  270132,
+                                           "blob":  "ea4781cce9230c7fff12a9102a770d9e64326336",
+                                           "bytes":  286439,
                                            "title":  "Template detail page (public, /template/\u003cslug\u003e)",
-                                           "updated":  "2026-09-28T11:33:16Z"
+                                           "updated":  "2026-10-22T09:24:24Z"
                                        },
                      "templates-button":  {
                                               "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
