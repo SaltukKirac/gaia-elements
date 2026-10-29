@@ -3910,7 +3910,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       let claim = '';
       for (const k in row) { if (k !== '__sourceIndex' && dtNormKey(k) === 'claim') { claim = String(row[k] == null ? '' : row[k]).trim(); break; } }
       if (claim) return '';
-      const d = dtRowDurum(row); if (d === null) return '';
+      // the mirror leaves EMPTY fields out of a row (a new record carries only _id, _created, … and what was filled), so a
+      // missing Durum on a table that HAS a Durum column means empty, not "this table has no Durum" (29.10 test record)
+      let d = dtRowDurum(row);
+      if (d === null) { if (!state.columns.some(c => c && !c.__uiOnly && dtNormKey(c.id || '') === 'durum')) return ''; d = ''; }
       const k = dtNormKey(d);
       if (k === 'claimhazirlaniyor') return 'preparing';
       if (k === 'hata') return 'failed';
