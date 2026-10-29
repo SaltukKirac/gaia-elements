@@ -3897,7 +3897,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
      waits 10 min after its last change) was still to make the package. Read from the row only, never guessed:
        Durum "Claim Hazırlanıyor"  → 'preparing' ("Preparing…", the line is on it)
        Durum "Hata"                → 'failed'    ("Failed", the line gave up; it does not retry a Hata record by itself)
-       Durum empty, no Claim, created in the last 60 min → 'queued' ("Queued"; an older empty row is left empty: the line
+       Durum empty (or missing: the mirror leaves empty fields out), no Claim, documents in Evraklar, created in the last
+       60 min → 'queued' ("Queued"; without documents, or older, the row is left empty: the line
          skips a record with no documents, so "Queued" would never end)
      A package on the row (Ready ✓) or any other Durum → '' (the cell renders as before). Every new record counts, whichever
      form button made it: the line does not look at the button either. */
@@ -3918,6 +3919,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (k === 'claimhazirlaniyor') return 'preparing';
       if (k === 'hata') return 'failed';
       if (k) return '';
+      // the line only takes a record with documents in "Evraklar" (nod-gaia-hat Evrak-Adresleri); without them it never starts
+      let docs = '';
+      for (const f in row) { if (f !== '__sourceIndex' && dtNormKey(f) === 'evraklar') { const v = row[f]; docs = Array.isArray(v) ? v.join('') : String(v == null ? '' : v).trim(); break; } }
+      if (!docs) return '';
       const t = Date.parse(String(row._created || row['Created Date'] || ''));
       return (isFinite(t) && Date.now() - t < DT_CLAIM_QUEUE_MS) ? 'queued' : '';
     } catch (e) { return ''; }
