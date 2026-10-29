@@ -128,6 +128,27 @@
   font-size: 18px;
 }
 
+/* TIDY-LABELS (29.10, Omer): icon-only Import / Export read as mystery arrows; on a wide table they carry their word,
+   narrow screens keep the icon (and the More menu). The hover tip below opens at once instead of the browser's slow title. */
+#dynamic-table-wrapper .dt-btn-label { display: none; }
+@media (min-width: 1100px) {
+  #dynamic-table-wrapper #dt-btn-import,
+  #dynamic-table-wrapper #dt-btn-download { width: auto; padding: 0 12px 0 10px; color: var(--gx-ink-2, #475569); }
+  #dynamic-table-wrapper #dt-btn-import .dt-svg-icon,
+  #dynamic-table-wrapper #dt-btn-download .dt-svg-icon { width: 18px; height: 18px; }
+  #dynamic-table-wrapper .dt-btn-label { display: inline; }
+}
+#dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip] { position: relative; }
+#dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip]::after {
+  content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 50%; margin-left: -60px; width: 120px;
+  text-align: center; padding: 4px 8px; border-radius: 6px; background: var(--gx-ink, #0f172a); color: #fff;
+  font: 500 12px/1.3 var(--gx-font, Inter, system-ui, sans-serif); white-space: normal; pointer-events: none;
+  opacity: 0; transition: opacity 120ms ease 150ms; z-index: 60;
+}
+#dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip]:hover::after,
+#dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip]:focus-visible::after { opacity: 1; }
+@media (hover: none) { #dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip]::after { display: none; } }
+
 #dynamic-table-wrapper .dt-icon-btn--sm {
   width: 32px;
   height: 32px;
@@ -1224,13 +1245,6 @@
   background: var(--gx-bg, #f8fafc);
 }
 
-/* LAYOUT-ME (16.10): the order in effect (this field asc / desc, or Newest first / Default order) */
-#dynamic-table-wrapper .dt-sort-option.is-active {
-  border-color: var(--gx-primary, #6366f1);
-  color: var(--gx-primary, #6366f1);
-  font-weight: 600;
-}
-
 #dynamic-table-wrapper .dt-menu-backdrop {
   position: fixed;
   inset: 0;
@@ -2121,8 +2135,9 @@
 #dynamic-table-wrapper .handsontable thead th {
   position: relative;
   overflow: visible !important;
-  min-height: 40px !important;
-  padding: 10px 12px !important;
+  /* TIDY-HEAD (29.10, Ömer): 40 px + 2 x 10 px made a 69 px header (two lines of air over one line of text) */
+  min-height: 34px !important;
+  padding: 6px 12px !important;
   background: var(--gx-bg, #f8fafc) !important;
   z-index: 30 !important;
   font-weight: 600 !important;
@@ -2541,29 +2556,27 @@
     <div class="dt-header">
       <div class="dt-toolbar">
         <div class="dt-toolbar-left">
-          <button id="dt-btn-due-date" class="dt-icon-btn" type="button" aria-label="Sort by due date" title="Sort by due date"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><line x1="12" y1="13" x2="12" y2="16"/><circle cx="12" cy="18" r="0.9" fill="currentColor" stroke="none"/></svg><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M6 20l-3-3M6 20l3-3"/><path d="M18 4l3 3M18 4l-3 3M18 4v16"/></svg></button>
+          <button id="dt-btn-due-date" class="dt-icon-btn" type="button" aria-label="Sort by due date" data-tip="Sort by due date"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><line x1="12" y1="13" x2="12" y2="16"/><circle cx="12" cy="18" r="0.9" fill="currentColor" stroke="none"/></svg><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M6 20l-3-3M6 20l3-3"/><path d="M18 4l3 3M18 4l-3 3M18 4v16"/></svg></button>
           <div id="dt-due-date-wrap" class="dt-due-date-wrap">
             <span class="dt-due-date-label">Sort by due date</span>
             <button id="dt-due-date-configure" class="dt-due-date-config-btn" type="button" aria-label="Choose due-date fields" title="Choose due-date fields"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
             <button id="dt-due-date-clear" class="dt-due-date-clear-btn" type="button" aria-label="Turn off due-date sort"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
-          <button id="dt-btn-search" class="dt-icon-btn" type="button" aria-label="Search" title="Search"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+          <button id="dt-btn-search" class="dt-icon-btn" type="button" aria-label="Search" data-tip="Search records"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
           <div id="dt-search-wrap" class="dt-search-wrap">
             <input id="dt-search" class="dt-search" type="text" placeholder="Search records" autocomplete="off" />
           </div>
         </div>
         <div class="dt-toolbar-right">
           <span id="dt-selection-count" class="dt-selection-count dt-hidden" aria-live="polite"></span>
-          <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" title="Delete"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
-          <button id="dt-btn-import" class="dt-icon-btn" type="button" aria-label="Import" title="Import"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V9"></path><path d="m8.5 12.5 3.5-3.5 3.5 3.5"></path><path d="M5 19h14"></path></svg></button>
-          <button id="dt-btn-download" class="dt-icon-btn" type="button" aria-label="Export" title="Export"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v10"></path><path d="m8.5 11.5 3.5 3.5 3.5-3.5"></path><path d="M5 18h14"></path></svg></button>
+          <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" data-tip="Delete selected"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
+          <button id="dt-btn-import" class="dt-icon-btn" type="button" aria-label="Import" data-tip="Import from a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V9"></path><path d="m8.5 12.5 3.5-3.5 3.5 3.5"></path><path d="M5 19h14"></path></svg><span class="dt-btn-label">Import</span></button>
+          <button id="dt-btn-download" class="dt-icon-btn" type="button" aria-label="Export" data-tip="Export to a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v10"></path><path d="m8.5 11.5 3.5 3.5 3.5-3.5"></path><path d="M5 18h14"></path></svg><span class="dt-btn-label">Export</span></button>
           <div id="dt-toolbar-more-wrap" class="dt-toolbar-more-wrap">
-            <button id="dt-btn-more" class="dt-icon-btn" type="button" aria-label="More actions" title="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.75" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.75" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.75" fill="currentColor" stroke="none"></circle></svg></button>
+            <button id="dt-btn-more" class="dt-icon-btn" type="button" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" data-tip="Fields, import, export"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.75" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.75" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.75" fill="currentColor" stroke="none"></circle></svg></button>
             <div id="dt-toolbar-more-menu" class="dt-toolbar-more-menu" role="menu" aria-hidden="true">
               <button id="dt-toolbar-more-add" class="dt-toolbar-more-item" type="button" role="menuitem">Add field</button>
               <button id="dt-toolbar-more-manage" class="dt-toolbar-more-item" type="button" role="menuitem">Manage fields</button>
-              <button id="dt-toolbar-more-unhide" class="dt-toolbar-more-item dt-hidden" type="button" role="menuitem">Show hidden for me</button>
-              <button id="dt-toolbar-more-reset-layout" class="dt-toolbar-more-item" type="button" role="menuitem">Reset my layout</button>
               <button id="dt-toolbar-more-import" class="dt-toolbar-more-item" type="button" role="menuitem">Import</button>
               <button id="dt-toolbar-more-export" class="dt-toolbar-more-item" type="button" role="menuitem">Export</button>
             </div>
@@ -2605,14 +2618,10 @@
       <hr class="dt-column-menu-divider" />
       <button id="dt-column-menu-filter" class="dt-column-menu-item" type="button" role="menuitem"><span>Filter</span><span>›</span></button>
       <button id="dt-column-menu-sort" class="dt-column-menu-item" type="button" role="menuitem"><span>Sort</span><span>›</span></button>
-      <hr class="dt-column-menu-divider" />
-      <button id="dt-column-menu-pin" class="dt-column-menu-item" type="button" role="menuitem">Pin to front</button>
-      <button id="dt-column-menu-hide-me" class="dt-column-menu-item" type="button" role="menuitem">Hide for me</button>
       <div id="dt-sort-panel" class="dt-sort-panel">
         <div class="dt-sheet-handle" data-sheet-handle="sort"></div>
         <button id="dt-sort-asc" class="dt-sort-option" type="button">Sort ascending</button>
         <button id="dt-sort-desc" class="dt-sort-option" type="button">Sort descending</button>
-        <button id="dt-sort-clear" class="dt-sort-option" type="button">Newest first</button>
       </div>
       <div id="dt-filter-panel" class="dt-filter-panel">
         <div class="dt-sheet-handle" data-sheet-handle="filter"></div>
@@ -2705,10 +2714,6 @@
     _viewKey: null,               // T1: {screen:{list,stage}, cols:[id], rows:[kayıt id]}
     _layoutTouched: false,        // T1: kullanıcı bu görünümde düzeni değiştirdi
     _lastAppliedSavedKey: '',     // T1: son uygulanan tableConfig anahtarı
-    // LAYOUT-ME (16.10): the viewer's own layout on their own screen copy; unlike the mr18 block below, this DOES go into tableConfig
-    pinnedCols: null, hiddenCols: new Set(), userSort: null, _savedRaw: null,   // pinned ids (null = auto freeze) / hidden ids / {id, dir} / last saved object
-    _layoutDirty: false, _layoutFlushQueued: false, _layoutHold: null, _layoutNoted: '', _critCheck: false,   // unsent change / write queued / {sid, tries} awaiting the owner / scope toast shown for / mirror criteria re-check after mount
-    _layoutDirtySid: '', _layoutGen: 0, _layoutCfgText: null, _layoutCfgSid: null,   // the screen the unsent change was made on / bumped per new layout (Undo stays on its own) / printed config's screen id (cache)
     _carrySelectionIds: null,     // T1: veri değişirken taşınacak seçili id'ler
     _resetHotView: false,         // T1: sonraki mount HOT sıralama/filtre/kaydırma sıfırlasın
     _hotFiltered: false,          // T1: HOT'ta koşul var (bayat filtre temizliği)
@@ -2750,61 +2755,21 @@
   // Onarim YALNIZ "anahtardan sonra deger yok" kalibini duzeltir (deger yerine [] koyar). Gercek bozuk / yarim JSON
   // oldugu gibi kalir ve asagidaki catch'e duser: erisim hatasi ya da eksik yanit bos basariya CEVRILMEZ.
   // GX-USERS (06.10): + users / user_labels — an empty Search for Users can print "users": , too (read as no names)
-  // LAYOUT-ME (16.10): an empty raw "tableConfig": , reads as "nothing saved" (not a broken config)
   function parseBubbleConfig(text) {
-    const fixed = String(text).replace(/("(?:data|columns|users|user_labels)"\s*:\s*)(?=[,}])/g, '$1[]').replace(/("tableConfig"\s*:\s*)(?=[,}])/g, '$1""');
+    const fixed = String(text).replace(/("(?:data|columns|users|user_labels)"\s*:\s*)(?=[,}])/g, '$1[]');
     return JSON.parse(fixed);
   }
-  // LAYOUT-ME (16.10): every column (hidden for me too) in columnOrder order, then pinned ids first (pinnedCols order, stable)
-  function getOrderedAllColumns() {
-    let all = state.columns;
-    if (state.columnOrder.length) {
-      const orderMap = new Map(state.columnOrder.map((id, i) => [id, i]));
-      const maxOrder = state.columnOrder.length;
-      all = state.columns
-        .map((col, origIdx) => ({
-          col,
-          sortKey: orderMap.has(col.id) ? orderMap.get(col.id) : maxOrder + origIdx
-        }))
-        .sort((a, b) => a.sortKey - b.sortKey)
-        .map(({ col }) => col);
-    }
-    const pins = Array.isArray(state.pinnedCols) ? state.pinnedCols : null;
-    if (!pins || !pins.length) return all;
-    const at = new Map(pins.map((id, i) => [id, i]));
-    const head = all.filter(c => c && at.has(c.id)).sort((a, b) => at.get(a.id) - at.get(b.id));
-    return head.length ? head.concat(all.filter(c => !(c && at.has(c.id)))) : all;
-  }
-  // LAYOUT-ME (16.10): the grid's columns = all minus hidden for me (a pending column always shows); never an empty grid
   function getOrderedColumns() {
-    const all = getOrderedAllColumns(), hid = state.hiddenCols;
-    if (!hid || !hid.size) return all;
-    const vis = all.filter(c => c && (c.__pending || c.__uiOnly || !hid.has(c.id)));
-    return vis.some(c => c && !c.__uiOnly) ? vis : all;
-  }
-  // LAYOUT-ME (16.10): data columns on the grid (the UI actions column sits right after them)
-  function dtDataColCount() { return getOrderedColumns().length; }
-  // LAYOUT-ME (16.10): the full saved order: every column in display order (hidden ones too) + columnOrder ids not on the
-  // table now, each kept after the column it followed (a field that comes back gets its old place)
-  function dtFullOrderIds() {
-    const ids = getOrderedAllColumns().filter(c => c && !c.__uiOnly && c.id).map(c => c.id);
-    return dtMergeOrder(state.columnOrder.map(String), ids);
-  }
-  // LAYOUT-ME (16.10): a new visible order + the ids it does not show (hidden / absent): each of those stays right after the
-  // nearest visible id on its left in `full` (none → the head)
-  function dtMergeOrder(full, visible) {
-    const vis = new Set(visible), groups = new Map([[null, []]]);
-    let anchor = null;
-    (Array.isArray(full) ? full : []).forEach(id => {
-      if (vis.has(id)) { anchor = id; return; }
-      if (!groups.has(anchor)) groups.set(anchor, []);
-      groups.get(anchor).push(id);
-    });
-    const out = [], seen = new Set();
-    const emit = id => { if (id !== null && id !== undefined && id !== '' && !seen.has(id)) { seen.add(id); out.push(id); } };
-    groups.get(null).forEach(emit);
-    (Array.isArray(visible) ? visible : []).forEach(id => { emit(id); (groups.get(id) || []).forEach(emit); });
-    return out;
+    if (state.columnOrder.length === 0) return state.columns;
+    const orderMap = new Map(state.columnOrder.map((id, i) => [id, i]));
+    const maxOrder = state.columnOrder.length;
+    return state.columns
+      .map((col, origIdx) => ({
+        col,
+        sortKey: orderMap.has(col.id) ? orderMap.get(col.id) : maxOrder + origIdx
+      }))
+      .sort((a, b) => a.sortKey - b.sortKey)
+      .map(({ col }) => col);
   }
   // Görsel/menü index'i (getOrderedColumns sırası) → kolon tanımı
   function getColumnAt(i) {
@@ -2829,7 +2794,7 @@
     if (!ag || typeof ag !== 'object') ag = {};
     const pick = (a, b) => String((a !== undefined && a !== null && String(a).trim() !== '') ? a : (b || '')).trim();
     return {
-      screen: { id: pick(config.screen_id, ag.screen_id), list: pick(config.list_id, ag.list_id), stage: pick(config.stage_id, ag.stage_id) },   // LAYOUT-ME (16.10): + the screen record id
+      screen: { list: pick(config.list_id, ag.list_id), stage: pick(config.stage_id, ag.stage_id) },
       cols: sanitizeColumns(config.columns).map(c => c.id),
       rows: (Array.isArray(data) ? data : []).map(rowIdOf).filter(Boolean)
     };
@@ -2839,9 +2804,7 @@
     if (!prev) return { layoutNew: true, dataNew: true };
     const ps = prev.screen || {}, ns = next.screen || {};
     const listKnown = !!(ps.list && ns.list);
-    // LAYOUT-ME (16.10): another screen record (a template vs a user copy of the same list) is another layout; a key without
-    // an id (an old carry, a two-step render) falls back to the list / column rule
-    const layoutNew = !!(ps.id && ns.id && ps.id !== ns.id) || (listKnown && ps.list !== ns.list) ||
+    const layoutNew = (listKnown && ps.list !== ns.list) ||
       (!(listKnown && ps.list === ns.list) && idJaccard(prev.cols, next.cols) < 0.5);
     const stageChanged = !!(ps.stage && ns.stage && ps.stage !== ns.stage);
     let disjoint = false;
@@ -2851,39 +2814,24 @@
   // Boş veri kimlik taşımaz → önceki kayıt id kümesi korunur (iki adımlı render'da sahne değişimi kaçmasın)
   function carryRowIds(prev, next) { return (prev && !next.rows.length) ? Object.assign({}, next, { rows: prev.rows }) : next; }
   // tableConfig (string/obje) ya da eski ayrı anahtarlar → {columnOrder, dueDateSort, key}
-  // LAYOUT-ME (16.10): + v2 {columnWidths, pinnedColumns (null = auto freeze), hiddenColumns, sort ({id, dir} | null), raw} with
-  // defaults on bad data (v1 / legacy keys get the same defaults); raw = the parsed plain object (the writer merges onto it)
   function savedViewOf(config) {
     if (!config) return null;
     const parse = v => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch (e) { console.warn('tableConfig parse error', e); return null; } };
-    let order = null, dd = null, src = {}, raw = null;
+    let order = null, dd = null;
     if (config.tableConfig) {
       const saved = parse(config.tableConfig);
       if (!saved || typeof saved !== 'object') return null;
       order = saved.columnOrder; dd = parse(saved.dueDateSort);
-      if (!Array.isArray(saved)) { src = saved; raw = saved; }
     } else if (config.columnOrder || config.dueDateSort) {
       const co = parse(config.columnOrder);
       order = co && Array.isArray(co.order) ? co.order : null;
       dd = parse(config.dueDateSort);
     } else return null;
-    const idList = a => Array.isArray(a) ? Array.from(new Set(a.filter(x => x !== null && x !== undefined && typeof x !== 'object' && String(x) !== '').map(String))) : null;
-    const cw = parse(src.columnWidths), widths = {};
-    if (cw && typeof cw === 'object' && !Array.isArray(cw)) {
-      let n = 0;
-      Object.keys(cw).forEach(k => { const w = Number(cw[k]); if (n < 300 && k && isFinite(w) && w > 0) { widths[k] = Math.round(Math.min(1200, Math.max(40, w))); n += 1; } });
-    }
-    const pins = idList(parse(src.pinnedColumns)), so = parse(src.sort);
     const view = {
       columnOrder: Array.isArray(order) ? order.map(String) : null,
-      dueDateSort: (dd && typeof dd === 'object') ? { fields: Array.isArray(dd.fields) ? dd.fields : [], active: !!dd.active } : null,
-      columnWidths: widths,
-      pinnedColumns: pins ? pins.slice(0, 5) : null,
-      hiddenColumns: idList(parse(src.hiddenColumns)) || [],
-      sort: (so && typeof so === 'object' && !Array.isArray(so) && so.id !== null && so.id !== undefined && typeof so.id !== 'object' && String(so.id) !== '') ? { id: String(so.id), dir: so.dir === 'desc' ? 'desc' : 'asc' } : null,
-      raw
+      dueDateSort: (dd && typeof dd === 'object') ? { fields: Array.isArray(dd.fields) ? dd.fields : [], active: !!dd.active } : null
     };
-    view.key = JSON.stringify([view.columnOrder, view.dueDateSort, view.columnWidths, view.pinnedColumns, view.hiddenColumns, view.sort]);
+    view.key = JSON.stringify([view.columnOrder, view.dueDateSort]);
     return view;
   }
 
@@ -3409,9 +3357,11 @@
   }
   function dtRenderPills(td, tokens) {
     if (!tokens.length) return;
-    var wrap = document.createElement('span');
+    var wrap = document.createElement('span'), more;
     wrap.className = 'dt-pills';
-    tokens.forEach(function (t) {
+    // TIDY-PILLS (29.10, Ömer): a multi value showed its first pill and the rest clipped into "Poliçe ···"; now the first
+    // pill + a "+N" badge (the dt-cell-more of file cells), every value in the tooltip.
+    tokens.slice(0, 1).forEach(function (t) {
       var p = document.createElement('span');
       p.className = 'dt-pill';
       p.setAttribute('data-tone', String(gxToneIndex(t)));
@@ -3419,6 +3369,14 @@
       wrap.appendChild(p);
     });
     td.appendChild(wrap);
+    if (tokens.length > 1) {
+      more = document.createElement('span');
+      more.className = 'dt-cell-more dt-pill-more';
+      more.textContent = '+' + (tokens.length - 1);
+      more.setAttribute('aria-label', (tokens.length - 1) + ' more: ' + tokens.slice(1).join(', '));
+      wrap.style.maxWidth = 'calc(100% - 34px)';   // the badge stays visible next to a long first pill
+      td.appendChild(more);
+    }
     if (tokens.length > 1 || tokens[0].length > 24) td.title = tokens.join(', ');
   }
   function dtRenderFiles(td, value) {
@@ -3691,8 +3649,6 @@
     toolbarMoreMenu: document.getElementById('dt-toolbar-more-menu'),
     toolbarMoreAddButton: document.getElementById('dt-toolbar-more-add'),
     toolbarMoreManageButton: document.getElementById('dt-toolbar-more-manage'),
-    toolbarMoreUnhideButton: document.getElementById('dt-toolbar-more-unhide'),               // LAYOUT-ME (16.10)
-    toolbarMoreResetLayoutButton: document.getElementById('dt-toolbar-more-reset-layout'),  // LAYOUT-ME (16.10)
     toolbarMoreImportButton: document.getElementById('dt-toolbar-more-import'),
     toolbarMoreExportButton: document.getElementById('dt-toolbar-more-export'),
     newButton: document.getElementById('dt-btn-new'),
@@ -3705,12 +3661,9 @@
     columnMenuInsertRightButton: document.getElementById('dt-column-menu-insert-right'), // mr18 (was Manage field → More › Manage fields)
     columnMenuFilterButton: document.getElementById('dt-column-menu-filter'),
     columnMenuSortButton: document.getElementById('dt-column-menu-sort'),
-    columnMenuPinButton: document.getElementById('dt-column-menu-pin'),         // LAYOUT-ME (16.10)
-    columnMenuHideMeButton: document.getElementById('dt-column-menu-hide-me'),  // LAYOUT-ME (16.10)
     sortPanel: document.getElementById('dt-sort-panel'),
     sortAscButton: document.getElementById('dt-sort-asc'),
     sortDescButton: document.getElementById('dt-sort-desc'),
-    sortClearButton: document.getElementById('dt-sort-clear'),                  // LAYOUT-ME (16.10)
     filterPanel: document.getElementById('dt-filter-panel'),
     menuBackdrop: document.getElementById('dt-menu-backdrop'),
     filterConditionSelect: document.getElementById('dt-filter-condition'),
@@ -3904,12 +3857,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // 'ready' (a package, or Durum = Claim Hazır) · 'register' (Durum = Cihaz Bekleniyor: no browser of this expert is listed
   // yet, GX-CIHAZ) · 'check' (nothing on the row says; the table has a Claim field) · '' (no action)
+  // GX-FILL-KAYIT (20.10): another Durum value no longer hides the action on a table with a Claim field — the record path builds the
+  // claim from the record itself, so a record in any stage can be sent (the extension refuses one with nothing to fill).
   function dtFillState(row) {
     if (!row) return '';
     const id = rowIdOf(row);
     if (id && dtPaket.has(id)) return 'ready';
     const d = dtRowDurum(row);
-    if (d !== null) { const k = dtNormKey(d); return k === 'claimhazir' ? 'ready' : (k === 'cihazbekleniyor' ? 'register' : ''); }
+    if (d !== null) { const k = dtNormKey(d); if (k === 'claimhazir') return 'ready'; if (k === 'cihazbekleniyor') return 'register'; }
     return dtTableHasClaimField() ? 'check' : '';
   }
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
@@ -3974,40 +3929,57 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render());
     } catch (e) {}
   }
-  // the package of one row: memory first, else mirror_get (walled per viewer on the server)
+  // GX-FILL-READY (23.10): the extension marks the page (<html data-gaia-bridge>) at document_idle, after the rows may have been
+  // painted; a row drawn before the mark kept a dim "Fill" (first customer demo). Repaint when the mark appears or changes.
+  let _dtBridgeMark = null;
+  function dtFillBridgeRepaint() {
+    try {
+      const d = document.documentElement;
+      const m = (d.getAttribute('data-gaia-bridge') || '') + '|' + (d.getAttribute('data-gaia-bridge-kayit') || '');
+      if (m === _dtBridgeMark) return;
+      _dtBridgeMark = m;
+      if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render());
+    } catch (e) {}
+  }
+  try { window.addEventListener('gaiaBridgeReady', dtFillBridgeRepaint); } catch (e) {}
+  try { new MutationObserver(dtFillBridgeRepaint).observe(document.documentElement, { attributes: true, attributeFilter: ['data-gaia-bridge', 'data-gaia-bridge-kayit'] }); } catch (e) {}
+  // what one row sends: its package (memory first, else in the record), else the record itself (GX-FILL-KAYIT) — mirror_get is walled
+  // per viewer on the server (an expert only ever gets their own record); files:true adds _files (the record's documents by field)
   async function dtFillPaketOf(row) {
     const id = rowIdOf(row);
     if (!id) return { error: 'This record has no id.' };
     if (dtPaket.has(id)) return { paket: dtPaket.get(id) };
-    const r = await aynaBridge('mirror_get', { id: id }, null, { timeoutMs: 20000 });
+    const r = await aynaBridge('mirror_get', { id: id, files: true }, null, { timeoutMs: 20000 });
     if (!r || !r.ok) return { error: (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : 'Could not load the claim. Try again.' };
     const rows = (r.data && Array.isArray(r.data.rows)) ? r.data.rows : [];
     const rec = rows.find(x => x && String(x._id) === id) || rows[0];
-    if (!rec) return { error: 'No claim is ready for this record yet.' };
+    if (!rec) return { error: 'This record could not be loaded. Try again.' };
     let paket = '';
     for (const k in rec) { if (dtIsPaket(rec[k]) && (!paket || dtNormKey(k) === 'claim')) paket = rec[k]; }
-    if (!paket) return { error: 'No claim is ready for this record yet.' };
-    dtPaket.set(id, paket);
-    return { paket: paket };
+    if (paket) { dtPaket.set(id, paket); return { paket: paket }; }
+    return { kayit: rec };   // GX-FILL-KAYIT (20.10): no package → the extension builds the claim from the record (gaiaBridgeKayit)
   }
-  // one request to the extension; resolves with its answer or {error} after 20 s
-  function dtFillSend(paket, degistir) {
+  // GX-FILL-KAYIT: an extension that knows the record path marks the page with <html data-gaia-bridge-kayit>
+  function dtBridgeKayitOk() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridgeKayit); } catch (e) { return false; } }
+  // one request to the extension; resolves with its answer or {error} after 20 s. src = {paket} (gaiaBridgeClaimPaket) or {kayit} (gaiaBridgeKayit)
+  function dtFillSend(src, degistir) {
+    const ev = src && src.kayit ? 'gaiaBridgeKayit' : 'gaiaBridgeClaimPaket';
     return new Promise(resolve => {
       const requestId = 'fill_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
       let timer = null;
-      const onResult = ev => {
+      const onResult = e => {
         let d = null;
-        try { d = typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail; } catch (e) { d = null; }
+        try { d = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail; } catch (x) { d = null; }
         if (!d || d.requestId !== requestId) return;
-        window.removeEventListener('gaiaBridgeClaimPaketResult', onResult);
+        window.removeEventListener(ev + 'Result', onResult);
         clearTimeout(timer);
         resolve(d);
       };
-      window.addEventListener('gaiaBridgeClaimPaketResult', onResult);
-      timer = setTimeout(() => { window.removeEventListener('gaiaBridgeClaimPaketResult', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 20000);
-      const detail = { requestId: requestId, paket: paket };
+      window.addEventListener(ev + 'Result', onResult);
+      timer = setTimeout(() => { window.removeEventListener(ev + 'Result', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 20000);
+      const detail = src && src.kayit ? { requestId: requestId, kayit: src.kayit } : { requestId: requestId, paket: src && src.paket };
       if (degistir) detail.degistir = true;
-      window.dispatchEvent(new CustomEvent('gaiaBridgeClaimPaket', { detail: JSON.stringify(detail) }));
+      window.dispatchEvent(new CustomEvent(ev, { detail: JSON.stringify(detail) }));
     });
   }
   async function dtFillOnPortal(row, btn) {
@@ -4016,8 +3988,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (btn) { btn.classList.add('is-busy'); btn.setAttribute('aria-busy', 'true'); }
     try {
       const p = await dtFillPaketOf(row);
-      if (!p.paket) { showWakeToast(p.error || 'No claim is ready for this record yet.', 'error'); return; }
-      let res = await dtFillSend(p.paket, false);
+      if (!p.paket && !p.kayit) { showWakeToast(p.error || 'No claim is ready for this record yet.', 'error'); return; }
+      if (p.kayit && !dtBridgeKayitOk()) { showWakeToast('Update the Gaia Bridge extension to fill from this record (chrome://extensions → Update).', 'error'); return; }
+      let res = await dtFillSend(p, false);
       if (res && !res.ok && res.soru === 'degistir') {
         const yes = await new Promise(resolve => {
           let done = false, watch = null;
@@ -4031,7 +4004,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           watch = setInterval(() => { if (!modal.isConnected) finish(false); }, 300);   // Escape / backdrop close the modal without a button
         });
         if (!yes) return;
-        res = await dtFillSend(p.paket, true);
+        res = await dtFillSend(p, true);
       }
       if (res && res.ok) showWakeToast('Ready: switch to the portal tab and press Fill this page' + (res.gaiaNotu ? '. ' + String(res.gaiaNotu) : ''), 'success');
       else if (dtFillNeedsRegister(res)) dtOfferRegister(res);   // GX-CIHAZ: the package is not for this browser yet
@@ -4506,7 +4479,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!mapped) return;                                  // köşe/UI kolonu → son hedef kalır
       const r = mapped.headerCell.getBoundingClientRect();
       const after = clientX > r.left + r.width / 2;
-      drag.drop = Math.min(mapped.coords.col + (after ? 1 : 0), dtDataColCount()); // UI kolonunu geçemez (LAYOUT-ME (16.10): grid columns, not hidden ones)
+      drag.drop = Math.min(mapped.coords.col + (after ? 1 : 0), state.columns.length); // UI kolonunu geçemez
       if (!indicator) {
         indicator = document.createElement('div');
         indicator.className = 'dt-col-drop-indicator';
@@ -4673,22 +4646,47 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   // ── Yatay kaydırma (25.09) ────────────────────────────────────────────────
   // İlk kolon sabitlenir; görünür genişliğin yarısından genişse sabitlenmez (dar ekranda kaydıracak yer kalmaz).
-  // LAYOUT-ME (16.10): explicit pins (pinnedCols set, [] = none) → the leading pinned columns while they take ≤50% of the
-  // width (they stay first either way); at least one data column stays scrollable. Absent pins → the automatic rule below.
-  function getFrozenColumnCount(visibleColumns) {
-    if (Array.isArray(state.pinnedCols)) {
-      if (!Array.isArray(visibleColumns)) return 0;
-      const pins = new Set(state.pinnedCols), avail = Math.floor(els.container?.clientWidth || 0) - 44;
-      let n = 0, sum = 0;
-      for (let i = 0; i < visibleColumns.length; i += 1) {
-        const c = visibleColumns[i];
-        if (!c || c.__uiOnly || !pins.has(c.id)) break;
-        sum += state.columnWidths[c.id] || c.width || 150;
-        if (avail > 0 && sum > avail * 0.5) break;
-        n += 1;
+  // TIDY-WIDTH (29.10, Ömer): every column came out 150 px (Bubble sends one width for all), so "Hasar Dosya No" or
+  // "Sigorta Şirketi" was cut while "Claim" had room to spare. The width now fits the header and the cells (90th percentile
+  // of the first 200 rows, measured on a canvas with the grid's own font), 96..320 px. It only grows within a session
+  // (a live refresh never makes columns jump narrower); a width the person dragged (state.columnWidths) still wins, and
+  // config.auto_width === false keeps the old behaviour.
+  const DT_AUTO_W_MIN = 96, DT_AUTO_W_MAX = 320, DT_AUTO_W_SAMPLE = 200;
+  function dtAutoWidth(col) {
+    try {
+      if (!col || col.__uiOnly) return col ? col.width : 150;
+      let cfg = {}; try { cfg = (typeof AYNA !== 'undefined' && AYNA && AYNA.cfg) || {}; } catch (e) { cfg = {}; }
+      if (cfg.auto_width === false || String(cfg.auto_width).toLowerCase() === 'off') return col.width;
+      const cache = state._autoW || (state._autoW = {});
+      const ctx = dtAutoWidth._ctx || (dtAutoWidth._ctx = document.createElement('canvas').getContext('2d'));
+      if (!dtAutoWidth._font) {
+        const td = els.container && els.container.querySelector('.ht_master td');
+        const cs = td ? getComputedStyle(td) : null;
+        dtAutoWidth._font = cs && cs.fontFamily ? cs.fontSize + ' ' + cs.fontFamily : '13px Inter, system-ui, sans-serif';
+        dtAutoWidth._fam = cs && cs.fontFamily ? cs.fontFamily : 'Inter, system-ui, sans-serif';
       }
-      return Math.max(0, Math.min(n, visibleColumns.length - 2));
-    }
+      ctx.font = '600 12.5px ' + dtAutoWidth._fam;
+      const head = Math.ceil(ctx.measureText(String(col.header || '')).width) + 64;   // type glyph + menu chevron + padding
+      ctx.font = dtAutoWidth._font;
+      const rows = state.displayRows || [], n = Math.min(rows.length, DT_AUTO_W_SAMPLE), ws = [];
+      const chip = col.type === 'dropdown' || col.multiple === true;
+      for (let i = 0; i < n; i++) {
+        const r = rows[i]; if (!r) continue;
+        let s = ''; try { s = dtRawText(r[col.id]); } catch (e) { s = ''; }
+        s = String(s || '').trim(); if (!s) continue;
+        if (chip && s.indexOf(',') > 0) s = s.split(',')[0].trim() + ' +9';   // chips: the first value + a "+N" badge
+        if (s.length > 60) s = s.slice(0, 60);
+        ws.push(Math.ceil(ctx.measureText(s).width));
+      }
+      ws.sort((a, b) => a - b);
+      const body = ws.length ? ws[Math.min(ws.length - 1, Math.floor(ws.length * 0.9))] + (chip ? 40 : 28) : 0;
+      const w = Math.max(DT_AUTO_W_MIN, Math.min(DT_AUTO_W_MAX, Math.max(head, body)));
+      const prev = cache[col.id] || 0;
+      return (cache[col.id] = Math.max(prev, w));
+    } catch (e) { return col.width; }
+  }
+
+  function getFrozenColumnCount(visibleColumns) {
     const first = visibleColumns && visibleColumns[0];
     if (!first || first.__uiOnly || visibleColumns.length < 3) return 0;
     const width = state.columnWidths[first.id] || first.width || 150;
@@ -4881,14 +4879,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     // (updateSettings'ten ÖNCE: başlık rozetleri yeni index'le çizilsin)
     const prevCols = state._mountedCols || [];
     const captured = captureViewById();
-    const pendF = state._pendingFiltersById, pendS = state._pendingSortById;
-    if (pendF) { Object.assign(captured.filtersById, pendF); state._pendingFiltersById = null; }
-    let sortById = pendS || captured.sortById;
+    if (state._pendingFiltersById) { Object.assign(captured.filtersById, state._pendingFiltersById); state._pendingFiltersById = null; }
+    let sortById = state._pendingSortById || captured.sortById;
     state._pendingSortById = null;
-    if (state._resetHotView) sortById = state.userSort ? [{ id: state.userSort.id, sortOrder: state.userSort.dir }] : [];   // LAYOUT-ME (16.10): a new view starts from the viewer's saved sort (a hidden / absent id → no sort)
-    // LAYOUT-ME (16.10): a sort / filters this mount brings from outside the grid (the saved sort on a new view, a carry) → the
-    // window's criteria re-check after it (a page asked before the grid existed, e.g. Handsontable still loading, predates them)
-    if ((state._resetHotView && state.userSort) || (pendF && Object.keys(pendF).length) || (Array.isArray(pendS) && pendS.length)) state._critCheck = true;
+    if (state._resetHotView) sortById = [];
     const idxOf = id => visibleColumns.findIndex(c => !c.__uiOnly && c.id === id);
     state.filterConfigs = {};
     Object.keys(captured.filtersById).forEach(id => { const i = idxOf(id); if (i >= 0) state.filterConfigs[i] = captured.filtersById[id]; });
@@ -4920,7 +4914,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         return {
           data: col.id,
           readOnly: col.readOnly,
-          width: col.width,
+          width: dtAutoWidth(col),   // TIDY-WIDTH
           // T6: typed sort lives in the column settings → the id-keyed re-apply (cs.sort below) keeps it
           columnSorting: { compareFunctionFactory: dtSortCompareFactory },
           ...(renderer ? { renderer } : {})
@@ -4999,7 +4993,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const physCol = (state.hot && typeof state.hot.toPhysicalColumn === 'function')
           ? state.hot.toPhysicalColumn(coords.col)
           : coords.col;
-        if (physCol >= dtDataColCount()) return;   // LAYOUT-ME (16.10): the actions column comes right after the grid's own columns
+        if (physCol >= state.columns.length) return;
         const target = event?.target;
         if (!isHeaderMenuTriggerTarget(target)) return;
         const headerLabel = visibleColumns[physCol]?.header || '';
@@ -5074,17 +5068,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const pi = state.hot.toPhysicalColumn(vi);
         if (pi >= 0 && pi < colCount) newOrder.push(visibleColumns[pi]?.id);
       }
-      // LAYOUT-ME (16.10): hidden / absent ids keep their place (merged after their visible neighbour). Pins: a column dragged
-      // into the zone is pinned and the zone keeps its size (the last pin is pushed out); a pin dragged out of it is unpinned
-      // and the zone shrinks (a column that only slides in is never pinned); a pin moved inside the zone stays pinned
-      const moved = newOrder.filter(Boolean);
-      state.columnOrder = dtMergeOrder(dtFullOrderIds(), moved);
-      if (Array.isArray(state.pinnedCols)) {
-        const pinSet = new Set(state.pinnedCols), pinN = moved.filter(id => pinSet.has(id)).length;
-        // movedColumns = visual indexes before the move = physical ones (every mount resets HOT's move sequence)
-        const dragged = new Set((Array.isArray(movedColumns) ? movedColumns : []).map(i => visibleColumns[i] && !visibleColumns[i].__uiOnly ? visibleColumns[i].id : null).filter(Boolean));
-        state.pinnedCols = dragged.size ? moved.slice(0, pinN).filter(id => pinSet.has(id) || dragged.has(id)) : moved.slice(0, pinN);
-      }
+      state.columnOrder = newOrder.filter(Boolean);
       publishColumnOrder();
       publishTableConfig();
       // T1: fiziksel = görsel = getOrderedColumns değişmezini hemen geri kur: yeniden mount kolonları
@@ -5101,7 +5085,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const c = visibleColumns[state.hot.toPhysicalColumn(visualCol)];
       if (!c || c.__uiOnly || !(newSize > 0)) return;
       state.columnWidths[c.id] = Math.round(newSize);
-      publishTableConfig();   // LAYOUT-ME (16.10): widths are saved now (HOT fires this once per resize end / double-click autofit)
       saveViewCarry();
     };
     state.hot.addHook('afterColumnResize', state._colResizeHandler);
@@ -5155,7 +5138,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (activeId !== null) { const i = idxOf(activeId); if (i < 0) closeColumnMenu(); else state.activeHeaderColumn = i; }
     if (draftId !== null && state.filterDraft) { const i = idxOf(draftId); if (i < 0) hideFilterPanel(); else state.filterDraft.columnIndex = i; }
     } finally { state._mounting = false; }
-    dtCritCheckRun();   // LAYOUT-ME (16.10): the mirror window's criteria follow a filter / sort this mount dropped or set
     // Seçim: taşınan kayıtlar yeniden vurgulanır, görünmeyenler düşer; değiştiyse yayınlanır
     syncHotSelectionFromState();
 
@@ -5523,7 +5505,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   // Bubble'a config değişikliğini bildir
   function publishDueDateSortConfig() {
-    if (dtLayoutScope() !== 'write') return;   // LAYOUT-ME (16.10): same write gate as tableConfig
     if (typeof window.bubble_fn_dueDateSortConfig === 'function') {
       try {
         window.bubble_fn_dueDateSortConfig(JSON.stringify({
@@ -5536,7 +5517,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   // Kolon sırası değiştiğinde Bubble'a bildir
   function publishColumnOrder() {
-    if (dtLayoutScope() !== 'write') return;   // LAYOUT-ME (16.10): same write gate as tableConfig
     if (typeof window.bubble_fn_columnOrder === 'function') {
       try {
         window.bubble_fn_columnOrder(JSON.stringify({ order: state.columnOrder }));
@@ -5547,147 +5527,21 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // Kolon sırası + tarih sıralaması birleşik konfigürasyonu tek string olarak Bubble'a iletir.
   // Bubble bu string'i DB'ye kaydeder; geri yüklemede bubble-table-config içindeki
   // "tableConfig" key'ine aynı string olarak girilir.
-  // LAYOUT-ME (16.10): v2 payload (dtLayoutPayload), one write per gesture: the flush leaves in a microtask of the gesture's own
-  // task (Bubble cannot have switched the open screen record yet) and only on the viewer's own screen copy (dtLayoutScope)
   function publishTableConfig() {
-    // LAYOUT-ME (16.10): the screen the unsent change belongs to: a known one is kept while the page has no screen id (it never
-    // goes out through the no-sid branch), a gesture on another known screen takes it over; a newer layout gesture retires the
-    // Undo of an earlier layout action (its snapshot would revert this change too)
-    const sidNow = fieldScreenId();
-    if (!state._layoutDirty || !state._layoutDirtySid || sidNow) state._layoutDirtySid = sidNow;
-    dtLayoutToastRetire();
     // T1: kullanıcı bu görünümde düzeni değiştirdi → gelen bayat tableConfig yankısı canlı düzeni geri almaz
-    state._layoutTouched = true; state._layoutDirty = true;
-    if (state._layoutFlushQueued) return;
-    state._layoutFlushQueued = true;
-    Promise.resolve().then(() => { state._layoutFlushQueued = false; dtLayoutFlush(); });
-  }
-  // LAYOUT-ME (16.10): a live page without a screen_id writes as before (one console.warn); set false once Bubble pre-check (b) passes
-  const DT_LAYOUT_NO_SID_WRITES = true;
-  const DT_LAYOUT_ACTION_TOASTS = ['Pinned for you', 'Unpinned', 'Hidden for you', 'Layout reset'];
-  const DT_LAYOUT_MAX_PINS = 5;   // savedViewOf keeps at most 5 too
-  let dtLayoutNoSidWarned = false;
-  // the screen's owner as the server sees it ('me' | 'other' | 'company'), only from mirror_screen_fields' answer for that screen
-  function dtLayoutOwner(sid) {
-    try { const fo = state.fieldOps, s = fo && fo.meta && fo.meta.screen; return (sid && fo.screenId === sid && s && typeof s.owner === 'string') ? s.owner : ''; } catch (e) { return ''; }
-  }
-  // write = own copy / /version-test (as before) / live without screen_id (flag); local = another person's screen or a company
-  // template (memory + 5-min carry only); hold = owner not known yet
-  function dtLayoutScope() {
-    if (String(location.pathname || '').indexOf('/version-test') !== -1) return 'write';
-    const sid = fieldScreenId();
-    if (!sid) {
-      if (!DT_LAYOUT_NO_SID_WRITES) return 'local';
-      if (!dtLayoutNoSidWarned) { dtLayoutNoSidWarned = true; console.warn('[DT] layout: live page without screen_id, tableConfig written without the owner check'); }
-      return 'write';
+    state._layoutTouched = true;
+    if (typeof window.bubble_fn_tableConfig === 'function') {
+      try {
+        const payload = JSON.stringify({
+          columnOrder: state.columnOrder,
+          dueDateSort: {
+            fields: state.dueDateSort.fields,
+            active: state.dueDateSort.active
+          }
+        });
+        window.bubble_fn_tableConfig(payload);
+      } catch (err) {}
     }
-    const owner = dtLayoutOwner(sid);
-    if (owner === 'me') return 'write';
-    return owner ? 'local' : 'hold';   // an owner value this code does not know never writes
-  }
-  // v2 string merged onto the last saved object (keys of a later version survive); '<' escaped (Bubble prints it into a <script>)
-  function dtLayoutPayload() {
-    const raw = (state._savedRaw && typeof state._savedRaw === 'object' && !Array.isArray(state._savedRaw)) ? state._savedRaw : {};
-    const own = ['v', 'sid', 'columnOrder', 'dueDateSort', 'columnWidths', 'pinnedColumns', 'hiddenColumns', 'sort'];
-    const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
-    const cw = state.columnWidths || {}, widths = {};
-    let n = 0;   // ≤300 keys, the table's own columns first; clamped 40-1200 like the reader
-    state.columns.map(c => c && c.id).filter(id => id && has(cw, id)).concat(Object.keys(cw)).forEach(id => {
-      const w = Number(cw[id]);
-      if (n < 300 && !has(widths, id) && isFinite(w) && w > 0) { widths[id] = Math.round(Math.min(1200, Math.max(40, w))); n += 1; }
-    });
-    const o = { v: 2 }, sid = fieldScreenId();
-    if (sid) o.sid = sid;   // diagnosis only (copies inherit configdata verbatim)
-    o.columnOrder = state.columnOrder.slice();
-    o.dueDateSort = { fields: state.dueDateSort.fields.slice(), active: !!state.dueDateSort.active };
-    o.columnWidths = widths;
-    if (Array.isArray(state.pinnedCols)) o.pinnedColumns = state.pinnedCols.slice();   // absent = auto freeze
-    o.hiddenColumns = Array.from(state.hiddenCols);
-    o.sort = state.userSort ? { id: state.userSort.id, dir: state.userSort.dir } : null;
-    Object.keys(raw).forEach(k => { if (own.indexOf(k) === -1) o[k] = raw[k]; });
-    return JSON.stringify(o).replace(/</g, '\\u003c');
-  }
-  function dtLayoutCfgText() { try { const el = document.getElementById('bubble-table-config'); return ((el && el.textContent) || '').trim(); } catch (e) { return ''; } }
-  // LAYOUT-ME (16.10): the config printed on the page now names the screen the table runs on (fieldScreenId: mirror mode reads
-  // the config it loaded, which lags a text that failed to parse); a text that does not parse (partial render) or names
-  // another screen → false (no write yet). No text printed = no new information (reloadConfigCore ignores it too)
-  function dtLayoutCfgAgrees() {
-    try {
-      const text = dtLayoutCfgText();
-      if (!text || text === '{}') return true;
-      if (state._layoutCfgText !== text) {
-        state._layoutCfgText = text;
-        let s = null; try { const c = parseBubbleConfig(text); const x = aynaScreenOf(c && typeof c === 'object' ? c : {}).screen; s = DT_BUBBLE_ID.test(x) ? x : ''; } catch (e) { s = null; }
-        state._layoutCfgSid = s;
-      }
-      return state._layoutCfgSid !== null && state._layoutCfgSid === fieldScreenId();
-    } catch (e) { return false; }
-  }
-  // LAYOUT-ME (16.10): the Undo toasts of layout actions (dtLayoutCommit marks them) go: a newer layout gesture, a new layout
-  function dtLayoutToastRetire() { try { if (els.wrapper) els.wrapper.querySelectorAll('.dt-action-toast[data-layout-gen]').forEach(t => t.remove()); } catch (e) {} }
-  function dtLayoutFlush() {
-    if (!state._layoutDirty || !aynaAlive() || typeof window.bubble_fn_tableConfig !== 'function') return;
-    const scope = dtLayoutScope(), sid = fieldScreenId();
-    // a change made on screen S goes out only while S is on the page (never through the no-sid branch, never onto another
-    // screen); it stays unsent otherwise (a new layout clears it)
-    if (state._layoutDirtySid && state._layoutDirtySid !== sid) return;
-    if (scope === 'hold') {   // one owner lookup per screen; the latest state goes out when it answers
-      if (state._layoutHold && state._layoutHold.sid === sid) return;
-      dtLayoutAwaitOwner(state._layoutHold = { sid, tries: 0 });
-      return;
-    }
-    if (scope === 'write' && !dtLayoutCfgAgrees()) return;   // the printed config is mid-change: the change waits (stays dirty)
-    let str = '';
-    if (scope === 'write') { try { str = dtLayoutPayload(); } catch (e) { console.warn('[DT] layout payload error', e); return; } }
-    state._layoutDirty = false; state._layoutDirtySid = ''; state._layoutHold = null;
-    try { if (window.__dtViewCarry && typeof window.__dtViewCarry === 'object') window.__dtViewCarry.dirty = false; } catch (e) {}   // a re-rendered element must not send it again
-    if (scope === 'local') { dtLayoutScopeToast(dtLayoutOwner(sid), sid); return; }
-    try { state._savedRaw = JSON.parse(str); } catch (e) {}
-    try { window.bubble_fn_tableConfig(str); } catch (e) {}
-  }
-  // a held change goes out only while the same screen and instance are on the page (the printed config is re-checked at the
-  // write, dtLayoutCfgAgrees); a failed lookup retries after 10, 20 and 30 s (a sleeping server boots in ~60 s), then the hold
-  // ends and the change stays dirty: the next gesture or any later owner lookup of this screen (dtLayoutOwnerKnown) sends it
-  const DT_LAYOUT_HOLD_RETRY_MS = [10000, 20000, 30000];
-  function dtLayoutAwaitOwner(h) {
-    const done = r => {
-      if (state._layoutHold !== h) return;
-      if (fieldScreenId() !== h.sid || !aynaAlive()) { state._layoutHold = null; return; }
-      if (r && r.ok && dtLayoutOwner(h.sid)) { state._layoutHold = null; dtLayoutFlush(); return; }
-      if (h.tries >= DT_LAYOUT_HOLD_RETRY_MS.length) { state._layoutHold = null; return; }
-      const wait = DT_LAYOUT_HOLD_RETRY_MS[h.tries]; h.tries += 1;
-      setTimeout(() => { if (state._layoutHold !== h) return; if (fieldScreenId() === h.sid && aynaAlive()) dtLayoutAwaitOwner(h); else state._layoutHold = null; }, wait);
-    };
-    let p; try { p = loadScreenFields(false); } catch (e) { p = null; }
-    Promise.resolve(p).then(done, () => done(null));
-  }
-  // LAYOUT-ME (16.10): an owner lookup of the screen on the page answered (prefetch, field popover, a hold's retry) → a change
-  // still waiting for it goes out through the usual checks (scope, screen, printed config); a hold of this screen ends here
-  function dtLayoutOwnerKnown(sid) {
-    try {
-      if (!state._layoutDirty || !sid || fieldScreenId() !== sid) return;
-      Promise.resolve().then(() => {
-        try {
-          if (!state._layoutDirty || fieldScreenId() !== sid) return;
-          if (state._layoutHold) { if (state._layoutHold.sid !== sid) return; state._layoutHold = null; }
-          dtLayoutFlush();
-        } catch (e) {}
-      });
-    } catch (e) {}
-  }
-  // one note per screen that a layout change stays on this page; a layout action toast on screen carries it instead, and
-  // another action toast (its Undo / Retry) is never replaced
-  function dtLayoutScopeToast(owner, sid) {
-    const key = sid || '-';
-    let at = null; try { at = els.wrapper ? els.wrapper.querySelector('.dt-action-toast') : null; } catch (e) {}
-    if (at) {
-      const s = at.querySelector('.dt-toast-text'), t = s ? String(s.textContent || '') : '';
-      if (s && DT_LAYOUT_ACTION_TOASTS.indexOf(t) !== -1) { s.textContent = t + ' (not saved here)'; state._layoutNoted = key; }
-      return;
-    }
-    if (state._layoutNoted === key || !owner) return;
-    state._layoutNoted = key;
-    showActionToast(owner === 'company' ? 'Layout not saved: company template' : 'Layout not saved: another person\'s screen', '', null, DT_FIELD_LIMITS.toast_ms, sid);
   }
 
   // Bubble tarafından çağrılır: kayıtlı kolon sırasını yükler
@@ -6023,16 +5877,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // (the give-up, a network drop, a 5xx) after 1.5 / 4 / 8 s. It stops at once when a newer load / search took over
   // (live() false or the controller aborted). onWait(attempt, max) lets the caller say so on the status line.
   const AYNA_RETRY_MS = [1500, 4000, 8000];
-  // takip: daily work starts with the newest record → with no column sort a screen lists _created desc (the server's own
-  // default is asc); every row request without a query carries it, so page 1 / later pages / the live refresh agree
-  const AYNA_DEFAULT_ORDER = '_created desc';
-  function aynaOrdered(payload) { return payload.query ? payload : Object.assign({}, payload, { query: { order_by: AYNA_DEFAULT_ORDER } }); }
   function aynaTransient(r) { return !!(r && (r.error === 'timeout' || r.error === 'network' || (r.error === 'http' && Number(r.status) >= 500))); }
   async function aynaScreenCall(payload, ctrl, live, onWait) {
     const gone = () => !!((ctrl && ctrl.signal && ctrl.signal.aborted) || (live && !live()));
     let r = null;
     for (let attempt = 0; ; attempt++) {
-      r = await aynaBridge('mirror_screen', aynaOrdered(payload), ctrl);
+      r = await aynaBridge('mirror_screen', payload, ctrl);
       if (r.ok && !aynaIsPage(r.data)) r = { error: 'shape', message: 'Unexpected mirror answer.' };
       if (r.ok || !aynaTransient(r) || attempt >= AYNA_RETRY_MS.length || gone()) break;
       if (onWait) { try { onWait(attempt + 1, AYNA_RETRY_MS.length, r); } catch (e) {} }
@@ -6094,11 +5944,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // mr18 T3: the config names the screen the mirror holds now, with the same field set and thresholds, and the last load
   // succeeded → the running view (page, criteria, caches, rows) stays; nothing is fetched
-  // LAYOUT-ME (16.10): inFlight → a windowed load in flight (a requery after a sort / hide / reset, whose own tableConfig echo
-  // this is) counts too: it paints the page itself
-  function aynaSameProjection(config, verdict, inFlight) {
+  function aynaSameProjection(config, verdict) {
     try {
-      if (!aynaMode(config) || !AYNA.cfg || (AYNA.loading && !(inFlight && AYNA.win && AYNA.reqSeq === AYNA.seq)) || AYNA.last || !AYNA.stats || !AYNA.screenKey) return false;
+      if (!aynaMode(config) || !AYNA.cfg || AYNA.loading || AYNA.last || !AYNA.stats || !AYNA.screenKey) return false;
       if (verdict && (verdict.dataNew || verdict.layoutNew)) return false;
       if (aynaScreenOf(config).key !== AYNA.screenKey) return false;
       const same = (a, b) => String(a == null ? '' : a) === String(b == null ? '' : b);
@@ -6120,7 +5968,66 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   function aynaScrolled() { try { const w = els && els.container ? els.container.querySelector('.wtHolder') : null; return !!(w && w.scrollTop > 0); } catch (e) { return false; } }
   function aynaSameRows(a, b) { try { if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false; for (let i = 0; i < a.length; i++) { if (a[i] !== b[i] && JSON.stringify(a[i]) !== JSON.stringify(b[i])) return false; } return true; } catch (e) { return false; } }
+  // GX-GONE (27.10): rows the viewer deleted from this table leave the grid at once. Bubble deletes the record, but the mirror
+  // learns of a delete only at its next full pull (count mismatch → mirror_resync, ~20+ min), so every mirror answer until then
+  // still held the row (founder 27.10: "siliyor ama anında tabloya yansımıyor"). The ids live per tab (sessionStorage, 30 min,
+  // a page reload keeps them); a row the mirror later shows with a newer _modified than it had at the delete (the delete did not
+  // happen and the record was edited) comes back.
+  const DT_GONE_KEY = 'gx_table_gone_v1', DT_GONE_TTL_MS = 30 * 60000;
+  let _dtGone = null;
+  function dtGoneMap() {
+    if (_dtGone) return _dtGone;
+    _dtGone = new Map();
+    try {
+      const o = JSON.parse(sessionStorage.getItem(DT_GONE_KEY) || '{}') || {}, now = Date.now();
+      Object.keys(o).forEach(id => { const e = o[id]; if (e && now - Number(e.at) < DT_GONE_TTL_MS) _dtGone.set(id, { at: Number(e.at), mod: Number(e.mod) || 0 }); });
+    } catch (e) {}
+    return _dtGone;
+  }
+  function dtGoneSave() {
+    try {
+      const o = {}; dtGoneMap().forEach((v, k) => { o[k] = v; });
+      if (Object.keys(o).length) sessionStorage.setItem(DT_GONE_KEY, JSON.stringify(o)); else sessionStorage.removeItem(DT_GONE_KEY);
+    } catch (e) {}
+  }
+  // the grid's rows without the deleted ones (the same array when nothing is hidden); AYNA.goneHidden = how many it hid
+  function dtGoneFilter(rows) {
+    const g = dtGoneMap();
+    if (!g.size || !Array.isArray(rows)) { AYNA.goneHidden = 0; return rows; }
+    const now = Date.now();
+    let hid = 0, dirty = false;
+    const out = rows.filter(r => {
+      const id = rowIdOf(r), e = id ? g.get(id) : null;
+      if (!e) return true;
+      if (now - e.at >= DT_GONE_TTL_MS) { g.delete(id); dirty = true; return true; }
+      const m = aynaLiveTime(r && r._modified);
+      if (m && e.mod && m > e.mod) { g.delete(id); dirty = true; return true; }   // edited after the delete: the record lives on
+      hid++; return false;
+    });
+    if (dirty) dtGoneSave();
+    AYNA.goneHidden = hid;
+    return hid ? out : rows;
+  }
+  // deleteSelected: remember the ids (with each row's _modified as the grid had it) and take the rows off the grid now
+  function dtGoneAdd(ids) {
+    try {
+      if (!Array.isArray(ids) || !ids.length) return;
+      const want = new Set(ids.map(String)), g = dtGoneMap(), now = Date.now(), mods = new Map();
+      const seen = Array.isArray(AYNA.painted) ? AYNA.painted : state.rawRows;
+      (seen || []).forEach(r => { const id = rowIdOf(r); if (id && want.has(id)) mods.set(id, aynaLiveTime(r && r._modified)); });
+      want.forEach(id => g.set(id, { at: now, mod: mods.get(id) || 0 }));
+      dtGoneSave();
+      if (AYNA.cfg && aynaAlive() && Array.isArray(AYNA.painted)) {   // mirror rows: the filtered repaint (on a timer: a background tab gets no animation frame)
+        aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
+        if (AYNA.stats && !AYNA.loading && !AYNA.last) aynaSetStatus(aynaWindowed() ? 'window' : 'ready', AYNA.stats);
+      } else if (Array.isArray(state.rawRows) && state.columns.length) {   // Bubble rows: Bubble's own reload follows; hide them until it does
+        const keep = state.rawRows.filter(r => !want.has(rowIdOf(r))).map(r => { const o = Object.assign({}, r); delete o.__sourceIndex; return o; });
+        if (keep.length !== state.rawRows.length) refreshTable(keep);
+      }
+    } catch (e) { log('[GX-GONE] ' + ((e && e.message) || e)); }
+  }
   function aynaPaint(rows, columns, first) {
+    rows = dtGoneFilter(rows);   // GX-GONE
     AYNA.painted = rows;   // AYNA-LIVE: what the grid shows, compared with a refreshed answer
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // AYNA-LIVE: a deferred paint never lands over a newer one
     const c = els && els.container;
@@ -6302,9 +6209,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // date field on the server — a page-local reorder would silently show the wrong "first" rows (review finding)
   function aynaSortOrderBy() {
     try {
-      // LAYOUT-ME (16.10): no grid yet (Handsontable still loading), or a new view not mounted yet (the grid still holds the
-      // previous screen's sort) → the order its first mount will apply, not the default / the old screen's
-      if ((!state.hot || state._resetHotView) && AYNA.cfg && Array.isArray(AYNA.cfg.columns)) return dtUserOrderBy(AYNA.cfg.columns);
       if (state.hot && typeof state.hot.getPlugin === 'function') {
         const cs = state.hot.getPlugin('columnSorting');
         const cfg = cs && typeof cs.getSortConfig === 'function' ? cs.getSortConfig() : null; const s = Array.isArray(cfg) ? cfg[0] : cfg;
@@ -6318,27 +6222,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (dd && dd.active && Array.isArray(dd.fields) && dd.fields.length && dd.fields[0]) return String(dd.fields[0]) + ' asc';
       return '';
     } catch (e) { return ''; }
-  }
-  // LAYOUT-ME (16.10): the order a new view's grid gets at its mount (the viewer's sort on a shown field, else the due-date
-  // sort) = what aynaSortOrderBy() says after that mount; '' = the default (newest first)
-  function dtUserOrderBy(columns) {
-    try {
-      const fields = aynaFieldsOf(columns), hid = state.hiddenCols, us = state.userSort, dd = state.dueDateSort;
-      const shown = f => !(hid && hid.has(f)) || fields.every(x => hid.has(x));   // getOrderedColumns never empties the grid
-      if (us && us.id && fields.indexOf(us.id) !== -1 && shown(us.id)) return us.id + ' ' + (us.dir === 'desc' ? 'desc' : 'asc');
-      if (dd && dd.active && Array.isArray(dd.fields) && dd.fields.length && dd.fields[0]) return String(dd.fields[0]) + ' asc';
-      return '';
-    } catch (e) { return ''; }
-  }
-  // LAYOUT-ME (16.10): a mount that may have dropped a filter or changed the sort (hide, undo, reset, a late saved sort) → the
-  // window's server criteria follow the grid (a requery only when critKey changed); while a load is in flight the flag waits
-  // for its end (its seed / first page may predate the change)
-  function dtCritCheckRun() {
-    try {
-      if (!state._critCheck || AYNA.loading) return;
-      state._critCheck = false;
-      if (aynaWindowed()) setTimeout(() => { if (!aynaWindowed() || !aynaAlive()) return; if (AYNA.loading) { state._critCheck = true; return; } aynaCriteriaChanged('sort'); }, 0);
-    } catch (e) {}
   }
   // recompute the criteria from the panel / grid / box; a change → page 1 of the new answer. Returns true when a
   // request was started (the caller must not touch the rows), false when nothing changed.
@@ -6355,7 +6238,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function aynaPages() { return AYNA.win ? Math.max(1, Math.ceil((AYNA.win.total || 0) / AYNA.win.size)) : 1; }
   function aynaGoPage(n) { if (!aynaWindowed()) return; const p = Math.max(1, Math.min(aynaPages(), Number(n) || 1)); if (p === AYNA.win.page) return; AYNA.win.page = p; aynaRequery(); }
   function aynaSetPageSize(size) { if (!aynaWindowed()) return; const s = Math.max(50, Math.min(2000, Number(size) || 200)); if (s === AYNA.win.size) return; AYNA.win.size = s; AYNA.win.page = 1; AYNA.cacheGen++; AYNA.pageCache.clear(); aynaRequery(); }
-  function aynaQueryFor(page) { const size = AYNA.win.size, offset = (page - 1) * size; const q = { limit: size, offset: offset, order_by: AYNA.criteria.order_by || AYNA_DEFAULT_ORDER }; if (AYNA.criteria.where) q.where = AYNA.criteria.where; if (AYNA.criteria.text) q.text = AYNA.criteria.text; return q; }
+  function aynaQueryFor(page) { const size = AYNA.win.size, offset = (page - 1) * size; const q = { limit: size, offset: offset, order_by: AYNA.criteria.order_by || '_created asc' }; if (AYNA.criteria.where) q.where = AYNA.criteria.where; if (AYNA.criteria.text) q.text = AYNA.criteria.text; return q; }
   async function aynaFetchPage(scr, page, ctrl, onWait) {
     // the key carries the screen and a generation (bumped by every load / cancel / page-size change): a page answer that
     // lands after the screen changed or the cache was cleared can never be served as a page of the next screen (review finding)
@@ -6370,7 +6253,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function aynaRequery(why) {
     if (!aynaWindowed()) return;
     const seq = ++AYNA.seq, cfg = AYNA.cfg, columns = cfg.columns, scr = aynaScreenOf(cfg), page = AYNA.win.page;
-    AYNA.reqSeq = seq;   // LAYOUT-ME (16.10): an echo may skip the reload only while a requery (not an aynaLoad) is in flight
     // a newer request aborts the one in flight (a keystroke a second later must not wait for the previous search)
     if (AYNA.reqCtrl) { try { AYNA.reqCtrl.abort(); } catch (e) {} }
     const ctrl = (typeof AbortController === 'function') ? new AbortController() : null; AYNA.reqCtrl = ctrl;
@@ -6386,12 +6268,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (d.screen && typeof d.screen === 'object') AYNA.srvScreen = { key: AYNA.screenKey, screen: d.screen };   // GX-PEOPLE (07.10): the screen's stage / list scope
       AYNA.win.total = (typeof d.total === 'number') ? d.total : rows.length;
       if (page > aynaPages()) { AYNA.win.page = aynaPages(); return aynaRequery(); }
-      aynaPaint(rows, (AYNA.cfg && Array.isArray(AYNA.cfg.columns)) ? AYNA.cfg.columns : columns, true);   // LAYOUT-ME (16.10): a same-screen echo may have replaced the config meanwhile
+      aynaPaint(rows, columns, true);
       AYNA.stats = { rows: rows.length, total: AYNA.win.total, page: page, pages: aynaPages(), size: AYNA.win.size, ms: Date.now() - t0, fresh: d.mirror ? d.mirror.fresh : null, preview: !!(d.mirror && d.mirror.preview), cached: !!r.cached, windowed: true, table: d.table || null, screen: scr };
       aynaSetStatus('window', AYNA.stats); aynaPager(); aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
       try { const w = els && els.container ? els.container.querySelector('.wtHolder') : null; if (w) w.scrollTop = 0; } catch (e) {}
       if (page < aynaPages()) setTimeout(() => { if (seq === AYNA.seq && aynaWindowed()) aynaFetchPage(scr, page + 1).catch(() => {}); }, 300);   // the next page is ready before it is asked for
-    } finally { if (seq === AYNA.seq) { AYNA.loading = false; dtCritCheckRun(); } }   // LAYOUT-ME (16.10): a criteria check that waited for this page
+    } finally { if (seq === AYNA.seq) AYNA.loading = false; }
   }
   // the grid's own sort (header click / sort panel) is a criteria change in window mode
   function aynaHookHot() {
@@ -6443,15 +6325,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       AYNA.screenKey = scr.key;
       // mr17: the first request leaves BEFORE the grid is built (the empty grid, or the cached page, is painted while it travels)
       // mr18: seeded → the first request carries the current where / text / order_by exactly as aynaRequery sends them
-      const seedQuery = seeded ? Object.assign({ limit: AYNA.windowSize, offset: 0, order_by: seed.order_by || AYNA_DEFAULT_ORDER }, seed.where ? { where: seed.where } : {}, seed.text ? { text: seed.text } : {}) : undefined;
+      const seedQuery = seeded ? Object.assign({ limit: AYNA.windowSize, offset: 0, order_by: seed.order_by || '_created asc' }, seed.where ? { where: seed.where } : {}, seed.text ? { text: seed.text } : {}) : undefined;
       // mr21: retried while a sleeping server boots (the status line says so); a newer load stops the retries
       const live = () => seq === AYNA.seq && aynaAlive();
       const onWait = (a, max) => { if (live()) aynaSetStatus('waking', { attempt: a, max: max }); };
       const firstReq = aynaScreenCall({ screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: 0, limit: AYNA.windowSize, fresh: true, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined, query: seedQuery }, null, live, onWait);
-      let cached = seeded ? null : AYNA.cache.get(aynaCacheKey(scr));   // the cache holds the unfiltered page 1
-      // LAYOUT-ME (16.10): the viewer's own order (new view) — a cached window page is in the default order and never flashes
-      const uob = seeded ? '' : dtUserOrderBy(columns);
-      if (cached && cached.windowed && uob) cached = null;
+      const cached = seeded ? null : AYNA.cache.get(aynaCacheKey(scr));   // the cache holds the unfiltered page 1
       if (cached && Date.now() - cached.at < AYNA.cacheTtlMs && Array.isArray(cached.rows) && cached.rows.length) {
         // a screen seen in the last 10 minutes paints at once from memory and refreshes underneath; in window mode the cached
         // page is page 1 of the cached total (pager up at once) until the fresh answer replaces it
@@ -6480,28 +6359,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         rows = rows.concat(page);
         total = (typeof d.total === 'number') ? d.total : rows.length;
         if (d.mirror) { fresh = d.mirror.fresh; preview = !!d.mirror.preview; if (pages === 1 && d.mirror.freshness_s !== undefined) freshS = d.mirror.freshness_s; }   // AYNA-LIVE: the first answer says whether the server started a table delta
+        if (pages === 1) AYNA.loadMirror = d.mirror || null;   // AYNA-SETTLE (21.10): its settle_ok, read by aynaLiveLoaded
         if (d.table) table = d.table;
         if (d.screen && typeof d.screen === 'object') AYNA.srvScreen = { key: AYNA.screenKey, screen: d.screen };   // GX-PEOPLE (07.10): the screen's stage / list scope
         offset += page.length;
         // a big screen → window mode: this page IS the grid; the rest stays on the server
         if (pages === 1 && (total > AYNA.fullLoadMax || seeded)) {   // mr18: a seeded (filtered) answer stays windowed
           AYNA.win = { page: 1, size: AYNA.windowSize, total: total };
-          // LAYOUT-ME (16.10): + the viewer's order; that page-1 request (below) also carries the grid's filters and search box
-          // (a carry of a re-rendered element), exactly as aynaCriteriaChanged reads them → its paint asks for nothing more
-          let uobWhere = null, uobText = '';
-          if (uob) { try { uobWhere = gxDslWhere(); } catch (e) { uobWhere = null; } uobText = els.search && els.search.value ? els.search.value.trim() : ''; }
-          AYNA.criteria = seeded ? { where: seed.where, text: seed.text, order_by: seed.order_by } : { where: uobWhere, text: uobText.length >= 2 ? uobText : '', order_by: uob }; AYNA.critKey = JSON.stringify(AYNA.criteria);
-          if (!uob) AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + AYNA.win.size + '|1', { data: d, at: Date.now() });   // LAYOUT-ME (16.10): d is in the default order
+          AYNA.criteria = seeded ? { where: seed.where, text: seed.text, order_by: seed.order_by } : { where: null, text: '', order_by: '' }; AYNA.critKey = JSON.stringify(AYNA.criteria);
+          AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + AYNA.win.size + '|1', { data: d, at: Date.now() });
           if (!seeded) { AYNA.cache.set(aynaCacheKey(scr), { rows: page, at: Date.now(), windowed: true, total: total }); if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); } }   // mr17: the next visit paints this page at once
-          if (uob) {
-            // LAYOUT-ME (16.10): the viewer's own order (or an active due-date sort, page 1 used to ignore it): this default-order
-            // page only says the screen is big → page 1 again in that order; the default page is never painted
-            AYNA.stats = { rows: page.length, total: total, page: 1, pages: aynaPages(), size: AYNA.win.size, ms: Date.now() - t0, fresh: fresh, preview: preview, cached: false, windowed: true, table: table, screen: scr };
-            aynaPager(); log('[AYNA] windowed, own order', uob, AYNA.stats);
-            aynaLiveLoaded(true, page, total, freshS);
-            Promise.resolve(aynaRequery('sort')).then(aynaBannerRefresh, aynaBannerRefresh);   // it owns AYNA.loading now (a newer seq)
-            return;
-          }
           if (fromCache && cached.windowed) { if (!aynaSameRows(cached.rows, page)) aynaPaint(page, columns, false); else aynaHookHot(); }   // painted from the cache already: only a changed page is repainted (fade)
           else aynaPaint(page, columns, true);
           AYNA.stats = { rows: page.length, total: total, page: 1, pages: aynaPages(), size: AYNA.win.size, ms: Date.now() - t0, fresh: fresh, preview: preview, cached: false, windowed: true, table: table, screen: scr };
@@ -6527,7 +6394,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
       log('[AYNA] loaded', AYNA.stats);
       aynaLiveLoaded(false, rows, total, freshS);   // AYNA-LIVE
-    } finally { if (seq === AYNA.seq) { AYNA.loading = false; aynaBannerRefresh(); dtCritCheckRun(); } }   // mr21: the grid was painted while loading (banner held) → decide it now; LAYOUT-ME (16.10): + a criteria check that waited for the load
+    } finally { if (seq === AYNA.seq) { AYNA.loading = false; aynaBannerRefresh(); } }   // mr21: the grid was painted while loading (banner held) → decide it now
   }
   // status line under the toolbar (small, non-blocking); the empty-state stays untouched
   function aynaSetStatus(kind, info) {
@@ -6542,6 +6409,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (tb && tb.parentNode) tb.parentNode.insertBefore(el, tb.nextSibling); else if (wrap) wrap.insertBefore(el, wrap.firstChild);
       }
       const n = (x) => (typeof x === 'number' ? x.toLocaleString('en-US') : x);
+      const hid = AYNA.goneHidden || 0;   // GX-GONE: rows the viewer deleted are not counted
+      if (hid && info && typeof info.total === 'number' && (kind === 'ready' || kind === 'window')) info = Object.assign({}, info, { total: Math.max(0, info.total - hid) });
+      el.title = '';
       if (kind === 'loading') el.textContent = 'Loading rows' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
       else if (kind === 'refreshing') el.textContent = (info && info.windowed && info.total) ? ('Rows 1–' + n(info.rows) + ' of ' + n(info.total) + ' · refreshing…') : (n(info && info.rows || 0) + ' rows · refreshing' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…');
       else if (kind === 'paging') el.textContent = 'Loading page ' + n(info.page) + '…';
@@ -6550,8 +6420,20 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       else if (kind === 'sorting') el.textContent = 'Sorting…';
       else if (kind === 'waiting') el.textContent = 'Waiting for the screen id…';
       else if (kind === 'waking') el.textContent = 'The Gaia server is waking up · retrying (' + n(info.attempt) + '/' + n(info.max) + ')…';   // mr21
-      else if (kind === 'window') { const from = (info.page - 1) * info.size + 1, to = Math.min(info.total, info.page * info.size); el.textContent = (info.total ? 'Rows ' + n(from) + '–' + n(to) + ' of ' + n(info.total) : 'No rows') + ' · mirror' + (AYNA.criteria.where || AYNA.criteria.text ? ' · filtered' : '') + (AYNA.criteria.order_by ? ' · sorted by ' + AYNA.criteria.order_by : '') + (info.fresh === false ? ' (syncing)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms' + aynaLiveTag(); }
-      else if (kind === 'ready') el.textContent = n(info.total || 0) + ' rows · mirror' + (info.fresh === false ? ' (syncing, may be a minute old)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms' + aynaLiveTag();
+      // TIDY-STATUS (29.10, Ömer): the user reads only the record count (+ filtered / syncing); the technical part
+      // (mirror, ms, live, sort field) moves to the tooltip and data-tech so support can still read it.
+      else if (kind === 'window' || kind === 'ready') {
+        const tot = info.total || 0, rec = (k) => n(k) + (k === 1 ? ' record' : ' records');
+        const filt = !!(AYNA.criteria.where || AYNA.criteria.text);
+        let txt;
+        if (kind === 'window') { const from = (info.page - 1) * info.size + 1, to = Math.min(tot, info.page * info.size); txt = tot ? (n(from) + '-' + n(to) + ' of ' + rec(tot)) : 'No records'; }
+        else txt = tot ? rec(tot) : 'No records';
+        if (filt) txt += ' · filtered';
+        if (info.fresh === false) txt += ' · syncing';
+        el.textContent = txt;
+        const tech = 'mirror' + (AYNA.criteria.order_by ? ' · sorted by ' + AYNA.criteria.order_by : '') + (info.fresh === false ? ' (syncing, may be a minute old)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms' + aynaLiveTag();
+        el.title = tech; el.setAttribute('data-tech', tech);
+      }
       else if (kind === 'error') {
         el.textContent = 'Mirror unavailable: ' + (info && info.message ? info.message : '') + (info && info.fallback ? ' (showing the ' + n(info.fallback) + ' rows already loaded)' : ' (no rows loaded)') + ' ';
         // mr21: one tap to ask again (the server has usually woken up by now)
@@ -6625,11 +6507,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // seconds and show at the next probe); idle probes read the mirror as it is (no Bubble Data API call; the mirror's own
   // delta runs every 90 s). A probe waits while the viewer is mid-action (column menu, filter panel, modal, field popover,
   // a press, typing); a failed probe backs off (x2 up to 5 min). Bubble rows (config.data) never probe: Bubble keeps them live.
+  // AYNA-SETTLE (21.10, NOD x GAIA: an expert's new record reached the list only after a page refresh): a fresh answer never
+  // held the delta it started (mr16 answers first, the table delta lands 1-2 s later in the background), so after a load, a
+  // return to the tab or a return from idle the change waited for the NEXT probe (30-60 s); with freshness_s ≤ 20 the server
+  // started no delta at all and the load had no re-check. Now such an event gets one follow-up look (4 s; an older server
+  // that started no delta: when it will, then 4 s more), and every probe says settle: true (a GX-SETTLE server answers after
+  // its own table delta, mirror.settled; then no follow-up is needed).
   // ═══════════════════════════════════════════════════════════════════════════
   const AYNA_LIVE = { defMs: 30000, minMs: 5000, idleAfterMs: 5 * 60000, idleMs: 5 * 60000, backGapMs: 10000, boostMs: 8000, boostForMs: 120000, boostTailMs: 10000,
-                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000 };
+                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000, settleOkMs: 2000 };   // AYNA-SETTLE
   AYNA.live = { timer: null, at: 0, base: null, dirty: null, busy: false, checks: 0, changes: 0, errors: 0, input: Date.now(), keyAt: 0, downAt: 0,
-                boostUntil: 0, queue: [], signalAt: 0, wantFresh: false, retrySoon: false, bound: false, last: '', changedAt: 0 };
+                boostUntil: 0, queue: [], signalAt: 0, wantFresh: false, retrySoon: false, bound: false, last: '', changedAt: 0,
+                settle: 0, settleEarly: false, settleAt: 0, settleWhy: '', settles: 0, atFresh: false, srvSettle: false };   // AYNA-SETTLE: follow-ups left for the current event (at most 2), a wait for the server done, when the next one runs, its event, how many ran; the last probe asked for a delta
   AYNA.painted = null;   // the rows of the last aynaPaint (what the grid shows), compared with a refreshed answer
   function aynaLiveMs() {
     const c = AYNA.cfg; if (!c) return 0;
@@ -6650,6 +6539,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // the live repaint: same soft fade as aynaPaint, on timers instead of animation frames (a frame may never come in a
   // throttled / headless page, and the rows must not wait for one: AYNA.painted already says they are on screen)
   function aynaLivePaint(rows, columns) {
+    rows = dtGoneFilter(rows);   // GX-GONE
     AYNA.painted = rows;
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // shared with aynaPaint: the newest paint wins
     const c = els && els.container;
@@ -6665,6 +6555,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const L = AYNA.live; if (!L) return;
     if (L.timer) { clearTimeout(L.timer); L.timer = null; }
     L.base = null; L.dirty = null; L.queue = []; L.boostUntil = 0; L.wantFresh = false; L.retrySoon = false; AYNA.painted = null;
+    L.settle = 0; L.settleAt = 0;   // AYNA-SETTLE
   }
   // (re)schedules the next probe: a queued re-check first, else the boost / active / idle cadence (x2 per failed probe)
   function aynaLiveArm(ms, why) {
@@ -6675,7 +6566,25 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let wait = (typeof ms === 'number') ? ms : (now < L.boostUntil ? AYNA_LIVE.boostMs : (aynaLiveIdle() ? Math.max(AYNA_LIVE.idleMs, aynaLiveMs()) : aynaLiveMs()));
     if (typeof ms !== 'number' && L.errors) wait = Math.min(AYNA_LIVE.maxBackoffMs, wait * Math.pow(2, Math.min(L.errors, 4)));
     if (L.queue.length) wait = Math.min(wait, L.queue[0] - now);
+    if (L.settleAt) wait = Math.min(wait, L.settleAt - now);   // AYNA-SETTLE
     L.timer = setTimeout(() => { L.timer = null; aynaLiveTick(w); }, Math.max(250, wait));
+  }
+  // AYNA-SETTLE (21.10): an event (a load, back to the tab, back from idle, "check now") starts follow-ups; a fresh answer that
+  // showed no change and did not settle (an older server, or it was busy) gets one more look: 4 s later when the server started
+  // a table delta (freshness_s > 20 / unknown, or it can settle), else (freshness_s ≤ 20: none started) when it will (21 - s),
+  // and then one look 4 s after that. A change seen, a settled answer or a non-fresh probe ends the event.
+  function aynaLiveSettleStart(why) { const L = AYNA.live; if (!L) return; L.settle = 1; L.settleEarly = false; L.settleAt = 0; L.settleWhy = why || 'event'; }
+  function aynaLiveSettleNext(fresh, m) {
+    const L = AYNA.live; if (!L) return;
+    L.settleAt = 0;
+    if (m && fresh) L.srvSettle = m.settle_ok === true;   // the server settles (GX-SETTLE): live.status().settle.server
+    if (!(L.settle > 0) || !fresh || !m || m.settled === true) { L.settle = 0; return; }
+    const s = m.freshness_s, early = !m.settle_ok && typeof s === 'number' && s <= 20;
+    if (early && L.settleEarly) { L.settle = 0; return; }   // a global delta started after the event: it held every earlier write
+    L.settle--;
+    if (early) { L.settleEarly = true; L.settle++; }   // the server started no delta: wait until it will, then one look
+    // a server that settles runs (and waits for) its own delta for the look: 2 s lets the load's background delta finish first
+    L.settleAt = Date.now() + (early ? Math.max(AYNA_LIVE.afterLoadMs, (21 - s) * 1000) : (m.settle_ok ? AYNA_LIVE.settleOkMs : AYNA_LIVE.afterLoadMs));
   }
   // the viewer is in the middle of something a repaint would disturb → the probe waits a few seconds
   function aynaLiveUserBusy() {
@@ -6693,10 +6602,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // the screen's signature: row count + the newest _modified (and its row id, for window mode's first look)
   async function aynaLiveProbe(scr, fresh) {
-    const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, fresh: !!fresh, shape: 'columnar', fields: ['_id'], query: { limit: 1, offset: 0, order_by: '_modified desc' } }, null, { timeoutMs: AYNA_LIVE.timeoutMs });
+    // AYNA-SETTLE: settle = answer after the table delta this probe starts (a GX-SETTLE server; an older one ignores the key)
+    const r = await aynaBridge('mirror_screen', Object.assign({ screen_id: scr.screen, stage: scr.stage, list: scr.list, fresh: !!fresh, shape: 'columnar', fields: ['_id'], query: { limit: 1, offset: 0, order_by: '_modified desc' } }, fresh ? { settle: true } : {}), null, { timeoutMs: AYNA_LIVE.timeoutMs });
     if (!r.ok || !aynaIsPage(r.data)) return null;
     const d = r.data, top = aynaRowsOf(d)[0] || null;
-    return { total: (typeof d.total === 'number') ? d.total : (top ? 1 : 0), mod: top ? aynaLiveTime(top._modified) : 0, id: top ? String(top._id || '') : '' };
+    return { total: (typeof d.total === 'number') ? d.total : (top ? 1 : 0), mod: top ? aynaLiveTime(top._modified) : 0, id: top ? String(top._id || '') : '', mirror: d.mirror || null };
   }
   // window mode before the first probe (the page alone does not tell the screen's newest _modified): the newest row is on
   // this page with another _modified → it changed
@@ -6711,7 +6621,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const t0 = Date.now(), cfg = AYNA.cfg;
     let rows = [], offset = 0, total = 0, d = null;
     while (offset < AYNA.maxRows) {
-      const r = await aynaBridge('mirror_screen', aynaOrdered({ screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: offset === 0 ? AYNA.windowSize : AYNA.pageSize, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined }), null, { timeoutMs: AYNA.timeoutMs });
+      const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: offset === 0 ? AYNA.windowSize : AYNA.pageSize, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined }, null, { timeoutMs: AYNA.timeoutMs });
       if (seq0 !== AYNA.seq || !aynaAlive() || AYNA.cfg !== cfg) return { gone: true };
       if (!r.ok || !aynaIsPage(r.data)) return { error: true };
       d = r.data;
@@ -6722,7 +6632,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (total > AYNA.fullLoadMax) return { grew: true };   // it became a big screen → the normal load decides (window mode)
       if (!page.length || offset >= total) break;
     }
-    const changed = !aynaSameRows(aynaLivePainted(), rows);
+    const changed = !aynaSameRows(aynaLivePainted(), dtGoneFilter(rows));   // GX-GONE: a row the viewer deleted is no change
     if (changed) aynaLivePaint(rows, cfg.columns);
     AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now() });
     if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }
@@ -6743,7 +6653,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + size + '|' + page, { data: d, at: Date.now() });
     AYNA.win.total = total;
     if (page > aynaPages()) { AYNA.win.page = aynaPages(); aynaRequery(); return { changed: true, total: total }; }   // rows went away: the last page that still exists
-    const changed = !aynaSameRows(aynaLivePainted(), rows);
+    const changed = !aynaSameRows(aynaLivePainted(), dtGoneFilter(rows));   // GX-GONE
     if (changed) aynaLivePaint(rows, cfg.columns);
     if (page === 1 && !AYNA.criteria.where && !AYNA.criteria.text && !AYNA.criteria.order_by) AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now(), windowed: true, total: total });
     AYNA.stats = Object.assign({}, AYNA.stats, { rows: rows.length, total: total, page: page, pages: aynaPages(), size: size, ms: Date.now() - t0, fresh: d.mirror ? d.mirror.fresh : AYNA.stats.fresh, cached: false });
@@ -6757,13 +6667,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const now = Date.now();
     let due = false;
     while (L.queue.length && L.queue[0] <= now + 50) { L.queue.shift(); due = true; }
+    if (L.settleAt && L.settleAt <= now + 50) { L.settleAt = 0; due = true; L.settles++; }   // AYNA-SETTLE: a follow-up look is due
     if (due || why !== 'timer' || now < L.boostUntil || !aynaLiveIdle()) L.wantFresh = true;
     if (AYNA.last || !AYNA.stats || !AYNA.screenKey) { aynaLiveArm(); return; }   // no healthy load to compare with (an error keeps its "Try again")
     if (L.busy || AYNA.loading || aynaLiveUserBusy()) { aynaLiveArm(AYNA_LIVE.retryMs, why); return; }
     const seq0 = AYNA.seq, key0 = AYNA.screenKey, cfg0 = AYNA.cfg, scr = aynaScreenOf(cfg0);
     if (scr.key !== key0) { aynaLiveArm(); return; }   // the screen id moved: aynaRescreen loads the new screen
     const fresh = L.wantFresh; L.wantFresh = false;
-    L.busy = true; L.at = now; L.last = why + (fresh ? ' · fresh' : '');
+    L.busy = true; L.at = now; L.atFresh = fresh; L.last = why + (fresh ? ' · fresh' : '');   // AYNA-SETTLE: atFresh = that probe asked for a table delta
     try {
       let p = null;
       if (L.dirty && L.dirty.key === key0) { p = L.dirty.p; L.dirty = null; }   // a change seen earlier, held while the viewer was busy
@@ -6775,8 +6686,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         L.errors = 0;
         const b = (L.base && L.base.key === key0) ? L.base : null;
         const moved = !!b && ((b.total !== null && p.total !== b.total) || (b.mod === null ? aynaLiveTopMoved(p) : p.mod !== b.mod));
-        if (!moved) { L.base = { key: key0, total: p.total, mod: p.mod }; return; }
+        if (!moved) { L.base = { key: key0, total: p.total, mod: p.mod }; aynaLiveSettleNext(fresh, p.mirror); return; }   // AYNA-SETTLE
       }
+      L.settle = 0; L.settleAt = 0;   // AYNA-SETTLE: the change is here, the event is over
       if (aynaLiveUserBusy()) { L.dirty = { key: key0, p: p }; L.retrySoon = true; return; }   // the rows wait for the viewer (no second probe)
       const res = aynaWindowed() ? await aynaLiveRefreshWindow(seq0, scr) : await aynaLiveRefreshFull(seq0, scr);
       if (res.gone) return;
@@ -6799,6 +6711,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // freshS = the first answer's mirror.freshness_s: over 20 s (or unknown) the server started a table delta in the background
   // (mr16) that this answer could not wait for → one re-check 4 s later. Case (founder 12.10): a record created on the YeniKayıt
   // screen, back on the list 15 s later → the list said 0 until the next period; now it shows within ~4 s.
+  // AYNA-SETTLE (21.10): the load is a settle event (aynaLiveSettleNext): freshness ≤ 20 s (the server started NO delta: the
+  // record written after the last global delta waited 30-60 s) now gets a look when the server will start one, then 4 s later.
+  // AYNA.loadMirror = the load's first answer's mirror block (settle_ok: a GX-SETTLE server needs no wait for its 20 s guard).
   function aynaLiveLoaded(windowed, rows, total, freshS) {
     const L = AYNA.live; if (!L) return;
     aynaLiveBind();
@@ -6806,11 +6721,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     L.base = { key: AYNA.screenKey, total: (typeof total === 'number') ? total : null, mod: windowed ? null : aynaLiveMaxMod(rows || []) };
     const now = Date.now();
     L.queue = L.queue.filter(t => t > now);
-    if (L.signalAt && now - L.signalAt < 60000) { L.signalAt = 0; AYNA_LIVE.signalAfterMs.forEach(ms => L.queue.push(now + ms)); }
-    else if (freshS === null || (typeof freshS === 'number' && freshS > 20)) L.queue.push(now + AYNA_LIVE.afterLoadMs);   // null = no delta yet (cold); absent = say nothing
+    if (L.signalAt && now - L.signalAt < 60000) { L.signalAt = 0; L.settle = 0; L.settleAt = 0; AYNA_LIVE.signalAfterMs.forEach(ms => L.queue.push(now + ms)); }
+    else if (freshS !== undefined && aynaLiveScreenKind() !== 'YeniKayıt') { aynaLiveSettleStart('load'); aynaLiveSettleNext(true, Object.assign({}, AYNA.loadMirror || {}, { freshness_s: freshS })); }   // absent = an older server: say nothing; a YeniKayıt screen has no rows to wait for
+    else { L.settle = 0; L.settleAt = 0; }
     L.queue.sort((a, b) => a - b);
     aynaLiveArm();
   }
+  // AYNA-SETTLE: the kind the server gave the screen in view (Arama, YeniKayıt, process, list) — '' when it said nothing
+  function aynaLiveScreenKind() { try { const s = AYNA.srvScreen; return (s && s.key === AYNA.screenKey && s.screen) ? String(s.screen.kind || '') : ''; } catch (e) { return ''; } }
   // Bubble's reloadFromConfig() = "the data changed": the reload's answer may not hold the write yet → re-checks follow it
   function aynaLiveSignal() { if (AYNA.live) AYNA.live.signalAt = Date.now(); }
   // the viewer started a Bubble write from the table (or woke the assistant): probe every 8 s until the change shows
@@ -6831,7 +6749,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (!aynaAlive()) return;
         if (aynaLiveHidden()) { if (L.timer) { clearTimeout(L.timer); L.timer = null; } return; }
         L.input = Date.now();
-        if (Date.now() - L.at > AYNA_LIVE.backGapMs) aynaLiveArm(400, 'back');
+        if (Date.now() - L.at > AYNA_LIVE.backGapMs) { aynaLiveSettleStart('back'); aynaLiveArm(400, 'back'); }   // AYNA-SETTLE: a write made elsewhere shows ~4 s after coming back, not 30 s
         else if (!L.timer && !L.busy) aynaLiveArm();
       },
       input: function (kind) {
@@ -6841,7 +6759,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (kind === 'key') L.keyAt = now;
         else if (kind === 'down') L.downAt = now;
         else if (kind === 'up') L.downAt = 0;
-        if (wasIdle && !L.busy && now - L.at > aynaLiveMs()) aynaLiveArm(400, 'back');   // back from idle on a view older than one period
+        // back from idle on a view older than one period, or last read by an idle probe (no table delta asked) → one probe at once
+        // (AYNA-SETTLE: + one follow-up look); else the active cadence takes over (the idle timer could be 5 min away)
+        if (wasIdle && !L.busy && (now - L.at > aynaLiveMs() || !L.atFresh)) { aynaLiveSettleStart('idle'); aynaLiveArm(400, 'back'); }
+        else if (wasIdle && !L.busy) aynaLiveArm();
       }
     };
     if (window.__gxLiveDocBound) return;
@@ -6875,8 +6796,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     status: function () { return { loading: AYNA.loading, last: AYNA.last, stats: AYNA.stats, cached: AYNA.cache.size, windowed: aynaWindowed(), criteria: AYNA.criteria, page: AYNA.win ? AYNA.win.page : null }; },
     // AYNA-LIVE (12.10): read-only status + a probe now / a boost (harness, console)
     live: {
-      status: function () { const L = AYNA.live, now = Date.now(); return { on: aynaLiveOn(), everyMs: aynaLiveMs(), hidden: aynaLiveHidden(), idle: aynaLiveIdle(), busy: L.busy, armed: !!L.timer, checks: L.checks, changes: L.changes, errors: L.errors, base: L.base ? { total: L.base.total, mod: L.base.mod } : null, dirty: !!L.dirty, queue: L.queue.map(t => t - now), boostMs: Math.max(0, L.boostUntil - now), last: L.last }; },
-      check: function () { aynaLiveArm(0, 'manual'); return true; },
+      status: function () { const L = AYNA.live, now = Date.now(); return { on: aynaLiveOn(), everyMs: aynaLiveMs(), hidden: aynaLiveHidden(), idle: aynaLiveIdle(), busy: L.busy, armed: !!L.timer, checks: L.checks, changes: L.changes, errors: L.errors, base: L.base ? { total: L.base.total, mod: L.base.mod } : null, dirty: !!L.dirty, queue: L.queue.map(t => t - now), boostMs: Math.max(0, L.boostUntil - now), last: L.last,
+        settle: { left: L.settle, inMs: L.settleAt ? L.settleAt - now : 0, why: L.settleWhy, ran: L.settles, server: !!L.srvSettle } }; },   // AYNA-SETTLE
+      check: function () { aynaLiveSettleStart('manual'); aynaLiveArm(0, 'manual'); return true; },
       boost: function () { aynaLiveBoost('manual'); return true; }
     },
     mode: function () { const s = document.getElementById('bubble-table-config'); try { return aynaMode(parseBubbleConfig((s && s.textContent) || '{}')); } catch (e) { return false; } },
@@ -7660,9 +7582,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       applySavedTableConfig(config, verdict);
       // mr18 T3: Bubble's echo of the same screen with the same field set (its catch-up after an own add / hide, a tableConfig
       // echo) keeps the running mirror view: page, criteria, page cache and the rows on screen; only the columns re-mount
-      if (echo && aynaSameProjection(config, verdict, true)) {
+      if (echo && aynaSameProjection(config, verdict)) {
         AYNA.cfg = config;
-        if (AYNA.loading) return;   // LAYOUT-ME (16.10): the windowed load in flight paints the page itself (no reload, no blank grid)
         aynaPaint(state.rawRows.map(r => { const o = Object.assign({}, r); delete o.__sourceIndex; return o; }), config.columns, true);
         aynaPager();
         return;
@@ -7686,9 +7607,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       state.columnWidths = {};
       state._layoutTouched = false;
       state._lastAppliedSavedKey = '';
-      // LAYOUT-ME (16.10): the previous screen's own layout goes with it, an unsent or held change too
-      state.pinnedCols = null; state.hiddenCols = new Set(); state.userSort = null; state._savedRaw = null; state._layoutDirty = false; state._layoutDirtySid = ''; state._layoutHold = null;
-      state._layoutGen += 1; dtLayoutToastRetire();   // an Undo of the previous layout never lands on this one (a page without screen_id keeps its toasts)
       closeDueDatePanel();
       closeFieldConfigModal();
     }
@@ -7708,18 +7626,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         state.dueDateSort = { fields: saved.dueDateSort.fields.slice(), active: saved.dueDateSort.active };
         if (state.dueDateSort.active) openDueDatePanel(); else closeDueDatePanel();
       }
-      // LAYOUT-ME (16.10): v2 fields (absent → auto freeze, nothing hidden, shared widths, default order)
-      state.hiddenCols = new Set(saved.hiddenColumns);
-      state.pinnedCols = saved.pinnedColumns ? saved.pinnedColumns.filter(id => !state.hiddenCols.has(id)) : null;
-      state.columnWidths = Object.assign({}, saved.columnWidths);
-      state.userSort = saved.sort ? { id: saved.sort.id, dir: saved.sort.dir } : null;
-      state._savedRaw = saved.raw;
-      // a late config on the same view: its sort replaces the grid's at the next mount, then the mirror criteria re-check
-      if (!v.dataNew) { state._pendingSortById = saved.sort ? [{ id: saved.sort.id, sortOrder: saved.sort.dir }] : []; state._critCheck = true; }
       state._lastAppliedSavedKey = saved.key;
     }
-    // LAYOUT-ME (16.10): keys of a late config the user did not take (touched layout) still survive the next write
-    if (!state._savedRaw && saved && saved.raw) state._savedRaw = saved.raw;
   }
 
   function clearSelection() {
@@ -7932,7 +7840,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       kept.push(si); vrows.push(v);
     });
     state.selection.clear(); kept.forEach(si => state.selection.add(si)); state.selectionOrder = kept;
-    const lastCol = Math.max(0, dtDataColCount() - 1);   // LAYOUT-ME (16.10): grid columns, not hidden ones
+    const lastCol = Math.max(0, state.columns.length - 1);
     const ranges = [];
     vrows.slice().sort((a, b) => a - b).forEach(v => { const r = ranges[ranges.length - 1]; if (r && v === r[2] + 1) r[2] = v; else ranges.push([v, 0, v, lastCol]); });
     state._syncingSelection = true;
@@ -8110,9 +8018,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       window.__dtViewCarry = { ts: Date.now(), viewKey: state._viewKey,
         columnOrder: state.columnOrder.slice(), dueDateSort: { fields: state.dueDateSort.fields.slice(), active: !!state.dueDateSort.active },
         widths: Object.assign({}, state.columnWidths), layoutTouched: !!state._layoutTouched, savedKey: state._lastAppliedSavedKey || '',
-        // LAYOUT-ME (16.10): the viewer's own layout + whether a change is still unsent
-        pinned: Array.isArray(state.pinnedCols) ? state.pinnedCols.slice() : null, hidden: Array.from(state.hiddenCols),
-        userSort: state.userSort ? { id: state.userSort.id, dir: state.userSort.dir } : null, dirty: !!state._layoutDirty, dirtySid: state._layoutDirtySid || '',
         filtersById: cap.filtersById, sortById: cap.sortById,
         search: els.search ? els.search.value : '', searchOpen: !!state.isSearchOpen,
         selectedIds: (heldSelectionIds() || getSelectedUniqueIds()).slice(), scroll: h ? { top: h.scrollTop, left: h.scrollLeft } : null };
@@ -8124,10 +8029,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return c;
   }
   function seedFromCarry(c, v) {
-    let savedWins = false;
     if (!v.layoutNew) {
       // Kullanıcı eski instance'ta düzene dokunmadıysa ve yeni config farklı bir kayıtlı düzen getirdiyse o kazanır
-      savedWins = !c.layoutTouched && !!state._lastAppliedSavedKey && state._lastAppliedSavedKey !== (c.savedKey || '');
+      const savedWins = !c.layoutTouched && !!state._lastAppliedSavedKey && state._lastAppliedSavedKey !== (c.savedKey || '');
       if (!savedWins) {
         state.columnOrder = Array.isArray(c.columnOrder) ? c.columnOrder.slice() : [];
         if (c.dueDateSort) {
@@ -8135,24 +8039,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           if (state.dueDateSort.active && state.dueDateSort.fields.length) openDueDatePanel(); else closeDueDatePanel();
         }
         state._lastAppliedSavedKey = c.savedKey || '';
-        // LAYOUT-ME (16.10): pins / hidden / sort / unsent flag, and the widths (now saved too, so a newer saved layout wins them)
-        state.pinnedCols = Array.isArray(c.pinned) ? c.pinned.map(String) : null;
-        state.hiddenCols = new Set(Array.isArray(c.hidden) ? c.hidden.map(String) : []);
-        state.userSort = (c.userSort && c.userSort.id) ? { id: String(c.userSort.id), dir: c.userSort.dir === 'desc' ? 'desc' : 'asc' } : null;
-        // a change the old instance still held (owner lookup) goes out once this one knows the owner (never a mount write), and
-        // only on the screen it was made on: a first config without that screen id (two-step render) never takes it through
-        // the no-sid branch (dtLayoutFlush). One made without a known screen is not sent (the next gesture carries the layout)
-        state._layoutDirtySid = c.dirty ? String(c.dirtySid || '') : '';
-        state._layoutDirty = !!state._layoutDirtySid;
-        state.columnWidths = Object.assign({}, c.widths || {});
-        if (state._layoutDirty) Promise.resolve().then(() => { try { if (fieldScreenId() === state._layoutDirtySid) dtLayoutFlush(); } catch (e) {} });
       }
+      state.columnWidths = Object.assign({}, c.widths || {});
       state._layoutTouched = !!c.layoutTouched;
     }
     if (!v.dataNew) {
       state._pendingFiltersById = c.filtersById || null;
-      // LAYOUT-ME (16.10): sort is layout now → a newer saved layout keeps its own sort (set by applySavedTableConfig)
-      if (!savedWins) state._pendingSortById = Array.isArray(c.sortById) ? c.sortById : null;
+      state._pendingSortById = Array.isArray(c.sortById) ? c.sortById : null;
       state._carrySelectionIds = Array.isArray(c.selectedIds) ? c.selectedIds.slice() : null;
       state._pendingScroll = c.scroll || null;
       if (c.search && els.search) {
@@ -8211,6 +8104,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     publishSelectedUniqueIds();
     if (typeof window.bubble_fn_delete === 'function') {
       window.bubble_fn_delete(ids);
+      dtGoneAdd(ids);   // GX-GONE (27.10): the rows leave the grid now, not at the mirror's next full pull
       aynaLiveBoost('delete');   // AYNA-LIVE
     }
     return ids;
@@ -9094,12 +8988,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (els.moreButton) {
       els.moreButton.setAttribute('aria-expanded', 'true');
     }
-    // LAYOUT-ME (16.10): "Show hidden for me (n)" only while a column on this table is hidden for me
-    if (els.toolbarMoreUnhideButton) {
-      const n = dtHiddenForMeIds().length;
-      els.toolbarMoreUnhideButton.textContent = 'Show hidden for me (' + n + ')';
-      els.toolbarMoreUnhideButton.classList.toggle('dt-hidden', n === 0);
-    }
     const first = Array.from(els.toolbarMoreMenu.querySelectorAll('button[role="menuitem"]')).find(b => b.offsetParent !== null);
     if (first) { try { first.focus({ preventScroll: true }); } catch (e) {} }
   }
@@ -9197,7 +9085,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const p = aynaBridge('mirror_screen_fields', { screen_id: sid }, null, { timeoutMs: DT_FIELD_LIMITS.read_timeout_ms }).then(r => {
       if (fo.inflight === p) fo.inflight = null;
       if (r && r.ok && r.data && r.data.screen && typeof r.data.screen === 'object') {
-        if (state.fieldOps === fo) { fo.meta = r.data; fo.at = Date.now(); fo.ready = r.data.screen.can_edit === true; dtFillRefresh(); dtLayoutOwnerKnown(sid); }   // GX-FILL: a Claim field may turn the action on; LAYOUT-ME (16.10): a waiting layout change goes out
+        if (state.fieldOps === fo) { fo.meta = r.data; fo.at = Date.now(); fo.ready = r.data.screen.can_edit === true; dtFillRefresh(); }   // GX-FILL: a Claim field may turn the action on
         return { ok: true, meta: r.data };
       }
       if (state.fieldOps === fo) fo.ready = false;
@@ -9636,21 +9524,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // column); columnOrder is seeded from the current order when empty and published (bubble_fn_tableConfig); filters,
   // sort, search, selection and scroll carry through the id-keyed re-mount
   function insertFieldColumn(raw, ctx, pending) {
-    state.hiddenCols.delete(raw.id);   // LAYOUT-ME (16.10): a field added / shown is on my grid again
     const ordered = getOrderedColumns().filter(c => c && !c.__uiOnly);
     const ids = ordered.map(c => c.id).filter(id => id !== raw.id);
     let index = ids.length;
     if (ctx && ctx.column && ctx.side) { const i = ids.indexOf(ctx.column.id); if (i >= 0) index = ctx.side === 'left' ? i : i + 1; }
     else if (ctx && Number.isInteger(ctx.index)) index = ctx.index;
     index = Math.max(0, Math.min(index, ids.length));
-    // LAYOUT-ME (16.10): explicit pins lead the grid (getOrderedAllColumns), so the place decides the pin: inside the pinned
-    // zone → pinned right there (5 at most, else it goes right after the zone); at / after the zone's end → not pinned
-    let pz = -1, pinIt = false;
-    if (Array.isArray(state.pinnedCols)) {
-      const ps = new Set(state.pinnedCols.filter(id => id !== raw.id));
-      pz = 0; while (pz < ids.length && ps.has(ids[pz])) pz += 1;
-      if (index < pz) { if (pz < DT_LAYOUT_MAX_PINS) pinIt = true; else index = pz; }
-    }
     const col = sanitizeColumns([raw])[0];
     if (!col) return -1;
     col.source = Array.isArray(raw.source) ? raw.source.slice() : [];
@@ -9658,8 +9537,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (raw.viewId) col.viewId = raw.viewId;
     if (pending) col.__pending = true;
     ids.splice(index, 0, col.id);
-    if (pz >= 0) { const zone = ids.slice(0, pinIt ? pz + 1 : pz); state.pinnedCols = zone.concat(state.pinnedCols.filter(id => id !== col.id && id !== raw.id && zone.indexOf(id) === -1)); }
-    state.columnOrder = dtMergeOrder(dtFullOrderIds(), ids);   // LAYOUT-ME (16.10): hidden / absent ids keep their places
+    const stale = state.columnOrder.filter(id => ids.indexOf(id) < 0 && id !== col.id);
+    state.columnOrder = ids.concat(stale);
     state.columns = state.columns.filter(c => c.id !== col.id);
     state.columns.splice(Math.min(index, state.columns.length), 0, col);
     if (AYNA.cfg && Array.isArray(AYNA.cfg.columns)) {   // mirror paints rebuild the grid from the config's columns (in place:
@@ -9681,10 +9560,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       state.columnOrder = state.columnOrder.filter(id => id !== name);
       if (AYNA.cfg && Array.isArray(AYNA.cfg.columns)) { const arr = AYNA.cfg.columns; for (let i = arr.length - 1; i >= 0; i--) if (cfgColId(arr[i]) === name) arr.splice(i, 1); }
       if (state._viewKey && Array.isArray(state._viewKey.cols)) { const vi = state._viewKey.cols.indexOf(name); if (vi >= 0) state._viewKey.cols.splice(vi, 1); }
-      // LAYOUT-ME (16.10): the field left the screen → no longer hidden / pinned / sorted for me (its width stays)
-      state.hiddenCols.delete(name);
-      if (Array.isArray(state.pinnedCols)) state.pinnedCols = state.pinnedCols.filter(id => id !== name);
-      if (state.userSort && state.userSort.id === name) { state.userSort = null; state._critCheck = true; }
       publishTableConfig();
       saveViewCarry();
       if (!state.columns.some(c => c && !c.__uiOnly)) showEmptyState('no-columns-no-data', 0); else remountColumns();
@@ -9694,112 +9569,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     fieldHeaderEls(name).forEach(el => el.classList.add('dt-col-removing'));
     const sid0 = fieldScreenId();
     setTimeout(() => { if (fieldScreenId() === sid0) done(); }, 180);   // T2: a screen switch during the fade leaves the new screen alone
-  }
-  // ── LAYOUT-ME (16.10): the viewer's own layout actions (pin, hide for me, show, reset) ──
-  // each one: snapshot → state → publishTableConfig (own copy only, dtLayoutScope) + carry + re-mount → toast with Undo;
-  // never a mirror_field_* call and never the shared view's Order / width / hidden
-  // gen: the layout the snapshot belongs to (a new layout = another screen, its Undo never applies there); filtersById: the
-  // filters on screen (a hide drops the hidden column's filter, its Undo brings it back)
-  function dtLayoutSnapshot() {
-    let filtersById = {}; try { filtersById = Object.assign({}, captureViewById().filtersById); } catch (e) {}
-    return { gen: state._layoutGen, columnOrder: state.columnOrder.slice(), pinnedCols: Array.isArray(state.pinnedCols) ? state.pinnedCols.slice() : null, hiddenCols: Array.from(state.hiddenCols), columnWidths: Object.assign({}, state.columnWidths), userSort: state.userSort ? { id: state.userSort.id, dir: state.userSort.dir } : null, filtersById };
-  }
-  function dtLayoutRestore(snap) {
-    if (!snap || snap.gen !== state._layoutGen) return;
-    // the filters of the columns the action hid come back with them (only those: a filter changed since then stays as it is)
-    const back = {};
-    state.hiddenCols.forEach(id => { if (snap.hiddenCols.indexOf(id) === -1 && snap.filtersById && snap.filtersById[id]) back[id] = snap.filtersById[id]; });
-    if (Object.keys(back).length) state._pendingFiltersById = Object.assign({}, state._pendingFiltersById || {}, back);
-    state.columnOrder = snap.columnOrder.slice();
-    state.pinnedCols = Array.isArray(snap.pinnedCols) ? snap.pinnedCols.slice() : null;
-    state.hiddenCols = new Set(snap.hiddenCols);
-    state.columnWidths = Object.assign({}, snap.columnWidths);
-    state.userSort = snap.userSort ? { id: snap.userSort.id, dir: snap.userSort.dir } : null;
-    state._pendingSortById = state.userSort ? [{ id: state.userSort.id, sortOrder: state.userSort.dir }] : [];
-    state._critCheck = true;   // the mirror re-asks only if filters / order changed (dtCritCheckRun after the mount)
-    dtLayoutCommit('', null);
-  }
-  function dtLayoutCommit(text, snap) {
-    publishTableConfig();
-    saveViewCarry();
-    remountColumns();
-    // the toast is up before the flush microtask → a local-scope flush adds " (not saved here)" to it (dtLayoutScopeToast);
-    // marked with the layout generation: a newer layout gesture or a new layout removes it (dtLayoutToastRetire)
-    if (text) { const t = showActionToast(text, snap ? 'Undo' : '', snap ? () => dtLayoutRestore(snap) : null, DT_FIELD_LIMITS.toast_ms); if (t) t.setAttribute('data-layout-gen', String(state._layoutGen)); }
-  }
-  // the columns on the table now that are hidden for me (ids of fields no longer on the screen do not count)
-  function dtHiddenForMeIds() {
-    return state.columns.filter(c => c && !c.__uiOnly && c.id && state.hiddenCols.has(c.id)).map(c => c.id);
-  }
-  // the auto rule's frozen first column ('' = none, or explicit pins are in use)
-  function dtAutoFrozenId() {
-    if (Array.isArray(state.pinnedCols)) return '';
-    try {
-      const hot = state.hot, c0 = (state._mountedCols || [])[0];
-      if (!hot || hot.isDestroyed || !c0 || c0.__uiOnly || !c0.id) return '';
-      return (hot.getSettings().fixedColumnsStart || 0) === 1 ? c0.id : '';
-    } catch (e) { return ''; }
-  }
-  // the pinned ids as the grid has them: the explicit list (on the table, not hidden), else the auto-frozen first column
-  function dtPinIds() {
-    if (!Array.isArray(state.pinnedCols)) { const f = dtAutoFrozenId(); return f ? [f] : []; }
-    const on = new Set(state.columns.filter(c => c && !c.__uiOnly).map(c => c.id));
-    return state.pinnedCols.filter(id => on.has(id) && !state.hiddenCols.has(id));
-  }
-  function dtIsPinned(id) { return !!id && dtPinIds().indexOf(id) !== -1; }
-  // pin: the column joins the end of the pinned zone; unpin: it goes right after the zone. Auto mode turns into explicit
-  // pins (the auto-frozen first column stays pinned); unpinning that column alone = nothing frozen ([])
-  function dtPinColumn(id, on) {
-    on = !!on;
-    if (!id || state.pendingFields.has(id) || (on && state.hiddenCols.has(id)) || dtIsPinned(id) === on) return;
-    if (!state.columns.some(c => c && !c.__uiOnly && !c.__pending && c.id === id)) return;
-    const pins = dtPinIds().filter(x => x !== id);
-    if (on && pins.length >= DT_LAYOUT_MAX_PINS) return;
-    const snap = dtLayoutSnapshot();
-    if (on) pins.push(id);
-    const rest = dtFullOrderIds().filter(x => x !== id && pins.indexOf(x) === -1);
-    state.columnOrder = on ? pins.concat(rest) : pins.concat([id], rest);
-    state.pinnedCols = pins;
-    dtLayoutCommit(on ? 'Pinned for you' : 'Unpinned', snap);
-  }
-  // never a pending column, and never the last data column on the grid
-  function dtCanHideForMe(id) {
-    if (!id || state.pendingFields.has(id) || state.hiddenCols.has(id)) return false;
-    const vis = getOrderedColumns().filter(c => c && !c.__uiOnly);
-    const col = vis.find(c => c.id === id);
-    return !!col && !col.__pending && vis.some(c => c.id !== id && !c.__pending);
-  }
-  // display only, for this viewer: the id stays in columnOrder (it comes back in its place); its pin and sort go
-  function dtHideForMe(id) {
-    if (!dtCanHideForMe(id)) return;
-    const snap = dtLayoutSnapshot();
-    state.hiddenCols.add(id);
-    if (Array.isArray(state.pinnedCols)) state.pinnedCols = state.pinnedCols.filter(x => x !== id);
-    if (state.userSort && state.userSort.id === id) state.userSort = null;
-    state._critCheck = true;   // a filter / sort on it is dropped by the re-mount → the mirror page follows
-    fieldAnnounce('Hidden for you');
-    dtLayoutCommit('Hidden for you', snap);
-  }
-  // ids (null = all) back on the grid, where columnOrder keeps them; no toast
-  function dtShowForMe(ids) {
-    const before = state.hiddenCols.size;
-    if (Array.isArray(ids)) ids.forEach(id => state.hiddenCols.delete(id)); else state.hiddenCols = new Set();
-    if (state.hiddenCols.size === before) return;
-    state._critCheck = true;
-    dtLayoutCommit('', null);
-  }
-  // back to the company layout: CustomFieldViews order, auto freeze, shared widths, default order; the due-date sort stays
-  function dtResetMyLayout() {
-    const snap = dtLayoutSnapshot();
-    state.columnOrder = []; state.pinnedCols = null; state.hiddenCols = new Set(); state.columnWidths = {}; state.userSort = null;
-    state._pendingSortById = []; state._critCheck = true;
-    dtLayoutCommit('Layout reset', snap);
-  }
-  // dynamicTable.getLayout(): what would be written, and whether it may be (testing and support)
-  function dtGetLayout() {
-    let payload = null; try { payload = JSON.parse(dtLayoutPayload()); } catch (e) {}
-    const sid = fieldScreenId();
-    return { payload, scope: dtLayoutScope(), owner: dtLayoutOwner(sid), dirty: !!state._layoutDirty, held: !!state._layoutHold };
   }
   // one write for the live column: create (Add / Show of a field with no view) or update (Show of a hidden view)
   async function submitFieldWrite(payload, ctx, values, how) {
@@ -9945,7 +9714,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try { if (els.wrapper) els.wrapper.querySelectorAll('.dt-action-toast').forEach(t => { if (t.getAttribute('data-screen') !== sid) t.remove(); }); } catch (e) {}
     if (state.fieldPop && state.fieldPop.screenId !== sid) closeFieldPopover(true);
     if (state.fieldOps.screenId && state.fieldOps.screenId !== sid) state.fieldOps = { screenId: '', at: 0, meta: null, ready: false, inflight: null };
-    if (state._layoutHold && state._layoutHold.sid !== sid) state._layoutHold = null;   // LAYOUT-ME (16.10): a held layout write never lands on another screen
     state.pendingFields.forEach((p, name) => {
       if (!p || !p.payload || p.payload.screen_id === sid) return;
       state.pendingFields.delete(name);
@@ -9968,10 +9736,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     const swap = arr => { const out = []; arr.forEach(id => { const v = id === from ? to : id; if (out.indexOf(v) < 0) out.push(v); }); return out; };
     state.columnOrder = swap(state.columnOrder);
-    // LAYOUT-ME (16.10): my pins / hidden / sort follow the new name
-    if (Array.isArray(state.pinnedCols)) state.pinnedCols = swap(state.pinnedCols);
-    if (state.hiddenCols.has(from)) state.hiddenCols = new Set(swap(Array.from(state.hiddenCols)));
-    if (state.userSort && state.userSort.id === from) state.userSort = { id: to, dir: state.userSort.dir };
     if (state._viewKey && Array.isArray(state._viewKey.cols)) state._viewKey.cols = swap(state._viewKey.cols);
     if (state.columnWidths && state.columnWidths[from] !== undefined) { if (state.columnWidths[to] === undefined) state.columnWidths[to] = state.columnWidths[from]; delete state.columnWidths[from]; }
     if (AYNA.cfg && Array.isArray(AYNA.cfg.columns)) { const arr = AYNA.cfg.columns; for (let k = arr.length - 1; k >= 0; k--) if (arr[k] !== raw && cfgColId(arr[k]) === to) arr.splice(k, 1); }
@@ -9983,8 +9747,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function showField(entry, ctx, role) {
     const name = entry && entry.name;
     if (!name) return;
-    // LAYOUT-ME (16.10): a column hidden for me comes back on my grid only (no server write)
-    if (state.hiddenCols.has(name) && state.columns.some(c => c && !c.__uiOnly && c.id === name)) { dtShowForMe([name]); setTimeout(() => { scrollToColumn(name); pulseConfirmed(name); }, 30); return; }
     if (state.columns.some(c => c && !c.__uiOnly && c.id === name)) { scrollToColumn(name); pulseConfirmed(name); return; }
     if (state.pendingFields.has(name)) return;
     const removed = state.serverPatch.removed.get(name) || null;
@@ -10142,16 +9904,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const pend = !!(mc && mc.id && state.pendingFields.has(mc.id));
       [els.columnMenuFilterButton, els.columnMenuSortButton].forEach(b => { if (b) b.disabled = pend; });
       [els.columnMenuInsertLeftButton, els.columnMenuInsertRightButton].forEach(b => { if (b) b.classList.toggle('dt-hidden', pend); });
-      // LAYOUT-ME (16.10): Pin to front / Unpin (up to 5 pins) and Hide for me (never the last column); off for a pending column
-      const lid = (mc && !mc.__uiOnly && mc.id) ? mc.id : '';
-      if (els.columnMenuPinButton) {
-        const b = els.columnMenuPinButton, on = !!lid && dtIsPinned(lid), full = !on && dtPinIds().length >= DT_LAYOUT_MAX_PINS, label = on ? 'Unpin' : 'Pin to front';
-        b.textContent = label;
-        b.setAttribute('aria-label', label);   // syncButtonTitles never turns the tooltip below into the button's name
-        b.disabled = pend || !lid || !!mc.__pending || full;
-        if (full && !pend) b.setAttribute('title', 'Up to 5 pinned fields'); else b.removeAttribute('title');
-      }
-      if (els.columnMenuHideMeButton) els.columnMenuHideMeButton.disabled = pend || !dtCanHideForMe(lid);
     } catch (e) {}
 
     if (els.columnMenuTitle) {
@@ -10199,7 +9951,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!headerCell) return null;
     try {
       const coords = state.hot.getCoords(headerCell);
-      if (!coords || coords.row !== -1 || coords.col < 0 || coords.col >= dtDataColCount()) return null;   // LAYOUT-ME (16.10): grid columns
+      if (!coords || coords.row !== -1 || coords.col < 0 || coords.col >= state.columns.length) return null;
       return { coords, headerCell };
     } catch (err) {
       return null;
@@ -10289,14 +10041,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   function openSortPanel() {
     hideFilterPanel();
-    // LAYOUT-ME (16.10): the third option names the order without a column sort; the order in effect is marked
-    if (els.sortClearButton) els.sortClearButton.textContent = (AYNA.cfg && !state.dueDateSort.active) ? 'Newest first' : 'Default order';
-    const st = dtSortStateOf(state.activeHeaderColumn);
-    [[els.sortAscButton, st === 'asc'], [els.sortDescButton, st === 'desc'], [els.sortClearButton, st === 'none']].forEach(([b, on]) => {
-      if (!b) return;
-      b.classList.toggle('is-active', on);
-      b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
     positionSubmenu(els.sortPanel, els.columnMenuSortButton);
     if (els.sortPanel) {
       els.sortPanel.classList.add('is-open');
@@ -10311,7 +10055,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   function applyColumnSortOrder(columnIndex, sortOrder) {
     if (!state.hot || !Number.isInteger(columnIndex)) return;
-    if (columnIndex >= dtDataColCount()) return;   // LAYOUT-ME (16.10): grid columns, not hidden ones
+    if (columnIndex >= state.columns.length) return;
     const sortingPlugin = typeof state.hot.getPlugin === 'function' ? state.hot.getPlugin('columnSorting') : null;
     if (!sortingPlugin) return;
 
@@ -10321,43 +10065,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
     try {
       sortingPlugin.sort({ column: visualCol, sortOrder });
-      // LAYOUT-ME (16.10): the only sort gesture (HOT's header-click sort is off: headerAction false) → the viewer's saved sort
-      const c = (state._mountedCols || [])[columnIndex];
-      if (c && !c.__uiOnly && c.id) { state.userSort = { id: c.id, dir: sortOrder === 'desc' ? 'desc' : 'asc' }; publishTableConfig(); }
     } catch (err) {
       console.warn('Sort apply failed', err);
     }
     // T1: HOT sıralamada seçimi görsel koordinatta bırakır → vurgu kayıtlarla yeniden eşlensin
     syncHotSelectionFromState();
     saveViewCarry();
-  }
-  // LAYOUT-ME (16.10): "Newest first" / "Default order": no column sort (window mode: clearSort fires afterColumnSort →
-  // the default order is asked for); the due-date sort, when on, stays the order
-  function dtClearUserSort() {
-    const had = !!state.userSort;
-    state.userSort = null;
-    try { const cs = state.hot && typeof state.hot.getPlugin === 'function' ? state.hot.getPlugin('columnSorting') : null; if (cs) cs.clearSort(); } catch (err) { console.warn('Sort clear failed', err); }
-    syncHotSelectionFromState();
-    if (had) publishTableConfig();   // nothing saved changes → no write
-    saveViewCarry();
-  }
-  // LAYOUT-ME (16.10): turning the due-date sort on drops the column sort → one main order (a column sort used to win silently
-  // and the due-date button looked broken)
-  function dtDueDateTakesOrder() {
-    state.userSort = null;
-    try { const cs = state.hot && typeof state.hot.getPlugin === 'function' ? state.hot.getPlugin('columnSorting') : null; const sc = cs && cs.getSortConfig(); if (sc && (!Array.isArray(sc) || sc.length)) cs.clearSort(); } catch (e) {}
-  }
-  // LAYOUT-ME (16.10): the grid's sort seen from the menu's column (physical index): 'asc' | 'desc' | 'other' (another
-  // column is sorted) | 'none' (no column sort: newest first / the due-date order)
-  function dtSortStateOf(columnIndex) {
-    try {
-      const cs = state.hot && !state.hot.isDestroyed && typeof state.hot.getPlugin === 'function' ? state.hot.getPlugin('columnSorting') : null;
-      const cfg = cs && typeof cs.getSortConfig === 'function' ? cs.getSortConfig() : null;
-      const list = (Array.isArray(cfg) ? cfg : (cfg ? [cfg] : [])).filter(s => s && Number.isInteger(s.column));
-      if (!list.length) return 'none';
-      const hit = Number.isInteger(columnIndex) ? list.find(s => (typeof state.hot.toPhysicalColumn === 'function' ? state.hot.toPhysicalColumn(s.column) : s.column) === columnIndex) : null;
-      return hit ? (hit.sortOrder === 'desc' ? 'desc' : 'asc') : 'other';
-    } catch (e) { return 'none'; }
   }
 
 
@@ -10787,21 +10500,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       });
     }
 
-    // LAYOUT-ME (16.10): my own layout — every column hidden for me back / the company layout back (Undo in the toast)
-    if (els.toolbarMoreUnhideButton) {
-      els.toolbarMoreUnhideButton.addEventListener('click', () => {
-        closeToolbarMoreMenu();
-        dtShowForMe(null);
-      });
-    }
-
-    if (els.toolbarMoreResetLayoutButton) {
-      els.toolbarMoreResetLayoutButton.addEventListener('click', () => {
-        closeToolbarMoreMenu();
-        dtResetMyLayout();
-      });
-    }
-
     // Mobilde araç çubuğu ikonları gizlenince Import/Export "daha fazla" menüsünden erişilir
     if (els.toolbarMoreImportButton) {
       els.toolbarMoreImportButton.addEventListener('click', () => {
@@ -10845,15 +10543,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     };
     if (els.columnMenuInsertLeftButton) els.columnMenuInsertLeftButton.addEventListener('click', () => insertFromMenu('left'));
     if (els.columnMenuInsertRightButton) els.columnMenuInsertRightButton.addEventListener('click', () => insertFromMenu('right'));
-    // LAYOUT-ME (16.10): Pin to front / Unpin and Hide for me act on the clicked column (memory + my own tableConfig)
-    const layoutFromMenu = act => {
-      const i = state.activeHeaderColumn;
-      const col = Number.isInteger(i) ? (state._mountedCols || [])[i] : null;
-      closeColumnMenu();
-      if (col && !col.__uiOnly && col.id) act(col.id);
-    };
-    if (els.columnMenuPinButton) els.columnMenuPinButton.addEventListener('click', () => layoutFromMenu(id => dtPinColumn(id, !dtIsPinned(id))));
-    if (els.columnMenuHideMeButton) els.columnMenuHideMeButton.addEventListener('click', () => layoutFromMenu(dtHideForMe));
 
     // mr18: a click outside the New field popover cancels it (the opening click and its anchor are ignored)
     document.addEventListener('click', event => {
@@ -10895,14 +10584,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       els.sortDescButton.addEventListener('click', () => {
         if (!Number.isInteger(state.activeHeaderColumn)) return;
         applyColumnSortOrder(state.activeHeaderColumn, 'desc');
-        closeColumnMenu();
-      });
-    }
-
-    // LAYOUT-ME (16.10): "Newest first" / "Default order" — no column sort
-    if (els.sortClearButton) {
-      els.sortClearButton.addEventListener('click', () => {
-        dtClearUserSort();
         closeColumnMenu();
       });
     }
@@ -11254,7 +10935,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           } else {
             openDueDatePanel();
             state.dueDateSort.active = true;
-            dtDueDateTakesOrder();   // LAYOUT-ME (16.10)
             applyDueDateSort();
             publishDueDateSortConfig();
             publishTableConfig();
@@ -11308,7 +10988,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         closeFieldConfigModal();
         if (fields.length > 0) {
           state.dueDateSort.active = true;
-          dtDueDateTakesOrder();   // LAYOUT-ME (16.10)
           openDueDatePanel();
         } else {
           state.dueDateSort.active = false;
@@ -11352,8 +11031,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     wake: onWakeClick, // programatik uyandırma (modal akışıyla)
     setAssistant,      // Bubble: dynamicTable.setAssistant({assistant_id,agent_name,data_flow_rules,agent})
     refresh: refreshAssistant, // Bubble: ekran değişti sinyali (veri taşımaz) → asistanı taze oku
-    reveal: revealRows,        // GX-REVEAL (07.10): reveal(ids) -> { found, missing, hidden, count, windowed }
-    getLayout: dtGetLayout     // LAYOUT-ME (16.10): { payload, scope, owner, dirty, held } for testing and support
+    reveal: revealRows         // GX-REVEAL (07.10): reveal(ids) -> { found, missing, hidden, count, windowed }
   };
 
   window.setTableData = setTableData;
