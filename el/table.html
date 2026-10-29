@@ -3886,7 +3886,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // GX-FILL-KAYIT (20.10): another Durum value no longer hides the action on a table with a Claim field — the record path builds the
   // claim from the record itself, so a record in any stage can be sent (the extension refuses one with nothing to fill).
   function dtFillState(row) {
-    if (!row) return '';
+    if (!row || row.__gxPend) return '';   // GX-PEND: no record yet, nothing to send
     const id = rowIdOf(row);
     if (id && dtPaket.has(id)) return 'ready';
     const d = dtRowDurum(row);
