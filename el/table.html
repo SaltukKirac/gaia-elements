@@ -2279,6 +2279,12 @@
 #dynamic-table-wrapper .dt-row-open {
   padding: 0;
 }
+/* the actions cell: a 28 px Open button + 2 x 8 px cell padding did not fit the 36 px row (rows came out 47 px) */
+#dynamic-table-wrapper .handsontable td:has(> .dt-row-open) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 1;
+}
 
 #dynamic-table-wrapper .dt-manage-dots {
   width: 15px;
