@@ -133,7 +133,7 @@
 #dynamic-table-wrapper .dt-btn-label { display: none; }
 @media (min-width: 1100px) {
   #dynamic-table-wrapper #dt-btn-import,
-  #dynamic-table-wrapper #dt-btn-download { width: auto; padding: 0 12px 0 10px; color: var(--gx-ink-2, #475569); }
+  #dynamic-table-wrapper #dt-btn-download { width: auto; padding: 0 12px 0 10px; font-size: 13px; color: var(--gx-ink-2, #475569); }
   #dynamic-table-wrapper #dt-btn-import .dt-svg-icon,
   #dynamic-table-wrapper #dt-btn-download .dt-svg-icon { width: 18px; height: 18px; }
   #dynamic-table-wrapper .dt-btn-label { display: inline; }
@@ -2266,6 +2266,18 @@
 
 #dynamic-table-wrapper .dt-header-action-btn--manage {
   font-size: 0;
+}
+
+/* TIDY-ROWS (29.10, Ömer): another element on the app page ships a global "button, select { margin: 10px; padding: 10px
+   14px }". Inside the grid it gave the header "+ / ⋯" pair and the row's Fill / Open buttons 10 px of margin, so the header
+   grew to 61-69 px and every row with a claim package to ~63 px (36 px intended). The grid's own buttons start from zero
+   here (:where keeps this at id specificity, so every "#dynamic-table-wrapper .class" rule still sets its own spacing). */
+#dynamic-table-wrapper :where(button, select) {
+  margin: 0;
+}
+#dynamic-table-wrapper .dt-header-action-btn,
+#dynamic-table-wrapper .dt-row-open {
+  padding: 0;
 }
 
 #dynamic-table-wrapper .dt-manage-dots {
@@ -4666,7 +4678,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         dtAutoWidth._fam = cs && cs.fontFamily ? cs.fontFamily : 'Inter, system-ui, sans-serif';
       }
       ctx.font = '600 12.5px ' + dtAutoWidth._fam;
-      const head = Math.ceil(ctx.measureText(String(col.header || '')).width) + 64;   // type glyph + menu chevron + padding
+      const head = Math.ceil(ctx.measureText(String(col.header || '')).width) + 92;   // type glyph 16 + caret 12 + gaps + th padding 24 + header slack (measured 29.10: 88 px around the text)
       ctx.font = dtAutoWidth._font;
       const rows = state.displayRows || [], n = Math.min(rows.length, DT_AUTO_W_SAMPLE), ws = [];
       const chip = col.type === 'dropdown' || col.multiple === true;
