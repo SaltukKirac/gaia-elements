@@ -2268,7 +2268,7 @@
   font-size: 0;
 }
 
-/* TIDY-CLAIMWAIT (29.10): where an empty claim is (Queued / Preparing / Failed) */
+/* TIDY-CLAIMWAIT (29.10): where an empty claim is (Preparing / Failed) */
 #dynamic-table-wrapper .dt-claim-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 20px; color: var(--gx-ink-3, #94a3b8); }
 #dynamic-table-wrapper .dt-claim-wait--preparing { color: var(--gx-primary, #6366f1); font-weight: 500; }
 #dynamic-table-wrapper .dt-claim-wait--failed { color: var(--gx-err, #dc2626); font-weight: 500; }
@@ -3893,16 +3893,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (d !== null) { const k = dtNormKey(d); if (k === 'claimhazir') return 'ready'; if (k === 'cihazbekleniyor') return 'register'; }
     return dtTableHasClaimField() ? 'check' : '';
   }
-  /* TIDY-CLAIMWAIT (29.10, Ömer): an empty Claim cell said nothing while the claim line (nod-gaia-hat, every 15 min, a record
-     waits 10 min after its last change) was still to make the package. Read from the row only, never guessed:
-       Durum "Claim Hazırlanıyor"  → 'preparing' ("Preparing…", the line is on it)
-       Durum "Hata"                → 'failed'    ("Failed", the line gave up; it does not retry a Hata record by itself)
-       Durum empty (or missing: the mirror leaves empty fields out), no Claim, documents in Evraklar, created in the last
-       60 min → 'queued' ("Queued"; without documents, or older, the row is left empty: the line
-         skips a record with no documents, so "Queued" would never end)
-     A package on the row (Ready ✓) or any other Durum → '' (the cell renders as before). Every new record counts, whichever
-     form button made it: the line does not look at the button either. */
-  const DT_CLAIM_QUEUE_MS = 60 * 60000;
+  /* TIDY-CLAIMWAIT (29.10, Ömer): an empty Claim cell said nothing while the claim was being made. Read from the row only:
+       Durum "Claim Hazırlanıyor" → 'preparing' ("Preparing…"): the form's "Claim Hazırla" button writes it at once, and the
+         claim line (nod-gaia-hat) writes it while its agent runs
+       Durum "Hata"               → 'failed' ("Failed"): the line gave up; it does not retry a Hata record by itself
+     A missing Durum (the mirror leaves empty fields out) on a table with a Durum column is empty. A package on the row
+     (Ready ✓), an empty or any other Durum → '' (the cell renders as before). "Queued" was dropped (Ömer 29.10). */
   function dtClaimWaitState(row) {
     try {
       if (!row) return '';
@@ -3918,21 +3914,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const k = dtNormKey(d);
       if (k === 'claimhazirlaniyor') return 'preparing';
       if (k === 'hata') return 'failed';
-      if (k) return '';
-      // the line only takes a record with documents in "Evraklar" (nod-gaia-hat Evrak-Adresleri); without them it never starts
-      let docs = '';
-      for (const f in row) { if (f !== '__sourceIndex' && dtNormKey(f) === 'evraklar') { const v = row[f]; docs = Array.isArray(v) ? v.join('') : String(v == null ? '' : v).trim(); break; } }
-      if (!docs) return '';
-      const t = Date.parse(String(row._created || row['Created Date'] || ''));
-      return (isFinite(t) && Date.now() - t < DT_CLAIM_QUEUE_MS) ? 'queued' : '';
+      return '';   // empty / other Durum: as before ("Queued" dropped, Ömer 29.10: the form's "Claim Hazırla" writes Claim Hazırlanıyor itself)
     } catch (e) { return ''; }
   }
   function dtRenderClaimWait(td, st) {
     const b = document.createElement('span');
     b.className = 'dt-claim-wait dt-claim-wait--' + st;
     if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
-    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : st === 'failed' ? 'Failed' : 'Queued'));
-    td.title = st === 'preparing' ? 'The claim is being prepared from the documents.' : st === 'failed' ? 'The claim could not be prepared. Check the documents on this record.' : 'Waiting for the claim. It usually arrives within 25 minutes.';
+    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : 'Failed'));
+    td.title = st === 'preparing' ? 'The claim is being prepared from the documents.' : 'The claim could not be prepared. Check the documents on this record.';
     td.appendChild(b);
   }
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
@@ -4216,7 +4206,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       td.style.textAlign = '';
       if (kind === 'number') td.classList.add('htRight');
       if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) {
-        // TIDY-CLAIMWAIT: an empty Claim cell tells where the claim is (Queued / Preparing… / Failed)
+        // TIDY-CLAIMWAIT: an empty Claim cell tells where the claim is (Preparing… / Failed)
         if (dtNormKey(c.id || '') === 'claim') {
           try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st) dtRenderClaimWait(td, st); } catch (e) {}
         }
