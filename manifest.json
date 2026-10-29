@@ -2,9 +2,9 @@
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "omer",
     "kisi":  "Omer",
-    "rev":  20,
+    "rev":  21,
     "main_rev":  51,
-    "updated":  "2026-10-29T15:19:13Z",
+    "updated":  "2026-10-29T15:34:55Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -15,38 +15,44 @@
                                             "updated":  "2026-10-23T10:01:19Z"
                                         },
                      "architect":  {
-                                       "commit":  "78ebd4b30d2905ee2ec7b73ac966c328c93bf559",
+                                       "commit":  "ccbb79da78fa02b286d430b52671c728dd2c3f56",
                                        "path":  "el/architect.html",
-                                       "blob":  "d436f51dffb9027d4c3c6da61b92228a4bd8e412",
-                                       "bytes":  4269832,
+                                       "blob":  "9abff5191a490c6068f2062dee68ec42d80c9016",
+                                       "bytes":  3273107,
                                        "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-10-27T16:50:45Z"
+                                       "updated":  "2026-10-29T15:34:55Z",
+                                       "kaynak":  "omer",
+                                       "taban":  "78ebd4b30d2905ee2ec7b73ac966c328c93bf559"
                                    },
                      "form":  {
-                                  "commit":  "0d27aba7037c1c682de225d99c110e3eb9392fe2",
+                                  "commit":  "ccbb79da78fa02b286d430b52671c728dd2c3f56",
                                   "path":  "el/form.html",
-                                  "blob":  "19ffb2d328f9abb7ca6fb5276e67ef597af3263e",
-                                  "bytes":  852169,
+                                  "blob":  "7c3cc56aaabc4303554265459c1050472d66838a",
+                                  "bytes":  860232,
                                   "title":  "Dynamic form - app page",
-                                  "updated":  "2026-10-29T10:28:26Z",
+                                  "updated":  "2026-10-29T15:34:55Z",
                                   "kaynak":  "omer",
                                   "taban":  "f825886151c4cce8a991534529af95a2c5928fd6"
                               },
                      "onboarding":  {
-                                        "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
+                                        "commit":  "ccbb79da78fa02b286d430b52671c728dd2c3f56",
                                         "path":  "el/onboarding.html",
-                                        "blob":  "054f1a108f13ff366d14489d07ba1e1b8a4feaf6",
-                                        "bytes":  58373,
+                                        "blob":  "55bb7e98222a38466e95892166416b1a3c21bd39",
+                                        "bytes":  60028,
                                         "title":  "Onboarding widget",
-                                        "updated":  "2026-09-30T13:10:00Z"
+                                        "updated":  "2026-10-29T15:34:55Z",
+                                        "kaynak":  "omer",
+                                        "taban":  "f39ee569c4627b019ecd98938b52097296c54535"
                                     },
                      "pricing":  {
-                                     "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                     "commit":  "ccbb79da78fa02b286d430b52671c728dd2c3f56",
                                      "path":  "el/pricing.html",
-                                     "blob":  "2f84ca306744bf37ed5760f9610d90b8413025ed",
-                                     "bytes":  23322,
+                                     "blob":  "b41dbbea782d52c590a0dd90b0f29f7e5e78070c",
+                                     "bytes":  23618,
                                      "title":  "Pricing page (public, /pricing)",
-                                     "updated":  "2026-09-24T21:46:46Z"
+                                     "updated":  "2026-10-29T15:34:55Z",
+                                     "kaynak":  "omer",
+                                     "taban":  "b9aef8edee91bc5c6981d3f94130c64f5e160353"
                                  },
                      "prompt-builder":  {
                                             "commit":  "d9f50da4f263f293ed5a5e36000d01b769733e07",
@@ -57,30 +63,34 @@
                                             "updated":  "2026-09-24T20:35:50Z"
                                         },
                      "table":  {
-                                   "commit":  "1886b6427ac2ff57b962954b128f93b0fd3d94f4",
+                                   "commit":  "ccbb79da78fa02b286d430b52671c728dd2c3f56",
                                    "path":  "el/table.html",
-                                   "blob":  "72cf3ac02cdc09048917375526f474f9802fbb00",
-                                   "bytes":  609258,
+                                   "blob":  "88b72ab776fc9c182c2fdb87ca7031702ed015cc",
+                                   "bytes":  614424,
                                    "title":  "Dynamic table (tablev2) - app page",
-                                   "updated":  "2026-10-29T15:19:13Z",
+                                   "updated":  "2026-10-29T15:34:55Z",
                                    "kaynak":  "omer",
                                    "taban":  "975b3f75fe356fc6503d0990bce19b2593a96c4c"
                                },
                      "template-page":  {
-                                           "commit":  "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
+                                           "commit":  "ccbb79da78fa02b286d430b52671c728dd2c3f56",
                                            "path":  "el/template-page.html",
-                                           "blob":  "ea4781cce9230c7fff12a9102a770d9e64326336",
-                                           "bytes":  286439,
+                                           "blob":  "c6ae9299962a9febae5c6d3d9af7a010636501a2",
+                                           "bytes":  273290,
                                            "title":  "Template detail page (public, /template/\u003cslug\u003e)",
-                                           "updated":  "2026-10-22T09:24:24Z"
+                                           "updated":  "2026-10-29T15:34:55Z",
+                                           "kaynak":  "omer",
+                                           "taban":  "5017b506044fe9c64606cef4a9bf00a3b28e88b8"
                                        },
                      "templates-button":  {
-                                              "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
+                                              "commit":  "ccbb79da78fa02b286d430b52671c728dd2c3f56",
                                               "path":  "el/templates-button.html",
-                                              "blob":  "6cf68a5b55f2523f9a360a021b3e65b24c1c05dd",
-                                              "bytes":  28003,
+                                              "blob":  "1d6bdffdd3442decd5e91567d80367b14154d1f2",
+                                              "bytes":  28604,
                                               "title":  "Flagship home mount (templates button)",
-                                              "updated":  "2026-09-24T21:46:46Z"
+                                              "updated":  "2026-10-29T15:34:55Z",
+                                              "kaynak":  "omer",
+                                              "taban":  "b9aef8edee91bc5c6981d3f94130c64f5e160353"
                                           }
                  }
 }
