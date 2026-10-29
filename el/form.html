@@ -6177,6 +6177,37 @@
       var bdfCreateFooterKey = "";
       var bdfCreateFooterObserved = false;
 
+      var bdfCreateFooterPinRaf = 0;
+
+      // Çubuk formun sonunda durur; form görünür alandan uzunsa görünür alanın altına kaydırılır,
+      // sona inince kendi yerine oturur (son alanı örtmez).
+      function bdf_pinCreateFooter() {
+        const footer = byId("bdfCreateFooter");
+        if (!footer) return;
+        footer.style.transform = "";
+        footer.classList.remove("is-pinned");
+        if (footer.hidden) return;
+        const rect = footer.getBoundingClientRect();
+        if (!rect.height) return;
+        let visibleBottom = window.innerHeight || document.documentElement.clientHeight;
+        let node = footer.parentElement;
+        while (node && node !== document.body && node !== document.documentElement) {
+          const oy = getComputedStyle(node).overflowY;
+          if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight + 1) {
+            visibleBottom = Math.min(visibleBottom, node.getBoundingClientRect().bottom);
+            break;
+          }
+          node = node.parentElement;
+        }
+        const shift = Math.floor(visibleBottom - rect.bottom);
+        if (shift >= 0) return;
+        // Formun başından yukarı taşma: çok kısa pencerede çubuk yerinde kalır.
+        const startTop = formContainer ? formContainer.getBoundingClientRect().top : -Infinity;
+        if (rect.top + shift < startTop) return;
+        footer.style.transform = `translateY(${shift}px)`;
+        footer.classList.add("is-pinned");
+      }
+
       function bdf_isShown(el) {
         return Boolean(el) && el.style.display !== "none";
       }
@@ -6240,8 +6271,20 @@
           btn.textContent = (busy && i === 0 && busyLabel) ? busyLabel : btn.dataset.label;
         });
 
+        bdf_pinCreateFooter();
+
         if (!bdfCreateFooterObserved && typeof MutationObserver !== "undefined") {
           bdfCreateFooterObserved = true;
+          // Kaydırma, pencere boyu ve form boyu değişince çubuğu yeniden yerleştir.
+          const schedulePin = () => {
+            if (bdfCreateFooterPinRaf) return;
+            bdfCreateFooterPinRaf = requestAnimationFrame(() => { bdfCreateFooterPinRaf = 0; bdf_pinCreateFooter(); });
+          };
+          document.addEventListener("scroll", schedulePin, { capture: true, passive: true });
+          window.addEventListener("resize", schedulePin, { passive: true });
+          if (typeof ResizeObserver !== "undefined" && formEl) {
+            try { new ResizeObserver(schedulePin).observe(formEl); } catch (_) { }
+          }
           // Test kipi, düzenleme paneli gibi yollar çubukları stil ile gizler; alt çubuk onları izler.
           const mo = new MutationObserver(() => bdf_renderCreateFooter());
           [actionBar, formEl, moreActions, toggleInlineEditBtn, predictedActionBtn].forEach((el) => {
@@ -18737,9 +18780,9 @@
 
   <style data-bdf-create-footer>
     /* CREATE-FOOTER: yeni kayıtta aksiyon düğmeleri formun altında, kaydırırken görünür kalır */
+    /* sticky burada çalışmaz (üst kart overflow:hidden); görünür alanın altına JS ile kaydırılır (bdf_pinCreateFooter) */
     #bdf-root .bdf-create-footer {
-      position: sticky;
-      bottom: 0;
+      position: relative;
       z-index: 250;
       display: flex;
       flex-wrap: wrap;
@@ -18749,6 +18792,10 @@
       padding: 12px 0;
       background: var(--gx-surface, #ffffff);
       border-top: 1px solid var(--gx-line-soft, #eef2f7);
+    }
+
+    #bdf-root .bdf-create-footer.is-pinned {
+      box-shadow: 0 -6px 16px -10px rgba(15, 23, 42, 0.25);
     }
 
     #bdf-root .bdf-create-footer[hidden] {
