@@ -5806,6 +5806,40 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   const AYNA = { windowSize: 200, fullLoadMax: 600, pageSize: 1500, maxRows: 20000, timeoutMs: 45000, screenWaitMs: 30000, renderEveryMs: 1200, cacheTtlMs: 10 * 60000, pageCacheTtlMs: 2 * 60000,
                  loading: false, seq: 0, last: null, stats: null, screenKey: '', cfg: null, cache: new Map(),
                  win: null, criteria: { where: null, text: '', order_by: '' }, critKey: '', pageCache: new Map(), cacheGen: 0, distinct: new Map(), hooked: [], fields: [] };
+  /* TIDY-KEEP (29.10, Ömer): the memory cache dies with the page, so a reload while the free-plan server sleeps showed an
+     EMPTY grid for 30-60 s ("The Gaia server is waking up"), as if the records were gone. Every cache write is now also kept
+     in this TAB's sessionStorage (gone when the tab closes; never localStorage), keyed by the signed-in Bubble user
+     (bubble_session_uid; no uid = nothing is kept) + the screen + the field projection. A reload paints those rows at once,
+     marked "from HH:MM · updating", and the fresh answer replaces them as before. Kept at most 12 h, 1.5 MB per screen,
+     4 screens; a full store drops the oldest. aynaCacheDrop (data changed) drops the kept copy too. */
+  const AYNA_KEEP = { prefix: 'gxAynaKeep1|', maxAgeMs: 12 * 3600000, maxBytes: 1500000, maxScreens: 4 };
+  function aynaKeepUid() { try { return String(window.bubble_session_uid || '').trim(); } catch (e) { return ''; } }
+  function aynaKeepKey(cacheKey) { const u = aynaKeepUid(); return u ? AYNA_KEEP.prefix + u + '|' + cacheKey : ''; }
+  function aynaKeepAll() { const out = []; try { for (let i = 0; i < sessionStorage.length; i++) { const k = sessionStorage.key(i); if (k && k.indexOf(AYNA_KEEP.prefix) === 0) out.push(k); } } catch (e) {} return out; }
+  function aynaKeepPut(cacheKey, v) {
+    try {
+      const k = aynaKeepKey(cacheKey); if (!k || !v || !Array.isArray(v.rows) || !v.rows.length) return;
+      const s = JSON.stringify({ at: v.at || Date.now(), rows: v.rows, windowed: !!v.windowed, total: v.total || 0 });
+      if (s.length > AYNA_KEEP.maxBytes) { sessionStorage.removeItem(k); return; }
+      const others = aynaKeepAll().filter(x => x !== k);
+      const ageOf = x => { try { return JSON.parse(sessionStorage.getItem(x) || '{}').at || 0; } catch (e) { return 0; } };
+      others.sort((a, b) => ageOf(a) - ageOf(b));
+      while (others.length >= AYNA_KEEP.maxScreens) sessionStorage.removeItem(others.shift());
+      try { sessionStorage.setItem(k, s); }
+      catch (e) { others.forEach(x => sessionStorage.removeItem(x)); try { sessionStorage.setItem(k, s); } catch (e2) {} }
+    } catch (e) {}
+  }
+  function aynaKeepGet(cacheKey) {
+    try {
+      const k = aynaKeepKey(cacheKey); if (!k) return null;
+      const o = JSON.parse(sessionStorage.getItem(k) || 'null');
+      if (!o || !Array.isArray(o.rows) || !o.rows.length || !o.at || Date.now() - o.at > AYNA_KEEP.maxAgeMs) { sessionStorage.removeItem(k); return null; }
+      o.kept = true; return o;
+    } catch (e) { return null; }
+  }
+  function aynaKeepDrop(screenKey) { try { const u = aynaKeepUid(); if (!u) return; const p = AYNA_KEEP.prefix + u + '|' + screenKey; aynaKeepAll().forEach(k => { if (k === p || k.indexOf(p + '|') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
+  (function () { const set0 = AYNA.cache.set.bind(AYNA.cache); AYNA.cache.set = function (k, v) { const r = set0(k, v); aynaKeepPut(k, v); return r; }; })();
+  function aynaClock(at) { try { const d = new Date(at); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } }
   function aynaScreenOf(config) {
     let ag = config && config.agent;
     if (typeof ag === 'string') { try { ag = JSON.parse(ag); } catch (e) { ag = null; } }
@@ -5925,7 +5959,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // mr18: the memory cache is keyed by the screen AND the field projection → a page cached before a field was added is
   // never painted as the new layout's first paint
   function aynaCacheKey(scr) { return scr.key + '|' + AYNA.fields.join('\u0001'); }
-  function aynaCacheDrop(screenKey) { Array.from(AYNA.cache.keys()).forEach(k => { if (k === screenKey || k.indexOf(screenKey + '|') === 0) AYNA.cache.delete(k); }); }
+  function aynaCacheDrop(screenKey) { Array.from(AYNA.cache.keys()).forEach(k => { if (k === screenKey || k.indexOf(screenKey + '|') === 0) AYNA.cache.delete(k); }); aynaKeepDrop(screenKey); }
   // mr18: a runtime reload of a WINDOWED screen starts from the current filters / search / column sort (only for columns
   // that still exist), so the first page is never an unfiltered one while the header badges say "filtered"
   function aynaSeedCriteria(columns) {
@@ -6346,15 +6380,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const seedQuery = seeded ? Object.assign({ limit: AYNA.windowSize, offset: 0, order_by: seed.order_by || '_created asc' }, seed.where ? { where: seed.where } : {}, seed.text ? { text: seed.text } : {}) : undefined;
       // mr21: retried while a sleeping server boots (the status line says so); a newer load stops the retries
       const live = () => seq === AYNA.seq && aynaAlive();
-      const onWait = (a, max) => { if (live()) aynaSetStatus('waking', { attempt: a, max: max }); };
+      const onWait = (a, max) => { if (!live()) return; let n = 0; try { n = painted ? (rows.length || (cached ? cached.rows.length : 0)) : 0; } catch (e) { n = 0; } aynaSetStatus('waking', { attempt: a, max: max, keptAt: AYNA.keptAt, rows: n }); };
       const firstReq = aynaScreenCall({ screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: 0, limit: AYNA.windowSize, fresh: true, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined, query: seedQuery }, null, live, onWait);
-      const cached = seeded ? null : AYNA.cache.get(aynaCacheKey(scr));   // the cache holds the unfiltered page 1
-      if (cached && Date.now() - cached.at < AYNA.cacheTtlMs && Array.isArray(cached.rows) && cached.rows.length) {
+      let cached = seeded ? null : AYNA.cache.get(aynaCacheKey(scr));   // the cache holds the unfiltered page 1
+      // TIDY-KEEP: nothing in memory (a reload) → the rows this tab kept, however old (≤ 12 h); the status says how old
+      if (!seeded && !(cached && Date.now() - cached.at < AYNA.cacheTtlMs)) { const kept = aynaKeepGet(aynaCacheKey(scr)); if (kept) cached = kept; }
+      AYNA.keptAt = (cached && cached.kept) ? cached.at : 0;
+      if (cached && (cached.kept || Date.now() - cached.at < AYNA.cacheTtlMs) && Array.isArray(cached.rows) && cached.rows.length) {
         // a screen seen in the last 10 minutes paints at once from memory and refreshes underneath; in window mode the cached
         // page is page 1 of the cached total (pager up at once) until the fresh answer replaces it
         if (cached.windowed) { AYNA.win = { page: 1, size: AYNA.windowSize, total: cached.total || cached.rows.length }; AYNA.critKey = JSON.stringify(AYNA.criteria); }
         aynaPaint(cached.rows, columns, true); painted = true; fromCache = true;
-        aynaSetStatus('refreshing', { rows: cached.rows.length, total: cached.windowed ? (cached.total || 0) : 0, windowed: !!cached.windowed }); aynaPager();
+        aynaSetStatus('refreshing', { rows: cached.rows.length, total: cached.windowed ? (cached.total || 0) : 0, windowed: !!cached.windowed, keptAt: AYNA.keptAt }); aynaPager();
       } else {
         setTableData([], columns);
         aynaSetStatus('loading', { rows: 0 });
@@ -6408,6 +6445,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now() });   // mr18: screen + field projection
       if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }
       AYNA.stats = { rows: rows.length, total: total, pages: pages, ms: Date.now() - t0, fresh: fresh, preview: preview, cached: fromCache, windowed: false, table: table, screen: scr };
+      AYNA.keptAt = 0;   // TIDY-KEEP: fresh rows on screen
       aynaSetStatus('ready', AYNA.stats); aynaPager();
       aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
       log('[AYNA] loaded', AYNA.stats);
@@ -6430,7 +6468,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const hid = AYNA.goneHidden || 0;   // GX-GONE: rows the viewer deleted are not counted
       if (hid && info && typeof info.total === 'number' && (kind === 'ready' || kind === 'window')) info = Object.assign({}, info, { total: Math.max(0, info.total - hid) });
       el.title = '';
-      if (kind === 'loading') el.textContent = 'Loading rows' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
+      const kept = info && info.keptAt ? aynaClock(info.keptAt) : '';   // TIDY-KEEP: rows painted from this tab's kept copy
+      if (kind === 'refreshing' && kept) el.textContent = n(info.rows || 0) + (info.rows === 1 ? ' record' : ' records') + ' from ' + kept + ' · updating…';
+      else if (kind === 'waking' && info && info.rows) el.textContent = n(info.rows) + (info.rows === 1 ? ' record' : ' records') + (kept ? ' from ' + kept : '') + ' · the Gaia server is waking up (' + n(info.attempt) + '/' + n(info.max) + ')…';
+      else if (kind === 'loading') el.textContent = 'Loading rows' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
       else if (kind === 'refreshing') el.textContent = (info && info.windowed && info.total) ? ('Rows 1–' + n(info.rows) + ' of ' + n(info.total) + ' · refreshing…') : (n(info && info.rows || 0) + ' rows · refreshing' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…');
       else if (kind === 'paging') el.textContent = 'Loading page ' + n(info.page) + '…';
       else if (kind === 'searching') el.textContent = 'Searching…';
@@ -6453,7 +6494,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         el.title = tech; el.setAttribute('data-tech', tech);
       }
       else if (kind === 'error') {
-        el.textContent = 'Mirror unavailable: ' + (info && info.message ? info.message : '') + (info && info.fallback ? ' (showing the ' + n(info.fallback) + ' rows already loaded)' : ' (no rows loaded)') + ' ';
+        // TIDY-KEEP: plain words; the server's own message stays in the tooltip
+        const keptE = AYNA.keptAt ? ' from ' + aynaClock(AYNA.keptAt) : '';
+        el.textContent = (info && info.fallback) ? ('Could not refresh. Showing ' + n(info.fallback) + (info.fallback === 1 ? ' record' : ' records') + keptE + '. ') : 'Could not load the records. ';
+        el.title = 'Mirror unavailable: ' + (info && info.message ? info.message : '');
         // mr21: one tap to ask again (the server has usually woken up by now)
         const b = document.createElement('button'); b.type = 'button'; b.className = 'dt-ayna-retry'; b.textContent = 'Try again';
         b.style.cssText = 'border:0;background:none;padding:0;font:inherit;color:var(--gx-primary,#6366f1);cursor:pointer;text-decoration:underline';
