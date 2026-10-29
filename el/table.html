@@ -5858,16 +5858,22 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
      EMPTY grid for 30-60 s ("The Gaia server is waking up"), as if the records were gone. Every cache write is now also kept
      in this TAB's sessionStorage (gone when the tab closes; never localStorage), keyed by the signed-in Bubble user
      (bubble_session_uid; no uid = nothing is kept) + the screen + the field projection. A reload paints those rows at once,
-     marked "from HH:MM · updating", and the fresh answer replaces them as before. Kept at most 12 h, 1.5 MB per screen,
+     marked "from HH:MM · updating", and the fresh answer replaces them as before. Claim packages / key lines are stored masked
+     (dtMaskPaket), never as values. Kept at most 12 h, 1.5 MB per screen,
      4 screens; a full store drops the oldest. aynaCacheDrop (data changed) drops the kept copy too. */
-  const AYNA_KEEP = { prefix: 'gxAynaKeep1|', maxAgeMs: 12 * 3600000, maxBytes: 1500000, maxScreens: 4 };
+  const AYNA_KEEP = { prefix: 'gxAynaKeep2|', maxAgeMs: 12 * 3600000, maxBytes: 1500000, maxScreens: 4 };
+  // v1 (29.10, kanal rev 8-9 only) stored the claim package unmasked: any v1 copy left in a tab is removed on load
+  try { Object.keys(sessionStorage).forEach(k => { if (k.indexOf('gxAynaKeep1|') === 0) sessionStorage.removeItem(k); }); } catch (e) {}
   function aynaKeepUid() { try { return String(window.bubble_session_uid || '').trim(); } catch (e) { return ''; } }
   function aynaKeepKey(cacheKey) { const u = aynaKeepUid(); return u ? AYNA_KEEP.prefix + u + '|' + cacheKey : ''; }
   function aynaKeepAll() { const out = []; try { for (let i = 0; i < sessionStorage.length; i++) { const k = sessionStorage.key(i); if (k && k.indexOf(AYNA_KEEP.prefix) === 0) out.push(k); } } catch (e) {} return out; }
   function aynaKeepPut(cacheKey, v) {
     try {
       const k = aynaKeepKey(cacheKey); if (!k || !v || !Array.isArray(v.rows) || !v.rows.length) return;
-      const s = JSON.stringify({ at: v.at || Date.now(), rows: v.rows, windowed: !!v.windowed, total: v.total || 0 });
+      // never the encrypted claim package (GX-FILL: memory only) nor browser key lines: they are kept as their badges; the Fill
+      // button still works (a row without its package fetches it on click, mirror_get). This also keeps a row ~3 KB, not ~35 KB.
+      const rows = v.rows.map(r => { const o = {}; for (const f in r) { if (f !== '__sourceIndex') o[f] = dtMaskPaket(r[f]); } return o; });
+      const s = JSON.stringify({ at: v.at || Date.now(), rows: rows, windowed: !!v.windowed, total: v.total || 0 });
       if (s.length > AYNA_KEEP.maxBytes) { sessionStorage.removeItem(k); return; }
       const others = aynaKeepAll().filter(x => x !== k);
       const ageOf = x => { try { return JSON.parse(sessionStorage.getItem(x) || '{}').at || 0; } catch (e) { return 0; } };
