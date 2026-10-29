@@ -6073,9 +6073,14 @@
         }
       }
 
+      // Aksiyonsuz kaydet, runSubmitFlow'daki "aksiyon seçilmedi" kapısını bir kez geçer
+      // (yoksa aksiyonu olan formda "Create without action" kaydı hiç göndermiyordu).
+      var bdfCreateWithoutActionPending = false;
+
       function triggerWithoutAction() {
         if (_bdfBlockActionIfTestMode()) return; // test modu: gerçek kayıt oluşturma yok
         if (bdf_deferUntilUploadsSettle(triggerWithoutAction, "Creating the record")) return;
+        bdfCreateWithoutActionPending = true;
         selectedActionId = "";
         selectedActionName = "Create";
         triggeredActionUniqueId = "";
@@ -6095,6 +6100,7 @@
 
       function selectActionAndTrigger(option) {
         if (!option) return;
+        bdfCreateWithoutActionPending = false;
         selectedActionId = String(option.id || "").trim();
         selectedActionName = String(option.name || getDefaultActionLabel()).trim() || getDefaultActionLabel();
         updateActionBarUi();
@@ -13280,7 +13286,7 @@
           traceAutosave("runSubmitFlow:skip-waiting-server-refresh", { trigger });
           return;
         }
-        if (!autosave && !forceSubmit && requiresExplicitActionSelection() && !isActionSelectionValid()) {
+        if (!autosave && !forceSubmit && !bdfCreateWithoutActionPending && requiresExplicitActionSelection() && !isActionSelectionValid()) {
           traceAutosave("runSubmitFlow:blocked-missing-action", { trigger });
           openActionMenu();
           return;
@@ -13349,6 +13355,7 @@
         }
 
         isFormSaving = true;
+        if (!autosave) bdfCreateWithoutActionPending = false; // bir kerelik: bu gönderimde kullanıldı
         activeSubmitAttemptId += 1;
         const submitAttemptId = activeSubmitAttemptId;
         if (!autosave) {
