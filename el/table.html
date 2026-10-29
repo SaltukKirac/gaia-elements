@@ -2268,6 +2268,14 @@
   font-size: 0;
 }
 
+/* TIDY-CLAIMWAIT (29.10): where an empty claim is (Queued / Preparing / Failed) */
+#dynamic-table-wrapper .dt-claim-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 20px; color: var(--gx-ink-3, #94a3b8); }
+#dynamic-table-wrapper .dt-claim-wait--preparing { color: var(--gx-primary, #6366f1); font-weight: 500; }
+#dynamic-table-wrapper .dt-claim-wait--failed { color: var(--gx-err, #dc2626); font-weight: 500; }
+#dynamic-table-wrapper .dt-claim-spin { width: 11px; height: 11px; border: 2px solid var(--gx-line, #e2e8f0); border-top-color: var(--gx-primary, #6366f1); border-radius: 50%; animation: dt-claim-spin .9s linear infinite; flex: 0 0 auto; }
+@keyframes dt-claim-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .dt-claim-spin { animation: none; } }
+
 /* TIDY-ROWS (29.10, Ömer): another element on the app page ships a global "button, select { margin: 10px; padding: 10px
    14px }". Inside the grid it gave the header "+ / ⋯" pair and the row's Fill / Open buttons 10 px of margin, so the header
    grew to 61-69 px and every row with a claim package to ~63 px (36 px intended). The grid's own buttons start from zero
@@ -3885,6 +3893,40 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (d !== null) { const k = dtNormKey(d); if (k === 'claimhazir') return 'ready'; if (k === 'cihazbekleniyor') return 'register'; }
     return dtTableHasClaimField() ? 'check' : '';
   }
+  /* TIDY-CLAIMWAIT (29.10, Ömer): an empty Claim cell said nothing while the claim line (nod-gaia-hat, every 15 min, a record
+     waits 10 min after its last change) was still to make the package. Read from the row only, never guessed:
+       Durum "Claim Hazırlanıyor"  → 'preparing' ("Preparing…", the line is on it)
+       Durum "Hata"                → 'failed'    ("Failed", the line gave up; it does not retry a Hata record by itself)
+       Durum empty, no Claim, created in the last 60 min → 'queued' ("Queued"; an older empty row is left empty: the line
+         skips a record with no documents, so "Queued" would never end)
+     A package on the row (Ready ✓) or any other Durum → '' (the cell renders as before). Every new record counts, whichever
+     form button made it: the line does not look at the button either. */
+  const DT_CLAIM_QUEUE_MS = 60 * 60000;
+  function dtClaimWaitState(row) {
+    try {
+      if (!row) return '';
+      const id = rowIdOf(row);
+      if (id && dtPaket.has(id)) return '';
+      let claim = '';
+      for (const k in row) { if (k !== '__sourceIndex' && dtNormKey(k) === 'claim') { claim = String(row[k] == null ? '' : row[k]).trim(); break; } }
+      if (claim) return '';
+      const d = dtRowDurum(row); if (d === null) return '';
+      const k = dtNormKey(d);
+      if (k === 'claimhazirlaniyor') return 'preparing';
+      if (k === 'hata') return 'failed';
+      if (k) return '';
+      const t = Date.parse(String(row._created || row['Created Date'] || ''));
+      return (isFinite(t) && Date.now() - t < DT_CLAIM_QUEUE_MS) ? 'queued' : '';
+    } catch (e) { return ''; }
+  }
+  function dtRenderClaimWait(td, st) {
+    const b = document.createElement('span');
+    b.className = 'dt-claim-wait dt-claim-wait--' + st;
+    if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
+    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : st === 'failed' ? 'Failed' : 'Queued'));
+    td.title = st === 'preparing' ? 'The claim is being prepared from the documents.' : st === 'failed' ? 'The claim could not be prepared. Check the documents on this record.' : 'Waiting for the claim. It usually arrives within 25 minutes.';
+    td.appendChild(b);
+  }
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
   function dtFillButtonHtml(st) {
     if (!st) return '';
@@ -4165,7 +4207,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       td.removeAttribute('title');
       td.style.textAlign = '';
       if (kind === 'number') td.classList.add('htRight');
-      if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) return;
+      if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) {
+        // TIDY-CLAIMWAIT: an empty Claim cell tells where the claim is (Queued / Preparing… / Failed)
+        if (dtNormKey(c.id || '') === 'claim') {
+          try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st) dtRenderClaimWait(td, st); } catch (e) {}
+        }
+        return;
+      }
 
       if (kind === 'number') { dtAppendText(td, typeof value === 'number' ? dtNumberText(c, value) : dtRawText(value)); return; }
       if (kind === 'date') { dtAppendText(td, dtIsoText(value) || dtRawText(value)); return; }
