@@ -2,9 +2,9 @@
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "omer",
     "kisi":  "Omer",
-    "rev":  7,
+    "rev":  8,
     "main_rev":  51,
-    "updated":  "2026-10-29T09:31:10Z",
+    "updated":  "2026-10-29T09:35:32Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -23,12 +23,12 @@
                                        "updated":  "2026-10-27T16:50:45Z"
                                    },
                      "form":  {
-                                  "commit":  "31666a4486c45761cae889615161e97b7641eb2e",
+                                  "commit":  "114a719b844473badef114109a6cd75ad28eb3f6",
                                   "path":  "el/form.html",
-                                  "blob":  "9b8dbd4b89fff3c83aa622f447389af286465ec3",
-                                  "bytes":  847866,
+                                  "blob":  "38e93c70b15aeaaf6adb095622c8a74879198482",
+                                  "bytes":  850279,
                                   "title":  "Dynamic form - app page",
-                                  "updated":  "2026-10-29T09:31:10Z",
+                                  "updated":  "2026-10-29T09:35:32Z",
                                   "kaynak":  "omer",
                                   "taban":  "f825886151c4cce8a991534529af95a2c5928fd6"
                               },
