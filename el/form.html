@@ -333,6 +333,43 @@
     display: none;
   }
 
+  /* FOLDER-UP (22.10.2026): "Choose a folder" (yalnız çoklu alan, masaüstü) */
+  #bdf-root .file-folder-row {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  #bdf-root .file-folder-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 6px 12px;
+    border: 1px solid var(--gx-line, #e2e8f0);
+    border-radius: var(--gx-r-sm, 6px);
+    background: var(--gx-surface, #ffffff);
+    color: var(--gx-ink-2, #475569);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+  }
+
+  #bdf-root .file-folder-btn:hover {
+    border-color: var(--gx-primary, #6366f1);
+    color: var(--gx-primary, #6366f1);
+  }
+
+  #bdf-root .file-folder-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--gx-ring, 0 0 0 3px rgba(99, 102, 241, 0.25));
+  }
+
+  #bdf-root .file-folder-input {
+    display: none;
+  }
+
   #bdf-root .bubble-uploader-host {
     width: 100%;
     cursor: default;
@@ -3025,6 +3062,8 @@
             </div>
           </div>
           <form id="dynamicForm" class="grid"></form>
+          <!-- CREATE-FOOTER: yeni kayıtta aksiyonlar formun altında, menüsüz düğme olarak -->
+          <div id="bdfCreateFooter" class="bdf-create-footer" role="group" aria-label="Actions" hidden></div>
           <div class="inline-row" id="formActions" style="margin-top: 12px;">
             <button id="submitBtn" type="submit">Submit</button>
             <button id="clearBtn" type="button" class="ghost">Clear</button>
@@ -4168,7 +4207,9 @@
         // 30.07: varsayılan 10 → 30. Evrak akışında kullanıcı 16 fotoğraf yükledi, 10'dan
         // sonrası SESSİZCE atılıyordu (hem burada hem dahili handleFiles aynı 10'u kullanır).
         // Bubble input'u (MULTIFILEUPLOADER_MAX_FILES) verilirse yine o kazanır.
-        const n = bdf_readInt(raw, 30);
+        // 27.10.2026 (NOD toplantısı: "34 fotoğraftan 20'sini aldı, sınır varsa kalksın"): varsayılan 30 → 200. Ekspertiz dosyası
+        // 30+ fotoğraf + evrakla geliyor; fazlası sessizce atılıyordu (bdf_applyUrlLimit SONUNCULARI tutar).
+        const n = bdf_readInt(raw, 200);
         return Math.max(1, n);
       }
 
@@ -4670,13 +4711,37 @@
         } catch (_) { }
       }
 
+      // Bubble MultiFileUploader = Dropzone.js (22.10.2026 canlı DOM): örnek .dropzone öğesinin `dropzone` alanında,
+      // gizli dosya input'u ise BODY'nin altında (hiddenInputContainer), yükleyicinin içinde DEĞİL. Input her
+      // seçimden sonra yeniden kurulur; her seferinde örnekten taze okunmalı.
+      function bdf_findDropzoneInstance(rootEl) {
+        try {
+          if (!rootEl) return null;
+          const cands = [rootEl].concat(Array.from(rootEl.querySelectorAll ? rootEl.querySelectorAll(".dropzone, .dz-clickable") : []));
+          for (const el of cands) {
+            const dz = el && el.dropzone;
+            if (dz && typeof dz.addFile === "function") return dz;
+          }
+        } catch (_) { }
+        return null;
+      }
+
+      function bdf_findExternalUploaderInput(mountEl) {
+        if (!mountEl) return null;
+        const inner = mountEl.querySelector && mountEl.querySelector('input[type="file"]');
+        if (inner) return inner;
+        const dz = bdf_findDropzoneInstance(mountEl);
+        const hidden = dz && dz.hiddenFileInput;
+        return hidden && hidden.nodeType === 1 && hidden.isConnected ? hidden : null;
+      }
+
       function bdf_tryAssignDroppedFilesToExternalUploaderInput(mountEl, filesLike) {
         try {
           if (!mountEl) return false;
           const files = Array.from(filesLike || []).filter(Boolean);
           if (!files.length) return false;
 
-          const input = mountEl.querySelector && mountEl.querySelector('input[type="file"]');
+          const input = bdf_findExternalUploaderInput(mountEl);
           if (!input) return false;
 
           // Programatik files ataması her tarayıcıda garanti değil; mümkünse DataTransfer ile deneyelim.
@@ -4699,6 +4764,208 @@
             } catch (_) { }
           }
           return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      // === FOLDER-UP (22.10.2026): klasör sürükle-bırak + "Choose a folder" (yalnız çoklu dosya alanları) ===
+      // Klasörün dosyaları (alt klasörler dahil, ada göre sıralı) düz listeye açılır; gizli / sistem dosyaları
+      // (.DS_Store, Thumbs.db, desktop.ini, ~$ Office geçicileri, nokta ile başlayan klasörler) atlanır. Liste sonra
+      // alanın olağan yoluna gider (dahili handleFiles ya da Bubble MultiFileUploader input'u); dosya sayısı ve boyut
+      // sınırları orada uygulanır. BDF_FOLDER_MAX_SCAN yalnız dev klasörlerde tarayıcının donmasını önler.
+      const BDF_FOLDER_MAX_SCAN = 1000;
+
+      function bdf_isFolderJunkName(name) {
+        const n = String(name || "");
+        return !n || n.charAt(0) === "." || n.indexOf("~$") === 0 || /^(thumbs\.db|ehthumbs\.db|desktop\.ini)$/i.test(n);
+      }
+
+      function bdf_sortByPath(a, b) {
+        return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
+      }
+
+      // Drop olayı sürerken çağrılmalı: DataTransfer.items olay bitince boşalır.
+      function bdf_takeDropEntries(dataTransfer) {
+        const out = [];
+        try {
+          const items = dataTransfer && dataTransfer.items;
+          if (!items || !items.length) return out;
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (!item || item.kind !== "file" || typeof item.webkitGetAsEntry !== "function") continue;
+            const entry = item.webkitGetAsEntry();
+            if (entry) out.push(entry);
+          }
+        } catch (_) { }
+        return out;
+      }
+
+      // -> Promise<{ files, folders, truncated }>
+      function bdf_filesFromDropEntries(entries) {
+        const files = [];
+        const folders = [];
+        let truncated = false;
+        const readFile = (entry) => new Promise((resolve) => {
+          try { entry.file((f) => resolve(f), () => resolve(null)); } catch (_) { resolve(null); }
+        });
+        // readEntries her çağrıda en çok ~100 kayıt verir; boş dönene kadar sürdür.
+        const readChildren = (dirEntry) => new Promise((resolve) => {
+          const acc = [];
+          let reader = null;
+          try { reader = dirEntry.createReader(); } catch (_) { resolve(acc); return; }
+          const next = () => {
+            reader.readEntries((batch) => {
+              if (!batch || !batch.length || acc.length >= BDF_FOLDER_MAX_SCAN) { resolve(acc); return; }
+              acc.push(...batch);
+              next();
+            }, () => resolve(acc));
+          };
+          next();
+        });
+        const walk = async (entry, depth) => {
+          if (!entry || bdf_isFolderJunkName(entry.name)) return;
+          if (files.length >= BDF_FOLDER_MAX_SCAN) { truncated = true; return; }
+          if (entry.isFile) {
+            const f = await readFile(entry);
+            if (f) files.push(f);
+            return;
+          }
+          if (!entry.isDirectory || depth > 12) return;
+          if (depth === 0) folders.push(entry.name);
+          const children = await readChildren(entry);
+          children.sort((a, b) => bdf_sortByPath(a.name, b.name));
+          for (const child of children) await walk(child, depth + 1);
+        };
+        return (async () => {
+          for (const entry of entries || []) await walk(entry, 0);
+          return { files, folders, truncated };
+        })();
+      }
+
+      // <input webkitdirectory> seçimi -> { files, folders, truncated }
+      function bdf_filesFromFolderInput(fileList) {
+        const all = Array.from(fileList || []).filter((f) => {
+          const parts = String(f.webkitRelativePath || f.name || "").split("/");
+          return !parts.some(bdf_isFolderJunkName);
+        });
+        all.sort((a, b) => bdf_sortByPath(a.webkitRelativePath || a.name, b.webkitRelativePath || b.name));
+        const folders = Array.from(new Set(all.map((f) => String(f.webkitRelativePath || "").split("/")[0]).filter(Boolean)));
+        return {
+          files: all.slice(0, BDF_FOLDER_MAX_SCAN),
+          folders,
+          truncated: all.length > BDF_FOLDER_MAX_SCAN
+        };
+      }
+
+      function bdf_fileMatchesAccept(file, accept) {
+        const rules = String(accept || "").split(",").map((r) => r.trim().toLowerCase()).filter(Boolean);
+        if (!rules.length) return true;
+        const fileType = String((file && file.type) || "").toLowerCase();
+        const fileName = String((file && file.name) || "").toLowerCase();
+        return rules.some((rule) => {
+          if (rule === "*/*") return true;
+          if (rule.endsWith("/*")) return fileType.startsWith(rule.slice(0, -1));
+          if (rule.startsWith(".")) return fileName.endsWith(rule);
+          return fileType === rule;
+        });
+      }
+
+      // === UPLOAD-WAIT (22.10.2026): yükleme sürerken aksiyon / Save beklemeye alınır, bitince kendiliğinden sürer ===
+      // Eskiden aksiyon hemen gönderiliyordu: Dropzone'da yüklenmekte olan ya da adresi Bubble'dan forma henüz gelmemiş
+      // dosyalar (bdf_setUploaderUrls) claim'e girmiyordu. Bekleme iki parça: (1) Dropzone'da sırada / yüklenen dosya
+      // ya da dahili yolda okunan dosya, (2) yüklenen dosyanın adresi gelmedi; (2) en çok BDF_UPLOAD_SYNC_GRACE_MS sürer
+      // (Bubble iş akışı hiç çağırmazsa takılmasın). İlerleme BDF_UPLOAD_STALL_MS boyunca durursa bekleme bırakılır.
+      const BDF_UPLOAD_SYNC_GRACE_MS = 10000;
+      const BDF_UPLOAD_STALL_MS = 120000;
+
+      function bdf_trackUploadsFor(dz, fieldKey) {
+        try {
+          if (!dz || dz.__bdfUploadTracked || typeof dz.on !== "function") return;
+          dz.__bdfUploadTracked = true;
+          dz.on("success", () => {
+            BDF.__upDoneAt = BDF.__upDoneAt || {};
+            BDF.__upDoneAt[fieldKey] = Date.now();
+          });
+          dz.on("uploadprogress", () => { BDF.__upProgressAt = Date.now(); });
+        } catch (_) { }
+      }
+
+      function bdf_pendingUploadStatus() {
+        let files = Number(BDF.__internalReads || 0);
+        let syncing = false;
+        try {
+          const root = document.getElementById("bdf-root") || document;
+          const now = Date.now();
+          Array.from(root.querySelectorAll(".bubble-uploader-host")).forEach((host) => {
+            const key = String(host.dataset.bdfFieldKey || "").trim();
+            const dz = bdf_findDropzoneInstance(host);
+            if (!dz) return;
+            bdf_trackUploadsFor(dz, key);
+            (dz.files || []).forEach((f) => {
+              if (f && (f.status === "added" || f.status === "queued" || f.status === "uploading")) files += 1;
+            });
+            const doneAt = Number((BDF.__upDoneAt || {})[key] || 0);
+            const syncAt = Number((BDF.__upSyncAt || {})[key] || 0);
+            if (doneAt && syncAt < doneAt && (now - doneAt) < BDF_UPLOAD_SYNC_GRACE_MS) syncing = true;
+          });
+        } catch (_) { }
+        return { files, syncing, busy: files > 0 || syncing };
+      }
+
+      function bdf_uploadWaitLabel() {
+        const w = BDF.__uploadWait;
+        if (!w) return "";
+        return w.files > 0 ? `Uploading ${w.files} file${w.files === 1 ? "" : "s"}...` : "Finishing upload...";
+      }
+
+      // true: istek beklemeye alındı, çağıran durmalı. Bekleme sürerken gelen yeni istek öncekinin yerine geçer.
+      function bdf_deferUntilUploadsSettle(run, what) {
+        const st = bdf_pendingUploadStatus();
+        if (!st.busy) return false;
+        const fresh = !BDF.__uploadWait;
+        if (fresh) BDF.__uploadWait = { files: st.files, changedAt: Date.now() };
+        BDF.__uploadWait.run = run;
+        if (fresh) {
+          const n = st.files;
+          bdf_showToast(n > 0
+            ? `Waiting for ${n} file${n === 1 ? "" : "s"} to finish uploading. ${what} will continue after that.`
+            : `Finishing the upload. ${what} will continue after that.`, "info");
+          console.log("[BDF] upload-wait start", { what, files: n, syncing: st.syncing });
+          const tick = () => {
+            const w = BDF.__uploadWait;
+            if (!w) return;
+            const s = bdf_pendingUploadStatus();
+            if (s.busy) {
+              if (s.files !== w.files) { w.files = s.files; w.changedAt = Date.now(); }
+              const lastMove = Math.max(w.changedAt, Number(BDF.__upProgressAt || 0));
+              if (Date.now() - lastMove > BDF_UPLOAD_STALL_MS) {
+                BDF.__uploadWait = null;
+                updateActionBarUi();
+                bdf_showToast("Uploads stopped responding. Check the files and try again.", "err");
+                console.warn("[BDF] upload-wait gave up (no progress)", { files: s.files, syncing: s.syncing });
+                return;
+              }
+              updateActionBarUi();
+              w.timer = setTimeout(tick, 400);
+              return;
+            }
+            BDF.__uploadWait = null;
+            updateActionBarUi();
+            console.log("[BDF] upload-wait done, continuing", { what });
+            try { w.run(); } catch (e) { console.warn("[BDF] upload-wait run", e); }
+          };
+          BDF.__uploadWait.timer = setTimeout(tick, 400);
+        }
+        updateActionBarUi();
+        return true;
+      }
+
+      function bdf_canPickFolders() {
+        try {
+          if (!("webkitdirectory" in document.createElement("input"))) return false;
+          // Telefon / tablet: klasör seçici yok ya da güvenilmez; düğme yalnız masaüstünde.
+          return !(window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches);
         } catch (_) {
           return false;
         }
@@ -4871,6 +5138,7 @@
         bdf_bindExternalUploaderDomDebug(mountEl);
         bdf_bindExternalUploaderHostObserver(mountEl);
         bdf_syncExternalUploaderHostHeight(mountEl);
+        bdf_trackUploadsFor(bdf_findDropzoneInstance(mountEl), key); // UPLOAD-WAIT: yükleme bitişi baştan izlensin
 
         try {
           console.log("[BDF] External uploader mounted to field", {
@@ -5738,16 +6006,20 @@
         const hasOptions = Array.isArray(actionOptions) && actionOptions.length > 0;
         syncDefaultActionLabelFromData();
         const safeSelectedName = String(selectedActionName || getDefaultActionLabel()).trim() || getDefaultActionLabel();
+        const uploadWaitLabel = bdf_uploadWaitLabel(); // UPLOAD-WAIT: aksiyon yüklemenin bitmesini bekliyor
+        const actionBusy = Boolean(isWaitingForServerRefresh) || Boolean(uploadWaitLabel);
         if (actionTriggerBtn) {
-          actionTriggerBtn.disabled = isWaitingForServerRefresh;
-          actionTriggerBtn.classList.toggle("is-loading", Boolean(isWaitingForServerRefresh));
-          actionTriggerBtn.textContent = isWaitingForServerRefresh ? "Loading…" : safeSelectedName;
+          actionTriggerBtn.disabled = actionBusy;
+          actionTriggerBtn.classList.toggle("is-loading", actionBusy);
+          actionTriggerBtn.textContent = isWaitingForServerRefresh ? "Loading…" : (uploadWaitLabel || safeSelectedName);
+          if (uploadWaitLabel) actionTriggerBtn.setAttribute("aria-busy", "true");
+          else actionTriggerBtn.removeAttribute("aria-busy");
         }
         // Create mode (yeni kayıt) → #2383e2 renk teması
         const _isCreateMode = !hasExistingBubbleData();
         if (actionSplit) actionSplit.classList.toggle("is-create", _isCreateMode);
         if (actionChevronBtn) {
-          actionChevronBtn.disabled = isWaitingForServerRefresh || !hasOptions;
+          actionChevronBtn.disabled = actionBusy || !hasOptions;
           actionChevronBtn.style.display = hasOptions ? "inline-flex" : "none";
         }
         if (actionEmptyMsg) {
@@ -5771,6 +6043,7 @@
             predictedActionBtn.dataset.actionName = matched?.name || predictedActionName;
           }
         }
+        bdf_renderCreateFooter();
       }
 
       function triggerSelectedAction() {
@@ -5781,6 +6054,7 @@
           openActionMenu();
           return;
         }
+        if (bdf_deferUntilUploadsSettle(triggerSelectedAction, "Your action")) return;
         triggeredActionUniqueId = selectedActionId || "";
         emit("onActionTrigger", {
           selectedActionId,
@@ -5796,6 +6070,7 @@
 
       function triggerWithoutAction() {
         if (_bdfBlockActionIfTestMode()) return; // test modu: gerçek kayıt oluşturma yok
+        if (bdf_deferUntilUploadsSettle(triggerWithoutAction, "Creating the record")) return;
         selectedActionId = "";
         selectedActionName = "Create";
         triggeredActionUniqueId = "";
@@ -5895,6 +6170,87 @@
 
         updateActionBarUi();
       }
+
+      // CREATE-FOOTER: yeni kayıtta aksiyonlar menü yerine formun altında düğme olur.
+      // Var olan kayıt, düzenleme, sürüm ve test kipi eskisi gibi kalır.
+      // var: updateActionBarUi bu satırlardan önce çağrılabilir (const olsa TDZ hatası verirdi).
+      var bdfCreateFooterKey = "";
+      var bdfCreateFooterObserved = false;
+
+      function bdf_isShown(el) {
+        return Boolean(el) && el.style.display !== "none";
+      }
+
+      function bdf_renderCreateFooter() {
+        const bdfCreateFooter = byId("bdfCreateFooter");
+        if (!bdfCreateFooter) return;
+        const options = (Array.isArray(actionOptions) ? actionOptions : [])
+          .filter((opt) => String(opt?.id || "").trim());
+        const show = !hasExistingBubbleData()
+          && !IS_EDITING_MODE
+          && !IS_VERSION_MODE
+          && !isEditPanelOpen
+          && window.__BDF_TEST_MODE__ !== true
+          && Boolean(actionBar && actionBar.dataset && !("_bdfOrigDisplay" in actionBar.dataset))
+          && (!formEl || formEl.style.display !== "none");
+
+        if (rootElement) {
+          rootElement.classList.toggle("bdf-cf-on", show);
+          const barHasOther = bdf_isShown(moreActions) || bdf_isShown(toggleInlineEditBtn) || bdf_isShown(predictedActionBtn);
+          rootElement.classList.toggle("bdf-cf-bar-empty", show && !barHasOther);
+        }
+        if (!show) {
+          bdfCreateFooter.hidden = true;
+          return;
+        }
+        bdfCreateFooter.hidden = false;
+
+        const uploadWaitLabel = bdf_uploadWaitLabel();
+        const busy = Boolean(isWaitingForServerRefresh) || Boolean(uploadWaitLabel);
+        const busyLabel = isWaitingForServerRefresh ? "Loading…" : (uploadWaitLabel || "");
+
+        // Aksiyon listesi değişmediyse düğmeleri yeniden kurma; yalnız meşgul durumunu güncelle.
+        const key = options.map((o) => `${o.id}|${o.name}`).join("¦");
+        if (key !== bdfCreateFooterKey || !bdfCreateFooter.firstChild) {
+          bdfCreateFooterKey = key;
+          bdfCreateFooter.innerHTML = "";
+          options.forEach((option, i) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = i === 0 ? "bdf-cf-primary" : "bdf-cf-secondary";
+            btn.dataset.label = String(option.name || option.id || "Action");
+            btn.textContent = btn.dataset.label;
+            btn.addEventListener("click", () => selectActionAndTrigger(option));
+            bdfCreateFooter.appendChild(btn);
+          });
+          const saveBtn = document.createElement("button");
+          saveBtn.type = "button";
+          saveBtn.className = options.length ? "bdf-cf-secondary" : "bdf-cf-primary";
+          saveBtn.dataset.label = options.length ? "Save only" : "Create";
+          saveBtn.title = "Create the record without running an action";
+          saveBtn.textContent = saveBtn.dataset.label;
+          saveBtn.addEventListener("click", () => triggerWithoutAction());
+          bdfCreateFooter.appendChild(saveBtn);
+        }
+
+        bdfCreateFooter.querySelectorAll("button").forEach((btn, i) => {
+          btn.disabled = busy;
+          if (busy) btn.setAttribute("aria-busy", "true");
+          else btn.removeAttribute("aria-busy");
+          // Bekleme yazısı yalnız ilk (ana) düğmede görünür.
+          btn.textContent = (busy && i === 0 && busyLabel) ? busyLabel : btn.dataset.label;
+        });
+
+        if (!bdfCreateFooterObserved && typeof MutationObserver !== "undefined") {
+          bdfCreateFooterObserved = true;
+          // Test kipi, düzenleme paneli gibi yollar çubukları stil ile gizler; alt çubuk onları izler.
+          const mo = new MutationObserver(() => bdf_renderCreateFooter());
+          [actionBar, formEl, moreActions, toggleInlineEditBtn, predictedActionBtn].forEach((el) => {
+            if (el) { try { mo.observe(el, { attributes: true, attributeFilter: ["style", "data-_bdf-orig-display"] }); } catch (_) { } }
+          });
+        }
+      }
+
       function renderSubmitOutputs(payload) {
         if (IS_VERSION_MODE) return;
         if (!submitOutputsEl) {
@@ -12863,6 +13219,11 @@
           openActionMenu();
           return;
         }
+        // UPLOAD-WAIT: elle kaydet yükleme bitene dek bekler (otomatik kayıt beklemez; adres gelince yeniden kaydeder).
+        if (!autosave && !forceSubmit && bdf_deferUntilUploadsSettle(() => runSubmitFlow({ autosave, forceSubmit, trigger, modeHint }), "Saving")) {
+          traceAutosave("runSubmitFlow:deferred-uploads-pending", { trigger });
+          return;
+        }
         if (!state.config || !Array.isArray(state.config.fields)) {
           pendingSubmitUntilConfigReady = {
             autosave,
@@ -15589,10 +15950,13 @@
             control.classList.add("file-field-control");
             const drop = document.createElement("div");
             drop.className = "file-drop";
-            drop.textContent = "Drop a file or tap to upload";
 
             const allowMultiple = field.type === "multifile" || field.allowMultiple === true;
             const maxFiles = bdf_getUploaderMaxFiles(field, allowMultiple);
+            // FOLDER-UP: çoklu alanda masaüstünde klasör de alınır (sürükle-bırak + "Choose a folder").
+            const folderPicking = allowMultiple && bdf_canPickFolders();
+            const dropPrompt = folderPicking ? "Drop files or a folder, or tap to upload" : "Drop a file or tap to upload";
+            drop.textContent = dropPrompt;
 
             // submit aşamasında limit uygulamak için sakla
             state.externalUploaderAllowMultipleByField[field.key] = Boolean(allowMultiple);
@@ -15737,7 +16101,7 @@
               });
             };
 
-            const handleFiles = async (fileList) => {
+            const handleFilesNow = async (fileList) => {
               const files = Array.from(fileList);
               // 30.07: sabit 10 → bdf_getDefaultExternalMaxFiles (varsayılan 30, Bubble input'la ezilebilir).
               // Şema ui.maxFiles verdiyse yine o kazanır.
@@ -15851,6 +16215,16 @@
               });
             };
 
+            // UPLOAD-WAIT: dahili yolda dosya okunurken (sıkıştırma + base64) aksiyon / Save beklesin.
+            const handleFiles = async (fileList) => {
+              BDF.__internalReads = Number(BDF.__internalReads || 0) + 1;
+              try {
+                return await handleFilesNow(fileList);
+              } finally {
+                BDF.__internalReads = Math.max(0, Number(BDF.__internalReads || 0) - 1);
+              }
+            };
+
             const setDropActive = (active) => {
               drop.style.borderColor = active ? varPrimary() : "";
             };
@@ -15947,6 +16321,138 @@
               event.preventDefault();
               requestExternalUploaderInteraction({ autoOpenPicker: true, showPreparingToast: true });
             });
+
+            // === FOLDER-UP: klasörün dosyalarını alanın olağan yoluna ver ===
+            let folderRow = null;
+            if (allowMultiple) {
+              // Bubble uploader henüz bu alana taşınmadıysa input gelene kadar kısa süre bekle (en çok ~10 sn).
+              // Alanın dosya sınırı Dropzone'a vermeden ÖNCE uygulanır: sonradan bdf_applyUrlLimit kırparsa fazlası
+              // boşuna yüklenir ve eski dosyalar düşebilir.
+              const feedExternalUploader = (files, noteFor) => {
+                requestExternalUploaderInteraction({ autoOpenPicker: false, showPreparingToast: false });
+                let tries = 0;
+                const attempt = () => {
+                  if (bdf_findExternalUploaderInput(externalMount)) {
+                    const dz = bdf_findDropzoneInstance(externalMount);
+                    const max = bdf_readInt(state.externalUploaderMaxFilesByField[field.key], maxFiles);
+                    let room = max - (state.fileBuffers[field.key] || []).length;
+                    try { if (dz) room -= dz.getQueuedFiles().length + dz.getUploadingFiles().length; } catch (_) { }
+                    try {
+                      const dzMax = Number(dz && dz.options && dz.options.maxFiles);
+                      if (dzMax > 0) room = Math.min(room, dzMax - dz.getAcceptedFiles().length);
+                    } catch (_) { }
+                    const batch = files.slice(0, Math.max(0, room));
+                    if (!batch.length) {
+                      bdf_showToast(`This field already has the most files it accepts (${max}).`, "err");
+                      return;
+                    }
+                    if (bdf_tryAssignDroppedFilesToExternalUploaderInput(externalMount, batch)) {
+                      const left = files.length - batch.length;
+                      if (left) {
+                        bdf_showToast(`${noteFor(batch.length)} ${left} not added: this field accepts up to ${max} files.`, "err");
+                        console.warn(`[BDF] folder cap: "${field.key}" ${left} dosya ${max} sınırına takıldı`);
+                      } else {
+                        bdf_showToast(noteFor(batch.length), "info");
+                      }
+                      return;
+                    }
+                  }
+                  tries += 1;
+                  if (tries > 40) {
+                    bdf_showToast("The uploader isn't ready yet. Please try again.", "err");
+                    return;
+                  }
+                  setTimeout(attempt, 250);
+                };
+                attempt();
+              };
+
+              const addFolderFiles = async (pending) => {
+                let picked = null;
+                try { picked = await pending; } catch (_) { picked = null; }
+                if (!picked) {
+                  bdf_showToast("Couldn't read that folder. Please try again.", "err");
+                  return;
+                }
+                const usable = picked.files.filter((f) => bdf_fileMatchesAccept(f, accept));
+                const skipped = picked.files.length - usable.length;
+                if (!usable.length) {
+                  bdf_showToast(skipped ? "That folder has no files of a supported type." : "That folder has no files.", "err");
+                  return;
+                }
+                const from = picked.folders.length === 1
+                  ? ` from ${picked.folders[0]}`
+                  : (picked.folders.length > 1 ? ` from ${picked.folders.length} folders` : "");
+                // sent < usable.length yalnız Bubble uploader yolunda (sınır orada, vermeden önce uygulanır).
+                const noteFor = (sent) => {
+                  const count = sent < usable.length ? `${sent} of ${usable.length} files` : `${usable.length} file${usable.length === 1 ? "" : "s"}`;
+                  let msg = `Adding ${count}${from}.`;
+                  if (skipped) msg += ` ${skipped} skipped (unsupported type).`;
+                  if (picked.truncated) msg += ` Only the first ${BDF_FOLDER_MAX_SCAN} files were read.`;
+                  return msg;
+                };
+                console.log("[BDF] folder files", { field: field.key, folders: picked.folders, count: usable.length, skipped, truncated: picked.truncated });
+                if (hasExternalUploader) {
+                  feedExternalUploader(usable, noteFor);
+                } else {
+                  bdf_showToast(noteFor(usable.length), "info");
+                  handleFiles(usable);
+                }
+              };
+
+              // Yakalama aşaması: klasör içeren bırakma Bubble uploader'ın kendi işleyicisine ve aşağıdaki olağan
+              // drop'a ulaşmaz (onlar klasörü 0 baytlık bozuk dosya sanır). Yalnız dosya bırakmaları eskisi gibi akar.
+              control.addEventListener("drop", (event) => {
+                const entries = bdf_takeDropEntries(event.dataTransfer);
+                if (!entries.some((entry) => entry && entry.isDirectory)) return;
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                setDropActive(false);
+                // Bırakma hedefi (Bubble uploader) sürükleme vurgusunda kalmasın.
+                try {
+                  const leave = typeof DragEvent === "function" ? new DragEvent("dragleave", { bubbles: true }) : new Event("dragleave", { bubbles: true });
+                  if (event.target && event.target !== control) event.target.dispatchEvent(leave);
+                } catch (_) { }
+                if (hasExternalUploader) requestExternalUploaderInteraction({ autoOpenPicker: false, showPreparingToast: false });
+                bdf_showToast("Reading folder...", "info");
+                addFolderFiles(bdf_filesFromDropEntries(entries));
+              }, true);
+
+              if (folderPicking) {
+                const folderInput = document.createElement("input");
+                folderInput.type = "file";
+                folderInput.className = "file-folder-input";
+                folderInput.multiple = true;
+                folderInput.setAttribute("webkitdirectory", "");
+                folderInput.setAttribute("directory", "");
+                folderInput.tabIndex = -1;
+                folderInput.setAttribute("aria-hidden", "true");
+
+                const folderBtn = document.createElement("button");
+                folderBtn.type = "button";
+                folderBtn.className = "file-folder-btn";
+                folderBtn.innerHTML = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Choose a folder</span>';
+                folderBtn.addEventListener("click", (event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  // Seçici açıkken Bubble uploader'ı bu alana hazırla.
+                  if (hasExternalUploader) requestExternalUploaderInteraction({ autoOpenPicker: false, showPreparingToast: false });
+                  folderInput.click();
+                });
+                folderInput.addEventListener("click", (event) => event.stopPropagation());
+                folderInput.addEventListener("change", () => {
+                  if (!folderInput.files || !folderInput.files.length) return;
+                  const picked = bdf_filesFromFolderInput(folderInput.files);
+                  folderInput.value = "";
+                  addFolderFiles(Promise.resolve(picked));
+                });
+
+                folderRow = document.createElement("div");
+                folderRow.className = "file-folder-row";
+                folderRow.append(folderBtn, folderInput);
+              }
+            }
 
             control.addEventListener("dragenter", (event) => {
               if (!hasExternalUploader) return;
@@ -16049,7 +16555,7 @@
 
               const ph = document.createElement("div");
               ph.className = "bubble-uploader-placeholder";
-              ph.textContent = "Drop a file or tap to upload";
+              ph.textContent = dropPrompt;
               externalMount._bdfPlaceholder = ph;
               externalMount.appendChild(ph);
 
@@ -16067,7 +16573,9 @@
               }
             }
 
-            control.append(externalMount, drop, fileInput, list);
+            control.append(externalMount, drop, fileInput);
+            if (folderRow) control.append(folderRow);
+            control.append(list);
             setValue = (value) => {
               // ── KATMAN 1 (const Map): ASLA yeniden atanamayan _aiGeneratedFileEntries ──
               // aiExplicitFieldKeys = new Set() ile temizlenmiş olsa bile bu Map entry'si hayatta kalır.
@@ -17371,6 +17879,8 @@
 
           const field = (state.config?.fields || []).find((f) => f && (f.key === key || String(f.label || f.fieldName || "").trim() === key));
           if (!field || !bdf_isUploadLikeFieldType(field.type)) return;
+          BDF.__upSyncAt = BDF.__upSyncAt || {}; // UPLOAD-WAIT: yüklenen dosyanın adresi forma ulaştı
+          BDF.__upSyncAt[field.key] = Date.now();
 
           const allowMultiple = (typeof state.externalUploaderAllowMultipleByField?.[key] !== "undefined")
             ? Boolean(state.externalUploaderAllowMultipleByField[key])
@@ -18222,6 +18732,83 @@
       #bdf-root.bdf-version-mode .page>.card {
         border: none !important;
         box-shadow: none !important;
+      }
+    }
+  </style>
+
+  <style data-bdf-create-footer>
+    /* CREATE-FOOTER: yeni kayıtta aksiyon düğmeleri formun altında, kaydırırken görünür kalır */
+    #bdf-root .bdf-create-footer {
+      position: sticky;
+      bottom: 0;
+      z-index: 250;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      padding: 12px 0;
+      background: var(--gx-surface, #ffffff);
+      border-top: 1px solid var(--gx-line-soft, #eef2f7);
+    }
+
+    #bdf-root .bdf-create-footer[hidden] {
+      display: none !important;
+    }
+
+    #bdf-root .bdf-create-footer button {
+      min-height: 40px;
+      padding: 10px 18px;
+      border-radius: var(--gx-r-md, 10px);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: filter 0.15s, background 0.15s;
+    }
+
+    #bdf-root .bdf-create-footer .bdf-cf-primary {
+      border: none;
+      background: var(--gx-grad, linear-gradient(135deg, #6366f1, #8b5cf6));
+      color: #ffffff;
+    }
+
+    #bdf-root .bdf-create-footer .bdf-cf-primary:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+
+    #bdf-root .bdf-create-footer .bdf-cf-secondary {
+      border: 1px solid var(--gx-line, #e2e8f0);
+      background: var(--gx-surface, #ffffff);
+      color: var(--gx-ink-2, #475569);
+    }
+
+    #bdf-root .bdf-create-footer .bdf-cf-secondary:hover:not(:disabled) {
+      background: var(--gx-surface-2, #f8fafc);
+    }
+
+    #bdf-root .bdf-create-footer button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    #bdf-root .bdf-create-footer button:focus-visible {
+      outline: 2px solid var(--gx-primary, #6366f1);
+      outline-offset: 2px;
+    }
+
+    /* Alt çubuk açıkken üstteki "Select action" gizli; üst çubukta başka bir şey yoksa çubuk da gizli */
+    #bdf-root.bdf-cf-on #actionSplit {
+      display: none !important;
+    }
+
+    #bdf-root.bdf-cf-on.bdf-cf-bar-empty #actionBar {
+      display: none !important;
+    }
+
+    @media (max-width: 600px) {
+      #bdf-root .bdf-create-footer button {
+        flex: 1 1 auto;
       }
     }
   </style>
