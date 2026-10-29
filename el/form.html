@@ -3728,6 +3728,11 @@
       // Saf tanı logları: yalnız DEBUG_MODE / ENABLE_RUNTIME_LOGS açıkken konsola yazar.
       // (function bildirimi: hoisting sayesinde Proxy içindeki erken çağrılarda TDZ hatası olmaz)
       function dbg(...a) { try { if (BDF.DEBUG_MODE || ENABLE_RUNTIME_LOGS) console.log(...a); } catch (_) { } }
+      // ACTION-STATUS (omer kanalı denemesi): aksiyon adı → yeni kayda aynı istekte yazılacak alanlar.
+      // Değer, alanın açılır listesindeki seçenekle birebir aynı olmalı.
+      const BDF_ACTION_CREATE_VALUES = {
+        "Claim Hazırla": { "Durum": "Claim Hazırlanıyor" }
+      };
       const DEFAULT_CREATE_ACTION_LABEL = "Select action";
       const DEFAULT_ACTION_PLACEHOLDER_LABEL = "Select action";
 
@@ -6474,13 +6479,32 @@
         const includeAiInDeltas = Boolean(hasAiHydratedData || (aiExplicitFieldKeys && aiExplicitFieldKeys.size));
         const deltaOptions = { includeAi: includeAiInDeltas, trigger: String(trigger || "") };
 
+        const outputlist1 = buildKeyValueListFromSources(deltaOptions);
+        const outputlist2 = buildAddedCustomFields(deltaOptions);
+        // ACTION-STATUS: yeni kayıt bir aksiyonla açılırsa kayda başlangıç değerleri aynı istekte gider
+        // (kayıt oluşmazsa bu değer de yazılmaz). "Save only" (selectedActionName = "Create") eşleşmez.
+        if (!autosave && actionType === "Create") {
+          const extras = BDF_ACTION_CREATE_VALUES[String(selectedActionName || "").trim()];
+          if (extras) {
+            Object.keys(extras).forEach((key) => {
+              const value = extras[key];
+              const entry = `"${key}": ${JSON.stringify(value)}`;
+              const at = outputlist1.findIndex((e) => String(e).startsWith(`"${key}":`));
+              if (at >= 0) outputlist1[at] = entry; else outputlist1.push(entry);
+              if (!outputlist2.includes(key)) outputlist2.push(key);
+              if (fullSnapshot && typeof fullSnapshot === "object") fullSnapshot[key] = value;
+            });
+            traceAutosave("action-create-values", { action: selectedActionName, keys: Object.keys(extras) });
+          }
+        }
+
         return {
           output1: startTimestamp,
           output2: endTimestamp,
           output3: readCurrentUniqueId(),
           output4: output4,
-          outputlist1: buildKeyValueListFromSources(deltaOptions),
-          outputlist2: buildAddedCustomFields(deltaOptions),
+          outputlist1: outputlist1,
+          outputlist2: outputlist2,
           outputlist3: buildDeletedFields({ trigger: String(trigger || "") }),
           outputlist4: buildModifiedFields(deltaOptions),
           output_full_obj: fullSnapshot,
