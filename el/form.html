@@ -3062,8 +3062,6 @@
             </div>
           </div>
           <form id="dynamicForm" class="grid"></form>
-          <!-- CREATE-FOOTER: yeni kayıtta aksiyonlar formun altında, menüsüz düğme olarak -->
-          <div id="bdfCreateFooter" class="bdf-create-footer" role="group" aria-label="Actions" hidden></div>
           <div class="inline-row" id="formActions" style="margin-top: 12px;">
             <button id="submitBtn" type="submit">Submit</button>
             <button id="clearBtn" type="button" class="ghost">Clear</button>
@@ -3728,11 +3726,6 @@
       // Saf tanı logları: yalnız DEBUG_MODE / ENABLE_RUNTIME_LOGS açıkken konsola yazar.
       // (function bildirimi: hoisting sayesinde Proxy içindeki erken çağrılarda TDZ hatası olmaz)
       function dbg(...a) { try { if (BDF.DEBUG_MODE || ENABLE_RUNTIME_LOGS) console.log(...a); } catch (_) { } }
-      // ACTION-STATUS (omer kanalı denemesi): aksiyon adı → yeni kayda aynı istekte yazılacak alanlar.
-      // Değer, alanın açılır listesindeki seçenekle birebir aynı olmalı.
-      const BDF_ACTION_CREATE_VALUES = {
-        "Claim Hazırla": { "Durum": "Claim Hazırlanıyor" }
-      };
       const DEFAULT_CREATE_ACTION_LABEL = "Select action";
       const DEFAULT_ACTION_PLACEHOLDER_LABEL = "Select action";
 
@@ -6048,7 +6041,6 @@
             predictedActionBtn.dataset.actionName = matched?.name || predictedActionName;
           }
         }
-        bdf_renderCreateFooter();
       }
 
       function triggerSelectedAction() {
@@ -6073,14 +6065,9 @@
         }
       }
 
-      // Aksiyonsuz kaydet, runSubmitFlow'daki "aksiyon seçilmedi" kapısını bir kez geçer
-      // (yoksa aksiyonu olan formda "Create without action" kaydı hiç göndermiyordu).
-      var bdfCreateWithoutActionPending = false;
-
       function triggerWithoutAction() {
         if (_bdfBlockActionIfTestMode()) return; // test modu: gerçek kayıt oluşturma yok
         if (bdf_deferUntilUploadsSettle(triggerWithoutAction, "Creating the record")) return;
-        bdfCreateWithoutActionPending = true;
         selectedActionId = "";
         selectedActionName = "Create";
         triggeredActionUniqueId = "";
@@ -6100,7 +6087,6 @@
 
       function selectActionAndTrigger(option) {
         if (!option) return;
-        bdfCreateWithoutActionPending = false;
         selectedActionId = String(option.id || "").trim();
         selectedActionName = String(option.name || getDefaultActionLabel()).trim() || getDefaultActionLabel();
         updateActionBarUi();
@@ -6181,129 +6167,6 @@
 
         updateActionBarUi();
       }
-
-      // CREATE-FOOTER: yeni kayıtta aksiyonlar menü yerine formun altında düğme olur.
-      // Var olan kayıt, düzenleme ve test kipi eskisi gibi kalır.
-      // var: updateActionBarUi bu satırlardan önce çağrılabilir (const olsa TDZ hatası verirdi).
-      var bdfCreateFooterKey = "";
-      var bdfCreateFooterObserved = false;
-
-      var bdfCreateFooterPinRaf = 0;
-
-      // Çubuk formun sonunda durur; form görünür alandan uzunsa görünür alanın altına kaydırılır,
-      // sona inince kendi yerine oturur (son alanı örtmez).
-      function bdf_pinCreateFooter() {
-        const footer = byId("bdfCreateFooter");
-        if (!footer) return;
-        footer.style.transform = "";
-        footer.classList.remove("is-pinned");
-        if (footer.hidden) return;
-        const rect = footer.getBoundingClientRect();
-        if (!rect.height) return;
-        let visibleBottom = window.innerHeight || document.documentElement.clientHeight;
-        let node = footer.parentElement;
-        while (node && node !== document.body && node !== document.documentElement) {
-          const oy = getComputedStyle(node).overflowY;
-          if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight + 1) {
-            visibleBottom = Math.min(visibleBottom, node.getBoundingClientRect().bottom);
-            break;
-          }
-          node = node.parentElement;
-        }
-        const shift = Math.floor(visibleBottom - rect.bottom);
-        if (shift >= 0) return;
-        // Formun başından yukarı taşma: çok kısa pencerede çubuk yerinde kalır.
-        const startTop = formContainer ? formContainer.getBoundingClientRect().top : -Infinity;
-        if (rect.top + shift < startTop) return;
-        footer.style.transform = `translateY(${shift}px)`;
-        footer.classList.add("is-pinned");
-      }
-
-      function bdf_isShown(el) {
-        return Boolean(el) && el.style.display !== "none";
-      }
-
-      function bdf_renderCreateFooter() {
-        const bdfCreateFooter = byId("bdfCreateFooter");
-        if (!bdfCreateFooter) return;
-        const options = (Array.isArray(actionOptions) ? actionOptions : [])
-          .filter((opt) => String(opt?.id || "").trim());
-        const show = !hasExistingBubbleData()
-          && !IS_EDITING_MODE
-          && !isEditPanelOpen
-          && window.__BDF_TEST_MODE__ !== true
-          && Boolean(actionBar && actionBar.dataset && !("_bdfOrigDisplay" in actionBar.dataset))
-          && (!formEl || formEl.style.display !== "none");
-
-        if (rootElement) {
-          rootElement.classList.toggle("bdf-cf-on", show);
-          const barHasOther = bdf_isShown(moreActions) || bdf_isShown(toggleInlineEditBtn) || bdf_isShown(predictedActionBtn);
-          rootElement.classList.toggle("bdf-cf-bar-empty", show && !barHasOther);
-        }
-        if (!show) {
-          bdfCreateFooter.hidden = true;
-          return;
-        }
-        bdfCreateFooter.hidden = false;
-
-        const uploadWaitLabel = bdf_uploadWaitLabel();
-        const busy = Boolean(isWaitingForServerRefresh) || Boolean(uploadWaitLabel);
-        const busyLabel = isWaitingForServerRefresh ? "Loading…" : (uploadWaitLabel || "");
-
-        // Aksiyon listesi değişmediyse düğmeleri yeniden kurma; yalnız meşgul durumunu güncelle.
-        const key = options.map((o) => `${o.id}|${o.name}`).join("¦");
-        if (key !== bdfCreateFooterKey || !bdfCreateFooter.firstChild) {
-          bdfCreateFooterKey = key;
-          bdfCreateFooter.innerHTML = "";
-          options.forEach((option, i) => {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = i === 0 ? "bdf-cf-primary" : "bdf-cf-secondary";
-            btn.dataset.label = String(option.name || option.id || "Action");
-            btn.textContent = btn.dataset.label;
-            btn.addEventListener("click", () => selectActionAndTrigger(option));
-            bdfCreateFooter.appendChild(btn);
-          });
-          const saveBtn = document.createElement("button");
-          saveBtn.type = "button";
-          saveBtn.className = options.length ? "bdf-cf-secondary" : "bdf-cf-primary";
-          saveBtn.dataset.label = options.length ? "Save only" : "Create";
-          saveBtn.title = "Create the record without running an action";
-          saveBtn.textContent = saveBtn.dataset.label;
-          saveBtn.addEventListener("click", () => triggerWithoutAction());
-          bdfCreateFooter.appendChild(saveBtn);
-        }
-
-        bdfCreateFooter.querySelectorAll("button").forEach((btn, i) => {
-          btn.disabled = busy;
-          if (busy) btn.setAttribute("aria-busy", "true");
-          else btn.removeAttribute("aria-busy");
-          // Bekleme yazısı yalnız ilk (ana) düğmede görünür.
-          btn.textContent = (busy && i === 0 && busyLabel) ? busyLabel : btn.dataset.label;
-        });
-
-        bdf_pinCreateFooter();
-
-        if (!bdfCreateFooterObserved && typeof MutationObserver !== "undefined") {
-          bdfCreateFooterObserved = true;
-          // Kaydırma, pencere boyu ve form boyu değişince çubuğu yeniden yerleştir.
-          const schedulePin = () => {
-            if (bdfCreateFooterPinRaf) return;
-            bdfCreateFooterPinRaf = requestAnimationFrame(() => { bdfCreateFooterPinRaf = 0; bdf_pinCreateFooter(); });
-          };
-          document.addEventListener("scroll", schedulePin, { capture: true, passive: true });
-          window.addEventListener("resize", schedulePin, { passive: true });
-          if (typeof ResizeObserver !== "undefined" && formEl) {
-            try { new ResizeObserver(schedulePin).observe(formEl); } catch (_) { }
-          }
-          // Test kipi, düzenleme paneli gibi yollar çubukları stil ile gizler; alt çubuk onları izler.
-          const mo = new MutationObserver(() => bdf_renderCreateFooter());
-          [actionBar, formEl, moreActions, toggleInlineEditBtn, predictedActionBtn].forEach((el) => {
-            if (el) { try { mo.observe(el, { attributes: true, attributeFilter: ["style", "data-_bdf-orig-display"] }); } catch (_) { } }
-          });
-        }
-      }
-
       function renderSubmitOutputs(payload) {
         if (IS_VERSION_MODE) return;
         if (!submitOutputsEl) {
@@ -6485,32 +6348,13 @@
         const includeAiInDeltas = Boolean(hasAiHydratedData || (aiExplicitFieldKeys && aiExplicitFieldKeys.size));
         const deltaOptions = { includeAi: includeAiInDeltas, trigger: String(trigger || "") };
 
-        const outputlist1 = buildKeyValueListFromSources(deltaOptions);
-        const outputlist2 = buildAddedCustomFields(deltaOptions);
-        // ACTION-STATUS: yeni kayıt bir aksiyonla açılırsa kayda başlangıç değerleri aynı istekte gider
-        // (kayıt oluşmazsa bu değer de yazılmaz). "Save only" (selectedActionName = "Create") eşleşmez.
-        if (!autosave && actionType === "Create") {
-          const extras = BDF_ACTION_CREATE_VALUES[String(selectedActionName || "").trim()];
-          if (extras) {
-            Object.keys(extras).forEach((key) => {
-              const value = extras[key];
-              const entry = `"${key}": ${JSON.stringify(value)}`;
-              const at = outputlist1.findIndex((e) => String(e).startsWith(`"${key}":`));
-              if (at >= 0) outputlist1[at] = entry; else outputlist1.push(entry);
-              if (!outputlist2.includes(key)) outputlist2.push(key);
-              if (fullSnapshot && typeof fullSnapshot === "object") fullSnapshot[key] = value;
-            });
-            traceAutosave("action-create-values", { action: selectedActionName, keys: Object.keys(extras) });
-          }
-        }
-
         return {
           output1: startTimestamp,
           output2: endTimestamp,
           output3: readCurrentUniqueId(),
           output4: output4,
-          outputlist1: outputlist1,
-          outputlist2: outputlist2,
+          outputlist1: buildKeyValueListFromSources(deltaOptions),
+          outputlist2: buildAddedCustomFields(deltaOptions),
           outputlist3: buildDeletedFields({ trigger: String(trigger || "") }),
           outputlist4: buildModifiedFields(deltaOptions),
           output_full_obj: fullSnapshot,
@@ -13286,7 +13130,7 @@
           traceAutosave("runSubmitFlow:skip-waiting-server-refresh", { trigger });
           return;
         }
-        if (!autosave && !forceSubmit && !bdfCreateWithoutActionPending && requiresExplicitActionSelection() && !isActionSelectionValid()) {
+        if (!autosave && !forceSubmit && requiresExplicitActionSelection() && !isActionSelectionValid()) {
           traceAutosave("runSubmitFlow:blocked-missing-action", { trigger });
           openActionMenu();
           return;
@@ -13355,7 +13199,6 @@
         }
 
         isFormSaving = true;
-        if (!autosave) bdfCreateWithoutActionPending = false; // bir kerelik: bu gönderimde kullanıldı
         activeSubmitAttemptId += 1;
         const submitAttemptId = activeSubmitAttemptId;
         if (!autosave) {
@@ -18805,87 +18648,6 @@
       #bdf-root.bdf-version-mode .page>.card {
         border: none !important;
         box-shadow: none !important;
-      }
-    }
-  </style>
-
-  <style data-bdf-create-footer>
-    /* CREATE-FOOTER: yeni kayıtta aksiyon düğmeleri formun altında, kaydırırken görünür kalır */
-    /* sticky burada çalışmaz (üst kart overflow:hidden); görünür alanın altına JS ile kaydırılır (bdf_pinCreateFooter) */
-    #bdf-root .bdf-create-footer {
-      position: relative;
-      z-index: 250;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      margin-top: 16px;
-      padding: 12px 0;
-      background: var(--gx-surface, #ffffff);
-      border-top: 1px solid var(--gx-line-soft, #eef2f7);
-    }
-
-    #bdf-root .bdf-create-footer.is-pinned {
-      box-shadow: 0 -6px 16px -10px rgba(15, 23, 42, 0.25);
-    }
-
-    #bdf-root .bdf-create-footer[hidden] {
-      display: none !important;
-    }
-
-    #bdf-root .bdf-create-footer button {
-      min-height: 40px;
-      padding: 10px 18px;
-      border-radius: var(--gx-r-md, 10px);
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: filter 0.15s, background 0.15s;
-    }
-
-    #bdf-root .bdf-create-footer .bdf-cf-primary {
-      border: none;
-      background: var(--gx-grad, linear-gradient(135deg, #6366f1, #8b5cf6));
-      color: #ffffff;
-    }
-
-    #bdf-root .bdf-create-footer .bdf-cf-primary:hover:not(:disabled) {
-      filter: brightness(1.06);
-    }
-
-    #bdf-root .bdf-create-footer .bdf-cf-secondary {
-      border: 1px solid var(--gx-line, #e2e8f0);
-      background: var(--gx-surface, #ffffff);
-      color: var(--gx-ink-2, #475569);
-    }
-
-    #bdf-root .bdf-create-footer .bdf-cf-secondary:hover:not(:disabled) {
-      background: var(--gx-surface-2, #f8fafc);
-    }
-
-    #bdf-root .bdf-create-footer button:disabled {
-      opacity: 0.6;
-      cursor: wait;
-    }
-
-    #bdf-root .bdf-create-footer button:focus-visible {
-      outline: 2px solid var(--gx-primary, #6366f1);
-      outline-offset: 2px;
-    }
-
-    /* Alt çubuk açıkken üstteki "Select action" gizli; üst çubukta başka bir şey yoksa çubuk da gizli */
-    #bdf-root.bdf-cf-on #actionSplit {
-      display: none !important;
-    }
-
-    #bdf-root.bdf-cf-on.bdf-cf-bar-empty #actionBar {
-      display: none !important;
-    }
-
-    @media (max-width: 600px) {
-      #bdf-root .bdf-create-footer button {
-        flex: 1 1 auto;
       }
     }
   </style>

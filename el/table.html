@@ -6223,8 +6223,94 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
     } catch (e) { log('[GX-PEND] ' + ((e && e.message) || e)); }
   }
+  /* GX-DIRECT (29.10, Ömer: "Deneme2 Claim Hazır ama tabloda hâlâ Preparing… · 12 dk çok uzun"): a row whose claim is on its
+     way (Claim cell Preparing… / Queued) is read straight from Gaia every 5 s, the mirror is not waited for. 29.10 18:21-18:40
+     the server's mirror took no Bubble change at all (a full sync after a restart runs no deltas; the bridge also got
+     Cloudflare "Just a moment…" pages), so a claim written at 18:23 never reached the table. The read is Bubble's Data API with
+     the viewer's own session (credentials: include): Bubble's privacy rules apply as for the page (an expert only gets their
+     own record; without a session the record comes back empty). Only the fields the claim line writes are taken (Durum,
+     Claim, Eksikler, Plaka, Hasar Dosya No, Sigorta Şirketi, Branş, Kaza Tarihi, Ek Evrak Durumu), and only when Bubble's copy
+     is newer than the mirror's row; when the mirror's row is as new, its own values win again. At most 8 rows per look, only
+     while the tab is visible. A claim package that arrives this way is masked like any other (normalizeRow) and Fill uses it.
+     Off: window.__gxNoDirect = true. */
+  const DT_DIRECT_MS = 5000, DT_DIRECT_MAX = 8;
+  const DT_DIRECT_KEYS = new Set(['durum', 'claim', 'eksikler', 'plaka', 'hasardosyano', 'sigortasirketi', 'brans', 'kazatarihi', 'ekevrakdurumu']);
+  const _dtDirect = new Map();   // row id → { mod, fields } (Bubble's newer values)
+  let _dtDirectBusy = false;
+  function dtDirectApply(rows) {
+    if (!Array.isArray(rows) || !_dtDirect.size || window.__gxNoDirect) return rows;
+    let changed = false;
+    const out = rows.map(r => {
+      const id = (r && r._id) ? String(r._id) : '';
+      const o = id ? _dtDirect.get(id) : null;
+      if (!o) return r;
+      if (aynaLiveTime(r._modified) >= o.mod) { _dtDirect.delete(id); return r; }   // the mirror caught up: its row wins
+      changed = true;
+      return Object.assign({}, r, o.fields);
+    });
+    return changed ? out : rows;
+  }
+  function dtDirectWanted() {
+    const rows = AYNA.painted, ids = [];
+    if (!Array.isArray(rows)) return ids;
+    for (let i = 0; i < rows.length && ids.length < DT_DIRECT_MAX; i++) {
+      const r = rows[i];
+      if (!r || r.__gxPend || !r._id) continue;
+      const st = dtClaimWaitState(r);
+      if (st === 'preparing' || st === 'queued') ids.push(String(r._id));
+    }
+    return ids;
+  }
+  async function dtDirectRead(id) {
+    const vt = (location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '';
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 8000) : null;
+    try {
+      const r = await fetch(location.origin + vt + '/api/1.1/obj/Object/' + encodeURIComponent(id), { credentials: 'include', signal: ctrl ? ctrl.signal : undefined });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const o = j && j.response;
+      if (!o || !Array.isArray(o.jsonarray)) return null;
+      const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
+      const want = new Map(cols.filter(c => DT_DIRECT_KEYS.has(dtNormKey(c))).map(c => [dtNormKey(c), c]));
+      const fields = {};
+      o.jsonarray.forEach(line => {
+        let p = null; try { p = JSON.parse('{' + line + '}'); } catch (e) { return; }
+        for (const k in p) {
+          const col = want.get(dtNormKey(k)); if (!col) continue;
+          const v = p[k];
+          if (typeof v === 'string' || typeof v === 'number' || (Array.isArray(v) && v.every(x => typeof x === 'string'))) fields[col] = v;
+        }
+      });
+      return { mod: aynaLiveTime(o['Modified Date']), fields: fields };
+    } catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
+  }
+  async function dtDirectTick() {
+    if (window.__gxNoDirect || _dtDirectBusy || !AYNA.cfg || !aynaAlive() || aynaLiveHidden()) return;
+    const ids = dtDirectWanted();
+    if (!ids.length) return;
+    _dtDirectBusy = true;
+    try {
+      const raw = new Map((AYNA.painted || []).filter(r => r && r._id).map(r => [String(r._id), r]));
+      let n = 0;
+      for (const id of ids) {
+        const got = await dtDirectRead(id);
+        const row = raw.get(id);
+        if (!got || !got.mod || !row || !Object.keys(got.fields).length) continue;
+        const prev = _dtDirect.get(id);
+        if (got.mod <= aynaLiveTime(row._modified) || (prev && got.mod <= prev.mod)) continue;
+        _dtDirect.set(id, { mod: got.mod, fields: got.fields }); n++;
+      }
+      if (n && aynaAlive() && Array.isArray(AYNA.painted)) {
+        aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
+        log('[GX-DIRECT] ' + n + ' row(s) updated from Gaia before the mirror');
+      }
+    } finally { _dtDirectBusy = false; }
+  }
+  window.__gxDirectTick = dtDirectTick;   // the newest element instance (Bubble may re-render it)
+  if (!window.__gxDirectTimer) window.__gxDirectTimer = setInterval(() => { try { const f = window.__gxDirectTick; if (f) f(); } catch (e) {} }, DT_DIRECT_MS);
   function aynaPaint(rows, columns, first) {
-    rows = dtPendMerge(dtGoneFilter(rows));   // GX-GONE + GX-PEND
+    rows = dtDirectApply(dtPendMerge(dtGoneFilter(rows)));   // GX-GONE + GX-PEND + GX-DIRECT
     AYNA.painted = rows;   // AYNA-LIVE: what the grid shows, compared with a refreshed answer
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // AYNA-LIVE: a deferred paint never lands over a newer one
     const c = els && els.container;
@@ -6746,7 +6832,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // the live repaint: same soft fade as aynaPaint, on timers instead of animation frames (a frame may never come in a
   // throttled / headless page, and the rows must not wait for one: AYNA.painted already says they are on screen)
   function aynaLivePaint(rows, columns) {
-    rows = dtPendMerge(dtGoneFilter(rows));   // GX-GONE + GX-PEND
+    rows = dtDirectApply(dtPendMerge(dtGoneFilter(rows)));   // GX-GONE + GX-PEND + GX-DIRECT
     AYNA.painted = rows;
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // shared with aynaPaint: the newest paint wins
     const c = els && els.container;
