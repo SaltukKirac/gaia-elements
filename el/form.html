@@ -6172,7 +6172,7 @@
       }
 
       // CREATE-FOOTER: yeni kayıtta aksiyonlar menü yerine formun altında düğme olur.
-      // Var olan kayıt, düzenleme, sürüm ve test kipi eskisi gibi kalır.
+      // Var olan kayıt, düzenleme ve test kipi eskisi gibi kalır.
       // var: updateActionBarUi bu satırlardan önce çağrılabilir (const olsa TDZ hatası verirdi).
       var bdfCreateFooterKey = "";
       var bdfCreateFooterObserved = false;
@@ -6188,7 +6188,6 @@
           .filter((opt) => String(opt?.id || "").trim());
         const show = !hasExistingBubbleData()
           && !IS_EDITING_MODE
-          && !IS_VERSION_MODE
           && !isEditPanelOpen
           && window.__BDF_TEST_MODE__ !== true
           && Boolean(actionBar && actionBar.dataset && !("_bdfOrigDisplay" in actionBar.dataset))
