@@ -6859,6 +6859,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const L = AYNA.live; if (!L || L.bound) return;
     L.bound = true;
     window.__gxLiveDoc = {
+      // AYNA-SAVE (29.10): a record saved through Bubble (the form) → follow-up looks + the 8 s boost until the row shows
+      save: function () {
+        if (!aynaAlive()) return;
+        aynaLiveSettleStart('save'); aynaLiveBoost('save');
+      },
       vis: function () {
         if (!aynaAlive()) return;
         if (aynaLiveHidden()) { if (L.timer) { clearTimeout(L.timer); L.timer = null; } return; }
@@ -6879,6 +6884,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         else if (wasIdle && !L.busy) aynaLiveArm();
       }
     };
+    aynaSaveWatch();   // AYNA-SAVE
     if (window.__gxLiveDocBound) return;
     window.__gxLiveDocBound = true;
     const call = (fn, arg) => { try { const h = window.__gxLiveDoc; if (h && h[fn]) h[fn](arg); } catch (e) {} };
@@ -6893,6 +6899,28 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     document.addEventListener('wheel', () => call('input', 'wheel'), opt);
     document.addEventListener('touchstart', () => call('input', 'touch'), opt);
     document.addEventListener('mousemove', () => { const n = Date.now(); if (n - moved > 5000) { moved = n; call('input', 'move'); } }, opt);
+  }
+  // AYNA-SAVE (29.10, Ömer: a record saved in the form reached the table 18 s to 2 min later; the server answered in 0.5-2 s,
+  // the table waited for its 30 s cadence). The form saves through Bubble's window.bubble_fn_submit; the table wraps it once
+  // per assignment (Bubble may assign it again: checked every 2 s). The call itself is untouched: same this, arguments and
+  // return value, errors pass through; only after it the table starts the boost (probe every 8 s, ends when the change shows).
+  // The mirror needs ~10-20 s after Bubble's create, so the row shows ~10-20 s after Save instead of 18 s to 2 min.
+  // Off: window.__gxNoSaveWatch = true before the table loads.
+  function aynaSaveWatch() {
+    if (window.__gxSaveWatch || window.__gxNoSaveWatch) return;
+    window.__gxSaveWatch = true;
+    const after = () => { try { const h = window.__gxLiveDoc; if (h && h.save) h.save(); } catch (e) {} };
+    const wrap = () => {
+      try {
+        const f = window.bubble_fn_submit;
+        if (typeof f !== 'function' || f.__gxSave) return;
+        const w = function () { try { return f.apply(this, arguments); } finally { setTimeout(after, 0); } };
+        w.__gxSave = true; w.__gxRaw = f;
+        window.bubble_fn_submit = w;
+      } catch (e) {}
+    };
+    wrap();
+    setInterval(wrap, 2000);
   }
   /* AYNA-LIVE-END */
   window.gaiaTableMirror = {
