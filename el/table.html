@@ -2268,7 +2268,7 @@
   font-size: 0;
 }
 
-/* TIDY-CLAIMWAIT (29.10): where an empty claim is (Preparing / Failed) */
+/* TIDY-CLAIMWAIT (29.10): where an empty claim is (Queued / Preparing / Failed); Queued keeps the base grey */
 #dynamic-table-wrapper .dt-claim-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 20px; color: var(--gx-ink-3, #94a3b8); }
 #dynamic-table-wrapper .dt-claim-wait--preparing { color: var(--gx-primary, #6366f1); font-weight: 500; }
 #dynamic-table-wrapper .dt-claim-wait--failed { color: var(--gx-err, #dc2626); font-weight: 500; }
@@ -3896,6 +3896,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   /* TIDY-CLAIMWAIT (29.10, Ömer): an empty Claim cell said nothing while the claim was being made. Read from the row only:
        Durum "Claim Hazırlanıyor" → 'preparing' ("Preparing…"): the form's "Claim Hazırla" button writes it at once, and the
          claim line (nod-gaia-hat) writes it while its agent runs
+       Durum "Claim Sırada"       → 'queued' ("Queued"): the claim line marks every record of its run at the start (Ömer 29.10)
        Durum "Hata"               → 'failed' ("Failed"): the line gave up; it does not retry a Hata record by itself
      A missing Durum (the mirror leaves empty fields out) on a table with a Durum column is empty. A package on the row
      (Ready ✓), an empty or any other Durum → '' (the cell renders as before). "Queued" was dropped (Ömer 29.10). */
@@ -3913,6 +3914,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (d === null) { if (!state.columns.some(c => c && !c.__uiOnly && dtNormKey(c.id || '') === 'durum')) return ''; d = ''; }
       const k = dtNormKey(d);
       if (k === 'claimhazirlaniyor') return 'preparing';
+      if (k === 'claimsirada') return 'queued';   // TIDY-QUEUE (29.10, Ömer): the claim line wrote it at the start of its run
       if (k === 'hata') return 'failed';
       return '';   // empty / other Durum: as before ("Queued" dropped, Ömer 29.10: the form's "Claim Hazırla" writes Claim Hazırlanıyor itself)
     } catch (e) { return ''; }
@@ -3921,8 +3923,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const b = document.createElement('span');
     b.className = 'dt-claim-wait dt-claim-wait--' + st;
     if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
-    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : 'Failed'));
-    td.title = st === 'preparing' ? 'The claim is being prepared from the documents.' : 'The claim could not be prepared. Check the documents on this record.';
+    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : st === 'queued' ? 'Queued' : 'Failed'));
+    td.title = st === 'preparing' ? 'The claim is being prepared from the documents.'
+      : st === 'queued' ? 'Waiting for its turn. The claims before it are prepared first.'
+      : 'The claim could not be prepared. Check the documents on this record.';
     td.appendChild(b);
   }
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
