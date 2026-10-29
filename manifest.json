@@ -2,9 +2,9 @@
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "omer",
     "kisi":  "Omer",
-    "rev":  19,
+    "rev":  20,
     "main_rev":  51,
-    "updated":  "2026-10-29T14:43:31Z",
+    "updated":  "2026-10-29T15:19:13Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -57,12 +57,12 @@
                                             "updated":  "2026-09-24T20:35:50Z"
                                         },
                      "table":  {
-                                   "commit":  "ff71f605bbb00da322055727d8e58c797178897f",
+                                   "commit":  "1886b6427ac2ff57b962954b128f93b0fd3d94f4",
                                    "path":  "el/table.html",
-                                   "blob":  "66ee8f3236b900f7d91bc1fe9bce1de2a90d56ee",
-                                   "bytes":  608835,
+                                   "blob":  "72cf3ac02cdc09048917375526f474f9802fbb00",
+                                   "bytes":  609258,
                                    "title":  "Dynamic table (tablev2) - app page",
-                                   "updated":  "2026-10-29T14:43:31Z",
+                                   "updated":  "2026-10-29T15:19:13Z",
                                    "kaynak":  "omer",
                                    "taban":  "975b3f75fe356fc6503d0990bce19b2593a96c4c"
                                },
