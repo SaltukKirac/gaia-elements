@@ -6862,6 +6862,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // AYNA-SAVE (29.10): a record saved through Bubble (the form) → follow-up looks + the 8 s boost until the row shows
       save: function () {
         if (!aynaAlive()) return;
+        L.errors = 0;   // 29.10: earlier failed probes stretched the 8 s boost to 64 s; a save starts a fresh 8 / 16 / 32 s chain
         aynaLiveSettleStart('save'); aynaLiveBoost('save');
       },
       vis: function () {
