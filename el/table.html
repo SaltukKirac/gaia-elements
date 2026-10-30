@@ -128,6 +128,27 @@
   font-size: 18px;
 }
 
+/* TIDY-LABELS (29.10, Omer): icon-only Import / Export read as mystery arrows; on a wide table they carry their word,
+   narrow screens keep the icon (and the More menu). The hover tip below opens at once instead of the browser's slow title. */
+#dynamic-table-wrapper .dt-btn-label { display: none; }
+@media (min-width: 1100px) {
+  #dynamic-table-wrapper #dt-btn-import,
+  #dynamic-table-wrapper #dt-btn-download { width: auto; padding: 0 12px 0 10px; font-size: 13px; color: var(--gx-ink-2, #475569); }
+  #dynamic-table-wrapper #dt-btn-import .dt-svg-icon,
+  #dynamic-table-wrapper #dt-btn-download .dt-svg-icon { width: 18px; height: 18px; }
+  #dynamic-table-wrapper .dt-btn-label { display: inline; }
+}
+#dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip] { position: relative; }
+#dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip]::after {
+  content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 50%; margin-left: -60px; width: 120px;
+  text-align: center; padding: 4px 8px; border-radius: 6px; background: var(--gx-ink, #0f172a); color: #fff;
+  font: 500 12px/1.3 var(--gx-font, Inter, system-ui, sans-serif); white-space: normal; pointer-events: none;
+  opacity: 0; transition: opacity 120ms ease 150ms; z-index: 60;
+}
+#dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip]:hover::after,
+#dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip]:focus-visible::after { opacity: 1; }
+@media (hover: none) { #dynamic-table-wrapper .dt-toolbar .dt-icon-btn[data-tip]::after { display: none; } }
+
 #dynamic-table-wrapper .dt-icon-btn--sm {
   width: 32px;
   height: 32px;
@@ -2114,8 +2135,9 @@
 #dynamic-table-wrapper .handsontable thead th {
   position: relative;
   overflow: visible !important;
-  min-height: 40px !important;
-  padding: 10px 12px !important;
+  /* TIDY-HEAD (29.10, Ömer): 40 px + 2 x 10 px made a 69 px header (two lines of air over one line of text) */
+  min-height: 34px !important;
+  padding: 6px 12px !important;
   background: var(--gx-bg, #f8fafc) !important;
   z-index: 30 !important;
   font-weight: 600 !important;
@@ -2244,6 +2266,32 @@
 
 #dynamic-table-wrapper .dt-header-action-btn--manage {
   font-size: 0;
+}
+
+/* TIDY-CLAIMWAIT (29.10): where an empty claim is (Queued / Preparing / Failed); Queued keeps the base grey */
+#dynamic-table-wrapper .dt-claim-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 20px; color: var(--gx-ink-3, #94a3b8); }
+#dynamic-table-wrapper .dt-claim-wait--preparing { color: var(--gx-primary, #6366f1); font-weight: 500; }
+#dynamic-table-wrapper .dt-claim-wait--failed { color: var(--gx-err, #dc2626); font-weight: 500; }
+#dynamic-table-wrapper .dt-claim-spin { width: 11px; height: 11px; border: 2px solid var(--gx-line, #e2e8f0); border-top-color: var(--gx-primary, #6366f1); border-radius: 50%; animation: dt-claim-spin .9s linear infinite; flex: 0 0 auto; }
+@keyframes dt-claim-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .dt-claim-spin { animation: none; } }
+
+/* TIDY-ROWS (29.10, Ömer): another element on the app page ships a global "button, select { margin: 10px; padding: 10px
+   14px }". Inside the grid it gave the header "+ / ⋯" pair and the row's Fill / Open buttons 10 px of margin, so the header
+   grew to 61-69 px and every row with a claim package to ~63 px (36 px intended). The grid's own buttons start from zero
+   here (:where keeps this at id specificity, so every "#dynamic-table-wrapper .class" rule still sets its own spacing). */
+#dynamic-table-wrapper :where(button, select) {
+  margin: 0;
+}
+#dynamic-table-wrapper .dt-header-action-btn,
+#dynamic-table-wrapper .dt-row-open {
+  padding: 0;
+}
+/* the actions cell: a 28 px Open button + 2 x 8 px cell padding did not fit the 36 px row (rows came out 47 px) */
+#dynamic-table-wrapper .handsontable td:has(> .dt-row-open) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 1;
 }
 
 #dynamic-table-wrapper .dt-manage-dots {
@@ -2534,24 +2582,24 @@
     <div class="dt-header">
       <div class="dt-toolbar">
         <div class="dt-toolbar-left">
-          <button id="dt-btn-due-date" class="dt-icon-btn" type="button" aria-label="Sort by due date" title="Sort by due date"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><line x1="12" y1="13" x2="12" y2="16"/><circle cx="12" cy="18" r="0.9" fill="currentColor" stroke="none"/></svg><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M6 20l-3-3M6 20l3-3"/><path d="M18 4l3 3M18 4l-3 3M18 4v16"/></svg></button>
+          <button id="dt-btn-due-date" class="dt-icon-btn" type="button" aria-label="Sort by due date" data-tip="Sort by due date"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><line x1="12" y1="13" x2="12" y2="16"/><circle cx="12" cy="18" r="0.9" fill="currentColor" stroke="none"/></svg><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M6 20l-3-3M6 20l3-3"/><path d="M18 4l3 3M18 4l-3 3M18 4v16"/></svg></button>
           <div id="dt-due-date-wrap" class="dt-due-date-wrap">
             <span class="dt-due-date-label">Sort by due date</span>
             <button id="dt-due-date-configure" class="dt-due-date-config-btn" type="button" aria-label="Choose due-date fields" title="Choose due-date fields"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
             <button id="dt-due-date-clear" class="dt-due-date-clear-btn" type="button" aria-label="Turn off due-date sort"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
-          <button id="dt-btn-search" class="dt-icon-btn" type="button" aria-label="Search" title="Search"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+          <button id="dt-btn-search" class="dt-icon-btn" type="button" aria-label="Search" data-tip="Search records"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
           <div id="dt-search-wrap" class="dt-search-wrap">
             <input id="dt-search" class="dt-search" type="text" placeholder="Search records" autocomplete="off" />
           </div>
         </div>
         <div class="dt-toolbar-right">
           <span id="dt-selection-count" class="dt-selection-count dt-hidden" aria-live="polite"></span>
-          <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" title="Delete"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
-          <button id="dt-btn-import" class="dt-icon-btn" type="button" aria-label="Import" title="Import"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V9"></path><path d="m8.5 12.5 3.5-3.5 3.5 3.5"></path><path d="M5 19h14"></path></svg></button>
-          <button id="dt-btn-download" class="dt-icon-btn" type="button" aria-label="Export" title="Export"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v10"></path><path d="m8.5 11.5 3.5 3.5 3.5-3.5"></path><path d="M5 18h14"></path></svg></button>
+          <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" data-tip="Delete selected"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
+          <button id="dt-btn-import" class="dt-icon-btn" type="button" aria-label="Import" data-tip="Import from a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V9"></path><path d="m8.5 12.5 3.5-3.5 3.5 3.5"></path><path d="M5 19h14"></path></svg><span class="dt-btn-label">Import</span></button>
+          <button id="dt-btn-download" class="dt-icon-btn" type="button" aria-label="Export" data-tip="Export to a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v10"></path><path d="m8.5 11.5 3.5 3.5 3.5-3.5"></path><path d="M5 18h14"></path></svg><span class="dt-btn-label">Export</span></button>
           <div id="dt-toolbar-more-wrap" class="dt-toolbar-more-wrap">
-            <button id="dt-btn-more" class="dt-icon-btn" type="button" aria-label="More actions" title="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.75" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.75" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.75" fill="currentColor" stroke="none"></circle></svg></button>
+            <button id="dt-btn-more" class="dt-icon-btn" type="button" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" data-tip="Fields, import, export"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.75" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.75" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.75" fill="currentColor" stroke="none"></circle></svg></button>
             <div id="dt-toolbar-more-menu" class="dt-toolbar-more-menu" role="menu" aria-hidden="true">
               <button id="dt-toolbar-more-add" class="dt-toolbar-more-item" type="button" role="menuitem">Add field</button>
               <button id="dt-toolbar-more-manage" class="dt-toolbar-more-item" type="button" role="menuitem">Manage fields</button>
@@ -3335,9 +3383,11 @@
   }
   function dtRenderPills(td, tokens) {
     if (!tokens.length) return;
-    var wrap = document.createElement('span');
+    var wrap = document.createElement('span'), more;
     wrap.className = 'dt-pills';
-    tokens.forEach(function (t) {
+    // TIDY-PILLS (29.10, Ömer): a multi value showed its first pill and the rest clipped into "Poliçe ···"; now the first
+    // pill + a "+N" badge (the dt-cell-more of file cells), every value in the tooltip.
+    tokens.slice(0, 1).forEach(function (t) {
       var p = document.createElement('span');
       p.className = 'dt-pill';
       p.setAttribute('data-tone', String(gxToneIndex(t)));
@@ -3345,6 +3395,14 @@
       wrap.appendChild(p);
     });
     td.appendChild(wrap);
+    if (tokens.length > 1) {
+      more = document.createElement('span');
+      more.className = 'dt-cell-more dt-pill-more';
+      more.textContent = '+' + (tokens.length - 1);
+      more.setAttribute('aria-label', (tokens.length - 1) + ' more: ' + tokens.slice(1).join(', '));
+      wrap.style.maxWidth = 'calc(100% - 34px)';   // the badge stays visible next to a long first pill
+      td.appendChild(more);
+    }
     if (tokens.length > 1 || tokens[0].length > 24) td.title = tokens.join(', ');
   }
   function dtRenderFiles(td, value) {
@@ -3828,12 +3886,48 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // GX-FILL-KAYIT (20.10): another Durum value no longer hides the action on a table with a Claim field — the record path builds the
   // claim from the record itself, so a record in any stage can be sent (the extension refuses one with nothing to fill).
   function dtFillState(row) {
-    if (!row) return '';
+    if (!row || row.__gxPend) return '';   // GX-PEND: no record yet, nothing to send
     const id = rowIdOf(row);
     if (id && dtPaket.has(id)) return 'ready';
     const d = dtRowDurum(row);
     if (d !== null) { const k = dtNormKey(d); if (k === 'claimhazir') return 'ready'; if (k === 'cihazbekleniyor') return 'register'; }
     return dtTableHasClaimField() ? 'check' : '';
+  }
+  /* TIDY-CLAIMWAIT (29.10, Ömer): an empty Claim cell said nothing while the claim was being made. Read from the row only:
+       Durum "Claim Hazırlanıyor" → 'preparing' ("Preparing…"): the form's "Claim Hazırla" button writes it at once, and the
+         claim line (nod-gaia-hat) writes it while its agent runs
+       Durum "Claim Sırada"       → 'queued' ("Queued"): the claim line marks every record of its run at the start (Ömer 29.10)
+       Durum "Hata"               → 'failed' ("Failed"): the line gave up; it does not retry a Hata record by itself
+     A missing Durum (the mirror leaves empty fields out) on a table with a Durum column is empty. A package on the row
+     (Ready ✓), an empty or any other Durum → '' (the cell renders as before). "Queued" was dropped (Ömer 29.10). */
+  function dtClaimWaitState(row) {
+    try {
+      if (!row) return '';
+      const id = rowIdOf(row);
+      if (id && dtPaket.has(id)) return '';
+      let claim = '';
+      for (const k in row) { if (k !== '__sourceIndex' && dtNormKey(k) === 'claim') { claim = String(row[k] == null ? '' : row[k]).trim(); break; } }
+      if (claim) return '';
+      // the mirror leaves EMPTY fields out of a row (a new record carries only _id, _created, … and what was filled), so a
+      // missing Durum on a table that HAS a Durum column means empty, not "this table has no Durum" (29.10 test record)
+      let d = dtRowDurum(row);
+      if (d === null) { if (!state.columns.some(c => c && !c.__uiOnly && dtNormKey(c.id || '') === 'durum')) return ''; d = ''; }
+      const k = dtNormKey(d);
+      if (k === 'claimhazirlaniyor') return 'preparing';
+      if (k === 'claimsirada') return 'queued';   // TIDY-QUEUE (29.10, Ömer): the claim line wrote it at the start of its run
+      if (k === 'hata') return 'failed';
+      return '';   // empty / other Durum: as before ("Queued" dropped, Ömer 29.10: the form's "Claim Hazırla" writes Claim Hazırlanıyor itself)
+    } catch (e) { return ''; }
+  }
+  function dtRenderClaimWait(td, st) {
+    const b = document.createElement('span');
+    b.className = 'dt-claim-wait dt-claim-wait--' + st;
+    if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
+    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : st === 'queued' ? 'Queued' : 'Failed'));
+    td.title = st === 'preparing' ? 'The claim is being prepared from the documents.'
+      : st === 'queued' ? 'Waiting for its turn. The claims before it are prepared first.'
+      : 'The claim could not be prepared. Check the documents on this record.';
+    td.appendChild(b);
   }
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
   function dtFillButtonHtml(st) {
@@ -4115,7 +4209,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       td.removeAttribute('title');
       td.style.textAlign = '';
       if (kind === 'number') td.classList.add('htRight');
-      if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) return;
+      if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) {
+        // TIDY-CLAIMWAIT: an empty Claim cell tells where the claim is (Preparing… / Failed)
+        if (dtNormKey(c.id || '') === 'claim') {
+          try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st) dtRenderClaimWait(td, st); } catch (e) {}
+        }
+        return;
+      }
 
       if (kind === 'number') { dtAppendText(td, typeof value === 'number' ? dtNumberText(c, value) : dtRawText(value)); return; }
       if (kind === 'date') { dtAppendText(td, dtIsoText(value) || dtRawText(value)); return; }
@@ -4288,6 +4388,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (p === null || p === undefined || p < 0) return;
     const sourceIndex = state.displayRows[p]?.__sourceIndex;
     if (sourceIndex === undefined) return;
+    const rawRow = state.rawRows[sourceIndex];
+    if (rawRow && rawRow.__gxPend) { showWakeToast('This record is still being saved. It opens in a moment.', 'info'); return; }   // GX-PEND: no record id yet
 
     prioritizeSelection(sourceIndex);
     start();
@@ -4614,6 +4716,46 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   // ── Yatay kaydırma (25.09) ────────────────────────────────────────────────
   // İlk kolon sabitlenir; görünür genişliğin yarısından genişse sabitlenmez (dar ekranda kaydıracak yer kalmaz).
+  // TIDY-WIDTH (29.10, Ömer): every column came out 150 px (Bubble sends one width for all), so "Hasar Dosya No" or
+  // "Sigorta Şirketi" was cut while "Claim" had room to spare. The width now fits the header and the cells (90th percentile
+  // of the first 200 rows, measured on a canvas with the grid's own font), 96..320 px. It only grows within a session
+  // (a live refresh never makes columns jump narrower); a width the person dragged (state.columnWidths) still wins, and
+  // config.auto_width === false keeps the old behaviour.
+  const DT_AUTO_W_MIN = 96, DT_AUTO_W_MAX = 320, DT_AUTO_W_SAMPLE = 200;
+  function dtAutoWidth(col) {
+    try {
+      if (!col || col.__uiOnly) return col ? col.width : 150;
+      let cfg = {}; try { cfg = (typeof AYNA !== 'undefined' && AYNA && AYNA.cfg) || {}; } catch (e) { cfg = {}; }
+      if (cfg.auto_width === false || String(cfg.auto_width).toLowerCase() === 'off') return col.width;
+      const cache = state._autoW || (state._autoW = {});
+      const ctx = dtAutoWidth._ctx || (dtAutoWidth._ctx = document.createElement('canvas').getContext('2d'));
+      if (!dtAutoWidth._font) {
+        const td = els.container && els.container.querySelector('.ht_master td');
+        const cs = td ? getComputedStyle(td) : null;
+        dtAutoWidth._font = cs && cs.fontFamily ? cs.fontSize + ' ' + cs.fontFamily : '13px Inter, system-ui, sans-serif';
+        dtAutoWidth._fam = cs && cs.fontFamily ? cs.fontFamily : 'Inter, system-ui, sans-serif';
+      }
+      ctx.font = '600 12.5px ' + dtAutoWidth._fam;
+      const head = Math.ceil(ctx.measureText(String(col.header || '')).width) + 92;   // type glyph 16 + caret 12 + gaps + th padding 24 + header slack (measured 29.10: 88 px around the text)
+      ctx.font = dtAutoWidth._font;
+      const rows = state.displayRows || [], n = Math.min(rows.length, DT_AUTO_W_SAMPLE), ws = [];
+      const chip = col.type === 'dropdown' || col.multiple === true;
+      for (let i = 0; i < n; i++) {
+        const r = rows[i]; if (!r) continue;
+        let s = ''; try { s = dtRawText(r[col.id]); } catch (e) { s = ''; }
+        s = String(s || '').trim(); if (!s) continue;
+        if (chip && s.indexOf(',') > 0) s = s.split(',')[0].trim() + ' +9';   // chips: the first value + a "+N" badge
+        if (s.length > 60) s = s.slice(0, 60);
+        ws.push(Math.ceil(ctx.measureText(s).width));
+      }
+      ws.sort((a, b) => a - b);
+      const body = ws.length ? ws[Math.min(ws.length - 1, Math.floor(ws.length * 0.9))] + (chip ? 40 : 28) : 0;
+      const w = Math.max(DT_AUTO_W_MIN, Math.min(DT_AUTO_W_MAX, Math.max(head, body)));
+      const prev = cache[col.id] || 0;
+      return (cache[col.id] = Math.max(prev, w));
+    } catch (e) { return col.width; }
+  }
+
   function getFrozenColumnCount(visibleColumns) {
     const first = visibleColumns && visibleColumns[0];
     if (!first || first.__uiOnly || visibleColumns.length < 3) return 0;
@@ -4842,7 +4984,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         return {
           data: col.id,
           readOnly: col.readOnly,
-          width: col.width,
+          width: dtAutoWidth(col),   // TIDY-WIDTH
           // T6: typed sort lives in the column settings → the id-keyed re-apply (cs.sort below) keeps it
           columnSorting: { compareFunctionFactory: dtSortCompareFactory },
           ...(renderer ? { renderer } : {})
@@ -5716,6 +5858,46 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   const AYNA = { windowSize: 200, fullLoadMax: 600, pageSize: 1500, maxRows: 20000, timeoutMs: 45000, screenWaitMs: 30000, renderEveryMs: 1200, cacheTtlMs: 10 * 60000, pageCacheTtlMs: 2 * 60000,
                  loading: false, seq: 0, last: null, stats: null, screenKey: '', cfg: null, cache: new Map(),
                  win: null, criteria: { where: null, text: '', order_by: '' }, critKey: '', pageCache: new Map(), cacheGen: 0, distinct: new Map(), hooked: [], fields: [] };
+  /* TIDY-KEEP (29.10, Ömer): the memory cache dies with the page, so a reload while the free-plan server sleeps showed an
+     EMPTY grid for 30-60 s ("The Gaia server is waking up"), as if the records were gone. Every cache write is now also kept
+     in this TAB's sessionStorage (gone when the tab closes; never localStorage), keyed by the signed-in Bubble user
+     (bubble_session_uid; no uid = nothing is kept) + the screen + the field projection. A reload paints those rows at once,
+     marked "from HH:MM · updating", and the fresh answer replaces them as before. Claim packages / key lines are stored masked
+     (dtMaskPaket), never as values. Kept at most 12 h, 1.5 MB per screen,
+     4 screens; a full store drops the oldest. aynaCacheDrop (data changed) drops the kept copy too. */
+  const AYNA_KEEP = { prefix: 'gxAynaKeep2|', maxAgeMs: 12 * 3600000, maxBytes: 1500000, maxScreens: 4 };
+  // v1 (29.10, kanal rev 8-9 only) stored the claim package unmasked: any v1 copy left in a tab is removed on load
+  try { Object.keys(sessionStorage).forEach(k => { if (k.indexOf('gxAynaKeep1|') === 0) sessionStorage.removeItem(k); }); } catch (e) {}
+  function aynaKeepUid() { try { return String(window.bubble_session_uid || '').trim(); } catch (e) { return ''; } }
+  function aynaKeepKey(cacheKey) { const u = aynaKeepUid(); return u ? AYNA_KEEP.prefix + u + '|' + cacheKey : ''; }
+  function aynaKeepAll() { const out = []; try { for (let i = 0; i < sessionStorage.length; i++) { const k = sessionStorage.key(i); if (k && k.indexOf(AYNA_KEEP.prefix) === 0) out.push(k); } } catch (e) {} return out; }
+  function aynaKeepPut(cacheKey, v) {
+    try {
+      const k = aynaKeepKey(cacheKey); if (!k || !v || !Array.isArray(v.rows) || !v.rows.length) return;
+      // never the encrypted claim package (GX-FILL: memory only) nor browser key lines: they are kept as their badges; the Fill
+      // button still works (a row without its package fetches it on click, mirror_get). This also keeps a row ~3 KB, not ~35 KB.
+      const rows = v.rows.map(r => { const o = {}; for (const f in r) { if (f !== '__sourceIndex') o[f] = dtMaskPaket(r[f]); } return o; });
+      const s = JSON.stringify({ at: v.at || Date.now(), rows: rows, windowed: !!v.windowed, total: v.total || 0 });
+      if (s.length > AYNA_KEEP.maxBytes) { sessionStorage.removeItem(k); return; }
+      const others = aynaKeepAll().filter(x => x !== k);
+      const ageOf = x => { try { return JSON.parse(sessionStorage.getItem(x) || '{}').at || 0; } catch (e) { return 0; } };
+      others.sort((a, b) => ageOf(a) - ageOf(b));
+      while (others.length >= AYNA_KEEP.maxScreens) sessionStorage.removeItem(others.shift());
+      try { sessionStorage.setItem(k, s); }
+      catch (e) { others.forEach(x => sessionStorage.removeItem(x)); try { sessionStorage.setItem(k, s); } catch (e2) {} }
+    } catch (e) {}
+  }
+  function aynaKeepGet(cacheKey) {
+    try {
+      const k = aynaKeepKey(cacheKey); if (!k) return null;
+      const o = JSON.parse(sessionStorage.getItem(k) || 'null');
+      if (!o || !Array.isArray(o.rows) || !o.rows.length || !o.at || Date.now() - o.at > AYNA_KEEP.maxAgeMs) { sessionStorage.removeItem(k); return null; }
+      o.kept = true; return o;
+    } catch (e) { return null; }
+  }
+  function aynaKeepDrop(screenKey) { try { const u = aynaKeepUid(); if (!u) return; const p = AYNA_KEEP.prefix + u + '|' + screenKey; aynaKeepAll().forEach(k => { if (k === p || k.indexOf(p + '|') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
+  (function () { const set0 = AYNA.cache.set.bind(AYNA.cache); AYNA.cache.set = function (k, v) { const r = set0(k, v); aynaKeepPut(k, v); return r; }; })();
+  function aynaClock(at) { try { const d = new Date(at); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } }
   function aynaScreenOf(config) {
     let ag = config && config.agent;
     if (typeof ag === 'string') { try { ag = JSON.parse(ag); } catch (e) { ag = null; } }
@@ -5835,7 +6017,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // mr18: the memory cache is keyed by the screen AND the field projection → a page cached before a field was added is
   // never painted as the new layout's first paint
   function aynaCacheKey(scr) { return scr.key + '|' + AYNA.fields.join('\u0001'); }
-  function aynaCacheDrop(screenKey) { Array.from(AYNA.cache.keys()).forEach(k => { if (k === screenKey || k.indexOf(screenKey + '|') === 0) AYNA.cache.delete(k); }); }
+  function aynaCacheDrop(screenKey) { Array.from(AYNA.cache.keys()).forEach(k => { if (k === screenKey || k.indexOf(screenKey + '|') === 0) AYNA.cache.delete(k); }); aynaKeepDrop(screenKey); }
   // mr18: a runtime reload of a WINDOWED screen starts from the current filters / search / column sort (only for columns
   // that still exist), so the first page is never an unfiltered one while the header badges say "filtered"
   function aynaSeedCriteria(columns) {
@@ -5954,8 +6136,181 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
     } catch (e) { log('[GX-GONE] ' + ((e && e.message) || e)); }
   }
+  /* GX-PEND (29.10, Ömer): a record saved in the form shows in the table at once ("Claim Hazırla dediğim anda tabloya düşsün").
+     The mirror learns of Bubble's create 10-20 s later at best (29.10: it stalled for 27 min), so the row waited for it.
+     Now the table builds the row from what the form handed Bubble (output_full_obj: the same field names as the table's
+     columns) and shows it until the mirror's own row arrives: a real row created from 20 s before the save on (and with the
+     same Plaka when both have one) replaces it. With "Claim Hazırla" the form's Durum "Claim Hazırlanıyor" travels along, so
+     the Claim cell says "Preparing…" at once. Only new records (output3 = no unique id), only mirror screens; the row has no
+     _id (no open / Fill / delete on it) and lives per tab (sessionStorage, 30 min, a page reload keeps it).
+     Off: window.__gxNoPend = true. */
+  const DT_PEND_KEY = 'gx_table_pend_v1', DT_PEND_TTL_MS = 30 * 60000, DT_PEND_EARLY_MS = 20000;
+  let _dtPend = null;
+  function dtPendList() {
+    if (_dtPend) return _dtPend;
+    _dtPend = [];
+    try {
+      const a = JSON.parse(sessionStorage.getItem(DT_PEND_KEY) || '[]'), now = Date.now();
+      if (Array.isArray(a)) a.forEach(e => { if (e && e.row && now - Number(e.at) < DT_PEND_TTL_MS) _dtPend.push(e); });
+    } catch (e) {}
+    return _dtPend;
+  }
+  function dtPendSave() {
+    try { const a = dtPendList(); if (a.length) sessionStorage.setItem(DT_PEND_KEY, JSON.stringify(a)); else sessionStorage.removeItem(DT_PEND_KEY); } catch (e) {}
+  }
+  function dtPendPlaka(row) {
+    try { for (const k in row) { if (dtNormKey(k) === 'plaka') return String(row[k] == null ? '' : row[k]).trim().toLocaleUpperCase('tr-TR').replace(/\s+/g, ''); } } catch (e) {}
+    return '';
+  }
+  // the grid's rows plus the saved records the mirror has not shown yet (the same array when there are none)
+  function dtPendMerge(rows) {
+    if (!Array.isArray(rows)) return rows;
+    const base = rows.some(r => r && r.__gxPend) ? rows.filter(r => !(r && r.__gxPend)) : rows;
+    if (window.__gxNoPend) return base;
+    const list = dtPendList();
+    if (!list.length) return base;
+    const now = Date.now(), key = AYNA.screenKey || '';
+    const taken = new Set();
+    let dirty = false;
+    const keep = list.filter(e => {
+      if (now - e.at >= DT_PEND_TTL_MS) { dirty = true; return false; }
+      if (e.key !== key) return true;   // another screen's record: kept for when that screen is back
+      const pl = dtPendPlaka(e.row);
+      for (let i = 0; i < base.length; i++) {
+        const r = base[i]; if (!r || taken.has(i)) continue;
+        const c = aynaLiveTime(r._created);
+        if (!c || c < e.at - DT_PEND_EARLY_MS) continue;
+        const rp = dtPendPlaka(r);
+        if (pl && rp && pl !== rp) continue;
+        taken.add(i); dirty = true; return false;   // the mirror's own row is here
+      }
+      return true;
+    });
+    if (dirty) { _dtPend = keep; dtPendSave(); }
+    if (aynaWindowed() && (AYNA.win.page !== aynaPages() || AYNA.criteria.where || AYNA.criteria.text)) return base;   // a filtered / earlier page: the new row belongs elsewhere
+    const add = keep.filter(e => e.key === key).map(e => Object.assign({}, e.row));
+    return add.length ? base.concat(add) : base;
+  }
+  // the form's submit (aynaSaveWatch): a create → the row from its fields, painted now
+  function dtPendFromSubmit(payload) {
+    try {
+      if (window.__gxNoPend || !payload || typeof payload !== 'object') return;
+      if (String(payload.output3 || '').trim()) return;   // an existing record: the mirror row is already on screen
+      let obj = payload.output_full_obj;
+      if ((!obj || typeof obj !== 'object') && typeof payload.output_full_json === 'string') { try { obj = JSON.parse(payload.output_full_json); } catch (e) { obj = null; } }
+      if (!obj || typeof obj !== 'object' || !AYNA.cfg || !aynaAlive() || !Array.isArray(AYNA.painted)) return;
+      const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
+      const want = new Map(cols.map(c => [dtNormKey(c), c]));
+      const now = Date.now(), iso = new Date(now).toISOString();
+      const row = { __gxPend: true, _created: iso, _modified: iso };
+      let n = 0;
+      Object.keys(obj).forEach(k => {
+        const col = want.get(dtNormKey(k)); if (!col) return;
+        let v = obj[k];
+        if (v === null || v === undefined || v === '') return;
+        if (Array.isArray(v)) { v = v.filter(x => typeof x === 'string' || typeof x === 'number').map(String); if (!v.length) return; }
+        else if (typeof v === 'object') return;   // a file / structured value: the mirror's row brings it
+        row[col] = v; n++;
+      });
+      if (!n) return;
+      const list = dtPendList(), key = AYNA.screenKey || '';
+      // one create can reach Bubble twice (an autosave, then Save): a second submit within 15 s replaces the first row
+      const last = list.length ? list[list.length - 1] : null;
+      if (last && last.key === key && now - last.at < 15000) list.pop();
+      list.push({ at: now, key: key, row: row });
+      dtPendSave();
+      aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
+      log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
+    } catch (e) { log('[GX-PEND] ' + ((e && e.message) || e)); }
+  }
+  /* GX-DIRECT (29.10, Ömer: "Deneme2 Claim Hazır ama tabloda hâlâ Preparing… · 12 dk çok uzun"): a row whose claim is on its
+     way (Claim cell Preparing… / Queued) is read straight from Gaia every 5 s, the mirror is not waited for. 29.10 18:21-18:40
+     the server's mirror took no Bubble change at all (a full sync after a restart runs no deltas; the bridge also got
+     Cloudflare "Just a moment…" pages), so a claim written at 18:23 never reached the table. The read is Bubble's Data API with
+     the viewer's own session (credentials: include): Bubble's privacy rules apply as for the page (an expert only gets their
+     own record; without a session the record comes back empty). Only the fields the claim line writes are taken (Durum,
+     Claim, Eksikler, Plaka, Hasar Dosya No, Sigorta Şirketi, Branş, Kaza Tarihi, Ek Evrak Durumu), and only when Bubble's copy
+     is newer than the mirror's row; when the mirror's row is as new, its own values win again. At most 8 rows per look, only
+     while the tab is visible. A claim package that arrives this way is masked like any other (normalizeRow) and Fill uses it.
+     Off: window.__gxNoDirect = true. */
+  const DT_DIRECT_MS = 5000, DT_DIRECT_MAX = 8;
+  const DT_DIRECT_KEYS = new Set(['durum', 'claim', 'eksikler', 'plaka', 'hasardosyano', 'sigortasirketi', 'brans', 'kazatarihi', 'ekevrakdurumu']);
+  const _dtDirect = new Map();   // row id → { mod, fields } (Bubble's newer values)
+  let _dtDirectBusy = false;
+  function dtDirectApply(rows) {
+    if (!Array.isArray(rows) || !_dtDirect.size || window.__gxNoDirect) return rows;
+    let changed = false;
+    const out = rows.map(r => {
+      const id = (r && r._id) ? String(r._id) : '';
+      const o = id ? _dtDirect.get(id) : null;
+      if (!o) return r;
+      if (aynaLiveTime(r._modified) >= o.mod) { _dtDirect.delete(id); return r; }   // the mirror caught up: its row wins
+      changed = true;
+      return Object.assign({}, r, o.fields);
+    });
+    return changed ? out : rows;
+  }
+  function dtDirectWanted() {
+    const rows = AYNA.painted, ids = [];
+    if (!Array.isArray(rows)) return ids;
+    for (let i = 0; i < rows.length && ids.length < DT_DIRECT_MAX; i++) {
+      const r = rows[i];
+      if (!r || r.__gxPend || !r._id) continue;
+      const st = dtClaimWaitState(r);
+      if (st === 'preparing' || st === 'queued') ids.push(String(r._id));
+    }
+    return ids;
+  }
+  async function dtDirectRead(id) {
+    const vt = (location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '';
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 8000) : null;
+    try {
+      const r = await fetch(location.origin + vt + '/api/1.1/obj/Object/' + encodeURIComponent(id), { credentials: 'include', signal: ctrl ? ctrl.signal : undefined });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const o = j && j.response;
+      if (!o || !Array.isArray(o.jsonarray)) return null;
+      const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
+      const want = new Map(cols.filter(c => DT_DIRECT_KEYS.has(dtNormKey(c))).map(c => [dtNormKey(c), c]));
+      const fields = {};
+      o.jsonarray.forEach(line => {
+        let p = null; try { p = JSON.parse('{' + line + '}'); } catch (e) { return; }
+        for (const k in p) {
+          const col = want.get(dtNormKey(k)); if (!col) continue;
+          const v = p[k];
+          if (typeof v === 'string' || typeof v === 'number' || (Array.isArray(v) && v.every(x => typeof x === 'string'))) fields[col] = v;
+        }
+      });
+      return { mod: aynaLiveTime(o['Modified Date']), fields: fields };
+    } catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
+  }
+  async function dtDirectTick() {
+    if (window.__gxNoDirect || _dtDirectBusy || !AYNA.cfg || !aynaAlive() || aynaLiveHidden()) return;
+    const ids = dtDirectWanted();
+    if (!ids.length) return;
+    _dtDirectBusy = true;
+    try {
+      const raw = new Map((AYNA.painted || []).filter(r => r && r._id).map(r => [String(r._id), r]));
+      let n = 0;
+      for (const id of ids) {
+        const got = await dtDirectRead(id);
+        const row = raw.get(id);
+        if (!got || !got.mod || !row || !Object.keys(got.fields).length) continue;
+        const prev = _dtDirect.get(id);
+        if (got.mod <= aynaLiveTime(row._modified) || (prev && got.mod <= prev.mod)) continue;
+        _dtDirect.set(id, { mod: got.mod, fields: got.fields }); n++;
+      }
+      if (n && aynaAlive() && Array.isArray(AYNA.painted)) {
+        aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
+        log('[GX-DIRECT] ' + n + ' row(s) updated from Gaia before the mirror');
+      }
+    } finally { _dtDirectBusy = false; }
+  }
+  window.__gxDirectTick = dtDirectTick;   // the newest element instance (Bubble may re-render it)
+  if (!window.__gxDirectTimer) window.__gxDirectTimer = setInterval(() => { try { const f = window.__gxDirectTick; if (f) f(); } catch (e) {} }, DT_DIRECT_MS);
   function aynaPaint(rows, columns, first) {
-    rows = dtGoneFilter(rows);   // GX-GONE
+    rows = dtDirectApply(dtPendMerge(dtGoneFilter(rows)));   // GX-GONE + GX-PEND + GX-DIRECT
     AYNA.painted = rows;   // AYNA-LIVE: what the grid shows, compared with a refreshed answer
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // AYNA-LIVE: a deferred paint never lands over a newer one
     const c = els && els.container;
@@ -6256,15 +6611,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const seedQuery = seeded ? Object.assign({ limit: AYNA.windowSize, offset: 0, order_by: seed.order_by || '_created asc' }, seed.where ? { where: seed.where } : {}, seed.text ? { text: seed.text } : {}) : undefined;
       // mr21: retried while a sleeping server boots (the status line says so); a newer load stops the retries
       const live = () => seq === AYNA.seq && aynaAlive();
-      const onWait = (a, max) => { if (live()) aynaSetStatus('waking', { attempt: a, max: max }); };
+      const onWait = (a, max) => { if (!live()) return; let n = 0; try { n = painted ? (rows.length || (cached ? cached.rows.length : 0)) : 0; } catch (e) { n = 0; } aynaSetStatus('waking', { attempt: a, max: max, keptAt: AYNA.keptAt, rows: n }); };
       const firstReq = aynaScreenCall({ screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: 0, limit: AYNA.windowSize, fresh: true, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined, query: seedQuery }, null, live, onWait);
-      const cached = seeded ? null : AYNA.cache.get(aynaCacheKey(scr));   // the cache holds the unfiltered page 1
-      if (cached && Date.now() - cached.at < AYNA.cacheTtlMs && Array.isArray(cached.rows) && cached.rows.length) {
+      let cached = seeded ? null : AYNA.cache.get(aynaCacheKey(scr));   // the cache holds the unfiltered page 1
+      // TIDY-KEEP: nothing in memory (a reload) → the rows this tab kept, however old (≤ 12 h); the status says how old
+      if (!seeded && !(cached && Date.now() - cached.at < AYNA.cacheTtlMs)) { const kept = aynaKeepGet(aynaCacheKey(scr)); if (kept) cached = kept; }
+      AYNA.keptAt = (cached && cached.kept) ? cached.at : 0;
+      if (cached && (cached.kept || Date.now() - cached.at < AYNA.cacheTtlMs) && Array.isArray(cached.rows) && cached.rows.length) {
         // a screen seen in the last 10 minutes paints at once from memory and refreshes underneath; in window mode the cached
         // page is page 1 of the cached total (pager up at once) until the fresh answer replaces it
         if (cached.windowed) { AYNA.win = { page: 1, size: AYNA.windowSize, total: cached.total || cached.rows.length }; AYNA.critKey = JSON.stringify(AYNA.criteria); }
         aynaPaint(cached.rows, columns, true); painted = true; fromCache = true;
-        aynaSetStatus('refreshing', { rows: cached.rows.length, total: cached.windowed ? (cached.total || 0) : 0, windowed: !!cached.windowed }); aynaPager();
+        aynaSetStatus('refreshing', { rows: cached.rows.length, total: cached.windowed ? (cached.total || 0) : 0, windowed: !!cached.windowed, keptAt: AYNA.keptAt }); aynaPager();
       } else {
         setTableData([], columns);
         aynaSetStatus('loading', { rows: 0 });
@@ -6318,6 +6676,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now() });   // mr18: screen + field projection
       if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }
       AYNA.stats = { rows: rows.length, total: total, pages: pages, ms: Date.now() - t0, fresh: fresh, preview: preview, cached: fromCache, windowed: false, table: table, screen: scr };
+      AYNA.keptAt = 0;   // TIDY-KEEP: fresh rows on screen
       aynaSetStatus('ready', AYNA.stats); aynaPager();
       aynaProgress(100); setTimeout(() => { if (seq === AYNA.seq) aynaProgress(0); }, 450);
       log('[AYNA] loaded', AYNA.stats);
@@ -6339,7 +6698,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const n = (x) => (typeof x === 'number' ? x.toLocaleString('en-US') : x);
       const hid = AYNA.goneHidden || 0;   // GX-GONE: rows the viewer deleted are not counted
       if (hid && info && typeof info.total === 'number' && (kind === 'ready' || kind === 'window')) info = Object.assign({}, info, { total: Math.max(0, info.total - hid) });
-      if (kind === 'loading') el.textContent = 'Loading rows' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
+      el.title = '';
+      const kept = info && info.keptAt ? aynaClock(info.keptAt) : '';   // TIDY-KEEP: rows painted from this tab's kept copy
+      if (kind === 'refreshing' && kept) el.textContent = n(info.rows || 0) + (info.rows === 1 ? ' record' : ' records') + ' from ' + kept + ' · updating…';
+      else if (kind === 'waking' && info && info.rows) el.textContent = n(info.rows) + (info.rows === 1 ? ' record' : ' records') + (kept ? ' from ' + kept : '') + ' · the Gaia server is waking up (' + n(info.attempt) + '/' + n(info.max) + ')…';
+      else if (kind === 'loading') el.textContent = 'Loading rows' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…';
       else if (kind === 'refreshing') el.textContent = (info && info.windowed && info.total) ? ('Rows 1–' + n(info.rows) + ' of ' + n(info.total) + ' · refreshing…') : (n(info && info.rows || 0) + ' rows · refreshing' + (info && info.total ? ' · ' + n(info.rows) + ' / ' + n(info.total) : '') + '…');
       else if (kind === 'paging') el.textContent = 'Loading page ' + n(info.page) + '…';
       else if (kind === 'searching') el.textContent = 'Searching…';
@@ -6347,10 +6710,25 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       else if (kind === 'sorting') el.textContent = 'Sorting…';
       else if (kind === 'waiting') el.textContent = 'Waiting for the screen id…';
       else if (kind === 'waking') el.textContent = 'The Gaia server is waking up · retrying (' + n(info.attempt) + '/' + n(info.max) + ')…';   // mr21
-      else if (kind === 'window') { const from = (info.page - 1) * info.size + 1, to = Math.min(info.total, info.page * info.size); el.textContent = (info.total ? 'Rows ' + n(from) + '–' + n(to) + ' of ' + n(info.total) : 'No rows') + ' · mirror' + (AYNA.criteria.where || AYNA.criteria.text ? ' · filtered' : '') + (AYNA.criteria.order_by ? ' · sorted by ' + AYNA.criteria.order_by : '') + (info.fresh === false ? ' (syncing)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms' + aynaLiveTag(); }
-      else if (kind === 'ready') el.textContent = n(info.total || 0) + ' rows · mirror' + (info.fresh === false ? ' (syncing, may be a minute old)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms' + aynaLiveTag();
+      // TIDY-STATUS (29.10, Ömer): the user reads only the record count (+ filtered / syncing); the technical part
+      // (mirror, ms, live, sort field) moves to the tooltip and data-tech so support can still read it.
+      else if (kind === 'window' || kind === 'ready') {
+        const tot = info.total || 0, rec = (k) => n(k) + (k === 1 ? ' record' : ' records');
+        const filt = !!(AYNA.criteria.where || AYNA.criteria.text);
+        let txt;
+        if (kind === 'window') { const from = (info.page - 1) * info.size + 1, to = Math.min(tot, info.page * info.size); txt = tot ? (n(from) + '-' + n(to) + ' of ' + rec(tot)) : 'No records'; }
+        else txt = tot ? rec(tot) : 'No records';
+        if (filt) txt += ' · filtered';
+        if (info.fresh === false) txt += ' · syncing';
+        el.textContent = txt;
+        const tech = 'mirror' + (AYNA.criteria.order_by ? ' · sorted by ' + AYNA.criteria.order_by : '') + (info.fresh === false ? ' (syncing, may be a minute old)' : '') + (info.preview ? ' · preview: live data' : '') + ' · ' + n(info.ms) + ' ms' + aynaLiveTag();
+        el.title = tech; el.setAttribute('data-tech', tech);
+      }
       else if (kind === 'error') {
-        el.textContent = 'Mirror unavailable: ' + (info && info.message ? info.message : '') + (info && info.fallback ? ' (showing the ' + n(info.fallback) + ' rows already loaded)' : ' (no rows loaded)') + ' ';
+        // TIDY-KEEP: plain words; the server's own message stays in the tooltip
+        const keptE = AYNA.keptAt ? ' from ' + aynaClock(AYNA.keptAt) : '';
+        el.textContent = (info && info.fallback) ? ('Could not refresh. Showing ' + n(info.fallback) + (info.fallback === 1 ? ' record' : ' records') + keptE + '. ') : 'Could not load the records. ';
+        el.title = 'Mirror unavailable: ' + (info && info.message ? info.message : '');
         // mr21: one tap to ask again (the server has usually woken up by now)
         const b = document.createElement('button'); b.type = 'button'; b.className = 'dt-ayna-retry'; b.textContent = 'Try again';
         b.style.cssText = 'border:0;background:none;padding:0;font:inherit;color:var(--gx-primary,#6366f1);cursor:pointer;text-decoration:underline';
@@ -6454,7 +6832,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // the live repaint: same soft fade as aynaPaint, on timers instead of animation frames (a frame may never come in a
   // throttled / headless page, and the rows must not wait for one: AYNA.painted already says they are on screen)
   function aynaLivePaint(rows, columns) {
-    rows = dtGoneFilter(rows);   // GX-GONE
+    rows = dtDirectApply(dtPendMerge(dtGoneFilter(rows)));   // GX-GONE + GX-PEND + GX-DIRECT
     AYNA.painted = rows;
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // shared with aynaPaint: the newest paint wins
     const c = els && els.container;
@@ -6547,7 +6925,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (total > AYNA.fullLoadMax) return { grew: true };   // it became a big screen → the normal load decides (window mode)
       if (!page.length || offset >= total) break;
     }
-    const changed = !aynaSameRows(aynaLivePainted(), dtGoneFilter(rows));   // GX-GONE: a row the viewer deleted is no change
+    const changed = !aynaSameRows(aynaLivePainted(), dtPendMerge(dtGoneFilter(rows)));   // GX-GONE: a row the viewer deleted is no change; GX-PEND
     if (changed) aynaLivePaint(rows, cfg.columns);
     AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now() });
     if (AYNA.cache.size > 8) { const oldest = AYNA.cache.keys().next().value; AYNA.cache.delete(oldest); }
@@ -6568,7 +6946,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     AYNA.pageCache.set(AYNA.screenKey + '|' + AYNA.cacheGen + '|' + AYNA.critKey + '|' + size + '|' + page, { data: d, at: Date.now() });
     AYNA.win.total = total;
     if (page > aynaPages()) { AYNA.win.page = aynaPages(); aynaRequery(); return { changed: true, total: total }; }   // rows went away: the last page that still exists
-    const changed = !aynaSameRows(aynaLivePainted(), dtGoneFilter(rows));   // GX-GONE
+    const changed = !aynaSameRows(aynaLivePainted(), dtPendMerge(dtGoneFilter(rows)));   // GX-GONE + GX-PEND
     if (changed) aynaLivePaint(rows, cfg.columns);
     if (page === 1 && !AYNA.criteria.where && !AYNA.criteria.text && !AYNA.criteria.order_by) AYNA.cache.set(aynaCacheKey(scr), { rows: rows, at: Date.now(), windowed: true, total: total });
     AYNA.stats = Object.assign({}, AYNA.stats, { rows: rows.length, total: total, page: page, pages: aynaPages(), size: size, ms: Date.now() - t0, fresh: d.mirror ? d.mirror.fresh : AYNA.stats.fresh, cached: false });
@@ -6660,6 +7038,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const L = AYNA.live; if (!L || L.bound) return;
     L.bound = true;
     window.__gxLiveDoc = {
+      // AYNA-SAVE (29.10): a record saved through Bubble (the form) → follow-up looks + the 8 s boost until the row shows
+      save: function () {
+        if (!aynaAlive()) return;
+        L.errors = 0;   // 29.10: earlier failed probes stretched the 8 s boost to 64 s; a save starts a fresh 8 / 16 / 32 s chain
+        aynaLiveSettleStart('save'); aynaLiveBoost('save');
+      },
       vis: function () {
         if (!aynaAlive()) return;
         if (aynaLiveHidden()) { if (L.timer) { clearTimeout(L.timer); L.timer = null; } return; }
@@ -6680,6 +7064,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         else if (wasIdle && !L.busy) aynaLiveArm();
       }
     };
+    aynaSaveWatch();   // AYNA-SAVE
     if (window.__gxLiveDocBound) return;
     window.__gxLiveDocBound = true;
     const call = (fn, arg) => { try { const h = window.__gxLiveDoc; if (h && h[fn]) h[fn](arg); } catch (e) {} };
@@ -6694,6 +7079,28 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     document.addEventListener('wheel', () => call('input', 'wheel'), opt);
     document.addEventListener('touchstart', () => call('input', 'touch'), opt);
     document.addEventListener('mousemove', () => { const n = Date.now(); if (n - moved > 5000) { moved = n; call('input', 'move'); } }, opt);
+  }
+  // AYNA-SAVE (29.10, Ömer: a record saved in the form reached the table 18 s to 2 min later; the server answered in 0.5-2 s,
+  // the table waited for its 30 s cadence). The form saves through Bubble's window.bubble_fn_submit; the table wraps it once
+  // per assignment (Bubble may assign it again: checked every 2 s). The call itself is untouched: same this, arguments and
+  // return value, errors pass through; only after it the table starts the boost (probe every 8 s, ends when the change shows).
+  // The mirror needs ~10-20 s after Bubble's create, so the row shows ~10-20 s after Save instead of 18 s to 2 min.
+  // Off: window.__gxNoSaveWatch = true before the table loads.
+  function aynaSaveWatch() {
+    if (window.__gxSaveWatch || window.__gxNoSaveWatch) return;
+    window.__gxSaveWatch = true;
+    const after = () => { try { const h = window.__gxLiveDoc; if (h && h.save) h.save(); } catch (e) {} };
+    const wrap = () => {
+      try {
+        const f = window.bubble_fn_submit;
+        if (typeof f !== 'function' || f.__gxSave) return;
+        const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first
+        w.__gxSave = true; w.__gxRaw = f;
+        window.bubble_fn_submit = w;
+      } catch (e) {}
+    };
+    wrap();
+    setInterval(wrap, 2000);
   }
   /* AYNA-LIVE-END */
   window.gaiaTableMirror = {
