@@ -3965,7 +3965,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   /* TIDY-STAGE (30.10, Ömer + Araştırma Dalı işleri C ve D): the claim line (nod-gaia-hat, PR #30) writes the record's
      'Claim Aşaması' field: the stage while it works (İndiriliyor n evrak → Okunuyor k/n → Yazılıyor → Kontrol → Hazır) and a short
      reason when it sets Durum = Hata. The field is not a column: GX-DIRECT reads it with the record (_dtAsama, id → text).
-     Preparing shows the stage instead of the time (the time moves to the tooltip); Failed shows the reason in the tooltip and a
+     Preparing keeps the time in the cell and adds the stage to the tooltip (Ömer 30.10: "süre olarak kalsın"); Failed shows the reason in the tooltip and a
      Retry button: Durum → Claim Hazırlanıyor through the Data API with the viewer's session (Bubble's privacy rules apply),
      only while the record is still Hata; the claim line's next minute run takes it again. Off: window.__gxNoStage = true. */
   const _dtAsama = new Map();   // record id → { mod, text } (Bubble's 'Claim Aşaması')
@@ -4040,12 +4040,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const raw = dtAsamaOf(row);
       if (st === 'preparing' && raw) {
         const en = dtAsamaEn(raw);
-        if (en) {
-          for (let k = b.childNodes.length - 1; k >= 0; k--) { if (b.childNodes[k].nodeType === 3) b.removeChild(b.childNodes[k]); }
-          b.appendChild(document.createTextNode(en));
-          b.setAttribute('aria-label', 'Preparing the claim, ' + en);
-          td.title = 'Preparing the claim: ' + en + (time ? ' (' + time + ')' : '') + '.' + td.title.replace(/^Preparing the claim[^.]*\./, '');
-        }
+        if (en) td.title = 'Preparing the claim (' + (time ? time + ', ' : '') + en + ').' + td.title.replace(/^Preparing the claim[^.]*\./, '');   // Ömer 30.10: the cell keeps the time, the stage is in the tooltip
       }
       if (st === 'failed') {
         try { const rid = rowIdOf(row); if (rid) { _dtWaitStart.delete(rid + '|preparing'); _dtWaitStart.delete(rid + '|queued'); } } catch (e) {}
