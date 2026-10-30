@@ -8432,34 +8432,83 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
 
   /* GX-GONE-ONAY (30.10, Ömer): "Delete'e bastığım anda siliniyor gibi; emin misin sormasının anlamı kalmıyor." Bubble does ask
-     first: bubble_fn_delete only keeps the selection and opens its "Delete / Cancel" dialog, the records are deleted by the
-     dialog's Delete. But GX-GONE took the rows off the grid on the table's own click, so they looked deleted before the
-     answer (and after Cancel they stayed hidden for 30 min). Now the ids wait here; a click on the dialog's Delete (Bubble
-     element bUfas → class baUfas, or a "Delete" / "I confirm" button outside the grid) hides them and starts the fast
-     probes; Cancel, another table delete or 5 minutes without an answer forgets them. */
-  const DT_GONE_ARM_MS = 5 * 60000;
+     first: bubble_fn_delete only keeps the selection and opens its "Delete / Cancel" dialog (popup bUfam); the dialog's Delete
+     (bUfas) sets the records' NotVisible (isvisible) = yes, Cancel (bUfat) only closes it. But GX-GONE took the rows off the
+     grid on the table's own click, so they looked deleted before the answer (and after Cancel stayed hidden for 30 min).
+     Now the ids wait here and two ways decide:
+       · fast: a real press (pointerdown / click) on the dialog's Delete (class baUfas, or baUfbP = the list delete) hides the
+         rows at once; Cancel (baUfat) forgets them. Bubble acts on trusted input only, so the press is the earliest signal.
+       · sure: once the dialog is closed, the records are read from Gaia with the viewer's session (as GX-DIRECT): a record that
+         is gone (404) or NotVisible = yes is hidden; still visible after ~8 s = Cancel. A record the viewer cannot read at the
+         press (privacy) is left to the fast way and the mirror.
+     5 minutes without an answer forgets them. Off (old behaviour, rows leave on the table's click): window.__gxNoGoneConfirm. */
+  const DT_GONE_ARM_MS = 5 * 60000, DT_GONE_LOOK_MS = 1500, DT_GONE_CHECKS = 6;
   let _dtGoneArmed = null;
-  function dtGoneArm(ids) {
-    _dtGoneArmed = (Array.isArray(ids) && ids.length) ? { ids: ids.slice(), at: Date.now() } : null;
-    if (window.__gxGoneArmBound) return;
-    window.__gxGoneArmBound = true;
-    document.addEventListener('click', ev => { try { if (window.__gxGoneArmClick) window.__gxGoneArmClick(ev); } catch (e) {} }, true);
+  function dtGoneDialogOpen() {
+    try { return ['baUfas', 'baUfat', 'baUfbP'].some(c => { const b = document.querySelector('button.' + c); return !!(b && b.offsetParent !== null); }); } catch (e) { return false; }
   }
-  // the newest table instance answers (Bubble re-renders the element; one document listener per page)
-  window.__gxGoneArmClick = function (ev) {
+  async function dtGoneRead(id) {   // 'gone' (deleted / NotVisible) · 'live' · '' (cannot tell)
+    const vt = (location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '';
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 8000) : null;
+    try {
+      const r = await fetch(location.origin + vt + '/api/1.1/obj/Object/' + encodeURIComponent(id), { credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined });
+      if (r.status === 404) return 'gone';
+      if (!r.ok) return '';
+      const j = await r.json(), o = j && j.response;
+      if (!o || !o._id) return '';
+      return o.NotVisible === true ? 'gone' : 'live';
+    } catch (e) { return ''; } finally { if (timer) clearTimeout(timer); }
+  }
+  function dtGoneConfirmed(a, ids) {
+    if (_dtGoneArmed !== a) return;
+    const left = a.ids.filter(id => ids.indexOf(id) < 0);
+    a.ids = left;
+    if (!left.length) _dtGoneArmed = null;
+    dtGoneAdd(ids);   // GX-GONE: off the grid now, not at the mirror's next full pull
+    aynaLiveBoost('delete');   // AYNA-LIVE
+  }
+  async function dtGoneWatch(a) {
+    // the records this viewer can read now (a 404 at the press = privacy, not a delete)
+    const base = [];
+    for (const id of a.ids.slice(0, 50)) { if (_dtGoneArmed !== a) return; if (await dtGoneRead(id) === 'live') base.push(id); }
+    let sawOpen = false, checks = 0;
+    while (_dtGoneArmed === a && Date.now() - a.at < DT_GONE_ARM_MS) {
+      await new Promise(r => setTimeout(r, DT_GONE_LOOK_MS));
+      if (_dtGoneArmed !== a) return;
+      if (dtGoneDialogOpen()) { sawOpen = true; continue; }
+      if (!sawOpen && Date.now() - a.at < 4000) continue;   // the dialog may not be on screen yet
+      if (!base.length) return;   // nothing readable: the fast way or the mirror decides
+      const gone = [];
+      for (const id of base) { if (a.ids.indexOf(id) > -1 && await dtGoneRead(id) === 'gone') gone.push(id); }
+      if (_dtGoneArmed !== a) return;
+      if (gone.length) { dtGoneConfirmed(a, gone); log('[GX-GONE-ONAY] ' + gone.length + ' row(s) hidden after Gaia confirmed the delete'); return; }
+      if (++checks >= DT_GONE_CHECKS) { _dtGoneArmed = null; return; }   // still visible ~8 s after the dialog closed: Cancel
+    }
+    if (_dtGoneArmed === a) _dtGoneArmed = null;
+  }
+  function dtGoneArm(ids) {
+    if (window.__gxNoGoneConfirm) { dtGoneAdd(ids); aynaLiveBoost('delete'); return; }
+    if (!Array.isArray(ids) || !ids.length) { _dtGoneArmed = null; return; }
+    const a = _dtGoneArmed = { ids: ids.map(String), at: Date.now() };
+    if (!window.__gxGoneArmBound) {
+      window.__gxGoneArmBound = true;
+      const on = ev => { try { if (window.__gxGoneArmPress) window.__gxGoneArmPress(ev); } catch (e) {} };
+      document.addEventListener('pointerdown', on, true);
+      document.addEventListener('click', on, true);
+    }
+    dtGoneWatch(a).catch(() => {});
+  }
+  // the newest table instance answers (Bubble re-renders the element; one pair of document listeners per page)
+  window.__gxGoneArmPress = function (ev) {
     const a = _dtGoneArmed; if (!a) return;
     if (Date.now() - a.at > DT_GONE_ARM_MS) { _dtGoneArmed = null; return; }
-    const b = ev.target && ev.target.closest ? ev.target.closest('button, .clickable-element') : null;
+    if (ev.type === 'pointerdown' && ev.button !== undefined && ev.button !== 0) return;
+    const b = ev.target && ev.target.closest ? ev.target.closest('button') : null;
     if (!b || (b.closest && b.closest('#dynamic-table-wrapper'))) return;
-    const t = String(b.textContent || '').trim().toLocaleLowerCase('tr-TR');
     const cl = b.classList;
-    if (cl.contains('baUfas') || cl.contains('baUfbP') || cl.contains('baUfbh') || t === 'delete' || t === 'i confirm') {
-      _dtGoneArmed = null;
-      dtGoneAdd(a.ids);   // GX-GONE: off the grid now, not at the mirror's next full pull
-      aynaLiveBoost('delete');   // AYNA-LIVE
-    } else if (cl.contains('baUfat') || t === 'cancel') {
-      _dtGoneArmed = null;   // the records stay, so do the rows
-    }
+    if (cl.contains('baUfas') || cl.contains('baUfbP')) dtGoneConfirmed(a, a.ids.slice());
+    else if (cl.contains('baUfat')) _dtGoneArmed = null;   // the records stay, so do the rows
   };
 
   function create() {
