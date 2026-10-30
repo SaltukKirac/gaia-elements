@@ -3904,6 +3904,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try {
       if (!row) return '';
       const id = rowIdOf(row);
+      if (row.__gxDelFail || (id && _dtDelFail.has(id))) return 'delfailed';   // GX-PEND-SIL: the background delete failed
       if (id && dtPaket.has(id)) return '';
       let claim = '';
       for (const k in row) { if (k !== '__sourceIndex' && dtNormKey(k) === 'claim') { claim = String(row[k] == null ? '' : row[k]).trim(); break; } }
@@ -3921,10 +3922,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   function dtRenderClaimWait(td, st) {
     const b = document.createElement('span');
-    b.className = 'dt-claim-wait dt-claim-wait--' + st;
+    b.className = 'dt-claim-wait dt-claim-wait--' + st + (st === 'delfailed' ? ' dt-claim-wait--failed' : '');
     if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
-    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : st === 'queued' ? 'Queued' : 'Failed'));
-    td.title = st === 'preparing' ? 'The claim is being prepared from the documents.'
+    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : st === 'queued' ? 'Queued' : st === 'delfailed' ? 'Delete failed' : 'Failed'));
+    td.title = st === 'delfailed' ? 'This record could not be deleted. Select it and delete it again.'
+      : st === 'preparing' ? 'The claim is being prepared from the documents.'
       : st === 'queued' ? 'Waiting for its turn. The claims before it are prepared first.'
       : 'The claim could not be prepared. Check the documents on this record.';
     td.appendChild(b);
@@ -6153,6 +6155,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const a = JSON.parse(sessionStorage.getItem(DT_PEND_KEY) || '[]'), now = Date.now();
       if (Array.isArray(a)) a.forEach(e => { if (e && e.row && now - Number(e.at) < DT_PEND_TTL_MS) _dtPend.push(e); });
     } catch (e) {}
+    if (_dtPend.some(e => e && e.del)) setTimeout(() => dtPendDelKick(0), 0);   // GX-PEND-SIL: a reload resumes the delete
     return _dtPend;
   }
   function dtPendSave() {
@@ -6175,6 +6178,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const keep = list.filter(e => {
       if (now - e.at >= DT_PEND_TTL_MS) { dirty = true; return false; }
       if (e.key !== key) return true;   // another screen's record: kept for when that screen is back
+      if (e.del) return true;   // GX-PEND-SIL: the background delete owns it (dtPendDelRun) until done or failed
       const pl = dtPendPlaka(e.row);
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || taken.has(i)) continue;
@@ -6188,8 +6192,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     });
     if (dirty) { _dtPend = keep; dtPendSave(); }
     if (aynaWindowed() && (AYNA.win.page !== aynaPages() || AYNA.criteria.where || AYNA.criteria.text)) return base;   // a filtered / earlier page: the new row belongs elsewhere
-    const add = keep.filter(e => e.key === key).map(e => Object.assign({}, e.row));
-    return add.length ? base.concat(add) : base;
+    const add = keep.filter(e => e.key === key && !e.del).map(e => Object.assign({}, e.row, e.fail ? { __gxDelFail: true } : {}));
+    const held = dtPendHeld(base, keep, key);   // GX-PEND-SIL: the mirror's row of a record being deleted stays off the grid
+    const out = held.size ? base.filter((r, i) => !held.has(i)) : base;
+    return add.length ? out.concat(add) : out;
   }
   // the form's submit (aynaSaveWatch): a create → the row from its fields, painted now
   function dtPendFromSubmit(payload) {
@@ -6217,11 +6223,155 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // one create can reach Bubble twice (an autosave, then Save): a second submit within 15 s replaces the first row
       const last = list.length ? list[list.length - 1] : null;
       if (last && last.key === key && now - last.at < 15000) list.pop();
-      list.push({ at: now, key: key, row: row });
+      const pid = 'p' + now.toString(36) + Math.random().toString(36).slice(2, 6);
+      row.__gxPendId = pid;
+      list.push({ at: now, key: key, row: row, pid: pid, files: dtPendFiles(obj), plaka: dtPendPlaka(row) });   // GX-PEND-SIL
       dtPendSave();
       aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
       log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
     } catch (e) { log('[GX-PEND] ' + ((e && e.message) || e)); }
+  }
+  /* GX-PEND-SIL (30.10, Ömer): "kaydediliyorda ise belki kullanıcı yanlış bir şey yaptı, hemen silmek istiyor; onu göz önünden
+     kaldır, arka plandan silinebildiği zaman silinsin, silinemezse failed olarak geri dönsün tabloya". A GX-PEND row (no _id yet)
+     used to send Bubble an empty list ("Records have no id field") and stay. Now Delete on it opens the same Bubble dialog; the
+     dialog's Delete takes the row off at once and the record is deleted in the background once it exists:
+       · the record is found with the viewer's session (Data API, as GX-DIRECT): created from 20 s before the save on and holding
+         one of the files the form uploaded (each upload has its own address); a save without files needs the same Plaka, a
+         creation within 2 min of the save and exactly one such record;
+       · it is deleted the way Bubble's dialog does it (NotVisible = yes, a PATCH with the session; privacy rules apply), then
+         read back;
+       · not found in 3 min, more than one candidate, or the write / read-back fails → the row comes back with "Delete failed"
+         in the Claim cell and an error toast. Nothing is deleted on a guess.
+     Off: window.__gxNoPendDelete = true (Delete on a pending row then only says it is still being saved). */
+  var DT_PSIL_LOOK_MS = 4000, DT_PSIL_FIND_MS = 3 * 60000, DT_PSIL_NEAR_MS = 2 * 60000;
+  var _dtDelFail = new Set();   // record ids whose background delete failed (Claim cell "Delete failed")
+  var _dtPsilTimer = null, _dtPsilBusy = false;
+  function dtFileKey(u) { return String(u || '').trim().replace(/^https?:/i, '').split('?')[0]; }
+  function dtPendFiles(obj) {
+    const out = new Set();
+    const walk = (v, d) => {
+      if (d > 4 || v == null) return;
+      if (typeof v === 'string') { if (/(cdn\.bubble\.io|\/fileupload\/)/i.test(v)) out.add(dtFileKey(v)); return; }
+      if (Array.isArray(v)) { v.forEach(x => walk(x, d + 1)); return; }
+      if (typeof v === 'object') Object.keys(v).forEach(k => walk(v[k], d + 1));
+    };
+    try { walk(obj, 0); } catch (e) {}
+    return Array.from(out).slice(0, 200);
+  }
+  function dtSelectedPendIds() {
+    const out = [];
+    state.selectionOrder.forEach(index => {
+      if (!state.selection.has(index)) return;
+      const raw = state.rawRows[index];
+      if (raw && raw.__gxPend && raw.__gxPendId && out.indexOf(raw.__gxPendId) < 0) out.push(raw.__gxPendId);
+    });
+    return out;
+  }
+  // indexes of mirror rows that belong to a record the viewer deleted while it was pending (dtPendMerge's match, or its id)
+  function dtPendHeld(base, list, key) {
+    const held = new Set();
+    list.forEach(e => {
+      if (!e.del || e.key !== key) return;
+      for (let i = 0; i < base.length; i++) {
+        const r = base[i]; if (!r || held.has(i)) continue;
+        if (e.delId) { if (rowIdOf(r) === e.delId) { held.add(i); break; } continue; }
+        const c = aynaLiveTime(r._created);
+        if (!c || c < e.at - DT_PEND_EARLY_MS || c > e.at + DT_PSIL_NEAR_MS) continue;
+        const rp = dtPendPlaka(r);
+        if (e.plaka && rp && e.plaka !== rp) continue;
+        held.add(i); break;
+      }
+    });
+    return held;
+  }
+  function dtPendRepaint() {
+    try { if (AYNA.cfg && aynaAlive() && Array.isArray(AYNA.painted)) aynaLivePaint(AYNA.painted, AYNA.cfg.columns); } catch (e) {}
+  }
+  // the dialog's Delete on pending rows: off the grid now, the record deleted in the background
+  function dtPendDelete(pids) {
+    if (!Array.isArray(pids) || !pids.length) return;
+    const list = dtPendList(), now = Date.now();
+    let n = 0;
+    list.forEach(e => { if (e && e.pid && pids.indexOf(e.pid) > -1 && !e.del) { e.del = now; delete e.fail; n++; } });
+    if (!n) return;
+    dtPendSave(); dtPendRepaint();
+    log('[GX-PEND-SIL] ' + n + ' pending row(s) off the grid; the record is deleted once it exists');
+    dtPendDelKick(0);
+  }
+  function dtPendDelKick(ms) {
+    if (_dtPsilTimer) return;
+    _dtPsilTimer = setTimeout(() => { _dtPsilTimer = null; dtPendDelRun().catch(() => {}); }, ms);
+  }
+  function dtApiBase() { return location.origin + ((location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '') + '/api/1.1/obj/Object'; }
+  async function dtApiFetch(url, opt) {
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 10000) : null;
+    try { return await fetch(url, Object.assign({ credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opt || {})); }
+    catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
+  }
+  function dtJsonArrayMap(arr) {   // a record's jsonarray (["\"Alan\": value", …]) as { Alan: value }
+    const m = {};
+    (Array.isArray(arr) ? arr : []).forEach(x => { try { const o = JSON.parse('{' + x + '}'); Object.keys(o).forEach(k => { m[k] = o[k]; }); } catch (e) {} });
+    return m;
+  }
+  // { st: 'id', id } · { st: '' } not there yet · { st: 'many' } more than one candidate · { st: 'err' } Gaia not readable
+  async function dtPendFindRecord(e) {
+    const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(e.at - DT_PEND_EARLY_MS).toISOString() }];
+    const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
+    if (!r || !r.ok) return { st: 'err' };
+    let res = [];
+    try { const j = await r.json(); res = (j && j.response && j.response.results) || []; } catch (x) { return { st: 'err' }; }
+    const files = Array.isArray(e.files) ? e.files : [];
+    const hits = res.filter(o => {
+      if (!o || !o._id || o.NotVisible === true) return false;
+      const m = dtJsonArrayMap(o.jsonarray);
+      if (files.length) { const have = new Set(dtPendFiles(m)); return files.some(f => have.has(f)); }
+      const t = Date.parse(o['Created Date'] || '');
+      if (!t || Math.abs(t - e.at) > DT_PSIL_NEAR_MS) return false;
+      return dtPendPlaka(m) === (e.plaka || '');
+    });
+    if (hits.length > 1) return { st: 'many' };
+    return hits.length ? { st: 'id', id: String(hits[0]._id) } : { st: '' };
+  }
+  async function dtPendDeleteRecord(id) {   // true = gone (NotVisible / 404) once written
+    const r = await dtApiFetch(dtApiBase() + '/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ NotVisible: true }) });
+    if (!r || !(r.ok || r.status === 404)) return false;
+    return (await dtGoneRead(id)) === 'gone';
+  }
+  function dtPendDelFail(e, why) {
+    delete e.del; e.fail = Date.now();
+    if (e.delId) _dtDelFail.add(e.delId);
+    dtPendSave(); dtPendRepaint();
+    showWakeToast('Could not delete the record (' + why + '). It is back in the table.', 'error');
+    log('[GX-PEND-SIL] failed: ' + why);
+  }
+  async function dtPendDelRun() {
+    if (_dtPsilBusy) return;
+    _dtPsilBusy = true;
+    try {
+      const now = Date.now();
+      for (const e of dtPendList().filter(x => x && x.del)) {
+        if (!e.delId) {
+          const f = await dtPendFindRecord(e);
+          if (f.st === 'id') { e.delId = f.id; dtPendSave(); }
+          else if (f.st === 'many') { dtPendDelFail(e, 'more than one matching record'); continue; }
+          else if (now - e.del > DT_PSIL_FIND_MS) { dtPendDelFail(e, f.st === 'err' ? 'Gaia could not be read' : 'the record was not found'); continue; }
+          else continue;
+        }
+        if (await dtPendDeleteRecord(e.delId)) {
+          const id = e.delId;
+          _dtPend = dtPendList().filter(x => x !== e); dtPendSave();
+          dtGoneAdd([id]);   // GX-GONE: the mirror's row stays off until the mirror learns of the delete
+          aynaLiveBoost('delete');   // AYNA-LIVE
+          log('[GX-PEND-SIL] deleted ' + id);
+        } else {
+          dtPendDelFail(e, 'Gaia did not accept the delete');
+        }
+      }
+    } finally {
+      _dtPsilBusy = false;
+      if (dtPendList().some(x => x && x.del)) dtPendDelKick(DT_PSIL_LOOK_MS);
+    }
   }
   /* GX-DIRECT (29.10, Ömer: "Deneme2 Claim Hazır ama tabloda hâlâ Preparing… · 12 dk çok uzun"): a row whose claim is on its
      way (Claim cell Preparing… / Queued) is read straight from Gaia every 5 s, the mirror is not waited for. 29.10 18:21-18:40
@@ -8422,11 +8572,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   function deleteSelected() {
     const ids = getSelectedUniqueIds();
-    warnIfSelectionWithoutIds(ids);
+    const pend = dtSelectedPendIds();   // GX-PEND-SIL: rows still being saved (no id yet)
+    const pids = window.__gxNoPendDelete ? [] : pend;
+    if (pend.length && !pids.length && !ids.length) { showWakeToast('This record is still being saved. Delete it in a moment.', 'info'); return ids; }
+    if (!pend.length) warnIfSelectionWithoutIds(ids);
     publishSelectedUniqueIds();
     if (typeof window.bubble_fn_delete === 'function') {
       window.bubble_fn_delete(ids);
-      dtGoneArm(ids);   // GX-GONE-ONAY (30.10): the rows leave the grid when Bubble's dialog says Delete, not on this click
+      dtGoneArm(ids, pids);   // GX-GONE-ONAY (30.10): the rows leave the grid when Bubble's dialog says Delete, not on this click
     }
     return ids;
   }
@@ -8487,17 +8640,19 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     if (_dtGoneArmed === a) _dtGoneArmed = null;
   }
-  function dtGoneArm(ids) {
-    if (window.__gxNoGoneConfirm) { dtGoneAdd(ids); aynaLiveBoost('delete'); return; }
-    if (!Array.isArray(ids) || !ids.length) { _dtGoneArmed = null; return; }
-    const a = _dtGoneArmed = { ids: ids.map(String), at: Date.now() };
+  function dtGoneArm(ids, pids) {
+    pids = Array.isArray(pids) ? pids.slice() : [];
+    ids = Array.isArray(ids) ? ids : [];
+    if (window.__gxNoGoneConfirm) { dtGoneAdd(ids); dtPendDelete(pids); aynaLiveBoost('delete'); return; }
+    if (!ids.length && !pids.length) { _dtGoneArmed = null; return; }
+    const a = _dtGoneArmed = { ids: ids.map(String), pids: pids, at: Date.now() };
     if (!window.__gxGoneArmBound) {
       window.__gxGoneArmBound = true;
       const on = ev => { try { if (window.__gxGoneArmPress) window.__gxGoneArmPress(ev); } catch (e) {} };
       document.addEventListener('pointerdown', on, true);
       document.addEventListener('click', on, true);
     }
-    dtGoneWatch(a).catch(() => {});
+    if (a.ids.length) dtGoneWatch(a).catch(() => {});   // pending rows (GX-PEND-SIL) have nothing to read back yet: the press decides
   }
   // the newest table instance answers (Bubble re-renders the element; one pair of document listeners per page)
   window.__gxGoneArmPress = function (ev) {
@@ -8507,7 +8662,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const b = ev.target && ev.target.closest ? ev.target.closest('button') : null;
     if (!b || (b.closest && b.closest('#dynamic-table-wrapper'))) return;
     const cl = b.classList;
-    if (cl.contains('baUfas') || cl.contains('baUfbP')) dtGoneConfirmed(a, a.ids.slice());
+    if (cl.contains('baUfas') || cl.contains('baUfbP')) {
+      const p = a.pids || []; a.pids = [];
+      if (a.ids.length) dtGoneConfirmed(a, a.ids.slice()); else _dtGoneArmed = null;
+      dtPendDelete(p);   // GX-PEND-SIL
+    }
     else if (cl.contains('baUfat')) _dtGoneArmed = null;   // the records stay, so do the rows
   };
 
