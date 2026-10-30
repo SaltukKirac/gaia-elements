@@ -8426,11 +8426,41 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     publishSelectedUniqueIds();
     if (typeof window.bubble_fn_delete === 'function') {
       window.bubble_fn_delete(ids);
-      dtGoneAdd(ids);   // GX-GONE (27.10): the rows leave the grid now, not at the mirror's next full pull
-      aynaLiveBoost('delete');   // AYNA-LIVE
+      dtGoneArm(ids);   // GX-GONE-ONAY (30.10): the rows leave the grid when Bubble's dialog says Delete, not on this click
     }
     return ids;
   }
+
+  /* GX-GONE-ONAY (30.10, Ömer): "Delete'e bastığım anda siliniyor gibi; emin misin sormasının anlamı kalmıyor." Bubble does ask
+     first: bubble_fn_delete only keeps the selection and opens its "Delete / Cancel" dialog, the records are deleted by the
+     dialog's Delete. But GX-GONE took the rows off the grid on the table's own click, so they looked deleted before the
+     answer (and after Cancel they stayed hidden for 30 min). Now the ids wait here; a click on the dialog's Delete (Bubble
+     element bUfas → class baUfas, or a "Delete" / "I confirm" button outside the grid) hides them and starts the fast
+     probes; Cancel, another table delete or 5 minutes without an answer forgets them. */
+  const DT_GONE_ARM_MS = 5 * 60000;
+  let _dtGoneArmed = null;
+  function dtGoneArm(ids) {
+    _dtGoneArmed = (Array.isArray(ids) && ids.length) ? { ids: ids.slice(), at: Date.now() } : null;
+    if (window.__gxGoneArmBound) return;
+    window.__gxGoneArmBound = true;
+    document.addEventListener('click', ev => { try { if (window.__gxGoneArmClick) window.__gxGoneArmClick(ev); } catch (e) {} }, true);
+  }
+  // the newest table instance answers (Bubble re-renders the element; one document listener per page)
+  window.__gxGoneArmClick = function (ev) {
+    const a = _dtGoneArmed; if (!a) return;
+    if (Date.now() - a.at > DT_GONE_ARM_MS) { _dtGoneArmed = null; return; }
+    const b = ev.target && ev.target.closest ? ev.target.closest('button, .clickable-element') : null;
+    if (!b || (b.closest && b.closest('#dynamic-table-wrapper'))) return;
+    const t = String(b.textContent || '').trim().toLocaleLowerCase('tr-TR');
+    const cl = b.classList;
+    if (cl.contains('baUfas') || cl.contains('baUfbP') || cl.contains('baUfbh') || t === 'delete' || t === 'i confirm') {
+      _dtGoneArmed = null;
+      dtGoneAdd(a.ids);   // GX-GONE: off the grid now, not at the mirror's next full pull
+      aynaLiveBoost('delete');   // AYNA-LIVE
+    } else if (cl.contains('baUfat') || t === 'cancel') {
+      _dtGoneArmed = null;   // the records stay, so do the rows
+    }
+  };
 
   function create() {
     if (typeof window.bubble_fn_create === 'function') {
