@@ -12555,11 +12555,19 @@
             lastStartParamWasTrue: Boolean(parsed.lastStartParamWasTrue),
             hasChangesSinceStartOpen: Boolean(parsed.hasChangesSinceStartOpen),
             startOpenSequence: Number(parsed.startOpenSequence) || 0,
+            uniqueId: String(parsed.uniqueId || "").trim(),
             time: parsed.time || ""
           };
         } catch (error) {
           return null;
         }
+      }
+
+      // ÇİFT-TIK (30.10): sekme belleğindeki değişiklik izi hangi kayda ait. Script her Bubble yeniden çiziminde baştan
+      // çalışır ve izi buradan geri alır; iz kayda bağlı değilken başka kayda geçince önceki kaydın değişiklikleri
+      // yeni kaydın kimliğiyle gönderiliyordu (output3 = readCurrentUniqueId()).
+      function currentTrackingUniqueId() {
+        return String(lastObservedUniqueId || readCurrentUniqueId() || "").trim();
       }
 
       function persistStartFlowState() {
@@ -12568,6 +12576,7 @@
             lastStartParamWasTrue,
             hasChangesSinceStartOpen,
             startOpenSequence,
+            uniqueId: currentTrackingUniqueId(),
             time: new Date().toISOString()
           }));
         } catch (error) {
@@ -12578,6 +12587,7 @@
       function persistStartChangedTracking() {
         try {
           window.sessionStorage.setItem(START_CHANGED_TRACKING_STORAGE_KEY, JSON.stringify({
+            uniqueId: currentTrackingUniqueId(),
             changedKeys: Array.from(changedFieldKeys || []),
             changedValues: Array.from((changedFieldValuesByKey || new Map()).entries()),
             lastChangedMode,
@@ -12610,6 +12620,7 @@
           const changedValues = new Map(Array.isArray(parsed.changedValues) ? parsed.changedValues : []);
           const persistedLastChangedMode = String(parsed.lastChangedMode || "").trim().toLowerCase();
           return {
+            uniqueId: String(parsed.uniqueId || "").trim(),
             keys,
             changedValues,
             lastChangedMode: persistedLastChangedMode === "edit" ? "edit" : (persistedLastChangedMode === "normal" ? "normal" : ""),
@@ -13842,7 +13853,18 @@
       function initAutosaveStartWatcher() {
         try { console.info('[BDF] initAutosaveStartWatcher (current instance)'); } catch (_) { }
         const persistedStartFlowState = readPersistedStartFlowState();
-        const persistedChangedTracking = readPersistedStartChangedTracking();
+        const persistedChangedTrackingRaw = readPersistedStartChangedTracking();
+        // ÇİFT-TIK (30.10): iz başka bir kayda aitse (tabloda arka arkaya çift tıkla kayıt değişti) bu kayda taşınmaz.
+        // Kimliksiz eski izler (bu sürümden önce yazılmış) eskisi gibi geri alınır.
+        const currentRecordUid = String(readCurrentUniqueId() || "").trim();
+        const isOtherRecordUid = (uid) => Boolean(uid) && Boolean(currentRecordUid) && uid !== currentRecordUid;
+        const trackingForOtherRecord = isOtherRecordUid(persistedChangedTrackingRaw?.uniqueId);
+        const flowChangesForOtherRecord = isOtherRecordUid(persistedStartFlowState?.uniqueId);
+        if (trackingForOtherRecord) {
+          try { console.warn("[BDF] persisted changes belong to another record; not carried over", { keys: persistedChangedTrackingRaw.keys }); } catch (_) { }
+          clearPersistedStartChangedTracking();
+        }
+        const persistedChangedTracking = trackingForOtherRecord ? null : persistedChangedTrackingRaw;
         const currentDataSignature = readCurrentBubbleDataSignature();
         const startSignal = readStartSignalValue();
         const editingSignal = readEditingSignalValue();
@@ -13892,7 +13914,7 @@
           hasSeenStartSignal = true;
           lastStartParamWasTrue = Boolean(startSignal);
           hasChangesSinceStartOpen = lastStartParamWasTrue
-            ? Boolean(persistedStartFlowState?.hasChangesSinceStartOpen)
+            ? Boolean(persistedStartFlowState?.hasChangesSinceStartOpen) && !flowChangesForOtherRecord
             : false;
           logStartState("seed", { startSignal, startOpenSequence });
 
@@ -13904,7 +13926,7 @@
             || changedFieldKeys.size > 0
             || hasChangesSinceStartOpen;
           const hadChangesBeforeRemount = hasLiveDirtyIndicators
-            && (Boolean(persistedStartFlowState?.hasChangesSinceStartOpen) || hasPersistedDirtyTracking);
+            && ((Boolean(persistedStartFlowState?.hasChangesSinceStartOpen) && !flowChangesForOtherRecord) || hasPersistedDirtyTracking);
           const shouldSubmitRemountClose = wasOpenBeforeRemount && !startSignal && hadChangesBeforeRemount && !isFormSaving;
           if (shouldSubmitRemountClose) {
             hasChangesSinceStartOpen = false;
@@ -15372,7 +15394,12 @@
                   === JSON.stringify(normalizeValueForComparison(field, getEffectiveValue(field.key), state.config));
                 if (!sameAsEffective) setFieldValue(field.key, normalized, field, stillFocused ? event.target.value : formatted);
               } else {
-                setFieldValue(field.key, value, field);
+                // ÇİFT-TIK (30.10): yalnız odak girip çıktıysa (değer aynı) setFieldValue YOK. Yoksa alan "değişti"
+                // işaretlenir; tabloda başka satıra çift tıklayınca bu işaret yeni kayda taşınıp önceki kaydın değerini
+                // yeni kayda kaydettiriyordu (canlıda yakalandı: 8. satırın Plaka'sı 11. satıra gidecekti).
+                const sameAsEffective = JSON.stringify(normalizeValueForComparison(field, value, state.config))
+                  === JSON.stringify(normalizeValueForComparison(field, getEffectiveValue(field.key), state.config));
+                if (!sameAsEffective) setFieldValue(field.key, value, field);
                 if (linkActionsHost) _bdfUpdateFieldLinkActions(field, value, linkActionsHost);
               }
               updateError(control, field);
@@ -16782,7 +16809,9 @@
           wrapper.append(row);
           formEl.append(wrapper);
 
-          if (index === 0 && config.autoFocusFirstInvalid) {
+          // ÇİFT-TIK (30.10): var olan kayıtta ilk alana odak verme. Her yeniden çizimde Plaka odağı alıyor, tabloya her
+          // tıklama onu blur ediyor ve kullanıcının yazdığı tuşlar fark etmeden Plaka'ya gidebiliyordu. Yeni kayıtta sürer.
+          if (index === 0 && config.autoFocusFirstInvalid && !hasExistingBubbleData()) {
             setTimeout(() => {
               const focusTarget = wrapper.querySelector("input:not(.bdf-people-search), textarea, select, button.bdf-people-trigger");   // GX-FORM-PEOPLE (07.10)
               if (focusTarget) focusTarget.focus();
