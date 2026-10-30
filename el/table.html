@@ -2272,6 +2272,8 @@
 #dynamic-table-wrapper .dt-claim-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 20px; color: var(--gx-ink-3, #94a3b8); }
 #dynamic-table-wrapper .dt-claim-wait--preparing { color: var(--gx-primary, #6366f1); font-weight: 500; }
 #dynamic-table-wrapper .dt-claim-wait--failed { color: var(--gx-err, #dc2626); font-weight: 500; }
+#dynamic-table-wrapper .dt-claim-time { color: var(--gx-ink-2, #64748b); font-weight: 400; white-space: nowrap; }
+#dynamic-table-wrapper .dt-claim-time::before { content: "·"; margin-right: 6px; }
 #dynamic-table-wrapper .dt-claim-spin { width: 11px; height: 11px; border: 2px solid var(--gx-line, #e2e8f0); border-top-color: var(--gx-primary, #6366f1); border-radius: 50%; animation: dt-claim-spin .9s linear infinite; flex: 0 0 auto; }
 @keyframes dt-claim-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .dt-claim-spin { animation: none; } }
@@ -3920,7 +3922,45 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return '';   // empty / other Durum: as before ("Queued" dropped, Ömer 29.10: the form's "Claim Hazırla" writes Claim Hazırlanıyor itself)
     } catch (e) { return ''; }
   }
-  function dtRenderClaimWait(td, st) {
+  /* TIDY-CLAIMTIME (30.10, Ömer + Araştırma Dalı ölçümü): Preparing / Queued say how long. A claim takes about 2 min + 0.15 min
+     per document in Evraklar (±3 min; 1 document ~2 min, 70 documents ~12 min). The start is when the row's Durum last changed:
+     Bubble's Modified Date when GX-DIRECT read it (_gxDurumMod), else the row's _modified (a GX-PEND row: its save time); the
+     earliest one seen for the same record and state is kept, so a later write on the row does not reset the clock. Past the
+     estimate the cell shows only the elapsed time (no promise it cannot keep). Off: window.__gxNoClaimTime = true. */
+  const _dtWaitStart = new Map();   // id|state → earliest start seen (ms)
+  function dtEvrakCount(row) {
+    try {
+      for (const k in row) {
+        if (dtNormKey(k) !== 'evraklar') continue;
+        let v = row[k];
+        if (typeof v === 'string') { const t = v.trim(); if (t.charAt(0) === '[') { try { v = JSON.parse(t); } catch (e) {} } else v = t ? t.split(/\s*,\s*(?=https?:|\/\/)/) : []; }
+        return Array.isArray(v) ? v.filter(Boolean).length : null;
+      }
+    } catch (e) {}
+    return null;
+  }
+  function dtWaitStart(row, st) {
+    const id = rowIdOf(row) || (row && row._created) || '';
+    const mod = Number(row && row._gxDurumMod) || aynaLiveTime(row && row._modified);
+    if (!id) return mod || 0;
+    const key = id + '|' + st, prev = _dtWaitStart.get(key);
+    const at = mod ? (prev ? Math.min(prev, mod) : mod) : (prev || Date.now());
+    _dtWaitStart.set(key, at);
+    return at;
+  }
+  function dtClaimTimeText(row, st) {
+    if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued')) return '';
+    const at = dtWaitStart(row, st);
+    const min = at ? Math.max(0, Math.floor((Date.now() - at) / 60000)) : null;
+    if (st === 'queued') return min === null ? '' : ('waiting ' + (min < 1 ? 'under 1 min' : min + ' min'));
+    const n = dtEvrakCount(row);
+    const est = (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
+    if (min === null) return est ? '~' + est + ' min' : '';
+    const done = min < 1 ? 'just started' : min + ' min in';
+    if (est && min < est) return '~' + est + ' min · ' + done;
+    return min < 1 ? '' : done;
+  }
+  function dtRenderClaimWait(td, st, row) {
     const b = document.createElement('span');
     b.className = 'dt-claim-wait dt-claim-wait--' + st + (st === 'delfailed' ? ' dt-claim-wait--failed' : '');
     if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
@@ -3929,8 +3969,20 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       : st === 'preparing' ? 'The claim is being prepared from the documents.'
       : st === 'queued' ? 'Waiting for its turn. The claims before it are prepared first.'
       : 'The claim could not be prepared. Check the documents on this record.';
+    let time = ''; try { time = dtClaimTimeText(row, st); } catch (e) { time = ''; }   // TIDY-CLAIMTIME
+    if (time) { const tm = document.createElement('span'); tm.className = 'dt-claim-time'; tm.textContent = time; b.appendChild(tm); }
+    if (st === 'preparing') { const n = dtEvrakCount(row); if (n) td.title += ' Usually about 2 min plus 9 s per document (' + n + ' here), give or take 3 min.'; }
     td.appendChild(b);
   }
+  // TIDY-CLAIMTIME: the clock moves without a data change; a visible Preparing / Queued cell is redrawn every 30 s (one timer per page)
+  window.__gxClaimTimeTick = function () {
+    try {
+      if (window.__gxNoClaimTime || !state.hot || document.visibilityState === 'hidden') return;
+      const c = els && els.container;
+      if (c && c.querySelector('.dt-claim-wait--preparing, .dt-claim-wait--queued')) state.hot.render();
+    } catch (e) {}
+  };
+  if (!window.__gxClaimTimeTimer) window.__gxClaimTimeTimer = setInterval(() => { try { const f = window.__gxClaimTimeTick; if (f) f(); } catch (e) {} }, 30000);
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
   function dtFillButtonHtml(st) {
     if (!st) return '';
@@ -4214,7 +4266,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) {
         // TIDY-CLAIMWAIT: an empty Claim cell tells where the claim is (Preparing… / Failed)
         if (dtNormKey(c.id || '') === 'claim') {
-          try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st) dtRenderClaimWait(td, st); } catch (e) {}
+          try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st) dtRenderClaimWait(td, st, raw); } catch (e) {}
         }
         return;
       }
@@ -6396,7 +6448,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!o) return r;
       if (aynaLiveTime(r._modified) >= o.mod) { _dtDirect.delete(id); return r; }   // the mirror caught up: its row wins
       changed = true;
-      return Object.assign({}, r, o.fields);
+      return Object.assign({}, r, o.fields, { _gxDurumMod: o.mod });   // TIDY-CLAIMTIME: Bubble's own change time
     });
     return changed ? out : rows;
   }
