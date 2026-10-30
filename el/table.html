@@ -4011,6 +4011,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const now = Date.now();
       _dtDirect.set(id, { mod: now, fields: { [dc]: 'Claim Hazırlanıyor' } });   // GX-DIRECT shows it before the mirror does
       _dtAsama.set(id, { mod: now, text: 'Tekrar sırada' });
+      _dtWaitStart.delete(id + '|preparing'); _dtWaitStart.set(id + '|preparing', now);   // TIDY-CLAIMTIME: a new clock
       if (AYNA.cfg && aynaAlive() && Array.isArray(AYNA.painted)) aynaLivePaint(AYNA.painted, AYNA.cfg.columns); else if (state.hot) state.hot.render();
       showWakeToast('Sent to the claim line again.', 'info');
     } catch (e) {
@@ -4047,6 +4048,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         }
       }
       if (st === 'failed') {
+        try { const rid = rowIdOf(row); if (rid) { _dtWaitStart.delete(rid + '|preparing'); _dtWaitStart.delete(rid + '|queued'); } } catch (e) {}
         if (raw) td.title = 'The claim could not be prepared: ' + raw + '. Retry sends it to the claim line again.';
         else td.title += ' Retry sends it to the claim line again.';
         const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'dt-claim-retry'; rb.textContent = 'Retry';
