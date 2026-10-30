@@ -3952,13 +3952,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued')) return '';
     const at = dtWaitStart(row, st);
     const min = at ? Math.max(0, Math.floor((Date.now() - at) / 60000)) : null;
-    if (st === 'queued') return min === null ? '' : ('waiting ' + (min < 1 ? 'under 1 min' : min + ' min'));
+    if (st === 'queued') return min === null ? '' : (min < 1 ? '<1 min' : min + ' min');
     const n = dtEvrakCount(row);
     const est = (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
-    if (min === null) return est ? '~' + est + ' min' : '';
-    const done = min < 1 ? 'just started' : min + ' min in';
-    if (est && min < est) return '~' + est + ' min · ' + done;
-    return min < 1 ? '' : done;
+    if (min === null || min < 1) return est ? '~' + est + ' min' : '';
+    if (est && min < est) return min + ' / ~' + est + ' min';
+    return min + ' min in';
   }
   function dtRenderClaimWait(td, st, row) {
     const b = document.createElement('span');
@@ -3970,8 +3969,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       : st === 'queued' ? 'Waiting for its turn. The claims before it are prepared first.'
       : 'The claim could not be prepared. Check the documents on this record.';
     let time = ''; try { time = dtClaimTimeText(row, st); } catch (e) { time = ''; }   // TIDY-CLAIMTIME
-    if (time) { const tm = document.createElement('span'); tm.className = 'dt-claim-time'; tm.textContent = time; b.appendChild(tm); }
-    if (st === 'preparing') { const n = dtEvrakCount(row); if (n) td.title += ' Usually about 2 min plus 9 s per document (' + n + ' here), give or take 3 min.'; }
+    if (time && st === 'preparing') {   // spinner + "4 / ~10 min": the whole cell fits the narrow Claim column
+      for (let i = b.childNodes.length - 1; i >= 0; i--) { if (b.childNodes[i].nodeType === 3) b.removeChild(b.childNodes[i]); }
+      b.appendChild(document.createTextNode(time));
+      b.setAttribute('aria-label', 'Preparing the claim, ' + time);
+    } else if (time) { const tm = document.createElement('span'); tm.className = 'dt-claim-time'; tm.textContent = time; b.appendChild(tm); }
+    if (st === 'preparing') { const n = dtEvrakCount(row); td.title = 'Preparing the claim' + (time ? ' (' + time + ').' : '.') + (n ? ' Usually about 2 min plus 9 s per document (' + n + ' here), give or take 3 min.' : ''); }
     td.appendChild(b);
   }
   // TIDY-CLAIMTIME: the clock moves without a data change; a visible Preparing / Queued cell is redrawn every 30 s (one timer per page)
