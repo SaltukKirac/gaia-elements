@@ -2272,6 +2272,9 @@
 #dynamic-table-wrapper .dt-claim-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 20px; color: var(--gx-ink-3, #94a3b8); }
 #dynamic-table-wrapper .dt-claim-wait--preparing { color: var(--gx-primary, #6366f1); font-weight: 500; }
 #dynamic-table-wrapper .dt-claim-wait--failed { color: var(--gx-err, #dc2626); font-weight: 500; }
+#dynamic-table-wrapper .dt-claim-retry { margin-left: 4px; padding: 0 8px; font: 500 11px/18px inherit; color: var(--gx-primary, #6366f1); background: var(--gx-surface, #fff); border: 1px solid var(--gx-line, #e2e8f0); border-radius: 999px; cursor: pointer; }
+#dynamic-table-wrapper .dt-claim-retry:hover, #dynamic-table-wrapper .dt-claim-retry:focus-visible { border-color: var(--gx-primary, #6366f1); outline: none; }
+#dynamic-table-wrapper .dt-claim-retry[aria-busy="true"] { opacity: .6; cursor: progress; }
 #dynamic-table-wrapper .dt-claim-time { color: var(--gx-ink-2, #64748b); font-weight: 400; white-space: nowrap; }
 #dynamic-table-wrapper .dt-claim-time::before { content: "·"; margin-right: 6px; }
 #dynamic-table-wrapper .dt-claim-spin { width: 11px; height: 11px; border: 2px solid var(--gx-line, #e2e8f0); border-top-color: var(--gx-primary, #6366f1); border-radius: 50%; animation: dt-claim-spin .9s linear infinite; flex: 0 0 auto; }
@@ -3959,6 +3962,63 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (est && min < est) return min + ' / ~' + est + ' min';
     return min + ' min in';
   }
+  /* TIDY-STAGE (30.10, Ömer + Araştırma Dalı işleri C ve D): the claim line (nod-gaia-hat, PR #30) writes the record's
+     'Claim Aşaması' field: the stage while it works (İndiriliyor n evrak → Okunuyor k/n → Yazılıyor → Kontrol → Hazır) and a short
+     reason when it sets Durum = Hata. The field is not a column: GX-DIRECT reads it with the record (_dtAsama, id → text).
+     Preparing shows the stage instead of the time (the time moves to the tooltip); Failed shows the reason in the tooltip and a
+     Retry button: Durum → Claim Hazırlanıyor through the Data API with the viewer's session (Bubble's privacy rules apply),
+     only while the record is still Hata; the claim line's next minute run takes it again. Off: window.__gxNoStage = true. */
+  const _dtAsama = new Map();   // record id → { mod, text } (Bubble's 'Claim Aşaması')
+  function dtAsamaOf(row) { try { const id = rowIdOf(row); const a = id ? _dtAsama.get(id) : null; return a ? String(a.text || '').trim() : ''; } catch (e) { return ''; } }
+  // the line writes Turkish; the grid speaks English (gaia-ux)
+  function dtAsamaEn(t) {
+    const m = String(t || '').trim(); let x;
+    if (!m) return '';
+    if ((x = /^İndiriliyor\s+(\d+)/i.exec(m))) return 'Downloading ' + x[1];
+    if ((x = /^Okunuyor\s+(\d+)\s*\/\s*(\d+)/i.exec(m))) return 'Reading ' + x[1] + '/' + x[2];
+    if (/^Yazılıyor/i.test(m)) return 'Writing claim';
+    if (/^Kontrol/i.test(m)) return 'Checking';
+    if (/^Tekrar/i.test(m)) return 'Retrying';
+    if (/^Hazır/i.test(m)) return '';
+    return m.length > 16 ? '' : m;
+  }
+  function dtDirectBase() { return location.origin + ((location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '') + '/api/1.1/obj/Object/'; }
+  async function dtClaimRetry(row, btn) {
+    const id = rowIdOf(row);
+    if (!id || !btn || btn.getAttribute('aria-busy') === 'true') return;
+    btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Retrying…';
+    try {
+      const u = dtDirectBase() + encodeURIComponent(id);
+      const r = await fetch(u, { credentials: 'include', cache: 'no-store' });
+      if (!r.ok) throw new Error('read ' + r.status);
+      const o = ((await r.json()) || {}).response || {};
+      const ja = Array.isArray(o.jsonarray) ? o.jsonarray : null;
+      if (!ja) throw new Error('no fields');
+      if (!ja.some(l => /^\s*"Durum"\s*:\s*"Hata"\s*$/.test(String(l)))) throw new Error('not failed');   // someone moved it already
+      let had = false;
+      const out = ja.map(l => {
+        const m = /^\s*"([^"]+)"\s*:/.exec(String(l)); if (!m) return l;
+        const k = dtNormKey(m[1]);
+        if (k === 'durum') { had = true; return '"' + m[1] + '": "Claim Hazırlanıyor"'; }
+        if (k === 'claimasamasi') return '"' + m[1] + '": "Tekrar sırada"';
+        return l;
+      });
+      if (!had) out.push('"Durum": "Claim Hazırlanıyor"');
+      const w = await fetch(u, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonarray: out }) });
+      if (!w.ok) throw new Error('write ' + w.status);
+      const cols = AYNA.fields.length ? AYNA.fields : (AYNA.cfg ? aynaFieldsOf(AYNA.cfg.columns) : []);
+      const dc = cols.find(c => dtNormKey(c) === 'durum') || 'Durum';
+      const now = Date.now();
+      _dtDirect.set(id, { mod: now, fields: { [dc]: 'Claim Hazırlanıyor' } });   // GX-DIRECT shows it before the mirror does
+      _dtAsama.set(id, { mod: now, text: 'Tekrar sırada' });
+      if (AYNA.cfg && aynaAlive() && Array.isArray(AYNA.painted)) aynaLivePaint(AYNA.painted, AYNA.cfg.columns); else if (state.hot) state.hot.render();
+      showWakeToast('Sent to the claim line again.', 'info');
+    } catch (e) {
+      btn.removeAttribute('aria-busy'); btn.textContent = 'Retry';
+      showWakeToast(/not failed/.test(String(e && e.message)) ? 'This record is not failed any more.' : 'Could not retry. Open the record and try again.', 'error');
+      log('[TIDY-STAGE] retry ' + ((e && e.message) || e));
+    }
+  }
   function dtRenderClaimWait(td, st, row) {
     const b = document.createElement('span');
     b.className = 'dt-claim-wait dt-claim-wait--' + st + (st === 'delfailed' ? ' dt-claim-wait--failed' : '');
@@ -3975,6 +4035,25 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       b.setAttribute('aria-label', 'Preparing the claim, ' + time);
     } else if (time) { const tm = document.createElement('span'); tm.className = 'dt-claim-time'; tm.textContent = time; b.appendChild(tm); }
     if (st === 'preparing') { const n = dtEvrakCount(row); td.title = 'Preparing the claim' + (time ? ' (' + time + ').' : '.') + (n ? ' Usually about 2 min plus 9 s per document (' + n + ' here), give or take 3 min.' : ''); }
+    if (!window.__gxNoStage) {   // TIDY-STAGE
+      const raw = dtAsamaOf(row);
+      if (st === 'preparing' && raw) {
+        const en = dtAsamaEn(raw);
+        if (en) {
+          for (let k = b.childNodes.length - 1; k >= 0; k--) { if (b.childNodes[k].nodeType === 3) b.removeChild(b.childNodes[k]); }
+          b.appendChild(document.createTextNode(en));
+          b.setAttribute('aria-label', 'Preparing the claim, ' + en);
+          td.title = 'Preparing the claim: ' + en + (time ? ' (' + time + ')' : '') + '.' + td.title.replace(/^Preparing the claim[^.]*\./, '');
+        }
+      }
+      if (st === 'failed') {
+        if (raw) td.title = 'The claim could not be prepared: ' + raw + '. Retry sends it to the claim line again.';
+        else td.title += ' Retry sends it to the claim line again.';
+        const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'dt-claim-retry'; rb.textContent = 'Retry';
+        rb.setAttribute('aria-label', 'Retry the claim');
+        b.appendChild(rb);
+      }
+    }
     td.appendChild(b);
   }
   // TIDY-CLAIMTIME: the clock moves without a data change; a visible Preparing / Queued cell is redrawn every 30 s (one timer per page)
@@ -4481,6 +4560,21 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     els.container.addEventListener('click', handleCellLinkClick, true);
     // GX-FILL: "Fill on portal" (the package goes to the extension; the row is not opened, and the press does not select it)
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null; if (b) event.stopPropagation(); }, true);
+    // TIDY-STAGE: "Retry" on a Failed claim cell
+    els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-claim-retry') : null; if (b) event.stopPropagation(); }, true);
+    els.container.addEventListener('click', event => {
+      const btn = event.target && event.target.closest ? event.target.closest('.dt-claim-retry') : null;
+      if (!btn || !state.hot) return;
+      event.preventDefault(); event.stopPropagation();
+      const td = btn.closest('td'); if (!td) return;
+      try {
+        const coords = state.hot.getCoords(td);
+        if (!coords || typeof coords.row !== 'number' || coords.row < 0) return;
+        const p = state.hot.toPhysicalRow(coords.row), dr = state.displayRows[p];
+        const raw = dr ? state.rawRows[dr.__sourceIndex] : null;
+        if (raw) dtClaimRetry(raw, btn);
+      } catch (e) {}
+    }, true);
     els.container.addEventListener('click', event => {
       const btn = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null;
       if (!btn || !state.hot) return;
@@ -6464,6 +6558,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const st = dtClaimWaitState(r);
       if (st === 'preparing' || st === 'queued') ids.push(String(r._id));
     }
+    if (!window.__gxNoStage) {   // TIDY-STAGE: a Failed row once (its reason), again when the row changed
+      for (let i = 0; i < rows.length && ids.length < DT_DIRECT_MAX; i++) {
+        const r = rows[i];
+        if (!r || r.__gxPend || !r._id || dtClaimWaitState(r) !== 'failed') continue;
+        const a = _dtAsama.get(String(r._id));
+        if (!a || a.mod < aynaLiveTime(r._modified)) ids.push(String(r._id));
+      }
+    }
     return ids;
   }
   async function dtDirectRead(id) {
@@ -6479,15 +6581,17 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
       const want = new Map(cols.filter(c => DT_DIRECT_KEYS.has(dtNormKey(c))).map(c => [dtNormKey(c), c]));
       const fields = {};
+      let asama = '';   // TIDY-STAGE: not a column, read with the record
       o.jsonarray.forEach(line => {
         let p = null; try { p = JSON.parse('{' + line + '}'); } catch (e) { return; }
         for (const k in p) {
+          if (dtNormKey(k) === 'claimasamasi') { asama = String(p[k] == null ? '' : p[k]); continue; }
           const col = want.get(dtNormKey(k)); if (!col) continue;
           const v = p[k];
           if (typeof v === 'string' || typeof v === 'number' || (Array.isArray(v) && v.every(x => typeof x === 'string'))) fields[col] = v;
         }
       });
-      return { mod: aynaLiveTime(o['Modified Date']), fields: fields };
+      return { mod: aynaLiveTime(o['Modified Date']), fields: fields, asama: asama };
     } catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
   }
   async function dtDirectTick() {
@@ -6497,10 +6601,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     _dtDirectBusy = true;
     try {
       const raw = new Map((AYNA.painted || []).filter(r => r && r._id).map(r => [String(r._id), r]));
-      let n = 0;
+      let n = 0, stg = 0;
       for (const id of ids) {
         const got = await dtDirectRead(id);
         const row = raw.get(id);
+        if (got && got.asama !== undefined) {   // TIDY-STAGE
+          const pa = _dtAsama.get(id), mod = got.mod || Date.now();
+          if (!pa || pa.text !== got.asama) { _dtAsama.set(id, { mod: mod, text: got.asama }); stg++; } else pa.mod = Math.max(pa.mod, mod);
+        }
         if (!got || !got.mod || !row || !Object.keys(got.fields).length) continue;
         const prev = _dtDirect.get(id);
         if (got.mod <= aynaLiveTime(row._modified) || (prev && got.mod <= prev.mod)) continue;
@@ -6509,7 +6617,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (n && aynaAlive() && Array.isArray(AYNA.painted)) {
         aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
         log('[GX-DIRECT] ' + n + ' row(s) updated from Gaia before the mirror');
-      }
+      } else if (stg && state.hot) { try { state.hot.render(); } catch (e) {} }   // TIDY-STAGE
     } finally { _dtDirectBusy = false; }
   }
   window.__gxDirectTick = dtDirectTick;   // the newest element instance (Bubble may re-render it)
