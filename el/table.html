@@ -6527,7 +6527,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
        · a Preparing / Queued row that GX-DIRECT reads as NotVisible leaves the grid (GX-GONE);
        · a GX-PEND row older than 25 s is looked up every 10 s for 15 min (Data API, the viewer's session): a hidden record
          holding one of the files the form uploaded takes the pending row off;
-       · with the line's note the viewer gets a toast that the documents are already in the table. A record hidden without the note (deleted elsewhere) leaves silently.
+       · the viewer gets a toast that the documents are already in the table when the line's note names the kept record,
+         or (02.11, Ömer: "bildirim en azından deneme yerinde olsun", the line's note is not on every machine yet) when a
+         visible row carries the same document names. A record hidden otherwise (deleted elsewhere) leaves silently.
      Off: window.__gxNoDup = true. */
   var DT_DUP_MS = 10000, DT_DUP_AFTER_MS = 25000, DT_DUP_FOR_MS = 15 * 60000;
   var _dtDupSaid = new Set(), _dtDupBusy = false;
@@ -6536,12 +6538,27 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try { for (const k in row) { if (dtNormKey(k) === 'plaka' && row[k] != null && String(row[k]).trim()) return String(row[k]).trim(); } } catch (e) {}
     return '';
   }
-  // the record id is hidden: off the grid; a toast when the claim line hid it as a copy
-  function dtDupGone(id, asama, plaka) {
+  // sorted document names (an upload gets a new address each time, the name and the line's byte check stay)
+  function dtDupNames(files) {
+    return (Array.isArray(files) ? files : []).map(f => { let n = String(f || '').split('?')[0].split('/').pop() || ''; try { n = decodeURIComponent(n); } catch (e) {} return n.trim().toLowerCase(); }).filter(Boolean).sort().join('\n');
+  }
+  // a visible row (not this record) with the same document names: the record the copy was taken from
+  function dtDupTwin(id, files) {
+    const sig = dtDupNames(files); if (!sig) return '';
+    const rows = Array.isArray(AYNA.painted) ? AYNA.painted : (state.rawRows || []);
+    for (const r of rows) {
+      if (!r || r.__gxPend) continue;
+      const rid = rowIdOf(r); if (!rid || rid === id) continue;
+      if (dtDupNames(dtPendFiles(r)) === sig) return rid;
+    }
+    return '';
+  }
+  // the record id is hidden: off the grid; a toast when it was a copy (the line's note, or a twin row in the table)
+  function dtDupGone(id, asama, plaka, files) {
     if (!id || _dtDupSaid.has(id)) return;
     _dtDupSaid.add(id);
+    const kept = dtDupKeptId(asama) || dtDupTwin(id, files);
     dtGoneAdd([id]);
-    const kept = dtDupKeptId(asama);
     if (!kept) { log('[GX-DUP] ' + id + ' is hidden, off the grid'); return; }
     showWakeToast('Already in the table' + (plaka ? ' (' + plaka + ')' : '') + '. These documents were added before, so this copy was removed.', 'info');
     log('[GX-DUP] ' + id + ' was a copy of ' + kept + ', off the grid');
@@ -6568,7 +6585,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         let asama = '';
         Object.keys(h.m).forEach(k => { if (dtNormKey(k) === 'claimasamasi') asama = String(h.m[k] == null ? '' : h.m[k]); });
         _dtPend = dtPendList().filter(x => x !== e); off++;
-        dtDupGone(String(h.o._id), asama, dtDupPlakaText(e.row));
+        dtDupGone(String(h.o._id), asama, dtDupPlakaText(e.row), dtPendFiles(h.m));
       });
       if (off) { dtPendSave(); dtPendRepaint(); }
     } finally { _dtDupBusy = false; }
@@ -6659,7 +6676,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       for (const id of ids) {
         const got = await dtDirectRead(id);
         const row = raw.get(id);
-        if (got && got.hidden && !window.__gxNoDup) { dtDupGone(id, got.asama, dtDupPlakaText(row)); continue; }   // GX-DUP
+        if (got && got.hidden && !window.__gxNoDup) { dtDupGone(id, got.asama, dtDupPlakaText(row), row ? dtPendFiles(row) : []); continue; }   // GX-DUP
         if (got && got.asama !== undefined) {   // TIDY-STAGE
           const pa = _dtAsama.get(id), mod = got.mod || Date.now();
           if (!pa || pa.text !== got.asama) { _dtAsama.set(id, { mod: mod, text: got.asama }); stg++; } else pa.mod = Math.max(pa.mod, mod);
