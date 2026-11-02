@@ -4158,7 +4158,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // GX-FILL-KAYIT: an extension that knows the record path marks the page with <html data-gaia-bridge-kayit>
   function dtBridgeKayitOk() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridgeKayit); } catch (e) { return false; } }
-  // one request to the extension; resolves with its answer or {error} after 20 s. src = {paket} (gaiaBridgeClaimPaket) or {kayit} (gaiaBridgeKayit)
+  // one request to the extension; resolves with its answer or {error} after 60 s. src = {paket} (gaiaBridgeClaimPaket) or {kayit} (gaiaBridgeKayit)
+  // GX-FILL-WAIT (03.11, Ömer: "evraklar 11/30 aldı derken" the table said "did not answer"): the extension loads the case, then
+  // spends up to 12 s on documents before it answers; with a big record and a sleeping service worker that passed 20 s, the
+  // case was in the extension but the table showed an error. 60 s; the button stays busy meanwhile.
   function dtFillSend(src, degistir) {
     const ev = src && src.kayit ? 'gaiaBridgeKayit' : 'gaiaBridgeClaimPaket';
     return new Promise(resolve => {
@@ -4173,7 +4176,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         resolve(d);
       };
       window.addEventListener(ev + 'Result', onResult);
-      timer = setTimeout(() => { window.removeEventListener(ev + 'Result', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 20000);
+      timer = setTimeout(() => { window.removeEventListener(ev + 'Result', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 60000);
       const detail = src && src.kayit ? { requestId: requestId, kayit: src.kayit } : { requestId: requestId, paket: src && src.paket };
       if (degistir) detail.degistir = true;
       window.dispatchEvent(new CustomEvent(ev, { detail: JSON.stringify(detail) }));
