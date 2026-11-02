@@ -6026,7 +6026,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
      marked "from HH:MM · updating", and the fresh answer replaces them as before. Claim packages / key lines are stored masked
      (dtMaskPaket), never as values. Kept at most 12 h, 1.5 MB per screen,
      4 screens; a full store drops the oldest. aynaCacheDrop (data changed) drops the kept copy too. */
-  const AYNA_KEEP = { prefix: 'gxAynaKeep2|', maxAgeMs: 12 * 3600000, maxBytes: 1500000, maxScreens: 4 };
+  const AYNA_KEEP = { prefix: 'gxAynaKeep2|', maxAgeMs: 14 * 24 * 3600000, maxBytes: 1500000, maxScreens: 4 };   // GX-SNAP 02.11: 12 h → 14 days
   // v1 (29.10, kanal rev 8-9 only) stored the claim package unmasked: any v1 copy left in a tab is removed on load
   try { Object.keys(sessionStorage).forEach(k => { if (k.indexOf('gxAynaKeep1|') === 0) sessionStorage.removeItem(k); }); } catch (e) {}
   function aynaKeepUid() { try { return String(window.bubble_session_uid || '').trim(); } catch (e) { return ''; } }
@@ -6046,6 +6046,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       while (others.length >= AYNA_KEEP.maxScreens) sessionStorage.removeItem(others.shift());
       try { sessionStorage.setItem(k, s); }
       catch (e) { others.forEach(x => sessionStorage.removeItem(x)); try { sessionStorage.setItem(k, s); } catch (e2) {} }
+      dtSnapPut(k, s);   // GX-SNAP: the latest table survives the tab
     } catch (e) {}
   }
   function aynaKeepGet(cacheKey) {
@@ -6057,8 +6058,53 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) { return null; }
   }
   function aynaKeepDrop(screenKey) { try { const u = aynaKeepUid(); if (!u) return; const p = AYNA_KEEP.prefix + u + '|' + screenKey; aynaKeepAll().forEach(k => { if (k === p || k.indexOf(p + '|') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
+  /* GX-SNAP (02.11, Ömer: "siteye girişte tablo hemen gelmiyor; kayıtlı sayfa gelsin, güncel tablo gelince güncellensin. Yalnız en
+     güncel tablo kaydedilsin"). Measured on his page (new tab): the table code is ready at ~3.7 s, but Bubble writes
+     #bubble-table-config (screen + columns) only at ~11.8 s and the rows land at ~14.6 s; TIDY-KEEP's copy lives in the tab's
+     sessionStorage, so a new tab / a new login started empty. Now the LATEST table only is kept in localStorage, one entry per
+     browser: the config text Bubble gave (screen id + columns, ~23 KB, no secrets) + the kept rows exactly as TIDY-KEEP stores
+     them (claim packages / key lines masked). Every fresh answer overwrites it (the same AYNA.cache write as TIDY-KEEP). On a
+     load where Bubble has not written its config yet, the table starts from this entry: rows at once, marked "from HH:MM ·
+     updating", and the mirror is asked right away with the saved screen id; when Bubble's own config arrives, an identical
+     text changes nothing and a different one reloads as before. Only for the same signed-in user (bubble_session_uid) and the
+     same page path; another user's entry is removed. Off: window.__gxNoSnap = true. */
+  const DT_SNAP = { prefix: 'gxTableSnap1|', maxBytes: 2500000 };
+  let _dtSnapBoot = '';   // the config text this page started from (when Bubble had not written its own yet)
+  function dtSnapUsable(text) { try { if (!text || text === '{}') return false; const c = parseBubbleConfig(text); return Array.isArray(c.columns) && c.columns.length > 0; } catch (e) { return false; } }
+  function dtSnapKey() { const u = aynaKeepUid(); return u ? DT_SNAP.prefix + u : ''; }
+  function dtSnapOthersDrop(keep) {
+    try { const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(DT_SNAP.prefix) === 0 && k !== keep) ks.push(k); } ks.forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  }
+  function dtSnapPut(keepKey, keepText) {
+    try {
+      if (window.__gxNoSnap) return;
+      const k = dtSnapKey(); if (!k || !keepKey || !keepText) return;
+      const el = document.getElementById('bubble-table-config');
+      const now = ((el && el.textContent) || '').trim();
+      const cfg = dtSnapUsable(now) ? now : _dtSnapBoot;   // never Bubble's early placeholder (no columns)
+      if (!cfg || !dtSnapUsable(cfg)) return;
+      const s = JSON.stringify({ v: 1, at: Date.now(), path: location.pathname, cfg: cfg, kk: keepKey, kv: keepText });
+      if (s.length > DT_SNAP.maxBytes) { localStorage.removeItem(k); return; }
+      dtSnapOthersDrop(k);
+      localStorage.setItem(k, s);
+    } catch (e) {}
+  }
+  // the saved start: its config text (the caller parses it like Bubble's), with the rows put back into this tab's kept copy
+  function dtSnapBootText() {
+    try {
+      if (window.__gxNoSnap) return '';
+      const k = dtSnapKey(); if (!k) return '';
+      dtSnapOthersDrop(k);
+      const o = JSON.parse(localStorage.getItem(k) || 'null');
+      if (!o || o.v !== 1 || o.path !== location.pathname || !o.cfg || !o.kk || !o.kv) return '';
+      try { if (!sessionStorage.getItem(o.kk)) sessionStorage.setItem(o.kk, o.kv); } catch (e) {}
+      _dtSnapBoot = o.cfg;
+      log('[GX-SNAP] start from the table saved at ' + aynaClock(o.at));
+      return o.cfg;
+    } catch (e) { return ''; }
+  }
   (function () { const set0 = AYNA.cache.set.bind(AYNA.cache); AYNA.cache.set = function (k, v) { const r = set0(k, v); aynaKeepPut(k, v); return r; }; })();
-  function aynaClock(at) { try { const d = new Date(at); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } }
+  function aynaClock(at) { try { const d = new Date(at), n = new Date(); const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); return d.toDateString() === n.toDateString() ? hm : String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + hm; } catch (e) { return ''; } }   // GX-SNAP: another day shows its date
   function aynaScreenOf(config) {
     let ag = config && config.agent;
     if (typeof ag === 'string') { try { ag = JSON.parse(ag); } catch (e) { ag = null; } }
@@ -8280,6 +8326,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // (BUBBLE_INPUTS bu config'ten biraz sonra güncellenebilir).
       applyWakeConfig(config);
       startAssistantPoll(8);
+      // GX-SNAP: while the saved table is on screen, Bubble's early placeholder (no columns) does not empty it; its real config
+      // (with columns) replaces the saved start as usual and ends this guard
+      if (_dtSnapBoot && (!Array.isArray(config.columns) || !config.columns.length)) { log('[GX-SNAP] placeholder config ignored, saved table kept'); return; }
+      if (_dtSnapBoot) _dtSnapBoot = '';
       if (!Array.isArray(config.columns) || !config.columns.length) {
         // Kolonlar kalktı: tabloyu boşalt ve mevcut boş durumu göster (sessiz çıkış yerine)
         // T1: _viewKey korunur; kolonlar dönünce aynı/yeni görünüm doğru sınıflanır
@@ -8378,6 +8428,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let observer = null;
     let lastConfigText = '';
     let lastParseErrText = '';   // 14.09: aynı bozuk metin için parse hatası bir kez yazılır
+    let snapTried = false;   // GX-SNAP: the saved table is tried once, before Bubble's config
 
     const tryInit = (fromObserver) => {
       if (initialized) return;
@@ -8390,9 +8441,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // çevrilir; hâlâ bozuksa hata aynı metin için BİR kez yazılır.
       // Boş değer onarımı parseBubbleConfig içinde (data + columns); burada ham metin tutulur ki
       // observer'ın karşılaştırdığı lastConfigText ile aynı olsun.
-      const text = (script && script.textContent ? script.textContent : '').trim();
+      let text = (script && script.textContent ? script.textContent : '').trim();
+      if (!snapTried) {   // GX-SNAP: no config yet, or Bubble's early placeholder without columns → the saved table
+        let usable = false;
+        if (text && text !== '{}') { try { const c0 = parseBubbleConfig(text); usable = Array.isArray(c0.columns) && c0.columns.length > 0; } catch (e) { usable = false; } }
+        if (!usable) { snapTried = true; const st = dtSnapBootText(); if (st) text = st; }
+      }
 
-      if (!script || !text || text === '{}') {
+      if (!text || text === '{}') {
         if (!fromObserver && pollAttempt < tries) {
           pollingTimer = setTimeout(() => tryInit(false), interval);
         }
