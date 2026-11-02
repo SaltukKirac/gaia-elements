@@ -6057,6 +6057,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
      same page path; another user's entry is removed. Off: window.__gxNoSnap = true. */
   const DT_SNAP = { prefix: 'gxTableSnap1|', maxBytes: 2500000 };
   let _dtSnapBoot = '';   // the config text this page started from (when Bubble had not written its own yet)
+  function dtSnapUsable(text) { try { if (!text || text === '{}') return false; const c = parseBubbleConfig(text); return Array.isArray(c.columns) && c.columns.length > 0; } catch (e) { return false; } }
   function dtSnapKey() { const u = aynaKeepUid(); return u ? DT_SNAP.prefix + u : ''; }
   function dtSnapOthersDrop(keep) {
     try { const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(DT_SNAP.prefix) === 0 && k !== keep) ks.push(k); } ks.forEach(k => localStorage.removeItem(k)); } catch (e) {}
@@ -6066,8 +6067,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (window.__gxNoSnap) return;
       const k = dtSnapKey(); if (!k || !keepKey || !keepText) return;
       const el = document.getElementById('bubble-table-config');
-      const cfg = ((el && el.textContent) || '').trim() || _dtSnapBoot;
-      if (!cfg || cfg === '{}') return;
+      const now = ((el && el.textContent) || '').trim();
+      const cfg = dtSnapUsable(now) ? now : _dtSnapBoot;   // never Bubble's early placeholder (no columns)
+      if (!cfg || !dtSnapUsable(cfg)) return;
       const s = JSON.stringify({ v: 1, at: Date.now(), path: location.pathname, cfg: cfg, kk: keepKey, kv: keepText });
       if (s.length > DT_SNAP.maxBytes) { localStorage.removeItem(k); return; }
       dtSnapOthersDrop(k);
@@ -8309,6 +8311,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // (BUBBLE_INPUTS bu config'ten biraz sonra güncellenebilir).
       applyWakeConfig(config);
       startAssistantPoll(8);
+      // GX-SNAP: while the saved table is on screen, Bubble's early placeholder (no columns) does not empty it; its real config
+      // (with columns) replaces the saved start as usual and ends this guard
+      if (_dtSnapBoot && (!Array.isArray(config.columns) || !config.columns.length)) { log('[GX-SNAP] placeholder config ignored, saved table kept'); return; }
+      if (_dtSnapBoot) _dtSnapBoot = '';
       if (!Array.isArray(config.columns) || !config.columns.length) {
         // Kolonlar kalktı: tabloyu boşalt ve mevcut boş durumu göster (sessiz çıkış yerine)
         // T1: _viewKey korunur; kolonlar dönünce aynı/yeni görünüm doğru sınıflanır
@@ -8421,7 +8427,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // Boş değer onarımı parseBubbleConfig içinde (data + columns); burada ham metin tutulur ki
       // observer'ın karşılaştırdığı lastConfigText ile aynı olsun.
       let text = (script && script.textContent ? script.textContent : '').trim();
-      if ((!script || !text || text === '{}') && !snapTried) { snapTried = true; const st = dtSnapBootText(); if (st) text = st; }   // GX-SNAP
+      if (!snapTried) {   // GX-SNAP: no config yet, or Bubble's early placeholder without columns → the saved table
+        let usable = false;
+        if (text && text !== '{}') { try { const c0 = parseBubbleConfig(text); usable = Array.isArray(c0.columns) && c0.columns.length > 0; } catch (e) { usable = false; } }
+        if (!usable) { snapTried = true; const st = dtSnapBootText(); if (st) text = st; }
+      }
 
       if (!text || text === '{}') {
         if (!fromObserver && pollAttempt < tries) {
