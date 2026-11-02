@@ -2275,6 +2275,8 @@
 #dynamic-table-wrapper .dt-claim-retry { margin-left: 4px; padding: 0 8px; font: 500 11px/18px inherit; color: var(--gx-primary, #6366f1); background: var(--gx-surface, #fff); border: 1px solid var(--gx-line, #e2e8f0); border-radius: 999px; cursor: pointer; }
 #dynamic-table-wrapper .dt-claim-retry:hover, #dynamic-table-wrapper .dt-claim-retry:focus-visible { border-color: var(--gx-primary, #6366f1); outline: none; }
 #dynamic-table-wrapper .dt-claim-retry[aria-busy="true"] { opacity: .6; cursor: progress; }
+#dynamic-table-wrapper .dt-fill-ok-main { margin: 0 0 6px; font-size: 14px; line-height: 20px; color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper .dt-fill-ok-note { margin: 0; font-size: 12px; line-height: 18px; color: var(--gx-ink-2, #475569); }
 #dynamic-table-wrapper .dt-claim-time { color: var(--gx-ink-2, #64748b); font-weight: 400; white-space: nowrap; }
 #dynamic-table-wrapper .dt-claim-time::before { content: "·"; margin-right: 6px; }
 #dynamic-table-wrapper .dt-claim-spin { width: 11px; height: 11px; border: 2px solid var(--gx-line, #e2e8f0); border-top-color: var(--gx-primary, #6366f1); border-radius: 50%; animation: dt-claim-spin .9s linear infinite; flex: 0 0 auto; }
@@ -4201,12 +4203,35 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (!yes) return;
         res = await dtFillSend(p, true);
       }
-      if (res && res.ok) showWakeToast('Ready: switch to the portal tab and press Fill this page' + (res.gaiaNotu ? '. ' + String(res.gaiaNotu) : ''), 'success');
+      if (res && res.ok) dtFillDoneModal(res);   // GX-FILL-OK (02.11, Ömer): a dialog the expert closes with Tamam, not a passing toast
       else if (dtFillNeedsRegister(res)) dtOfferRegister(res);   // GX-CIHAZ: the package is not for this browser yet
       else showWakeToast((res && res.error) ? String(res.error) : 'The extension could not take this claim.', 'error');
     } finally {
       if (btn) { btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy'); }
     }
+  }
+  /* GX-FILL-OK (02.11, Ömer: "Fill'e basınca claim'in eklentiye yüklenip yüklenmediğini kullanıcı anlayamıyor. Dosya eklentiye
+     yüklenince pop-up çıksın: 'Dosyanız yüklenmiştir. Lütfen Write for real'e tıklayınız'; kullanıcı Tamam'a basarak kapatsın").
+     The extension answered ok (the case is prepared in it). The dialog closes only with its button (no backdrop click, no
+     Escape), so the step is not missed; the extension's own popup makes "▶ Write for real" pulse until it is pressed.
+     Turkish on purpose (Ömer's wording for the office). The documents note the extension returns stays as a second line. */
+  function dtFillDoneModal(res) {
+    const body = '<p class="dt-fill-ok-main"></p><p class="dt-fill-ok-note"></p>';
+    const modal = openWakeModal('Eklentiye yüklendi', body, [
+      { label: 'Tamam', primary: true, onClick: () => closeWakeModal() }
+    ]);
+    if (!modal) { showWakeToast('Dosyanız yüklenmiştir. Lütfen Write for real\'e tıklayınız.', 'success'); return; }
+    try {
+      const m = modal.querySelector('.dt-fill-ok-main'); if (m) m.textContent = 'Dosyanız yüklenmiştir. Lütfen Write for real\'e tıklayınız.';
+      const n = modal.querySelector('.dt-fill-ok-note');
+      if (n) { if (res && res.gaiaNotu) n.textContent = String(res.gaiaNotu).trim(); else n.remove(); }
+      const bd = modal.parentElement;
+      if (bd) {   // only Tamam closes it (capture runs before the shared backdrop / Escape handlers)
+        bd.addEventListener('click', e => { if (e.target === bd) e.stopImmediatePropagation(); }, true);
+        bd.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+      }
+      const ok = modal.querySelector('.dt-wake-primary'); if (ok) setTimeout(() => { try { ok.focus(); } catch (e) {} }, 0);
+    } catch (e) {}
   }
   /* GX-FILL-END */
 
