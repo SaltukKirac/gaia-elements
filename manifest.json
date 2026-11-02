@@ -2,9 +2,9 @@
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "omer",
     "kisi":  "Omer",
-    "rev":  31,
-    "main_rev":  53,
-    "updated":  "2026-10-30T16:02:38Z",
+    "rev":  32,
+    "main_rev":  54,
+    "updated":  "2026-11-02T17:44:51Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -23,14 +23,14 @@
                                        "updated":  "2026-10-27T16:50:45Z"
                                    },
                      "form":  {
-                                  "commit":  "db7766f7bf214cd345d44c7f8c5c8205430d00a9",
+                                  "commit":  "3bf65b0481206a31bdd6b19a7f4740971831be6d",
                                   "path":  "el/form.html",
                                   "blob":  "2ea4fb08d12e49ac2bb4e3d4d5413cdf127c5ad5",
                                   "bytes":  854812,
                                   "title":  "Dynamic form - app page",
-                                  "updated":  "2026-10-30T12:36:18Z",
+                                  "updated":  "2026-11-02T17:44:51Z",
                                   "kaynak":  "omer",
-                                  "taban":  "b80a7d8daf9440be827001708a8df46a78634caa"
+                                  "taban":  "50a0c587f9ef72e389f4e92e002aa40d3b4e66ed"
                               },
                      "onboarding":  {
                                         "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
@@ -57,12 +57,12 @@
                                             "updated":  "2026-09-24T20:35:50Z"
                                         },
                      "table":  {
-                                   "commit":  "d3072dc7cba6b11812afe15ffba1d09d98e6bf25",
+                                   "commit":  "3bf65b0481206a31bdd6b19a7f4740971831be6d",
                                    "path":  "el/table.html",
-                                   "blob":  "b5649bee49bc32c37db11ee66f002983846bc7be",
-                                   "bytes":  641043,
+                                   "blob":  "2228c0dc4cfb81b9d36d9ff8e6190a3fe5bc8680",
+                                   "bytes":  645092,
                                    "title":  "Dynamic table (tablev2) - app page",
-                                   "updated":  "2026-10-30T16:02:38Z",
+                                   "updated":  "2026-11-02T17:44:51Z",
                                    "kaynak":  "omer",
                                    "taban":  "a626ae871d43acfff7d53376b399b1e94a31f3cd"
                                },
