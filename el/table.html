@@ -2272,6 +2272,11 @@
 #dynamic-table-wrapper .dt-claim-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 20px; color: var(--gx-ink-3, #94a3b8); }
 #dynamic-table-wrapper .dt-claim-wait--preparing { color: var(--gx-primary, #6366f1); font-weight: 500; }
 #dynamic-table-wrapper .dt-claim-wait--failed { color: var(--gx-err, #dc2626); font-weight: 500; }
+#dynamic-table-wrapper .dt-claim-retry { margin-left: 4px; padding: 0 8px; font: 500 11px/18px inherit; color: var(--gx-primary, #6366f1); background: var(--gx-surface, #fff); border: 1px solid var(--gx-line, #e2e8f0); border-radius: 999px; cursor: pointer; }
+#dynamic-table-wrapper .dt-claim-retry:hover, #dynamic-table-wrapper .dt-claim-retry:focus-visible { border-color: var(--gx-primary, #6366f1); outline: none; }
+#dynamic-table-wrapper .dt-claim-retry[aria-busy="true"] { opacity: .6; cursor: progress; }
+#dynamic-table-wrapper .dt-claim-time { color: var(--gx-ink-2, #64748b); font-weight: 400; white-space: nowrap; }
+#dynamic-table-wrapper .dt-claim-time::before { content: "·"; margin-right: 6px; }
 #dynamic-table-wrapper .dt-claim-spin { width: 11px; height: 11px; border: 2px solid var(--gx-line, #e2e8f0); border-top-color: var(--gx-primary, #6366f1); border-radius: 50%; animation: dt-claim-spin .9s linear infinite; flex: 0 0 auto; }
 @keyframes dt-claim-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .dt-claim-spin { animation: none; } }
@@ -3904,6 +3909,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try {
       if (!row) return '';
       const id = rowIdOf(row);
+      if (row.__gxDelFail || (id && _dtDelFail.has(id))) return 'delfailed';   // GX-PEND-SIL: the background delete failed
       if (id && dtPaket.has(id)) return '';
       let claim = '';
       for (const k in row) { if (k !== '__sourceIndex' && dtNormKey(k) === 'claim') { claim = String(row[k] == null ? '' : row[k]).trim(); break; } }
@@ -3919,16 +3925,143 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return '';   // empty / other Durum: as before ("Queued" dropped, Ömer 29.10: the form's "Claim Hazırla" writes Claim Hazırlanıyor itself)
     } catch (e) { return ''; }
   }
-  function dtRenderClaimWait(td, st) {
+  /* TIDY-CLAIMTIME (30.10, Ömer + Araştırma Dalı ölçümü): Preparing / Queued say how long. A claim takes about 2 min + 0.15 min
+     per document in Evraklar (±3 min; 1 document ~2 min, 70 documents ~12 min). The start is when the row's Durum last changed:
+     Bubble's Modified Date when GX-DIRECT read it (_gxDurumMod), else the row's _modified (a GX-PEND row: its save time); the
+     earliest one seen for the same record and state is kept, so a later write on the row does not reset the clock. Past the
+     estimate the cell shows only the elapsed time (no promise it cannot keep). Off: window.__gxNoClaimTime = true. */
+  const _dtWaitStart = new Map();   // id|state → earliest start seen (ms)
+  function dtEvrakCount(row) {
+    try {
+      for (const k in row) {
+        if (dtNormKey(k) !== 'evraklar') continue;
+        let v = row[k];
+        if (typeof v === 'string') { const t = v.trim(); if (t.charAt(0) === '[') { try { v = JSON.parse(t); } catch (e) {} } else v = t ? t.split(/\s*,\s*(?=https?:|\/\/)/) : []; }
+        return Array.isArray(v) ? v.filter(Boolean).length : null;
+      }
+    } catch (e) {}
+    return null;
+  }
+  function dtWaitStart(row, st) {
+    const id = rowIdOf(row) || (row && row._created) || '';
+    const mod = Number(row && row._gxDurumMod) || aynaLiveTime(row && row._modified);
+    if (!id) return mod || 0;
+    const key = id + '|' + st, prev = _dtWaitStart.get(key);
+    const at = mod ? (prev ? Math.min(prev, mod) : mod) : (prev || Date.now());
+    _dtWaitStart.set(key, at);
+    return at;
+  }
+  function dtClaimTimeText(row, st) {
+    if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued')) return '';
+    const at = dtWaitStart(row, st);
+    const min = at ? Math.max(0, Math.floor((Date.now() - at) / 60000)) : null;
+    if (st === 'queued') return min === null ? '' : (min < 1 ? '<1 min' : min + ' min');
+    const n = dtEvrakCount(row);
+    const est = (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
+    if (min === null || min < 1) return est ? '~' + est + ' min' : '';
+    if (est && min < est) return min + ' / ~' + est + ' min';
+    return min + ' min in';
+  }
+  /* TIDY-STAGE (30.10, Ömer + Araştırma Dalı işleri C ve D): the claim line (nod-gaia-hat, PR #30) writes the record's
+     'Claim Aşaması' field: the stage while it works (İndiriliyor n evrak → Okunuyor k/n → Yazılıyor → Kontrol → Hazır) and a short
+     reason when it sets Durum = Hata. The field is not a column: GX-DIRECT reads it with the record (_dtAsama, id → text).
+     Preparing keeps the time in the cell and adds the stage to the tooltip (Ömer 30.10: "süre olarak kalsın"); Failed shows the reason in the tooltip and a
+     Retry button: Durum → Claim Hazırlanıyor through the Data API with the viewer's session (Bubble's privacy rules apply),
+     only while the record is still Hata; the claim line's next minute run takes it again. Off: window.__gxNoStage = true. */
+  const _dtAsama = new Map();   // record id → { mod, text } (Bubble's 'Claim Aşaması')
+  function dtAsamaOf(row) { try { const id = rowIdOf(row); const a = id ? _dtAsama.get(id) : null; return a ? String(a.text || '').trim() : ''; } catch (e) { return ''; } }
+  // the line writes Turkish; the grid speaks English (gaia-ux)
+  function dtAsamaEn(t) {
+    const m = String(t || '').trim(); let x;
+    if (!m) return '';
+    if ((x = /^İndiriliyor\s+(\d+)/i.exec(m))) return 'Downloading ' + x[1];
+    if ((x = /^Okunuyor\s+(\d+)\s*\/\s*(\d+)/i.exec(m))) return 'Reading ' + x[1] + '/' + x[2];
+    if (/^Yazılıyor/i.test(m)) return 'Writing claim';
+    if (/^Kontrol/i.test(m)) return 'Checking';
+    if (/^Tekrar/i.test(m)) return 'Retrying';
+    if (/^Hazır/i.test(m)) return '';
+    return m.length > 16 ? '' : m;
+  }
+  function dtDirectBase() { return location.origin + ((location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '') + '/api/1.1/obj/Object/'; }
+  async function dtClaimRetry(row, btn) {
+    const id = rowIdOf(row);
+    if (!id || !btn || btn.getAttribute('aria-busy') === 'true') return;
+    btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Retrying…';
+    try {
+      const u = dtDirectBase() + encodeURIComponent(id);
+      const r = await fetch(u, { credentials: 'include', cache: 'no-store' });
+      if (!r.ok) throw new Error('read ' + r.status);
+      const o = ((await r.json()) || {}).response || {};
+      const ja = Array.isArray(o.jsonarray) ? o.jsonarray : null;
+      if (!ja) throw new Error('no fields');
+      if (!ja.some(l => /^\s*"Durum"\s*:\s*"Hata"\s*$/.test(String(l)))) throw new Error('not failed');   // someone moved it already
+      let had = false;
+      const out = ja.map(l => {
+        const m = /^\s*"([^"]+)"\s*:/.exec(String(l)); if (!m) return l;
+        const k = dtNormKey(m[1]);
+        if (k === 'durum') { had = true; return '"' + m[1] + '": "Claim Hazırlanıyor"'; }
+        if (k === 'claimasamasi') return '"' + m[1] + '": "Tekrar sırada"';
+        return l;
+      });
+      if (!had) out.push('"Durum": "Claim Hazırlanıyor"');
+      const w = await fetch(u, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonarray: out }) });
+      if (!w.ok) throw new Error('write ' + w.status);
+      const cols = AYNA.fields.length ? AYNA.fields : (AYNA.cfg ? aynaFieldsOf(AYNA.cfg.columns) : []);
+      const dc = cols.find(c => dtNormKey(c) === 'durum') || 'Durum';
+      const now = Date.now();
+      _dtDirect.set(id, { mod: now, fields: { [dc]: 'Claim Hazırlanıyor' } });   // GX-DIRECT shows it before the mirror does
+      _dtAsama.set(id, { mod: now, text: 'Tekrar sırada' });
+      _dtWaitStart.delete(id + '|preparing'); _dtWaitStart.set(id + '|preparing', now);   // TIDY-CLAIMTIME: a new clock
+      if (AYNA.cfg && aynaAlive() && Array.isArray(AYNA.painted)) aynaLivePaint(AYNA.painted, AYNA.cfg.columns); else if (state.hot) state.hot.render();
+      showWakeToast('Sent to the claim line again.', 'info');
+    } catch (e) {
+      btn.removeAttribute('aria-busy'); btn.textContent = 'Retry';
+      showWakeToast(/not failed/.test(String(e && e.message)) ? 'This record is not failed any more.' : 'Could not retry. Open the record and try again.', 'error');
+      log('[TIDY-STAGE] retry ' + ((e && e.message) || e));
+    }
+  }
+  function dtRenderClaimWait(td, st, row) {
     const b = document.createElement('span');
-    b.className = 'dt-claim-wait dt-claim-wait--' + st;
+    b.className = 'dt-claim-wait dt-claim-wait--' + st + (st === 'delfailed' ? ' dt-claim-wait--failed' : '');
     if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
-    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : st === 'queued' ? 'Queued' : 'Failed'));
-    td.title = st === 'preparing' ? 'The claim is being prepared from the documents.'
+    b.appendChild(document.createTextNode(st === 'preparing' ? 'Preparing…' : st === 'queued' ? 'Queued' : st === 'delfailed' ? 'Delete failed' : 'Failed'));
+    td.title = st === 'delfailed' ? 'This record could not be deleted. Select it and delete it again.'
+      : st === 'preparing' ? 'The claim is being prepared from the documents.'
       : st === 'queued' ? 'Waiting for its turn. The claims before it are prepared first.'
       : 'The claim could not be prepared. Check the documents on this record.';
+    let time = ''; try { time = dtClaimTimeText(row, st); } catch (e) { time = ''; }   // TIDY-CLAIMTIME
+    if (time && st === 'preparing') {   // spinner + "4 / ~10 min": the whole cell fits the narrow Claim column
+      for (let i = b.childNodes.length - 1; i >= 0; i--) { if (b.childNodes[i].nodeType === 3) b.removeChild(b.childNodes[i]); }
+      b.appendChild(document.createTextNode(time));
+      b.setAttribute('aria-label', 'Preparing the claim, ' + time);
+    } else if (time) { const tm = document.createElement('span'); tm.className = 'dt-claim-time'; tm.textContent = time; b.appendChild(tm); }
+    if (st === 'preparing') { const n = dtEvrakCount(row); td.title = 'Preparing the claim' + (time ? ' (' + time + ').' : '.') + (n ? ' Usually about 2 min plus 9 s per document (' + n + ' here), give or take 3 min.' : ''); }
+    if (!window.__gxNoStage) {   // TIDY-STAGE
+      const raw = dtAsamaOf(row);
+      if (st === 'preparing' && raw) {
+        const en = dtAsamaEn(raw);
+        if (en) td.title = 'Preparing the claim (' + (time ? time + ', ' : '') + en + ').' + td.title.replace(/^Preparing the claim[^.]*\./, '');   // Ömer 30.10: the cell keeps the time, the stage is in the tooltip
+      }
+      if (st === 'failed') {
+        try { const rid = rowIdOf(row); if (rid) { _dtWaitStart.delete(rid + '|preparing'); _dtWaitStart.delete(rid + '|queued'); } } catch (e) {}
+        if (raw) td.title = 'The claim could not be prepared: ' + raw + '. Retry sends it to the claim line again.';
+        else td.title += ' Retry sends it to the claim line again.';
+        const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'dt-claim-retry'; rb.textContent = 'Retry';
+        rb.setAttribute('aria-label', 'Retry the claim');
+        b.appendChild(rb);
+      }
+    }
     td.appendChild(b);
   }
+  // TIDY-CLAIMTIME: the clock moves without a data change; a visible Preparing / Queued cell is redrawn every 30 s (one timer per page)
+  window.__gxClaimTimeTick = function () {
+    try {
+      if (window.__gxNoClaimTime || !state.hot || document.visibilityState === 'hidden') return;
+      const c = els && els.container;
+      if (c && c.querySelector('.dt-claim-wait--preparing, .dt-claim-wait--queued')) state.hot.render();
+    } catch (e) {}
+  };
+  if (!window.__gxClaimTimeTimer) window.__gxClaimTimeTimer = setInterval(() => { try { const f = window.__gxClaimTimeTick; if (f) f(); } catch (e) {} }, 30000);
   function dtBridgeInstalled() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridge); } catch (e) { return false; } }
   function dtFillButtonHtml(st) {
     if (!st) return '';
@@ -4212,7 +4345,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) {
         // TIDY-CLAIMWAIT: an empty Claim cell tells where the claim is (Preparing… / Failed)
         if (dtNormKey(c.id || '') === 'claim') {
-          try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st) dtRenderClaimWait(td, st); } catch (e) {}
+          try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st) dtRenderClaimWait(td, st, raw); } catch (e) {}
         }
         return;
       }
@@ -4424,6 +4557,21 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     els.container.addEventListener('click', handleCellLinkClick, true);
     // GX-FILL: "Fill on portal" (the package goes to the extension; the row is not opened, and the press does not select it)
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null; if (b) event.stopPropagation(); }, true);
+    // TIDY-STAGE: "Retry" on a Failed claim cell
+    els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-claim-retry') : null; if (b) event.stopPropagation(); }, true);
+    els.container.addEventListener('click', event => {
+      const btn = event.target && event.target.closest ? event.target.closest('.dt-claim-retry') : null;
+      if (!btn || !state.hot) return;
+      event.preventDefault(); event.stopPropagation();
+      const td = btn.closest('td'); if (!td) return;
+      try {
+        const coords = state.hot.getCoords(td);
+        if (!coords || typeof coords.row !== 'number' || coords.row < 0) return;
+        const p = state.hot.toPhysicalRow(coords.row), dr = state.displayRows[p];
+        const raw = dr ? state.rawRows[dr.__sourceIndex] : null;
+        if (raw) dtClaimRetry(raw, btn);
+      } catch (e) {}
+    }, true);
     els.container.addEventListener('click', event => {
       const btn = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null;
       if (!btn || !state.hot) return;
@@ -4704,6 +4852,19 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
     const containerHeight = Math.floor(els.container.clientHeight || 0);
     if (containerHeight > 0) {
+      // TIDY-FIT (02.11, Ömer: "alt kısmın yarısı gözüküyor, daha fazla aşağı inemiyorum"): the Bubble group can be taller
+      // than the window while the page itself does not scroll, so the last rows sat below the screen edge. The grid now ends
+      // 8 px above the window's bottom edge (its own scroll reaches every row). Off: window.__gxNoFit = true.
+      if (!window.__gxNoFit) {
+        try {
+          const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+          const top = els.container.getBoundingClientRect().top;
+          if (vh > 0 && top >= 0 && top < vh) {
+            const fit = Math.floor(vh - top - 8);
+            if (fit >= 260 && fit < containerHeight) return fit;
+          }
+        } catch (e) {}
+      }
       return Math.max(260, containerHeight);
     }
 
@@ -5865,7 +6026,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
      marked "from HH:MM · updating", and the fresh answer replaces them as before. Claim packages / key lines are stored masked
      (dtMaskPaket), never as values. Kept at most 12 h, 1.5 MB per screen,
      4 screens; a full store drops the oldest. aynaCacheDrop (data changed) drops the kept copy too. */
-  const AYNA_KEEP = { prefix: 'gxAynaKeep2|', maxAgeMs: 12 * 3600000, maxBytes: 1500000, maxScreens: 4 };
+  const AYNA_KEEP = { prefix: 'gxAynaKeep2|', maxAgeMs: 14 * 24 * 3600000, maxBytes: 1500000, maxScreens: 4 };   // GX-SNAP 02.11: 12 h → 14 days
   // v1 (29.10, kanal rev 8-9 only) stored the claim package unmasked: any v1 copy left in a tab is removed on load
   try { Object.keys(sessionStorage).forEach(k => { if (k.indexOf('gxAynaKeep1|') === 0) sessionStorage.removeItem(k); }); } catch (e) {}
   function aynaKeepUid() { try { return String(window.bubble_session_uid || '').trim(); } catch (e) { return ''; } }
@@ -5885,6 +6046,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       while (others.length >= AYNA_KEEP.maxScreens) sessionStorage.removeItem(others.shift());
       try { sessionStorage.setItem(k, s); }
       catch (e) { others.forEach(x => sessionStorage.removeItem(x)); try { sessionStorage.setItem(k, s); } catch (e2) {} }
+      dtSnapPut(k, s);   // GX-SNAP: the latest table survives the tab
     } catch (e) {}
   }
   function aynaKeepGet(cacheKey) {
@@ -5896,8 +6058,53 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) { return null; }
   }
   function aynaKeepDrop(screenKey) { try { const u = aynaKeepUid(); if (!u) return; const p = AYNA_KEEP.prefix + u + '|' + screenKey; aynaKeepAll().forEach(k => { if (k === p || k.indexOf(p + '|') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
+  /* GX-SNAP (02.11, Ömer: "siteye girişte tablo hemen gelmiyor; kayıtlı sayfa gelsin, güncel tablo gelince güncellensin. Yalnız en
+     güncel tablo kaydedilsin"). Measured on his page (new tab): the table code is ready at ~3.7 s, but Bubble writes
+     #bubble-table-config (screen + columns) only at ~11.8 s and the rows land at ~14.6 s; TIDY-KEEP's copy lives in the tab's
+     sessionStorage, so a new tab / a new login started empty. Now the LATEST table only is kept in localStorage, one entry per
+     browser: the config text Bubble gave (screen id + columns, ~23 KB, no secrets) + the kept rows exactly as TIDY-KEEP stores
+     them (claim packages / key lines masked). Every fresh answer overwrites it (the same AYNA.cache write as TIDY-KEEP). On a
+     load where Bubble has not written its config yet, the table starts from this entry: rows at once, marked "from HH:MM ·
+     updating", and the mirror is asked right away with the saved screen id; when Bubble's own config arrives, an identical
+     text changes nothing and a different one reloads as before. Only for the same signed-in user (bubble_session_uid) and the
+     same page path; another user's entry is removed. Off: window.__gxNoSnap = true. */
+  const DT_SNAP = { prefix: 'gxTableSnap1|', maxBytes: 2500000 };
+  let _dtSnapBoot = '';   // the config text this page started from (when Bubble had not written its own yet)
+  function dtSnapUsable(text) { try { if (!text || text === '{}') return false; const c = parseBubbleConfig(text); return Array.isArray(c.columns) && c.columns.length > 0; } catch (e) { return false; } }
+  function dtSnapKey() { const u = aynaKeepUid(); return u ? DT_SNAP.prefix + u : ''; }
+  function dtSnapOthersDrop(keep) {
+    try { const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(DT_SNAP.prefix) === 0 && k !== keep) ks.push(k); } ks.forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  }
+  function dtSnapPut(keepKey, keepText) {
+    try {
+      if (window.__gxNoSnap) return;
+      const k = dtSnapKey(); if (!k || !keepKey || !keepText) return;
+      const el = document.getElementById('bubble-table-config');
+      const now = ((el && el.textContent) || '').trim();
+      const cfg = dtSnapUsable(now) ? now : _dtSnapBoot;   // never Bubble's early placeholder (no columns)
+      if (!cfg || !dtSnapUsable(cfg)) return;
+      const s = JSON.stringify({ v: 1, at: Date.now(), path: location.pathname, cfg: cfg, kk: keepKey, kv: keepText });
+      if (s.length > DT_SNAP.maxBytes) { localStorage.removeItem(k); return; }
+      dtSnapOthersDrop(k);
+      localStorage.setItem(k, s);
+    } catch (e) {}
+  }
+  // the saved start: its config text (the caller parses it like Bubble's), with the rows put back into this tab's kept copy
+  function dtSnapBootText() {
+    try {
+      if (window.__gxNoSnap) return '';
+      const k = dtSnapKey(); if (!k) return '';
+      dtSnapOthersDrop(k);
+      const o = JSON.parse(localStorage.getItem(k) || 'null');
+      if (!o || o.v !== 1 || o.path !== location.pathname || !o.cfg || !o.kk || !o.kv) return '';
+      try { if (!sessionStorage.getItem(o.kk)) sessionStorage.setItem(o.kk, o.kv); } catch (e) {}
+      _dtSnapBoot = o.cfg;
+      log('[GX-SNAP] start from the table saved at ' + aynaClock(o.at));
+      return o.cfg;
+    } catch (e) { return ''; }
+  }
   (function () { const set0 = AYNA.cache.set.bind(AYNA.cache); AYNA.cache.set = function (k, v) { const r = set0(k, v); aynaKeepPut(k, v); return r; }; })();
-  function aynaClock(at) { try { const d = new Date(at); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } }
+  function aynaClock(at) { try { const d = new Date(at), n = new Date(); const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); return d.toDateString() === n.toDateString() ? hm : String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + hm; } catch (e) { return ''; } }   // GX-SNAP: another day shows its date
   function aynaScreenOf(config) {
     let ag = config && config.agent;
     if (typeof ag === 'string') { try { ag = JSON.parse(ag); } catch (e) { ag = null; } }
@@ -6153,6 +6360,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const a = JSON.parse(sessionStorage.getItem(DT_PEND_KEY) || '[]'), now = Date.now();
       if (Array.isArray(a)) a.forEach(e => { if (e && e.row && now - Number(e.at) < DT_PEND_TTL_MS) _dtPend.push(e); });
     } catch (e) {}
+    if (_dtPend.some(e => e && e.del)) setTimeout(() => dtPendDelKick(0), 0);   // GX-PEND-SIL: a reload resumes the delete
     return _dtPend;
   }
   function dtPendSave() {
@@ -6175,6 +6383,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const keep = list.filter(e => {
       if (now - e.at >= DT_PEND_TTL_MS) { dirty = true; return false; }
       if (e.key !== key) return true;   // another screen's record: kept for when that screen is back
+      if (e.del) return true;   // GX-PEND-SIL: the background delete owns it (dtPendDelRun) until done or failed
       const pl = dtPendPlaka(e.row);
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || taken.has(i)) continue;
@@ -6188,8 +6397,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     });
     if (dirty) { _dtPend = keep; dtPendSave(); }
     if (aynaWindowed() && (AYNA.win.page !== aynaPages() || AYNA.criteria.where || AYNA.criteria.text)) return base;   // a filtered / earlier page: the new row belongs elsewhere
-    const add = keep.filter(e => e.key === key).map(e => Object.assign({}, e.row));
-    return add.length ? base.concat(add) : base;
+    const add = keep.filter(e => e.key === key && !e.del).map(e => Object.assign({}, e.row, e.fail ? { __gxDelFail: true } : {}));
+    const held = dtPendHeld(base, keep, key);   // GX-PEND-SIL: the mirror's row of a record being deleted stays off the grid
+    const out = held.size ? base.filter((r, i) => !held.has(i)) : base;
+    return add.length ? out.concat(add) : out;
   }
   // the form's submit (aynaSaveWatch): a create → the row from its fields, painted now
   function dtPendFromSubmit(payload) {
@@ -6217,12 +6428,232 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // one create can reach Bubble twice (an autosave, then Save): a second submit within 15 s replaces the first row
       const last = list.length ? list[list.length - 1] : null;
       if (last && last.key === key && now - last.at < 15000) list.pop();
-      list.push({ at: now, key: key, row: row });
+      const pid = 'p' + now.toString(36) + Math.random().toString(36).slice(2, 6);
+      row.__gxPendId = pid;
+      list.push({ at: now, key: key, row: row, pid: pid, files: dtPendFiles(obj), plaka: dtPendPlaka(row) });   // GX-PEND-SIL
       dtPendSave();
       aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
       log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
     } catch (e) { log('[GX-PEND] ' + ((e && e.message) || e)); }
   }
+  /* GX-PEND-SIL (30.10, Ömer): "kaydediliyorda ise belki kullanıcı yanlış bir şey yaptı, hemen silmek istiyor; onu göz önünden
+     kaldır, arka plandan silinebildiği zaman silinsin, silinemezse failed olarak geri dönsün tabloya". A GX-PEND row (no _id yet)
+     used to send Bubble an empty list ("Records have no id field") and stay. Now Delete on it opens the same Bubble dialog; the
+     dialog's Delete takes the row off at once and the record is deleted in the background once it exists:
+       · the record is found with the viewer's session (Data API, as GX-DIRECT): created from 20 s before the save on and holding
+         one of the files the form uploaded (each upload has its own address); a save without files needs the same Plaka, a
+         creation within 2 min of the save and exactly one such record;
+       · it is deleted the way Bubble's dialog does it (NotVisible = yes, a PATCH with the session; privacy rules apply), then
+         read back;
+       · not found in 3 min, more than one candidate, or the write / read-back fails → the row comes back with "Delete failed"
+         in the Claim cell and an error toast. Nothing is deleted on a guess.
+     Off: window.__gxNoPendDelete = true (Delete on a pending row then only says it is still being saved). */
+  var DT_PSIL_LOOK_MS = 4000, DT_PSIL_FIND_MS = 3 * 60000, DT_PSIL_NEAR_MS = 2 * 60000;
+  var _dtDelFail = new Set();   // record ids whose background delete failed (Claim cell "Delete failed")
+  var _dtPsilTimer = null, _dtPsilBusy = false;
+  function dtFileKey(u) { return String(u || '').trim().replace(/^https?:/i, '').split('?')[0]; }
+  function dtPendFiles(obj) {
+    const out = new Set();
+    const walk = (v, d) => {
+      if (d > 4 || v == null) return;
+      if (typeof v === 'string') { if (/(cdn\.bubble\.io|\/fileupload\/)/i.test(v)) out.add(dtFileKey(v)); return; }
+      if (Array.isArray(v)) { v.forEach(x => walk(x, d + 1)); return; }
+      if (typeof v === 'object') Object.keys(v).forEach(k => walk(v[k], d + 1));
+    };
+    try { walk(obj, 0); } catch (e) {}
+    return Array.from(out).slice(0, 200);
+  }
+  function dtSelectedPendIds() {
+    const out = [];
+    state.selectionOrder.forEach(index => {
+      if (!state.selection.has(index)) return;
+      const raw = state.rawRows[index];
+      if (raw && raw.__gxPend && raw.__gxPendId && out.indexOf(raw.__gxPendId) < 0) out.push(raw.__gxPendId);
+    });
+    return out;
+  }
+  // indexes of mirror rows that belong to a record the viewer deleted while it was pending (dtPendMerge's match, or its id)
+  function dtPendHeld(base, list, key) {
+    const held = new Set();
+    list.forEach(e => {
+      if (!e.del || e.key !== key) return;
+      for (let i = 0; i < base.length; i++) {
+        const r = base[i]; if (!r || held.has(i)) continue;
+        if (e.delId) { if (rowIdOf(r) === e.delId) { held.add(i); break; } continue; }
+        const c = aynaLiveTime(r._created);
+        if (!c || c < e.at - DT_PEND_EARLY_MS || c > e.at + DT_PSIL_NEAR_MS) continue;
+        const rp = dtPendPlaka(r);
+        if (e.plaka && rp && e.plaka !== rp) continue;
+        held.add(i); break;
+      }
+    });
+    return held;
+  }
+  function dtPendRepaint() {
+    try { if (AYNA.cfg && aynaAlive() && Array.isArray(AYNA.painted)) aynaLivePaint(AYNA.painted, AYNA.cfg.columns); } catch (e) {}
+  }
+  // the dialog's Delete on pending rows: off the grid now, the record deleted in the background
+  function dtPendDelete(pids) {
+    if (!Array.isArray(pids) || !pids.length) return;
+    const list = dtPendList(), now = Date.now();
+    let n = 0;
+    list.forEach(e => { if (e && e.pid && pids.indexOf(e.pid) > -1 && !e.del) { e.del = now; delete e.fail; n++; } });
+    if (!n) return;
+    dtPendSave(); dtPendRepaint();
+    log('[GX-PEND-SIL] ' + n + ' pending row(s) off the grid; the record is deleted once it exists');
+    dtPendDelKick(0);
+  }
+  function dtPendDelKick(ms) {
+    if (_dtPsilTimer) return;
+    _dtPsilTimer = setTimeout(() => { _dtPsilTimer = null; dtPendDelRun().catch(() => {}); }, ms);
+  }
+  function dtApiBase() { return location.origin + ((location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '') + '/api/1.1/obj/Object'; }
+  async function dtApiFetch(url, opt) {
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 10000) : null;
+    try { return await fetch(url, Object.assign({ credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opt || {})); }
+    catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
+  }
+  function dtJsonArrayMap(arr) {   // a record's jsonarray (["\"Alan\": value", …]) as { Alan: value }
+    const m = {};
+    (Array.isArray(arr) ? arr : []).forEach(x => { try { const o = JSON.parse('{' + x + '}'); Object.keys(o).forEach(k => { m[k] = o[k]; }); } catch (e) {} });
+    return m;
+  }
+  // { st: 'id', id } · { st: '' } not there yet · { st: 'many' } more than one candidate · { st: 'err' } Gaia not readable
+  async function dtPendFindRecord(e) {
+    const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(e.at - DT_PEND_EARLY_MS).toISOString() }];
+    const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
+    if (!r || !r.ok) return { st: 'err' };
+    let res = [];
+    try { const j = await r.json(); res = (j && j.response && j.response.results) || []; } catch (x) { return { st: 'err' }; }
+    const files = Array.isArray(e.files) ? e.files : [];
+    const hits = res.filter(o => {
+      if (!o || !o._id || o.NotVisible === true) return false;
+      const m = dtJsonArrayMap(o.jsonarray);
+      if (files.length) { const have = new Set(dtPendFiles(m)); return files.some(f => have.has(f)); }
+      const t = Date.parse(o['Created Date'] || '');
+      if (!t || Math.abs(t - e.at) > DT_PSIL_NEAR_MS) return false;
+      return dtPendPlaka(m) === (e.plaka || '');
+    });
+    if (hits.length > 1) return { st: 'many' };
+    return hits.length ? { st: 'id', id: String(hits[0]._id) } : { st: '' };
+  }
+  async function dtPendDeleteRecord(id) {   // true = gone (NotVisible / 404) once written
+    const r = await dtApiFetch(dtApiBase() + '/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ NotVisible: true }) });
+    if (!r || !(r.ok || r.status === 404)) return false;
+    return (await dtGoneRead(id)) === 'gone';
+  }
+  function dtPendDelFail(e, why) {
+    delete e.del; e.fail = Date.now();
+    if (e.delId) _dtDelFail.add(e.delId);
+    dtPendSave(); dtPendRepaint();
+    showWakeToast('Could not delete the record (' + why + '). It is back in the table.', 'error');
+    log('[GX-PEND-SIL] failed: ' + why);
+  }
+  async function dtPendDelRun() {
+    if (_dtPsilBusy) return;
+    _dtPsilBusy = true;
+    try {
+      const now = Date.now();
+      for (const e of dtPendList().filter(x => x && x.del)) {
+        if (!e.delId) {
+          const f = await dtPendFindRecord(e);
+          if (f.st === 'id') { e.delId = f.id; dtPendSave(); }
+          else if (f.st === 'many') { dtPendDelFail(e, 'more than one matching record'); continue; }
+          else if (now - e.del > DT_PSIL_FIND_MS) { dtPendDelFail(e, f.st === 'err' ? 'Gaia could not be read' : 'the record was not found'); continue; }
+          else continue;
+        }
+        if (await dtPendDeleteRecord(e.delId)) {
+          const id = e.delId;
+          _dtPend = dtPendList().filter(x => x !== e); dtPendSave();
+          dtGoneAdd([id]);   // GX-GONE: the mirror's row stays off until the mirror learns of the delete
+          aynaLiveBoost('delete');   // AYNA-LIVE
+          log('[GX-PEND-SIL] deleted ' + id);
+        } else {
+          dtPendDelFail(e, 'Gaia did not accept the delete');
+        }
+      }
+    } finally {
+      _dtPsilBusy = false;
+      if (dtPendList().some(x => x && x.del)) dtPendDelKick(DT_PSIL_LOOK_MS);
+    }
+  }
+  /* GX-DUP (02.11, Ömer: "kopya olduğu için preparingte kalmamalı, kullanıcıya yeni bildirim yollamalı, zaten ekli olduğunu
+     belirtmek için"). The claim line hides a new record that carries the same documents as one already in the table
+     (NotVisible = yes, see nod-gaia-hat MÜKERRER) and writes 'Zaten ekli: <kept id>' to its 'Claim Aşaması' first. The row
+     used to stay "Preparing…": a GX-PEND row waited 30 min for a mirror row that never came, a mirror row waited for the
+     mirror. Now:
+       · a Preparing / Queued row that GX-DIRECT reads as NotVisible leaves the grid (GX-GONE);
+       · a GX-PEND row older than 25 s is looked up every 10 s for 15 min (Data API, the viewer's session): a hidden record
+         holding one of the files the form uploaded takes the pending row off;
+       · the viewer gets a toast that the documents are already in the table when the line's note names the kept record,
+         or (02.11, Ömer: "bildirim en azından deneme yerinde olsun", the line's note is not on every machine yet) when a
+         visible row carries the same document names. A record hidden otherwise (deleted elsewhere) leaves silently.
+     Off: window.__gxNoDup = true. */
+  var DT_DUP_MS = 10000, DT_DUP_AFTER_MS = 25000, DT_DUP_FOR_MS = 15 * 60000;
+  var _dtDupSaid = new Set(), _dtDupBusy = false;
+  function dtDupKeptId(asama) { const m = /^\s*Zaten ekli:\s*(\d+x\d+)/i.exec(String(asama || '')); return m ? m[1] : ''; }
+  function dtDupPlakaText(row) {
+    try { for (const k in row) { if (dtNormKey(k) === 'plaka' && row[k] != null && String(row[k]).trim()) return String(row[k]).trim(); } } catch (e) {}
+    return '';
+  }
+  // sorted document names (an upload gets a new address each time, the name and the line's byte check stay)
+  function dtDupNames(files) {
+    return (Array.isArray(files) ? files : []).map(f => { let n = String(f || '').split('?')[0].split('/').pop() || ''; try { n = decodeURIComponent(n); } catch (e) {} return n.trim().toLowerCase(); }).filter(Boolean).sort().join('\n');
+  }
+  // a visible row (not this record) with the same document names: the record the copy was taken from
+  function dtDupTwin(id, files) {
+    const sig = dtDupNames(files); if (!sig) return '';
+    const rows = Array.isArray(AYNA.painted) ? AYNA.painted : (state.rawRows || []);
+    for (const r of rows) {
+      if (!r) continue;
+      const rid = r.__gxPend ? ('pend:' + (r.__gxPendId || '')) : rowIdOf(r);   // a twin still being saved counts too (02.11)
+      if (!rid || rid === id) continue;
+      if (dtDupNames(dtPendFiles(r)) === sig) return rid;
+    }
+    return '';
+  }
+  // the record id is hidden: off the grid; a toast when it was a copy (the line's note, or a twin row in the table)
+  // own = the viewer saved it in this tab and did not delete it: only the claim line hides such a record, always a copy (02.11)
+  function dtDupGone(id, asama, plaka, files, own) {
+    if (!id || _dtDupSaid.has(id)) return;
+    _dtDupSaid.add(id);
+    const kept = dtDupKeptId(asama) || dtDupTwin(id, files) || (own ? 'own save' : '');
+    dtGoneAdd([id]);
+    if (!kept) { log('[GX-DUP] ' + id + ' is hidden, off the grid'); return; }
+    showWakeToast('Already in the table' + (plaka ? ' (' + plaka + ')' : '') + '. These documents were added before, so this copy was removed.', 'info');
+    log('[GX-DUP] ' + id + ' was a copy of ' + kept + ', off the grid');
+  }
+  async function dtDupPendTick() {
+    if (window.__gxNoDup || _dtDupBusy || document.hidden) return;
+    const now = Date.now();
+    const list = dtPendList().filter(e => e && !e.del && e.pid && Array.isArray(e.files) && e.files.length && now - e.at > DT_DUP_AFTER_MS && now - e.at < DT_DUP_FOR_MS);
+    if (!list.length) return;
+    _dtDupBusy = true;
+    try {
+      const from = Math.min.apply(null, list.map(e => e.at)) - DT_PEND_EARLY_MS;
+      const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(from).toISOString() }];
+      const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
+      if (!r || !r.ok) return;
+      let res = [];
+      try { const j = await r.json(); res = (j && j.response && j.response.results) || []; } catch (x) { return; }
+      const hidden = res.filter(o => o && o._id && o.NotVisible === true).map(o => ({ o: o, m: dtJsonArrayMap(o.jsonarray) }));
+      if (!hidden.length) return;
+      let off = 0;
+      list.forEach(e => {
+        const h = hidden.find(x => { const have = new Set(dtPendFiles(x.m)); return e.files.some(f => have.has(f)); });
+        if (!h) return;
+        let asama = '';
+        Object.keys(h.m).forEach(k => { if (dtNormKey(k) === 'claimasamasi') asama = String(h.m[k] == null ? '' : h.m[k]); });
+        _dtPend = dtPendList().filter(x => x !== e); off++;
+        dtDupGone(String(h.o._id), asama, dtDupPlakaText(e.row), dtPendFiles(h.m), true);
+      });
+      if (off) { dtPendSave(); dtPendRepaint(); }
+    } finally { _dtDupBusy = false; }
+  }
+  window.__gxDupTick = dtDupPendTick;   // the newest element instance
+  if (!window.__gxDupTimer) window.__gxDupTimer = setInterval(() => { try { const f = window.__gxDupTick; if (f) f(); } catch (e) {} }, DT_DUP_MS);
+
   /* GX-DIRECT (29.10, Ömer: "Deneme2 Claim Hazır ama tabloda hâlâ Preparing… · 12 dk çok uzun"): a row whose claim is on its
      way (Claim cell Preparing… / Queued) is read straight from Gaia every 5 s, the mirror is not waited for. 29.10 18:21-18:40
      the server's mirror took no Bubble change at all (a full sync after a restart runs no deltas; the bridge also got
@@ -6246,7 +6677,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!o) return r;
       if (aynaLiveTime(r._modified) >= o.mod) { _dtDirect.delete(id); return r; }   // the mirror caught up: its row wins
       changed = true;
-      return Object.assign({}, r, o.fields);
+      return Object.assign({}, r, o.fields, { _gxDurumMod: o.mod });   // TIDY-CLAIMTIME: Bubble's own change time
     });
     return changed ? out : rows;
   }
@@ -6258,6 +6689,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!r || r.__gxPend || !r._id) continue;
       const st = dtClaimWaitState(r);
       if (st === 'preparing' || st === 'queued') ids.push(String(r._id));
+    }
+    if (!window.__gxNoStage) {   // TIDY-STAGE: a Failed row once (its reason), again when the row changed
+      for (let i = 0; i < rows.length && ids.length < DT_DIRECT_MAX; i++) {
+        const r = rows[i];
+        if (!r || r.__gxPend || !r._id || dtClaimWaitState(r) !== 'failed') continue;
+        const a = _dtAsama.get(String(r._id));
+        if (!a || a.mod < aynaLiveTime(r._modified)) ids.push(String(r._id));
+      }
     }
     return ids;
   }
@@ -6274,15 +6713,17 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
       const want = new Map(cols.filter(c => DT_DIRECT_KEYS.has(dtNormKey(c))).map(c => [dtNormKey(c), c]));
       const fields = {};
+      let asama = '';   // TIDY-STAGE: not a column, read with the record
       o.jsonarray.forEach(line => {
         let p = null; try { p = JSON.parse('{' + line + '}'); } catch (e) { return; }
         for (const k in p) {
+          if (dtNormKey(k) === 'claimasamasi') { asama = String(p[k] == null ? '' : p[k]); continue; }
           const col = want.get(dtNormKey(k)); if (!col) continue;
           const v = p[k];
           if (typeof v === 'string' || typeof v === 'number' || (Array.isArray(v) && v.every(x => typeof x === 'string'))) fields[col] = v;
         }
       });
-      return { mod: aynaLiveTime(o['Modified Date']), fields: fields };
+      return { mod: aynaLiveTime(o['Modified Date']), fields: fields, asama: asama, hidden: o.NotVisible === true };   // GX-DUP
     } catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
   }
   async function dtDirectTick() {
@@ -6292,10 +6733,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     _dtDirectBusy = true;
     try {
       const raw = new Map((AYNA.painted || []).filter(r => r && r._id).map(r => [String(r._id), r]));
-      let n = 0;
+      let n = 0, stg = 0;
       for (const id of ids) {
         const got = await dtDirectRead(id);
         const row = raw.get(id);
+        if (got && got.hidden && !window.__gxNoDup) { dtDupGone(id, got.asama, dtDupPlakaText(row), row ? dtPendFiles(row) : []); continue; }   // GX-DUP
+        if (got && got.asama !== undefined) {   // TIDY-STAGE
+          const pa = _dtAsama.get(id), mod = got.mod || Date.now();
+          if (!pa || pa.text !== got.asama) { _dtAsama.set(id, { mod: mod, text: got.asama }); stg++; } else pa.mod = Math.max(pa.mod, mod);
+        }
         if (!got || !got.mod || !row || !Object.keys(got.fields).length) continue;
         const prev = _dtDirect.get(id);
         if (got.mod <= aynaLiveTime(row._modified) || (prev && got.mod <= prev.mod)) continue;
@@ -6304,7 +6750,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (n && aynaAlive() && Array.isArray(AYNA.painted)) {
         aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
         log('[GX-DIRECT] ' + n + ' row(s) updated from Gaia before the mirror');
-      }
+      } else if (stg && state.hot) { try { state.hot.render(); } catch (e) {} }   // TIDY-STAGE
     } finally { _dtDirectBusy = false; }
   }
   window.__gxDirectTick = dtDirectTick;   // the newest element instance (Bubble may re-render it)
@@ -7880,6 +8326,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // (BUBBLE_INPUTS bu config'ten biraz sonra güncellenebilir).
       applyWakeConfig(config);
       startAssistantPoll(8);
+      // GX-SNAP: while the saved table is on screen, Bubble's early placeholder (no columns) does not empty it; its real config
+      // (with columns) replaces the saved start as usual and ends this guard
+      if (_dtSnapBoot && (!Array.isArray(config.columns) || !config.columns.length)) { log('[GX-SNAP] placeholder config ignored, saved table kept'); return; }
+      if (_dtSnapBoot) _dtSnapBoot = '';
       if (!Array.isArray(config.columns) || !config.columns.length) {
         // Kolonlar kalktı: tabloyu boşalt ve mevcut boş durumu göster (sessiz çıkış yerine)
         // T1: _viewKey korunur; kolonlar dönünce aynı/yeni görünüm doğru sınıflanır
@@ -7978,6 +8428,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let observer = null;
     let lastConfigText = '';
     let lastParseErrText = '';   // 14.09: aynı bozuk metin için parse hatası bir kez yazılır
+    let snapTried = false;   // GX-SNAP: the saved table is tried once, before Bubble's config
 
     const tryInit = (fromObserver) => {
       if (initialized) return;
@@ -7990,9 +8441,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // çevrilir; hâlâ bozuksa hata aynı metin için BİR kez yazılır.
       // Boş değer onarımı parseBubbleConfig içinde (data + columns); burada ham metin tutulur ki
       // observer'ın karşılaştırdığı lastConfigText ile aynı olsun.
-      const text = (script && script.textContent ? script.textContent : '').trim();
+      let text = (script && script.textContent ? script.textContent : '').trim();
+      if (!snapTried) {   // GX-SNAP: no config yet, or Bubble's early placeholder without columns → the saved table
+        let usable = false;
+        if (text && text !== '{}') { try { const c0 = parseBubbleConfig(text); usable = Array.isArray(c0.columns) && c0.columns.length > 0; } catch (e) { usable = false; } }
+        if (!usable) { snapTried = true; const st = dtSnapBootText(); if (st) text = st; }
+      }
 
-      if (!script || !text || text === '{}') {
+      if (!text || text === '{}') {
         if (!fromObserver && pollAttempt < tries) {
           pollingTimer = setTimeout(() => tryInit(false), interval);
         }
@@ -8422,15 +8878,103 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   function deleteSelected() {
     const ids = getSelectedUniqueIds();
-    warnIfSelectionWithoutIds(ids);
+    const pend = dtSelectedPendIds();   // GX-PEND-SIL: rows still being saved (no id yet)
+    const pids = window.__gxNoPendDelete ? [] : pend;
+    if (pend.length && !pids.length && !ids.length) { showWakeToast('This record is still being saved. Delete it in a moment.', 'info'); return ids; }
+    if (!pend.length) warnIfSelectionWithoutIds(ids);
     publishSelectedUniqueIds();
     if (typeof window.bubble_fn_delete === 'function') {
       window.bubble_fn_delete(ids);
-      dtGoneAdd(ids);   // GX-GONE (27.10): the rows leave the grid now, not at the mirror's next full pull
-      aynaLiveBoost('delete');   // AYNA-LIVE
+      dtGoneArm(ids, pids);   // GX-GONE-ONAY (30.10): the rows leave the grid when Bubble's dialog says Delete, not on this click
     }
     return ids;
   }
+
+  /* GX-GONE-ONAY (30.10, Ömer): "Delete'e bastığım anda siliniyor gibi; emin misin sormasının anlamı kalmıyor." Bubble does ask
+     first: bubble_fn_delete only keeps the selection and opens its "Delete / Cancel" dialog (popup bUfam); the dialog's Delete
+     (bUfas) sets the records' NotVisible (isvisible) = yes, Cancel (bUfat) only closes it. But GX-GONE took the rows off the
+     grid on the table's own click, so they looked deleted before the answer (and after Cancel stayed hidden for 30 min).
+     Now the ids wait here and two ways decide:
+       · fast: a real press (pointerdown / click) on the dialog's Delete (class baUfas, or baUfbP = the list delete) hides the
+         rows at once; Cancel (baUfat) forgets them. Bubble acts on trusted input only, so the press is the earliest signal.
+       · sure: once the dialog is closed, the records are read from Gaia with the viewer's session (as GX-DIRECT): a record that
+         is gone (404) or NotVisible = yes is hidden; still visible after ~8 s = Cancel. A record the viewer cannot read at the
+         press (privacy) is left to the fast way and the mirror.
+     5 minutes without an answer forgets them. Off (old behaviour, rows leave on the table's click): window.__gxNoGoneConfirm. */
+  const DT_GONE_ARM_MS = 5 * 60000, DT_GONE_LOOK_MS = 1500, DT_GONE_CHECKS = 6;
+  let _dtGoneArmed = null;
+  function dtGoneDialogOpen() {
+    try { return ['baUfas', 'baUfat', 'baUfbP'].some(c => { const b = document.querySelector('button.' + c); return !!(b && b.offsetParent !== null); }); } catch (e) { return false; }
+  }
+  async function dtGoneRead(id) {   // 'gone' (deleted / NotVisible) · 'live' · '' (cannot tell)
+    const vt = (location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '';
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 8000) : null;
+    try {
+      const r = await fetch(location.origin + vt + '/api/1.1/obj/Object/' + encodeURIComponent(id), { credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined });
+      if (r.status === 404) return 'gone';
+      if (!r.ok) return '';
+      const j = await r.json(), o = j && j.response;
+      if (!o || !o._id) return '';
+      return o.NotVisible === true ? 'gone' : 'live';
+    } catch (e) { return ''; } finally { if (timer) clearTimeout(timer); }
+  }
+  function dtGoneConfirmed(a, ids) {
+    if (_dtGoneArmed !== a) return;
+    const left = a.ids.filter(id => ids.indexOf(id) < 0);
+    a.ids = left;
+    if (!left.length) _dtGoneArmed = null;
+    dtGoneAdd(ids);   // GX-GONE: off the grid now, not at the mirror's next full pull
+    aynaLiveBoost('delete');   // AYNA-LIVE
+  }
+  async function dtGoneWatch(a) {
+    // the records this viewer can read now (a 404 at the press = privacy, not a delete)
+    const base = [];
+    for (const id of a.ids.slice(0, 50)) { if (_dtGoneArmed !== a) return; if (await dtGoneRead(id) === 'live') base.push(id); }
+    let sawOpen = false, checks = 0;
+    while (_dtGoneArmed === a && Date.now() - a.at < DT_GONE_ARM_MS) {
+      await new Promise(r => setTimeout(r, DT_GONE_LOOK_MS));
+      if (_dtGoneArmed !== a) return;
+      if (dtGoneDialogOpen()) { sawOpen = true; continue; }
+      if (!sawOpen && Date.now() - a.at < 4000) continue;   // the dialog may not be on screen yet
+      if (!base.length) return;   // nothing readable: the fast way or the mirror decides
+      const gone = [];
+      for (const id of base) { if (a.ids.indexOf(id) > -1 && await dtGoneRead(id) === 'gone') gone.push(id); }
+      if (_dtGoneArmed !== a) return;
+      if (gone.length) { dtGoneConfirmed(a, gone); log('[GX-GONE-ONAY] ' + gone.length + ' row(s) hidden after Gaia confirmed the delete'); return; }
+      if (++checks >= DT_GONE_CHECKS) { _dtGoneArmed = null; return; }   // still visible ~8 s after the dialog closed: Cancel
+    }
+    if (_dtGoneArmed === a) _dtGoneArmed = null;
+  }
+  function dtGoneArm(ids, pids) {
+    pids = Array.isArray(pids) ? pids.slice() : [];
+    ids = Array.isArray(ids) ? ids : [];
+    if (window.__gxNoGoneConfirm) { dtGoneAdd(ids); dtPendDelete(pids); aynaLiveBoost('delete'); return; }
+    if (!ids.length && !pids.length) { _dtGoneArmed = null; return; }
+    const a = _dtGoneArmed = { ids: ids.map(String), pids: pids, at: Date.now() };
+    if (!window.__gxGoneArmBound) {
+      window.__gxGoneArmBound = true;
+      const on = ev => { try { if (window.__gxGoneArmPress) window.__gxGoneArmPress(ev); } catch (e) {} };
+      document.addEventListener('pointerdown', on, true);
+      document.addEventListener('click', on, true);
+    }
+    if (a.ids.length) dtGoneWatch(a).catch(() => {});   // pending rows (GX-PEND-SIL) have nothing to read back yet: the press decides
+  }
+  // the newest table instance answers (Bubble re-renders the element; one pair of document listeners per page)
+  window.__gxGoneArmPress = function (ev) {
+    const a = _dtGoneArmed; if (!a) return;
+    if (Date.now() - a.at > DT_GONE_ARM_MS) { _dtGoneArmed = null; return; }
+    if (ev.type === 'pointerdown' && ev.button !== undefined && ev.button !== 0) return;
+    const b = ev.target && ev.target.closest ? ev.target.closest('button') : null;
+    if (!b || (b.closest && b.closest('#dynamic-table-wrapper'))) return;
+    const cl = b.classList;
+    if (cl.contains('baUfas') || cl.contains('baUfbP')) {
+      const p = a.pids || []; a.pids = [];
+      if (a.ids.length) dtGoneConfirmed(a, a.ids.slice()); else _dtGoneArmed = null;
+      dtPendDelete(p);   // GX-PEND-SIL
+    }
+    else if (cl.contains('baUfat')) _dtGoneArmed = null;   // the records stay, so do the rows
+  };
 
   function create() {
     if (typeof window.bubble_fn_create === 'function') {
