@@ -6519,6 +6519,63 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (dtPendList().some(x => x && x.del)) dtPendDelKick(DT_PSIL_LOOK_MS);
     }
   }
+  /* GX-DUP (02.11, Ömer: "kopya olduğu için preparingte kalmamalı, kullanıcıya yeni bildirim yollamalı, zaten ekli olduğunu
+     belirtmek için"). The claim line hides a new record that carries the same documents as one already in the table
+     (NotVisible = yes, see nod-gaia-hat MÜKERRER) and writes 'Zaten ekli: <kept id>' to its 'Claim Aşaması' first. The row
+     used to stay "Preparing…": a GX-PEND row waited 30 min for a mirror row that never came, a mirror row waited for the
+     mirror. Now:
+       · a Preparing / Queued row that GX-DIRECT reads as NotVisible leaves the grid (GX-GONE);
+       · a GX-PEND row older than 25 s is looked up every 10 s for 15 min (Data API, the viewer's session): a hidden record
+         holding one of the files the form uploaded takes the pending row off;
+       · with the line's note the viewer gets a toast that the documents are already in the table. A record hidden without the note (deleted elsewhere) leaves silently.
+     Off: window.__gxNoDup = true. */
+  var DT_DUP_MS = 10000, DT_DUP_AFTER_MS = 25000, DT_DUP_FOR_MS = 15 * 60000;
+  var _dtDupSaid = new Set(), _dtDupBusy = false;
+  function dtDupKeptId(asama) { const m = /^\s*Zaten ekli:\s*(\d+x\d+)/i.exec(String(asama || '')); return m ? m[1] : ''; }
+  function dtDupPlakaText(row) {
+    try { for (const k in row) { if (dtNormKey(k) === 'plaka' && row[k] != null && String(row[k]).trim()) return String(row[k]).trim(); } } catch (e) {}
+    return '';
+  }
+  // the record id is hidden: off the grid; a toast when the claim line hid it as a copy
+  function dtDupGone(id, asama, plaka) {
+    if (!id || _dtDupSaid.has(id)) return;
+    _dtDupSaid.add(id);
+    dtGoneAdd([id]);
+    const kept = dtDupKeptId(asama);
+    if (!kept) { log('[GX-DUP] ' + id + ' is hidden, off the grid'); return; }
+    showWakeToast('Already in the table' + (plaka ? ' (' + plaka + ')' : '') + '. These documents were added before, so this copy was removed.', 'info');
+    log('[GX-DUP] ' + id + ' was a copy of ' + kept + ', off the grid');
+  }
+  async function dtDupPendTick() {
+    if (window.__gxNoDup || _dtDupBusy || document.hidden) return;
+    const now = Date.now();
+    const list = dtPendList().filter(e => e && !e.del && e.pid && Array.isArray(e.files) && e.files.length && now - e.at > DT_DUP_AFTER_MS && now - e.at < DT_DUP_FOR_MS);
+    if (!list.length) return;
+    _dtDupBusy = true;
+    try {
+      const from = Math.min.apply(null, list.map(e => e.at)) - DT_PEND_EARLY_MS;
+      const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(from).toISOString() }];
+      const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
+      if (!r || !r.ok) return;
+      let res = [];
+      try { const j = await r.json(); res = (j && j.response && j.response.results) || []; } catch (x) { return; }
+      const hidden = res.filter(o => o && o._id && o.NotVisible === true).map(o => ({ o: o, m: dtJsonArrayMap(o.jsonarray) }));
+      if (!hidden.length) return;
+      let off = 0;
+      list.forEach(e => {
+        const h = hidden.find(x => { const have = new Set(dtPendFiles(x.m)); return e.files.some(f => have.has(f)); });
+        if (!h) return;
+        let asama = '';
+        Object.keys(h.m).forEach(k => { if (dtNormKey(k) === 'claimasamasi') asama = String(h.m[k] == null ? '' : h.m[k]); });
+        _dtPend = dtPendList().filter(x => x !== e); off++;
+        dtDupGone(String(h.o._id), asama, dtDupPlakaText(e.row));
+      });
+      if (off) { dtPendSave(); dtPendRepaint(); }
+    } finally { _dtDupBusy = false; }
+  }
+  window.__gxDupTick = dtDupPendTick;   // the newest element instance
+  if (!window.__gxDupTimer) window.__gxDupTimer = setInterval(() => { try { const f = window.__gxDupTick; if (f) f(); } catch (e) {} }, DT_DUP_MS);
+
   /* GX-DIRECT (29.10, Ömer: "Deneme2 Claim Hazır ama tabloda hâlâ Preparing… · 12 dk çok uzun"): a row whose claim is on its
      way (Claim cell Preparing… / Queued) is read straight from Gaia every 5 s, the mirror is not waited for. 29.10 18:21-18:40
      the server's mirror took no Bubble change at all (a full sync after a restart runs no deltas; the bridge also got
@@ -6588,7 +6645,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           if (typeof v === 'string' || typeof v === 'number' || (Array.isArray(v) && v.every(x => typeof x === 'string'))) fields[col] = v;
         }
       });
-      return { mod: aynaLiveTime(o['Modified Date']), fields: fields, asama: asama };
+      return { mod: aynaLiveTime(o['Modified Date']), fields: fields, asama: asama, hidden: o.NotVisible === true };   // GX-DUP
     } catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
   }
   async function dtDirectTick() {
@@ -6602,6 +6659,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       for (const id of ids) {
         const got = await dtDirectRead(id);
         const row = raw.get(id);
+        if (got && got.hidden && !window.__gxNoDup) { dtDupGone(id, got.asama, dtDupPlakaText(row)); continue; }   // GX-DUP
         if (got && got.asama !== undefined) {   // TIDY-STAGE
           const pa = _dtAsama.get(id), mod = got.mod || Date.now();
           if (!pa || pa.text !== got.asama) { _dtAsama.set(id, { mod: mod, text: got.asama }); stg++; } else pa.mod = Math.max(pa.mod, mod);
