@@ -4157,6 +4157,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return { kayit: rec };   // GX-FILL-KAYIT (20.10): no package → the extension builds the claim from the record (gaiaBridgeKayit)
   }
   // GX-FILL-KAYIT: an extension that knows the record path marks the page with <html data-gaia-bridge-kayit>
+  // GX-FILL-TAM (03.11, Ömer: "Fill yapılan dosya komple eklentiye geçmedikçe o popup çıkmasın"): an extension that can answer only
+  // after every document is in it marks the page <html data-gaia-bridge-tam>; the request then carries tamBekle and the extension sends
+  // gaiaBridgeEvrakIlerleme {alinan, toplam} while it downloads (shown on the button).
+  function dtBridgeTamOk() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridgeTam); } catch (e) { return false; } }
+  function dtFillEvrakTam(res) {
+    const ev = res && res.gaia && res.gaia.evrak;
+    if (!ev || !Number(ev.toplam)) return true;
+    return !ev.suruyor && Number(ev.alinan) >= Number(ev.toplam);
+  }
   function dtBridgeKayitOk() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridgeKayit); } catch (e) { return false; } }
   // one request to the extension; resolves with its answer or {error} after 60 s. src = {paket} (gaiaBridgeClaimPaket) or {kayit} (gaiaBridgeKayit)
   // GX-FILL-WAIT (03.11, Ömer: "evraklar 11/30 aldı derken" the table said "did not answer"): the extension loads the case, then
@@ -4176,9 +4185,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         resolve(d);
       };
       window.addEventListener(ev + 'Result', onResult);
-      timer = setTimeout(() => { window.removeEventListener(ev + 'Result', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, 60000);
+      timer = setTimeout(() => { window.removeEventListener(ev + 'Result', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, dtBridgeTamOk() ? 300000 : 60000);   // GX-FILL-TAM: up to 4 min of documents in the extension, then the answer
       const detail = src && src.kayit ? { requestId: requestId, kayit: src.kayit } : { requestId: requestId, paket: src && src.paket };
       if (degistir) detail.degistir = true;
+      if (dtBridgeTamOk()) detail.tamBekle = true;
       window.dispatchEvent(new CustomEvent(ev, { detail: JSON.stringify(detail) }));
     });
   }
@@ -4190,6 +4200,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const p = await dtFillPaketOf(row);
       if (!p.paket && !p.kayit) { showWakeToast(p.error || 'No claim is ready for this record yet.', 'error'); return; }
       if (p.kayit && !dtBridgeKayitOk()) { showWakeToast('Update the Gaia Bridge extension to fill from this record (chrome://extensions → Update).', 'error'); return; }
+      const onIlerleme = e => {   // GX-FILL-TAM: "11/30" on the busy button while documents move into the extension
+        try {
+          const d = typeof e.detail === 'string' ? JSON.parse(e.detail) : (e.detail || {});
+          const a = Number(d.alinan) || 0, t = Number(d.toplam) || 0;
+          if (btn && btn.isConnected && t) { btn.textContent = a + '/' + t; btn.title = 'Evraklar eklentiye aktarılıyor: ' + a + '/' + t; }
+        } catch (x) {}
+      };
+      window.addEventListener('gaiaBridgeEvrakIlerleme', onIlerleme);
+      _dtFillIlerlemeOff = () => window.removeEventListener('gaiaBridgeEvrakIlerleme', onIlerleme);
       let res = await dtFillSend(p, false);
       if (res && !res.ok && res.soru === 'degistir') {
         const yes = await new Promise(resolve => {
@@ -4206,12 +4225,35 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (!yes) return;
         res = await dtFillSend(p, true);
       }
-      if (res && res.ok) dtFillDoneModal(res);   // GX-FILL-OK (02.11, Ömer): a dialog the expert closes with Tamam, not a passing toast
+      if (res && res.ok && dtFillEvrakTam(res)) dtFillDoneModal(res);   // GX-FILL-OK (02.11, Ömer): a dialog the expert closes with Tamam, not a passing toast; GX-FILL-TAM: only when every document is in the extension
+      else if (res && res.ok) dtFillEvrakEksik(res);
       else if (dtFillNeedsRegister(res)) dtOfferRegister(res);   // GX-CIHAZ: the package is not for this browser yet
       else showWakeToast((res && res.error) ? String(res.error) : 'The extension could not take this claim.', 'error');
     } finally {
-      if (btn) { btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy'); }
+      try { if (_dtFillIlerlemeOff) _dtFillIlerlemeOff(); } catch (e) {}
+      _dtFillIlerlemeOff = null;
+      if (btn) { btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy'); if (/^\d+\/\d+$/.test(btn.textContent || '')) { btn.textContent = 'Fill'; btn.title = 'Fill on portal'; } }
     }
+  }
+  let _dtFillIlerlemeOff = null;
+  // GX-FILL-TAM: the case is in the extension but not every document is. No "Write for real" dialog: say what is missing.
+  function dtFillEvrakEksik(res) {
+    const ev = (res && res.gaia && res.gaia.evrak) || {};
+    const a = Number(ev.alinan) || 0, t = Number(ev.toplam) || 0;
+    if (ev.suruyor) {
+      showWakeToast('Evraklar henüz eklentiye aktarılmadı (' + a + '/' + t + ').' + (dtBridgeTamOk() ? ' Fill düğmesine yeniden basın.' : ' Gaia Bridge eklentisini güncelleyin, sonra Fill düğmesine yeniden basın.'), 'error');
+      return;
+    }
+    const body = '<p class="dt-fill-ok-main"></p><p class="dt-fill-ok-note"></p>';
+    const modal = openWakeModal('Evraklar eksik', body, [{ label: 'Tamam', primary: true, onClick: () => closeWakeModal() }]);
+    const ana = a + '/' + t + ' evrak eklentiye aktarıldı. Eksik evrakla yazmayın; Fill düğmesine yeniden basın.';
+    if (!modal) { showWakeToast(ana, 'error'); return; }
+    try {
+      const m = modal.querySelector('.dt-fill-ok-main'); if (m) m.textContent = ana;
+      const n = modal.querySelector('.dt-fill-ok-note');
+      const h = Array.isArray(ev.hatalar) ? ev.hatalar.slice(0, 3).map(String).join(' · ') : '';
+      if (n) { if (h) n.textContent = 'Alınamayan: ' + h; else n.remove(); }
+    } catch (e) {}
   }
   /* GX-FILL-OK (02.11, Ömer: "Fill'e basınca claim'in eklentiye yüklenip yüklenmediğini kullanıcı anlayamıyor. Dosya eklentiye
      yüklenince pop-up çıksın: 'Dosyanız yüklenmiştir. Lütfen Write for real'e tıklayınız'; kullanıcı Tamam'a basarak kapatsın").
