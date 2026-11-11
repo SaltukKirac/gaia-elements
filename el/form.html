@@ -6250,6 +6250,26 @@
         return n;
       }
 
+      // Uyarı çubuğun içinde, düğmelerin üstünde (toast uzun formda görünür alanın dışına düşüyordu); 6 sn sonra kalkar.
+      var bdfFooterMsgTimer = 0;
+      function bdf_footerMessage(text) {
+        const footer = byId("bdfCreateFooter");
+        if (!footer) { bdf_showToast(text, "err"); return; }
+        let m = byId("bdfCreateFooterMsg");
+        if (!m || m.parentNode !== footer) {
+          m = document.createElement("div");
+          m.id = "bdfCreateFooterMsg";
+          m.setAttribute("role", "alert");
+          m.style.cssText = "flex-basis:100%;order:-1;font-size:13px;line-height:1.4;color:var(--gx-err,#dc2626);margin:0 0 6px;";
+          footer.insertBefore(m, footer.firstChild);
+        }
+        m.textContent = text;
+        m.hidden = false;
+        bdf_pinCreateFooter();
+        if (bdfFooterMsgTimer) clearTimeout(bdfFooterMsgTimer);
+        bdfFooterMsgTimer = setTimeout(() => { m.hidden = true; bdf_pinCreateFooter(); }, 6000);
+      }
+
       function bdf_footerLocked() {
         return Boolean(isFormSaving) || Date.now() < bdfFooterLockUntil;
       }
@@ -6261,7 +6281,7 @@
         }
         const need = BDF_ACTION_REQUIRES_FILES[String(actionName || "").trim()];
         if (need && bdf_fieldFileCount(need) === 0) {
-          bdf_showToast(`Upload files to "${need}" first. A claim can't be prepared without documents.`, "err");
+          bdf_footerMessage(`Upload files to "${need}" first. A claim can't be prepared without documents.`);
           return;
         }
         bdfFooterLockUntil = Date.now() + BDF_FOOTER_COOLDOWN_MS;
