@@ -131,6 +131,13 @@
 /* TIDY-LABELS (29.10, Omer): icon-only Import / Export read as mystery arrows; on a wide table they carry their word,
    narrow screens keep the icon (and the More menu). The hover tip below opens at once instead of the browser's slow title. */
 #dynamic-table-wrapper .dt-btn-label { display: none; }
+/* BULK-FOLDERS (12.11): Folders button + drop overlay; the queue and its card live in the form element */
+#dynamic-table-wrapper #dt-btn-folders[hidden], #dynamic-table-wrapper #dt-folders-input { display: none !important; }
+#dynamic-table-wrapper #dt-folders-drop { display: none; position: absolute; inset: 0; z-index: 200; padding: 12px; background: rgba(238, 242, 255, .82); pointer-events: none; }
+#dynamic-table-wrapper.dt-folders-over #dt-folders-drop { display: flex; }
+#dynamic-table-wrapper .dt-folders-drop-in { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 2px dashed var(--gx-primary, #6366f1); border-radius: 16px; color: var(--gx-ink, #0f172a); font-size: 14px; text-align: center; }
+#dynamic-table-wrapper .dt-folders-drop-in svg { width: 32px; height: 32px; fill: none; stroke: var(--gx-primary, #6366f1); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#dynamic-table-wrapper .dt-folders-drop-in span { color: var(--gx-ink-2, #475569); }
 @media (min-width: 1100px) {
   #dynamic-table-wrapper #dt-btn-import,
   #dynamic-table-wrapper #dt-btn-download { width: auto; padding: 0 12px 0 10px; font-size: 13px; color: var(--gx-ink-2, #475569); }
@@ -521,6 +528,7 @@
 #dynamic-table-wrapper .dt-toast-action:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 2px; }
 #dynamic-table-wrapper .dt-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+#dynamic-table-wrapper #dt-btn-folders,
 #dynamic-table-wrapper #dt-btn-import,
 #dynamic-table-wrapper #dt-btn-download,
 #dynamic-table-wrapper #dt-btn-more {
@@ -1271,6 +1279,7 @@
     margin-left: auto;
   }
 
+  #dynamic-table-wrapper #dt-btn-folders,
   #dynamic-table-wrapper #dt-btn-import,
   #dynamic-table-wrapper #dt-btn-download {
     display: none;
@@ -2603,6 +2612,8 @@
         <div class="dt-toolbar-right">
           <span id="dt-selection-count" class="dt-selection-count dt-hidden" aria-live="polite"></span>
           <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" data-tip="Delete selected"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
+          <button id="dt-btn-folders" class="dt-icon-btn" type="button" hidden aria-label="Add case folders, one record per folder" data-tip="Add case folders, one record each"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M12 11v5M9.5 13.5h5"></path></svg></button>
+          <input id="dt-folders-input" type="file" multiple webkitdirectory directory tabindex="-1" aria-hidden="true" hidden />
           <button id="dt-btn-import" class="dt-icon-btn" type="button" aria-label="Import" data-tip="Import from a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V9"></path><path d="m8.5 12.5 3.5-3.5 3.5 3.5"></path><path d="M5 19h14"></path></svg><span class="dt-btn-label">Import</span></button>
           <button id="dt-btn-download" class="dt-icon-btn" type="button" aria-label="Export" data-tip="Export to a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v10"></path><path d="m8.5 11.5 3.5 3.5 3.5-3.5"></path><path d="M5 18h14"></path></svg><span class="dt-btn-label">Export</span></button>
           <div id="dt-toolbar-more-wrap" class="dt-toolbar-more-wrap">
@@ -2622,6 +2633,7 @@
     </div>
     <div id="dt-empty-state" aria-live="polite"></div>
     <div id="hot-container"></div>
+    <div id="dt-folders-drop" aria-hidden="true"><div class="dt-folders-drop-in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><strong>Drop folders here</strong><span>Each folder becomes one new record</span></div></div>
     <div id="dt-create-row" role="button" tabindex="0" aria-label="New record" title="New record">
       <div class="dt-create-row-inner">
         <span class="dt-create-row-icon">+</span>
@@ -3676,6 +3688,9 @@
     selectionCount: document.getElementById('dt-selection-count'),
     deleteButton: document.getElementById('dt-btn-delete'),
     importButton: document.getElementById('dt-btn-import'),
+    foldersButton: document.getElementById('dt-btn-folders'),
+    foldersInput: document.getElementById('dt-folders-input'),
+    foldersDrop: document.getElementById('dt-folders-drop'),
     downloadButton: document.getElementById('dt-btn-download'),
     moreButton: document.getElementById('dt-btn-more'),
     toolbarMoreWrap: document.getElementById('dt-toolbar-more-wrap'),
@@ -6441,6 +6456,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return '';
   }
   // the grid's rows plus the saved records the mirror has not shown yet (the same array when there are none)
+  var _dtPendUsedRows = new Set();
   function dtPendMerge(rows) {
     if (!Array.isArray(rows)) return rows;
     const base = rows.some(r => r && r.__gxPend) ? rows.filter(r => !(r && r.__gxPend)) : rows;
@@ -6455,12 +6471,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (e.key !== key) return true;   // another screen's record: kept for when that screen is back
       if (e.del) return true;   // GX-PEND-SIL: the background delete owns it (dtPendDelRun) until done or failed
       const pl = dtPendPlaka(e.row);
+      const ef = Array.isArray(e.files) ? e.files : [];
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || taken.has(i)) continue;
         const c = aynaLiveTime(r._created);
         if (!c || c < e.at - DT_PEND_EARLY_MS) continue;
         const rp = dtPendPlaka(r);
         if (pl && rp && pl !== rp) continue;
+        const rf = ef.length ? dtPendFiles(r) : [];
+        const fileHit = rf.length > 0 && rf.some(f => ef.indexOf(f) >= 0);
+        if (ef.length && rf.length && !fileHit) continue;   // BULK-FOLDERS: several saves without Plaka; the files tell them apart
+        if (!fileHit && r._id && _dtPendUsedRows.has(r._id)) continue;   // BULK-FOLDERS: a guessed match uses a mirror row once; a file match may repeat (same record saved twice)
+        if (r._id) { _dtPendUsedRows.add(r._id); if (_dtPendUsedRows.size > 500) _dtPendUsedRows.clear(); }
         taken.add(i); dirty = true; return false;   // the mirror's own row is here
       }
       return true;
@@ -6497,10 +6519,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const list = dtPendList(), key = AYNA.screenKey || '';
       // one create can reach Bubble twice (an autosave, then Save): a second submit within 15 s replaces the first row
       const last = list.length ? list[list.length - 1] : null;
-      if (last && last.key === key && now - last.at < 15000) list.pop();
+      // BULK-FOLDERS: two saves with different files are two records (one record per folder), not a repeat
+      const newFiles = dtPendFiles(obj);
+      const lastFiles = (last && Array.isArray(last.files)) ? last.files : [];
+      const sameRecord = !lastFiles.length || lastFiles.some(f => newFiles.indexOf(f) >= 0);
+      if (last && last.key === key && now - last.at < 15000 && sameRecord) list.pop();
       const pid = 'p' + now.toString(36) + Math.random().toString(36).slice(2, 6);
       row.__gxPendId = pid;
-      list.push({ at: now, key: key, row: row, pid: pid, files: dtPendFiles(obj), plaka: dtPendPlaka(row) });   // GX-PEND-SIL
+      list.push({ at: now, key: key, row: row, pid: pid, files: newFiles, plaka: dtPendPlaka(row) });   // GX-PEND-SIL
       dtPendSave();
       aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
       log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
@@ -11355,7 +11381,94 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     openFilterPanel(columnIndex);
   }
 
+  // === BULK-FOLDERS (12.11.2026): many case folders -> one new record per folder ===
+  // The table only collects folders (Folders button or a drop on the table) and hands them to the form element's
+  // queue (window.__gxBulk, form BULK-FOLDERS). The queue opens a new record per folder, uploads its files through the
+  // form's own folder path and presses Save only. Shown on desktop, when the form is on the page and the table has a
+  // file column. Off: window.__gxNoBulk = true.
+  function dtBulkApi() {
+    const g = window.__gxBulk;
+    return (g && typeof g.canRun === 'function' && !window.__gxNoBulk && g.canRun()) ? g : null;
+  }
+  function dtBulkHasFileColumn() {
+    return (state.columns || []).some(c => c && c.type === 'multifile');
+  }
+  function dtBulkAvailable() {
+    return Boolean(dtBulkApi()) && dtBulkHasFileColumn() && !isMobileViewport();
+  }
+  function dtBulkSync() {
+    if (!els.foldersButton) return;
+    const on = dtBulkAvailable();
+    if (els.foldersButton.hidden === on) els.foldersButton.hidden = !on;
+  }
+  function dtBulkHasFiles(e) {
+    try { return Array.from((e.dataTransfer && e.dataTransfer.types) || []).indexOf('Files') >= 0; } catch (_) { return false; }
+  }
+  function attachBulkFolders() {
+    if (!els.wrapper || !els.foldersButton || !els.foldersInput || els.wrapper.__dtBulkBound) return;
+    els.wrapper.__dtBulkBound = true;
+    dtBulkSync();
+    // the form element can load after the table; one timer per page (Bubble re-renders run this script again)
+    window.__dtBulkSync = dtBulkSync;
+    if (!window.__dtBulkSyncTimer) window.__dtBulkSyncTimer = setInterval(() => { try { if (window.__dtBulkSync) window.__dtBulkSync(); } catch (_) {} }, 2000);
+    els.foldersButton.addEventListener('click', () => {
+      if (!dtBulkAvailable()) return;
+      try { els.foldersInput.value = ''; } catch (_) {}
+      els.foldersInput.click();
+    });
+    els.foldersInput.addEventListener('change', () => {
+      const api = dtBulkApi();
+      const files = els.foldersInput.files;
+      if (!api || !files || !files.length) return;
+      api.offerFileList(files);
+      try { els.foldersInput.value = ''; } catch (_) {}
+    });
+    let depth = 0;
+    const over = (on) => { els.wrapper.classList.toggle('dt-folders-over', on); };
+    els.wrapper.addEventListener('dragenter', e => {
+      if (!dtBulkHasFiles(e) || !dtBulkAvailable()) return;
+      depth += 1; over(true);
+    });
+    let watch = 0;
+    const reset = () => { depth = 0; over(false); };
+    els.wrapper.addEventListener('dragover', e => {
+      if (!dtBulkHasFiles(e) || !dtBulkAvailable()) return;
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = 'copy'; } catch (_) {}
+      over(true);
+      clearTimeout(watch); watch = setTimeout(reset, 400);   // dragover stops when the drag leaves or is cancelled
+    });
+    els.wrapper.addEventListener('dragleave', e => {
+      if (!dtBulkHasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (!depth || !e.relatedTarget || !els.wrapper.contains(e.relatedTarget)) reset();
+    });
+    window.addEventListener('dragend', reset, true);
+    window.addEventListener('drop', reset, true);
+    els.wrapper.addEventListener('drop', e => {
+      depth = 0; over(false);
+      if (!dtBulkHasFiles(e)) return;
+      const api = dtBulkApi();
+      if (!api || !dtBulkAvailable()) return;
+      e.preventDefault();
+      // entries must be taken while the drop event runs
+      const entries = [];
+      try {
+        Array.from(e.dataTransfer.items || []).forEach(it => {
+          if (it && it.kind === 'file' && typeof it.webkitGetAsEntry === 'function') { const en = it.webkitGetAsEntry(); if (en) entries.push(en); }
+        });
+      } catch (_) {}
+      if (!entries.some(en => en && en.isDirectory)) {
+        showWakeToast('Drop folders here. To add single files, open a record.');
+        return;
+      }
+      showWakeToast('Reading folders...');
+      api.offerEntries(entries);
+    });
+  }
+
   function attachActionButtons() {
+    attachBulkFolders();
     if (els.newButton) {
       els.newButton.addEventListener('click', create);
     }
