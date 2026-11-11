@@ -6413,6 +6413,71 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
     } catch (e) { log('[GX-GONE] ' + ((e && e.message) || e)); }
   }
+  /* GX-SAAT (12.11, Saltuk: "sildim, hâlâ görüyorum" · "Claim hazırlanıyor görünen kayıt güven vermiyor"). A pending row (GX-PEND)
+     was matched to the mirror's row of its record by time only: a row created from 20 s before the save on. The save time was the
+     BROWSER's clock, the row's _created Bubble's. The founder's laptop ran 28 s fast (Windows time service stopped), so no real row
+     was ever "late enough": every save left a "Preparing…" twin without an id for 30 min next to the real row (the real row
+     deleted → the twin stayed; its claim ready → the twin still said Preparing…). GX-DUP and GX-PEND-SIL searched Bubble from the
+     same skewed time and missed the record too. Now:
+       · a pending row and a record are the same when they share an upload: every Bubble file address carries its own upload id
+         (/f<digits>x<digits>/, cdn.bubble.io and /fileupload/ alike); the mirror row's Evraklar holds the ids the form uploaded,
+         whatever the clocks say. A record older than 10 min that holds the same address (a copy) is not it.
+       · every comparison of a browser time with Bubble's dates first moves it onto Bubble's clock: the offset comes from the Date
+         header of a HEAD on the page's own origin (once per save, again after 10 min) and of the table's Data API calls; under
+         2 s it counts as 0 (the header is cut to the second).
+     Off: window.__gxNoSaat = true (time only, browser clock: the old behaviour). */
+  var DT_SAAT = { minMs: 2000, refreshMs: 10 * 60000, fileWindowMs: 10 * 60000 };
+  var _dtSaat = { ms: 0, n: 0, at: 0, busy: false };
+  // a same-origin answer (fetch Response) taken between browser times t0 and t1: its Date header updates the offset
+  function dtSaatNote(r, t0, t1) {
+    try {
+      const h = r && r.headers && typeof r.headers.get === 'function' ? r.headers.get('Date') : null;
+      const s = h ? Date.parse(h) : NaN;
+      if (!isFinite(s) || !t0 || !t1 || t1 < t0 || t1 - t0 > 10000) return;
+      const k = (t0 + t1) / 2 - (s + 500);   // the header is cut to the second: +500 ms on average
+      _dtSaat.ms = _dtSaat.n ? Math.round(_dtSaat.ms * 0.6 + k * 0.4) : Math.round(k);
+      _dtSaat.n++; _dtSaat.at = Date.now();
+    } catch (e) {}
+  }
+  // the browser's clock minus Bubble's (ms): 0 while unknown, under 2 s, or switched off
+  function dtSaatMs() { return (!window.__gxNoSaat && _dtSaat.n && Math.abs(_dtSaat.ms) >= DT_SAAT.minMs) ? _dtSaat.ms : 0; }
+  // a browser time on Bubble's clock
+  function dtSaatSrv(t) { return Number(t) - dtSaatMs(); }
+  function dtSaatLearn(force) {
+    try {
+      if (window.__gxNoSaat || _dtSaat.busy || typeof fetch !== 'function') return;
+      if (!force && _dtSaat.n && Date.now() - _dtSaat.at < DT_SAAT.refreshMs) return;
+      _dtSaat.busy = true;
+      const t0 = Date.now();
+      fetch(location.origin + '/robots.txt', { method: 'HEAD', cache: 'no-store', credentials: 'omit' })   // 200, no body; /favicon.ico is a 404 on Gaia
+        .then(r => {
+          dtSaatNote(r, t0, Date.now());
+          if (dtSaatMs()) log('[GX-SAAT] this browser\'s clock is ' + Math.round(_dtSaat.ms / 1000) + ' s off Bubble\'s; pending rows use Bubble\'s clock');
+        })
+        .catch(() => {})
+        .then(() => { _dtSaat.busy = false; });
+    } catch (e) { _dtSaat.busy = false; }
+  }
+  // the upload ids anywhere in a value (strings, arrays, objects; a JSON text of addresses too)
+  function dtUploadIds(v) {
+    const out = new Set(), re = /\/f(\d{6,}x\d{6,})\//g;
+    const walk = (x, d) => {
+      if (d > 4 || x == null) return;
+      if (typeof x === 'string') { if (x.indexOf('/f') < 0) return; re.lastIndex = 0; let m; while ((m = re.exec(x))) out.add(m[1]); return; }
+      if (Array.isArray(x)) { x.forEach(y => walk(y, d + 1)); return; }
+      if (typeof x === 'object') Object.keys(x).forEach(k => walk(x[k], d + 1));
+    };
+    try { walk(v, 0); } catch (e) {}
+    return out;
+  }
+  // two values share at least one upload (a Set is taken as the ids themselves)
+  function dtUploadShare(a, b) {
+    const x = a instanceof Set ? a : dtUploadIds(a); if (!x.size) return false;
+    const y = b instanceof Set ? b : dtUploadIds(b);
+    for (const k of y) { if (x.has(k)) return true; }
+    return false;
+  }
+
   /* GX-PEND (29.10, Ömer): a record saved in the form shows in the table at once ("Claim Hazırla dediğim anda tabloya düşsün").
      The mirror learns of Bubble's create 10-20 s later at best (29.10: it stalled for 27 min), so the row waited for it.
      Now the table builds the row from what the form handed Bubble (output_full_obj: the same field names as the table's
@@ -6449,16 +6514,27 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!list.length) return base;
     const now = Date.now(), key = AYNA.screenKey || '';
     const taken = new Set();
+    const ups = new Map(), rowUps = i => { let s = ups.get(i); if (!s) { s = dtUploadIds(base[i]); ups.set(i, s); } return s; };   // GX-SAAT: a row's upload ids, once per merge
     let dirty = false;
     const keep = list.filter(e => {
       if (now - e.at >= DT_PEND_TTL_MS) { dirty = true; return false; }
       if (e.key !== key) return true;   // another screen's record: kept for when that screen is back
       if (e.del) return true;   // GX-PEND-SIL: the background delete owns it (dtPendDelRun) until done or failed
       const pl = dtPendPlaka(e.row);
+      const at = dtSaatSrv(e.at);   // GX-SAAT: the save on Bubble's clock
+      const ids = window.__gxNoSaat ? null : dtUploadIds(e.files || []);
+      if (ids && ids.size) {   // GX-SAAT: the same upload = the same record, whatever the clocks say
+        for (let i = 0; i < base.length; i++) {
+          const r = base[i]; if (!r || taken.has(i)) continue;
+          const c = aynaLiveTime(r._created);
+          if (c && c < at - DT_SAAT.fileWindowMs) continue;   // an older record holding the same address (a copy) is not it
+          if (dtUploadShare(ids, rowUps(i))) { taken.add(i); dirty = true; return false; }
+        }
+      }
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || taken.has(i)) continue;
         const c = aynaLiveTime(r._created);
-        if (!c || c < e.at - DT_PEND_EARLY_MS) continue;
+        if (!c || c < at - DT_PEND_EARLY_MS) continue;
         const rp = dtPendPlaka(r);
         if (pl && rp && pl !== rp) continue;
         taken.add(i); dirty = true; return false;   // the mirror's own row is here
@@ -6494,6 +6570,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         row[col] = v; n++;
       });
       if (!n) return;
+      dtSaatLearn();   // GX-SAAT: the offset is known before the mirror's row arrives
       const list = dtPendList(), key = AYNA.screenKey || '';
       // one create can reach Bubble twice (an autosave, then Save): a second submit within 15 s replaces the first row
       const last = list.length ? list[list.length - 1] : null;
@@ -6550,8 +6627,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || held.has(i)) continue;
         if (e.delId) { if (rowIdOf(r) === e.delId) { held.add(i); break; } continue; }
-        const c = aynaLiveTime(r._created);
-        if (!c || c < e.at - DT_PEND_EARLY_MS || c > e.at + DT_PSIL_NEAR_MS) continue;
+        if (!window.__gxNoSaat && dtUploadShare(e.files || [], r)) { held.add(i); break; }   // GX-SAAT: the same upload
+        const c = aynaLiveTime(r._created), at = dtSaatSrv(e.at);   // GX-SAAT: Bubble's clock
+        if (!c || c < at - DT_PEND_EARLY_MS || c > at + DT_PSIL_NEAR_MS) continue;
         const rp = dtPendPlaka(r);
         if (e.plaka && rp && e.plaka !== rp) continue;
         held.add(i); break;
@@ -6581,7 +6659,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function dtApiFetch(url, opt) {
     const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
     const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 10000) : null;
-    try { return await fetch(url, Object.assign({ credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opt || {})); }
+    const t0 = Date.now();
+    try { const r = await fetch(url, Object.assign({ credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opt || {})); dtSaatNote(r, t0, Date.now()); return r; }   // GX-SAAT
     catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
   }
   function dtJsonArrayMap(arr) {   // a record's jsonarray (["\"Alan\": value", …]) as { Alan: value }
@@ -6591,18 +6670,19 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // { st: 'id', id } · { st: '' } not there yet · { st: 'many' } more than one candidate · { st: 'err' } Gaia not readable
   async function dtPendFindRecord(e) {
-    const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(e.at - DT_PEND_EARLY_MS).toISOString() }];
+    const files = Array.isArray(e.files) ? e.files : [];
+    const at = dtSaatSrv(e.at);   // GX-SAAT: Bubble's clock; with files the search may look 2 min back (the files decide)
+    const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(at - (files.length && !window.__gxNoSaat ? DT_PSIL_NEAR_MS : DT_PEND_EARLY_MS)).toISOString() }];
     const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
     if (!r || !r.ok) return { st: 'err' };
     let res = [];
     try { const j = await r.json(); res = (j && j.response && j.response.results) || []; } catch (x) { return { st: 'err' }; }
-    const files = Array.isArray(e.files) ? e.files : [];
     const hits = res.filter(o => {
       if (!o || !o._id || o.NotVisible === true) return false;
       const m = dtJsonArrayMap(o.jsonarray);
-      if (files.length) { const have = new Set(dtPendFiles(m)); return files.some(f => have.has(f)); }
+      if (files.length) { const have = new Set(dtPendFiles(m)); return files.some(f => have.has(f)) || (!window.__gxNoSaat && dtUploadShare(files, m)); }
       const t = Date.parse(o['Created Date'] || '');
-      if (!t || Math.abs(t - e.at) > DT_PSIL_NEAR_MS) return false;
+      if (!t || Math.abs(t - at) > DT_PSIL_NEAR_MS) return false;
       return dtPendPlaka(m) === (e.plaka || '');
     });
     if (hits.length > 1) return { st: 'many' };
@@ -6701,7 +6781,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!list.length) return;
     _dtDupBusy = true;
     try {
-      const from = Math.min.apply(null, list.map(e => e.at)) - DT_PEND_EARLY_MS;
+      const from = Math.min.apply(null, list.map(e => dtSaatSrv(e.at))) - (window.__gxNoSaat ? DT_PEND_EARLY_MS : DT_PSIL_NEAR_MS);   // GX-SAAT: Bubble's clock; the files decide
       const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(from).toISOString() }];
       const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
       if (!r || !r.ok) return;
@@ -6711,7 +6791,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!hidden.length) return;
       let off = 0;
       list.forEach(e => {
-        const h = hidden.find(x => { const have = new Set(dtPendFiles(x.m)); return e.files.some(f => have.has(f)); });
+        const h = hidden.find(x => { const have = new Set(dtPendFiles(x.m)); return e.files.some(f => have.has(f)) || (!window.__gxNoSaat && dtUploadShare(e.files, x.m)); });   // GX-SAAT
         if (!h) return;
         let asama = '';
         Object.keys(h.m).forEach(k => { if (dtNormKey(k) === 'claimasamasi') asama = String(h.m[k] == null ? '' : h.m[k]); });
