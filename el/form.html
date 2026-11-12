@@ -4994,7 +4994,12 @@
       const BDF_BULK_NEW_SETTLE_MS = 1500;     // New istendikten sonra Bubble'ın formu / yükleyiciyi sıfırlaması için
       const BDF_BULK_NOFEED_MS = 15000;        // yükleyici dosyaları hiç almadı (FOLDER-UP ~10 sn bekleyip vazgeçer)
       const BDF_BULK_LEDGER_KEY = "gx_bulk_done_v1";
-      const BDF_BULK_BG_IDLE_MS = 3000;        // arka planda: kişi bu süre sayfaya dokunmadan New açılmaz (tıklamasını çalmasın)
+      const BDF_BULK_BG_IDLE_MS = 3000;
+      const BDF_BULK_ACTION_KEY = "gx_bulk_action_v1";   // kişinin son seçtiği aksiyon adı (yalnız kolaylık)
+
+      function bdf_bulkActionList() {
+        try { return (Array.isArray(actionOptions) ? actionOptions : []).filter((o) => o && o.id && o.name); } catch (_) { return []; }
+      }        // arka planda: kişi bu süre sayfaya dokunmadan New açılmaz (tıklamasını çalmasın)
       var bdfBulkFeeders = {};                 // alan anahtarı -> { el, accept, max(), feed(files, name) } (FOLDER-UP kaydeder)
 
       function bdf_bulkEsc(s) {
@@ -5168,6 +5173,8 @@
             G.userAt = now;
             const form = document.getElementById("bdf-root");
             if (form && t && form.contains(t)) G.userFormAt = now;
+            // Tablo satırına tıklama: kayıt açmanın en güçlü işareti.
+            else if (t && t.closest && t.closest("#dynamic-table-wrapper, .handsontable, .ht_master")) G.userRowAt = now;
           } catch (_) { }
         };
         ["pointerdown", "keydown"].forEach((name) => document.addEventListener(name, mark, true));
@@ -5193,6 +5200,51 @@
           try { if (w && typeof w.bubble_fn_create === "function") { w.bubble_fn_create(); return true; } } catch (_) { }
         }
         return false;
+      }
+
+      // Sekme gizliyken setInterval 1 sn'ye, 5 dk sonra dakikada bire iner. Worker'ın mesajı bu kısıtlamaya takılmaz:
+      // gizliyken sırayı o ilerletir. CSP Worker'a izin vermezse eski sayaç kalır.
+      function bdf_bulkWorkerOn() {
+        const G = window.__gxBulk;
+        if (!G || G.worker) return;
+        try {
+          const url = URL.createObjectURL(new Blob(["setInterval(function(){postMessage(0)},500);"], { type: "text/javascript" }));
+          const w = new Worker(url);
+          w.onmessage = () => {
+            if (!document.hidden) return;   // görünürken ana sayaç yeter
+            try { if (G.tick) G.tick(); } catch (e) { console.warn("[BULK] tick", e); }
+          };
+          w.onerror = () => { try { w.terminate(); } catch (_) { } if (G.worker === w) G.worker = null; };
+          G.worker = w;
+        } catch (_) { G.worker = null; }
+      }
+
+      function bdf_bulkWorkerOff() {
+        const G = window.__gxBulk;
+        if (!G || !G.worker) return;
+        try { G.worker.terminate(); } catch (_) { }
+        G.worker = null;
+      }
+
+      // Sekme gizliyken ilerleme sekme başlığında görünür: "(2/5) ...". Sıra bitince ya da sekmeye dönünce eski başlık.
+      function bdf_bulkTitle() {
+        const G = window.__gxBulk;
+        if (!G) return;
+        try {
+          const show = Boolean(G.running && document.hidden);
+          const prefix = /^\(\d+\/\d+\) /;
+          const cur = String(document.title || "");
+          if (!show) {
+            if (G.titleSet && prefix.test(cur)) document.title = cur.replace(prefix, "");
+            G.titleSet = false;
+            return;
+          }
+          const total = (G.jobs || []).length;
+          const fin = (G.jobs || []).filter((j) => j.st === "done" || j.st === "skip" || j.st === "fail").length;
+          const want = `(${fin}/${total}) ${cur.replace(prefix, "")}`;
+          if (cur !== want) document.title = want;
+          G.titleSet = true;
+        } catch (_) { }
       }
 
       function bdf_bulkCanRun() {
@@ -5253,6 +5305,9 @@
 #gx-bulk-card .gxb-s.is-ok{color:#047857}
 #gx-bulk-card .gxb-s.is-err{color:#b91c1c}
 #gx-bulk-card .gxb-note{padding:8px 16px 0;color:#475569;font-size:12px}
+#gx-bulk-card .gxb-act{display:flex;flex-direction:column;gap:4px;padding:0 16px 12px;color:#475569;font-size:12px;font-weight:500}
+#gx-bulk-card .gxb-act select{min-height:44px;padding:0 12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#0f172a;font:inherit;font-size:14px}
+#gx-bulk-card select:focus-visible{outline:2px solid var(--gx-ring,#6366f1);outline-offset:2px}
 #gx-bulk-card .gxb-f{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:12px 16px 16px}
 #gx-bulk-card button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;font:inherit;font-weight:600;cursor:pointer}
 #gx-bulk-card button.is-primary{background:#6366f1;border-color:#6366f1;color:#fff}
@@ -5301,6 +5356,16 @@
         if (G.view === "confirm") {
           const offer = G.offer || { groups: [] };
           const done = new Set(bdf_bulkLedger().map((e) => e.k));
+          const acts = bdf_bulkActionList();
+          if (offer.action === undefined) {
+            let last = "";
+            try { last = String(localStorage.getItem(BDF_BULK_ACTION_KEY) || ""); } catch (_) { last = ""; }
+            offer.action = last ? { id: "", name: last } : null;
+          }
+          // Seçim adla da eşleşir: aksiyon listesi kart açıkken yeniden yüklenirse seçim kaybolmaz.
+          const want = offer.action;
+          const act = want ? (acts.find((o) => o.id === want.id) || acts.find((o) => o.name === want.name) || null) : null;
+          if (act) offer.action = { id: act.id, name: act.name };
           if (!offer.marked) {
             offer.marked = true;
             offer.groups.forEach((g) => { g.pick = !done.has(bdf_bulkLedgerKey(g)) && g.files.length > 0; g.before = done.has(bdf_bulkLedgerKey(g)); });
@@ -5313,7 +5378,11 @@
           if (offer.groups.some((g) => g.truncated)) notes.push(`A folder has more than ${BDF_FOLDER_MAX_SCAN} files. Only the first ${BDF_FOLDER_MAX_SCAN} are read.`);
           card.innerHTML = `
             <div class="gxb-h">One record per folder</div>
-            <div class="gxb-p">${offer.groups.length} folder${offer.groups.length === 1 ? "" : "s"} found. Each ticked folder becomes a new record with its files. Records are only saved, no action starts.</div>
+            <div class="gxb-p">${offer.groups.length} folder${offer.groups.length === 1 ? "" : "s"} found. Each ticked folder becomes a new record with its files. ${act ? `Each record then runs ${bdf_bulkEsc(act.name)}.` : "Records are only saved, no action starts."}</div>
+            ${acts.length ? `<label class="gxb-act"><span>Action for each record</span><select data-a="act">
+              <option value="">None, save only</option>
+              ${acts.map((o) => `<option value="${bdf_bulkEsc(o.id)}" ${act && o.id === act.id ? "selected" : ""}>${bdf_bulkEsc(o.name)}</option>`).join("")}
+            </select></label>` : ""}
             <ul>${offer.groups.map((g, i) => `
               <li><label><input type="checkbox" data-i="${i}" ${g.pick ? "checked" : ""} ${g.files.length ? "" : "disabled"}>
                 <span class="gxb-n" title="${bdf_bulkEsc(g.name)}">${bdf_bulkEsc(g.name)}</span></label>
@@ -5331,6 +5400,13 @@
             bdf_bulkRender();
             try { const again = card.querySelector(`input[data-i="${cb.dataset.i}"]`); if (again) again.focus(); } catch (_) { }
           }));
+          const sel = card.querySelector('select[data-a="act"]');
+          if (sel) sel.addEventListener("change", () => {
+            const o = acts.find((x) => x.id === sel.value);
+            offer.action = o ? { id: o.id, name: o.name } : null;
+            try { localStorage.setItem(BDF_BULK_ACTION_KEY, o ? o.name : ""); } catch (_) { }
+            bdf_bulkRender();
+          });
           card.querySelector('[data-a="cancel"]').addEventListener("click", () => { G.offer = null; G.view = ""; bdf_bulkRender(); });
           card.querySelector('[data-a="start"]').addEventListener("click", () => bdf_bulkStart(offer.groups.filter((g) => g.pick)));
           const here = card.querySelector('[data-a="here"]');
@@ -5377,7 +5453,8 @@
           <ul>${jobs.map((j, i) => `
             <li class="${i === G.i && G.view !== "done" ? "is-cur" : ""}"><span class="gxb-n" title="${bdf_bulkEsc(j.name)}">${bdf_bulkEsc(j.name)}</span>
               <span class="gxb-s ${j.st === "done" ? "is-ok" : (j.st === "fail" || j.st === "skip" ? "is-err" : "")}">${bdf_bulkEsc(bdf_bulkJobLabel(j))}</span></li>`).join("")}</ul>
-          ${G.view === "done" ? "" : '<div class="gxb-note">Keep this tab open until it finishes. In the background it waits while you have a record open.</div>'}
+          ${G.action ? `<div class="gxb-note">Each record runs ${bdf_bulkEsc(G.action.name)}.</div>` : ""}
+          ${G.view === "done" ? "" : '<div class="gxb-note">You can switch tabs, but keep this one open until it finishes. In the background it waits while you have a record open.</div>'}
           <div class="gxb-f">${G.view === "done"
             ? '<button type="button" class="is-primary" data-a="close">Close</button>'
             : `<button type="button" data-a="stop">Stop</button><button type="button" data-a="pause">${G.paused ? "Resume" : "Pause"}</button><button type="button" class="is-primary" data-a="bg">Run in background</button>`}</div>`;
@@ -5385,8 +5462,8 @@
         if (btn("close")) btn("close").addEventListener("click", () => { G.view = ""; G.jobs = []; bdf_bulkRender(); });
         if (btn("stop")) btn("stop").addEventListener("click", () => bdf_bulkStop("Stopped. Folders after this one were not created."));
         if (btn("bg")) btn("bg").addEventListener("click", () => {
+          // Basış kişinin hareketi sayılmaz: sayılırsa Bubble'ın o an gösterdiği kayıt "kişinin" sanılır, sıra bekler.
           G.bg = true;
-          G.userAt = Date.now();   // düğmeye basış da hareket sayılır: New hemen açılmasın
           bdf_bulkRender();
         });
         if (btn("pause")) btn("pause").addEventListener("click", () => {
@@ -5428,6 +5505,12 @@
       function bdf_bulkStart(groups) {
         const G = BDF_BULK;
         if (G.running || !groups || !groups.length) return;
+        // Kartta seçilen aksiyon (yalnız ekranda seçili görünen): kaydetme adımı id, sonra adla eşler; yoksa not düşer.
+        const offerNow = G.offer;
+        const acts = bdf_bulkActionList();
+        const w = offerNow && offerNow.action;
+        const actNow = w ? (acts.find((o) => o.id === w.id) || acts.find((o) => o.name === w.name) || null) : null;
+        G.action = actNow ? { id: actNow.id, name: actNow.name } : null;
         G.jobs = groups.map((g) => ({ name: g.name, files: g.files, truncated: g.truncated, st: "wait", group: g }));
         G.i = 0;
         G.running = true;
@@ -5442,11 +5525,21 @@
         G.screen = bdf_bulkScreenSig();
         G.bg = false;
         G.selfAt = Date.now();
+        G.stepAt = G.selfAt;
         G.userAt = 0;
         G.userFormAt = 0;
+        G.userRowAt = 0;
+        G.userRecord = false;
+        G.userRecordAt = 0;
+        G.seenId = undefined;
         bdf_bulkTrackActivity();
+        bdf_bulkWorkerOn();
+        if (!G.visBound) {
+          G.visBound = true;
+          document.addEventListener("visibilitychange", () => { try { bdf_bulkTitle(); if (!document.hidden && G.tick) G.tick(); } catch (_) { } });
+        }
         try { window.addEventListener("beforeunload", bdf_bulkBeforeUnload); } catch (_) { }
-        console.log("[BULK] start", { folders: G.jobs.map((j) => `${j.name} (${j.files.length})`) });
+        console.log("[BULK] start", { folders: G.jobs.map((j) => `${j.name} (${j.files.length})`), action: G.action ? G.action.name : "" });
         bdf_bulkRender();
       }
 
@@ -5456,6 +5549,8 @@
         G.running = false;
         G.paused = false;
         G.view = "done";
+        bdf_bulkWorkerOff();
+        bdf_bulkTitle();
         try { window.removeEventListener("beforeunload", bdf_bulkBeforeUnload); } catch (_) { }
         console.log("[BULK] stop", { message, created: G.jobs.filter((j) => j.st === "done").length });
         bdf_bulkRender();
@@ -5475,6 +5570,8 @@
         if (G.i >= G.jobs.length) {
           G.running = false;
           G.view = "done";
+          bdf_bulkWorkerOff();
+          bdf_bulkTitle();
           try { window.removeEventListener("beforeunload", bdf_bulkBeforeUnload); } catch (_) { }
           console.log("[BULK] finished", G.jobs.map((j) => `${j.name}: ${j.st}${j.note ? " (" + j.note + ")" : ""}`));
         }
@@ -5501,6 +5598,7 @@
         const job = G.jobs[G.i];
         if (!job) { bdf_bulkNext(Date.now()); return; }
         const now = Date.now();
+        bdf_bulkWatchRecord(now);
         const before = `${job.st}|${job.up || 0}`;
         if (job.st === "wait") {
           if (now < (G.nextAt || 0)) return;
@@ -5521,7 +5619,7 @@
             return;
           }
           if (job.yield) { job.yield = false; bdf_bulkRender(); }
-          if (!job.opens && G.bg && now - (G.userAt || 0) < BDF_BULK_BG_IDLE_MS) return;
+          if (!job.opens && G.bg && now - Math.max(Number(G.userRowAt || 0), Number(G.userFormAt || 0)) < BDF_BULK_BG_IDLE_MS) return;
           if (!job.opens) {
             // Formda kaydedilmemiş taslak varken New basılmaz: New taslağı sessizce siler (Bubble yeniden çizer).
             let draftNow = false;
@@ -5530,6 +5628,7 @@
             job.opens = 1;
             G.lastOpenAt = now;
             G.selfAt = now;
+            G.stepAt = now;
             if (!bdf_bulkOpenNewRecord()) bdf_bulkPause("The new record form did not open. Open it with New, then press Resume.");
             return;
           }
@@ -5543,6 +5642,7 @@
             job.readySince = 0;
           }
           if (!why && now - job.readySince < BDF_BULK_STABLE_MS) return;
+          if (!why && G.bg && now - Math.max(Number(G.userRowAt || 0), Number(G.userFormAt || 0)) < BDF_BULK_BG_IDLE_MS) { job.readySince = 0; return; }
           if (!why) {
             const target = bdf_bulkTarget();
             const max = Math.max(1, Number(target.max()) || 1);
@@ -5591,10 +5691,11 @@
                 bdf_bulkPause("The new record form did not open. Open it with New, then press Resume.");
                 return;
               }
-              if (G.bg && now - (G.userAt || 0) < BDF_BULK_BG_IDLE_MS) return;
+              if (G.bg && now - Math.max(Number(G.userRowAt || 0), Number(G.userFormAt || 0)) < BDF_BULK_BG_IDLE_MS) return;
               job.opens += 1;
               G.lastOpenAt = now;
               G.selfAt = now;
+              G.stepAt = now;
               if (!bdf_bulkOpenNewRecord()) {
                 bdf_bulkPause("The new record form did not open. Open it with New, then press Resume.");
                 return;
@@ -5666,7 +5767,16 @@
             console.log("[BULK] save", { folder: job.name, files: count });
             job.urls = urls;
             G.selfAt = now;
-            triggerWithoutAction();
+            G.stepAt = now;
+            const want = G.action;
+            const opt = want ? (bdf_bulkActionList().find((o) => o.id === want.id) || bdf_bulkActionList().find((o) => o.name === want.name)) : null;
+            if (opt) {
+              console.log("[BULK] save with action", { folder: job.name, action: opt.name });
+              selectActionAndTrigger(opt);
+            } else {
+              if (want) job.note = [job.note, `Saved without ${want.name}. The form did not offer it.`].filter(Boolean).join(" ");
+              triggerWithoutAction();
+            }
           }
         } else if (job.st === "saving") {
           if ((G.submittedAt || 0) >= job.saveAt) {
@@ -5685,6 +5795,30 @@
           }
         }
         if (`${job.st}|${job.up || 0}` !== before) bdf_bulkRender();
+        if (document.hidden) bdf_bulkTitle();
+      }
+
+      // BULK-BG: formda görünen kayıt değişti mi, değiştiyse kişinin tıklamasıyla mı? Sıranın New / kaydet adımından
+      // sonra gelen kayıt (Bubble'ın az önce kaydedileni göstermesi) kişinin sayılmaz.
+      function bdf_bulkWatchRecord(now) {
+        const G = BDF_BULK;
+        let id = "";
+        try {
+          if (hasExistingBubbleData() || isEditPanelOpen) id = String(readCurrentUniqueId() || "") || "shown";
+        } catch (_) { id = ""; }
+        if (id === String(G.seenId || "")) return;
+        G.seenId = id;
+        if (!id) { G.userRecord = false; G.userRecordAt = 0; return; }
+        const userAt = Number(G.userAt || 0);
+        const rowAt = Number(G.userRowAt || 0);
+        const stepAt = Number(G.stepAt || 0);
+        const savedAt = Number(G.submittedAt || 0);
+        // Tablo satırı tıklandıysa (6 sn içinde) kayıt kişinin. Değilse: kişinin hareketi sıranın son New / kaydet adımından
+        // sonra ve sıra son 8 sn içinde kaydetmedi (az önce kaydedilen kaydı Bubble gösteriyor olabilir).
+        const byRow = now - rowAt < 6000;
+        const byOther = userAt > stepAt && now - userAt < 6000 && !(savedAt && now - savedAt < 8000);
+        G.userRecord = byRow || byOther;
+        G.userRecordAt = G.userRecord ? now : 0;
       }
 
       // Arka planda: form şu an kişinin mi? Kişi sıranın son adımından sonra formda çalıştıysa ya da (tablodan) bir kayıt
@@ -5698,7 +5832,8 @@
         let showsRecord = false;
         try { showsRecord = hasExistingBubbleData() || isEditPanelOpen; } catch (_) { showsRecord = false; }
         // Açık bırakılıp 2 dk dokunulmayan kayıt (taslak değilse) sıranın yeni kayıt açmasına engel olmaz.
-        if (showsRecord && userAt > selfAt && (now - userAt < 120000 || isFormDirty)) return true;
+        // Süre, kaydın açıldığı ya da formda son çalışılan andan sayılır (sayfanın başka yerindeki tıklamalar uzatmaz).
+        if (showsRecord && G.userRecord && (now - Math.max(Number(G.userRecordAt || 0), formAt) < 120000 || isFormDirty)) return true;
         if (formAt > selfAt && now - formAt < 60000) return true;
         if (isFormDirty && formAt > selfAt) return true;
         return false;
