@@ -6223,6 +6223,73 @@
         return Boolean(el) && el.style.display !== "none";
       }
 
+      // BOS-KAYIT (11.11.2026): NOD'da 04.11'den beri 71 kaydın 20'si boş açıldı. İki yol: (1) kayıt gönderilirken / gönderildikten
+      // hemen sonra ikinci tık (form boşalınca ikinci tık evraksız yeni kayıt açıyordu; 14:26:23 dolu, 14:26:30 boş); (2) Evraklar boşken
+      // "Claim Hazırla" (claim hattı 5 dk sonra Hata yazar). Çubuk gönderimde ve sonraki BDF_FOOTER_COOLDOWN_MS boyunca kilitli; dosya
+      // isteyen aksiyon dosyasız gönderilmez.
+      const BDF_FOOTER_COOLDOWN_MS = 10000;
+      const BDF_ACTION_REQUIRES_FILES = { "Claim Hazırla": "Evraklar" };
+      var bdfFooterLockUntil = 0;
+
+      // Alandaki dosya sayısı (yüklenmiş + Dropzone'da sırada / yüklenen); alan yoksa -1 (koruma devre dışı).
+      function bdf_fieldFileCount(labelOrKey) {
+        const want = String(labelOrKey || "").trim();
+        const fields = (state.config && Array.isArray(state.config.fields)) ? state.config.fields : [];
+        const f = fields.find((x) => x && bdf_isUploadLikeFieldType(x.type)
+          && (String(x.label || "").trim() === want || String(x.key || "").trim() === want));
+        if (!f) return -1;
+        const buf = Array.isArray(state.fileBuffers[f.key]) ? state.fileBuffers[f.key] : [];
+        let n = buf.filter((x) => x && (x.url || x.raw)).length;
+        try {
+          Array.from(document.querySelectorAll(".bubble-uploader-host")).forEach((host) => {
+            if (String(host.dataset.bdfFieldKey || "").trim() !== String(f.key)) return;
+            const dz = bdf_findDropzoneInstance(host);
+            if (dz) n += (dz.files || []).filter((x) => x && x.status !== "error" && x.status !== "canceled").length;
+          });
+        } catch (_) { }
+        return n;
+      }
+
+      // Uyarı çubuğun içinde, düğmelerin üstünde (toast uzun formda görünür alanın dışına düşüyordu); 6 sn sonra kalkar.
+      var bdfFooterMsgTimer = 0;
+      function bdf_footerMessage(text) {
+        const footer = byId("bdfCreateFooter");
+        if (!footer) { bdf_showToast(text, "err"); return; }
+        let m = byId("bdfCreateFooterMsg");
+        if (!m || m.parentNode !== footer) {
+          m = document.createElement("div");
+          m.id = "bdfCreateFooterMsg";
+          m.setAttribute("role", "alert");
+          m.style.cssText = "flex-basis:100%;order:-1;font-size:13px;line-height:1.4;color:var(--gx-err,#dc2626);margin:0 0 6px;";
+          footer.insertBefore(m, footer.firstChild);
+        }
+        m.textContent = text;
+        m.hidden = false;
+        bdf_pinCreateFooter();
+        if (bdfFooterMsgTimer) clearTimeout(bdfFooterMsgTimer);
+        bdfFooterMsgTimer = setTimeout(() => { m.hidden = true; bdf_pinCreateFooter(); }, 6000);
+      }
+
+      function bdf_footerLocked() {
+        return Boolean(isFormSaving) || Date.now() < bdfFooterLockUntil;
+      }
+
+      function bdf_footerClick(run, actionName) {
+        if (bdf_footerLocked()) {
+          try { console.log("[BDF] footer click ignored (saving / just saved)"); } catch (_) { }
+          return;
+        }
+        const need = BDF_ACTION_REQUIRES_FILES[String(actionName || "").trim()];
+        if (need && bdf_fieldFileCount(need) === 0) {
+          bdf_footerMessage(`Upload files to "${need}" first. A claim can't be prepared without documents.`);
+          return;
+        }
+        bdfFooterLockUntil = Date.now() + BDF_FOOTER_COOLDOWN_MS;
+        bdf_renderCreateFooter();
+        setTimeout(bdf_renderCreateFooter, BDF_FOOTER_COOLDOWN_MS + 50);
+        run();
+      }
+
       function bdf_renderCreateFooter() {
         const bdfCreateFooter = byId("bdfCreateFooter");
         if (!bdfCreateFooter) return;
@@ -6247,8 +6314,9 @@
         bdfCreateFooter.hidden = false;
 
         const uploadWaitLabel = bdf_uploadWaitLabel();
-        const busy = Boolean(isWaitingForServerRefresh) || Boolean(uploadWaitLabel);
-        const busyLabel = isWaitingForServerRefresh ? "Loading…" : (uploadWaitLabel || "");
+        const saving = !uploadWaitLabel && bdf_footerLocked();   // BOS-KAYIT
+        const busy = Boolean(isWaitingForServerRefresh) || Boolean(uploadWaitLabel) || saving;
+        const busyLabel = isWaitingForServerRefresh ? "Loading…" : (uploadWaitLabel || (saving ? "Saving…" : ""));
 
         // Aksiyon listesi değişmediyse düğmeleri yeniden kurma; yalnız meşgul durumunu güncelle.
         const key = options.map((o) => `${o.id}|${o.name}`).join("¦");
@@ -6261,7 +6329,7 @@
             btn.className = i === 0 ? "bdf-cf-primary" : "bdf-cf-secondary";
             btn.dataset.label = String(option.name || option.id || "Action");
             btn.textContent = btn.dataset.label;
-            btn.addEventListener("click", () => selectActionAndTrigger(option));
+            btn.addEventListener("click", () => bdf_footerClick(() => selectActionAndTrigger(option), option.name));
             bdfCreateFooter.appendChild(btn);
           });
           const saveBtn = document.createElement("button");
@@ -6270,7 +6338,7 @@
           saveBtn.dataset.label = options.length ? "Save only" : "Create";
           saveBtn.title = "Create the record without running an action";
           saveBtn.textContent = saveBtn.dataset.label;
-          saveBtn.addEventListener("click", () => triggerWithoutAction());
+          saveBtn.addEventListener("click", () => bdf_footerClick(() => triggerWithoutAction(), "Create"));
           bdfCreateFooter.appendChild(saveBtn);
         }
 
