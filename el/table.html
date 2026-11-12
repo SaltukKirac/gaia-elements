@@ -6594,7 +6594,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const g = (j && j.response) ? j.response : j;
       let inner = null;
       if (g && typeof g.final_json === 'string' && g.final_json.trim()) { try { inner = JSON.parse(g.final_json); } catch (e) { inner = null; } }
-      if (!inner && g && typeof g === 'object' && (g.rows || g.data || g.status)) inner = g;
+      if (!inner && g && typeof g === 'object' && (g.rows || g.data || g.status || g.job || g.state)) inner = g;   // GX-SIRALI: the plugin hands back the server's data object itself ({job, durum_url} / {state, ...})
       if (g && String(g.error_message || '').trim()) return { error: 'server', message: String(g.error_message) };
       if (!inner || typeof inner !== 'object') return { error: 'shape', message: 'Unexpected bridge answer.' };
       if (String(inner.status || '').toUpperCase() === 'ERROR') return { error: 'server', message: inner.message || 'Mirror error', kod: inner.kod || '' };
