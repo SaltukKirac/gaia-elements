@@ -5243,9 +5243,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const groups = dtGezGruplar(g.files);
     if (g.folder !== null && groups[g.folder]) return warn + '<ul class="dt-gez-list">' + groups[g.folder].files.map(i => dtGezFileRow(g, i)).join('') + '</ul>';
     // Saltuk 12.11: documents are not put in folders (most are one file); only a set of photos is a folder, in its place in the order
-    return warn + '<ul class="dt-gez-list">' + groups.map((gr, gi) => !dtGezFotoGrup(g, gr) ? gr.files.map(i => dtGezFileRow(g, i)).join('')
-      : `<li class="dt-gez-item" data-gez-key="g${gi}"><button class="dt-gez-folder" type="button" data-gez-act="folder" data-g="${gi}">`
-      + `<span class="dt-gez-ico is-folder">${DT_GEZ_FOLDER_SVG}</span><span class="dt-gez-fname">${escapeHtml(gr.ad)}</span><span class="dt-gez-cnt">${escapeHtml(dtGezCount(gr.files.length) + ' (photos)')}</span></button></li>`).join('') + '</ul>';
+    // 13.11: the files keep the server's order (001, 002, ...); a name label shared by two files ("Poliçe 01" / "Poliçe 02") no longer pulls the second one up
+    const fotoOf = new Map();
+    groups.forEach((gr, gi) => { if (dtGezFotoGrup(g, gr)) gr.files.forEach(i => fotoOf.set(i, gi)); });
+    return warn + '<ul class="dt-gez-list">' + g.files.map((f, i) => {
+      if (!fotoOf.has(i)) return dtGezFileRow(g, i);
+      const gi = fotoOf.get(i), gr = groups[gi];
+      if (gr.files[0] !== i) return '';
+      return `<li class="dt-gez-item" data-gez-key="g${gi}"><button class="dt-gez-folder" type="button" data-gez-act="folder" data-g="${gi}">`
+        + `<span class="dt-gez-ico is-folder">${DT_GEZ_FOLDER_SVG}</span><span class="dt-gez-fname">${escapeHtml(gr.ad)}</span><span class="dt-gez-cnt">${escapeHtml(dtGezCount(gr.files.length) + ' (photos)')}</span></button></li>`;
+    }).join('') + '</ul>';
   }
   // a folder only for a set of photos: at least 3 files (a licence front + back stays in the list), more than half of them pictures (HEIC counts)
   function dtGezFotoGrup(g, gr) {
