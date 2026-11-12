@@ -1,8 +1,8 @@
 {
   "repo": "SaltukKirac/gaia-elements",
   "channel": "klasor",
-  "rev": 62,
-  "updated": "2026-11-12T15:20:38Z",
+  "rev": 63,
+  "updated": "2026-11-12T20:34:14Z",
   "elements": {
     "aithia-pricing": {
       "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -21,12 +21,12 @@
       "updated": "2026-10-27T16:50:45Z"
     },
     "form": {
-      "commit": "9c1bb57c173a0f439af58eda9741dff828bce503",
+      "commit": "5bfee385eed1dde66a00ad964fe3aa9ff97d8739",
       "path": "el/form.html",
-      "blob": "5804cbd2014fad7e2c81ad0bd1b4d29439af82ad",
-      "bytes": 942403,
+      "blob": "c06d87e65b0a847fb7b1000c0464a4be5cf2ed9b",
+      "bytes": 944480,
       "title": "Dynamic form - app page",
-      "updated": "2026-11-12T15:20:38Z"
+      "updated": "2026-11-12T20:34:14Z"
     },
     "onboarding": {
       "commit": "f39ee569c4627b019ecd98938b52097296c54535",
