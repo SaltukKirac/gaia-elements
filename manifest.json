@@ -1,8 +1,8 @@
 {
   "repo": "SaltukKirac/gaia-elements",
   "channel": "saltuk-sirali",
-  "rev": 57,
-  "updated": "2026-11-12T14:02:54Z",
+  "rev": 58,
+  "updated": "2026-11-12T14:17:33Z",
   "elements": {
     "aithia-pricing": {
       "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -53,12 +53,12 @@
       "updated": "2026-09-24T20:35:50Z"
     },
     "table": {
-      "commit": "1a082303e67113f473d4b2a36e1142df9a118338",
+      "commit": "a085630fd8eb0688dde14094cf91a7788d6789e0",
       "path": "el/table.html",
-      "blob": "bbad12a782d6eae77f9eb787ca3c25b48c1f6ccf",
-      "bytes": 689877,
+      "blob": "b6d425a80e183c8cdd1827cdf4142836b7687947",
+      "bytes": 698018,
       "title": "Dynamic table (tablev2) - app page",
-      "updated": "2026-11-12T14:02:54Z"
+      "updated": "2026-11-12T14:17:33Z"
     },
     "template-page": {
       "commit": "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
