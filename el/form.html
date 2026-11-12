@@ -5423,8 +5423,45 @@
       // Chrome gizli sekmede 5 dk sonra zincirli zamanlayıcıları dakikada bire indirir (Bubble'ın kendi işleri de).
       // Sayfada açık bir WebRTC bağlantısı varken bu ağır yavaşlatma uygulanmaz: sıra sürerken sayfa kendi içinde bir
       // veri kanalı açar (ağa bir şey gitmez, izin istemez). Desteklenmezse sessizce geçer.
+      // BULK-ALERT: Bubble'ın dosya yükleyicisi yükleme hatasında window.alert açar ("Error with status code 0" gibi) ve
+      // upload_finished'ı ancak kutu kapanınca çağırır. Yerel uyarı kutusu sayfanın bütün JS'ini durdurur: sıra kişi OK
+      // diyene dek ilerlemez (arka sekmede kimse görmez). 12.11 gerçek denemede ölçüldü. Sıra sürerken uyarı kutusu
+      // açılmaz; metin klasörün notuna ve izine yazılır, sıra kendi hata yolundan devam eder. Sıra bitince eski alert döner.
+      function bdf_bulkAlertGuardOn() {
+        const G = window.__gxBulk;
+        if (!G || G.alertOrig || typeof window.alert !== "function") return;
+        const orig = window.alert;
+        const guard = function (msg) {
+          const g = window.__gxBulk;
+          const job = g && g.running && g.jobs ? g.jobs[g.i] : null;
+          if (g && g.running && (!g.paused || (job && job.st === "upload"))) {
+            const text = String(msg == null ? "" : msg).replace(/\s+/g, " ").trim().slice(0, 160);
+            try {
+              g.alerts = g.alerts || [];
+              g.alerts.push({ t: Date.now(), i: g.i, m: text });
+              if (g.alerts.length > 20) g.alerts.splice(0, g.alerts.length - 20);
+              if (job) job.alertMsg = text;
+            } catch (_) { }
+            console.warn("[BULK] page alert held back while the queue runs:", text);
+            return undefined;
+          }
+          return orig.apply(window, arguments);
+        };
+        guard.__gxBulkGuard = true;
+        G.alertOrig = orig;
+        window.alert = guard;
+      }
+
+      function bdf_bulkAlertGuardOff() {
+        const G = window.__gxBulk;
+        if (!G || !G.alertOrig) return;
+        try { if (window.alert && window.alert.__gxBulkGuard) window.alert = G.alertOrig; } catch (_) { }
+        G.alertOrig = null;
+      }
+
       function bdf_bulkAwakeOn() {
         const G = window.__gxBulk;
+        bdf_bulkAlertGuardOn();
         if (!G || G.rtc || typeof RTCPeerConnection !== "function") return;
         try {
           const a = new RTCPeerConnection();
@@ -5454,6 +5491,7 @@
 
       function bdf_bulkAwakeOff() {
         const G = window.__gxBulk;
+        bdf_bulkAlertGuardOff();
         if (!G || !G.rtc) return;
         try { G.rtc.a.close(); } catch (_) { }
         try { G.rtc.b.close(); } catch (_) { }
@@ -5868,7 +5906,7 @@
         const G = BDF_BULK;
         job.st = "fail";
         job.syncWait = false;
-        job.note = note;
+        job.note = job.alertMsg && String(note || "").indexOf(job.alertMsg) < 0 ? `${note} Uploader said: ${job.alertMsg}` : note;
         G.failStreak = Number(G.failStreak || 0) + 1;
         console.warn("[BULK] folder not created, going on", { folder: job.name, note, streak: G.failStreak });
         bdf_bulkTrace(job, now);
@@ -5922,7 +5960,8 @@
             at: new Date().toISOString(), view: G.view, i: G.i, running: Boolean(G.running), paused: Boolean(G.paused), pm: G.pauseMsg || "",
             bg: Boolean(G.bg), action: G.action ? G.action.name : "",
             jobs: G.jobs.map((j) => ({ n: String(j.name || "").slice(0, 9), st: j.st, note: j.note || "", up: j.up || 0, exp: j.expect || 0, fed: j.fed, why: j.fedWhy || "" })),
-            trace: (G.trace || []).slice(-150)
+            trace: (G.trace || []).slice(-150),
+            alerts: (G.alerts || []).slice(-20)
           };
           localStorage.setItem("gx_bulk_last_run", JSON.stringify(snap));
         } catch (_) { }
