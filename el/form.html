@@ -5005,6 +5005,8 @@
       const BDF_BULK_HIDDEN_SLOW = 3;          // gizli sekmede (ve sekmeye dönüşten sonraki 15 sn) bekleme süreleri bu kat
       const BDF_BULK_FAIL_STREAK = 3;          // üst üste bu kadar klasör oluşmazsa sıra durur (sistemli sorun)
       const BDF_BULK_REFEED_MS = 8000;         // yükleme bitti, hata veren dosya var: bu kadar sessizlikten sonra bir kez yeniden ver
+      const BDF_BULK_LINK_MS = 12000;          // New'den kaydetmeye en az (Bubble kaydı tablo satırına bağlasın; 12.11 ölçüm 7-10 sn)
+      const BDF_BULK_LINK_HIDDEN_MS = 20000;   // gizli sekmede Bubble'ın zamanlayıcıları yavaşlar
       const BDF_BULK_LEDGER_KEY = "gx_bulk_done_v1";
       const BDF_BULK_BG_IDLE_MS = 3000;
       const BDF_BULK_ACTION_KEY = "gx_bulk_action_v1";   // kişinin son seçtiği aksiyon adı (yalnız kolaylık)
@@ -5242,12 +5244,13 @@
           // Tablonun create'i bubble_fn_create yokken sessizce hiçbir şey yapmaz: önce onu yokla.
           if (typeof window.bubble_fn_create === "function" && window.dynamicTable && typeof window.dynamicTable.create === "function") {
             window.dynamicTable.create();
+            if (window.__gxBulk) window.__gxBulk.newAt = Date.now();
             return true;
           }
         } catch (_) { }
         const candidates = [window, window.parent, window.top];
         for (const w of candidates) {
-          try { if (w && typeof w.bubble_fn_create === "function") { w.bubble_fn_create(); return true; } } catch (_) { }
+          try { if (w && typeof w.bubble_fn_create === "function") { w.bubble_fn_create(); if (window.__gxBulk) window.__gxBulk.newAt = Date.now(); return true; } } catch (_) { }
         }
         return false;
       }
@@ -5552,7 +5555,8 @@
         switch (job.st) {
           case "wait": return "Waiting";
           case "open": return job.yield ? "Waiting for you to close the open record" : "Opening a new record";
-          case "upload": return job.syncWait ? "Files uploaded, waiting for the form"
+          case "upload": return job.linkHold ? "Files uploaded, linking the record to your table"
+            : job.syncWait ? "Files uploaded, waiting for the form"
             : `Uploading ${Math.min(job.up || 0, job.expect || 0)} of ${job.expect || 0} files${Number(job.quietMs || 0) > 20000 ? ", waiting for the connection" : ""}`;
           case "save": case "saving": return "Saving";
           case "done": return job.note ? `Created. ${job.note}` : "Created";
@@ -6308,6 +6312,17 @@
             }
           }
           if (job.st === "save") {
+            // BULK-LINK: Bubble kaydı kişinin tablo satırına (referedCollabScreenRows / refereds) New'den ~7-10 sn sonra
+            // bağlayabiliyor; daha erken kaydedilen kayıt bağsız oluşur ve satır kullanıcısı onu tabloda GÖRMEZ.
+            // 12.11 gerçek ölçüm (testeksper33, Save only): New'den 3 / 5 / 6 sn sonra kayıt bağsız, 10 / 14 / 20 sn
+            // sonra bağlı; bekleme önceki kayıttan değil New'den sayılır. Kaydetme New'den en az BDF_BULK_LINK_MS sonra.
+            const linkMs = Number.isFinite(G.linkMs) ? G.linkMs : (document.hidden ? BDF_BULK_LINK_HIDDEN_MS : BDF_BULK_LINK_MS);
+            if (Number(G.newAt || 0) > 0 && now - Number(G.newAt) < linkMs) {
+              job.st = "upload";
+              if (!job.linkHold) { job.linkHold = true; bdf_bulkRender(); }
+              return;
+            }
+            job.linkHold = false;
             job.st = "saving";
             job.saveAt = now;
             console.log("[BULK] save", { folder: job.name, files: count });
