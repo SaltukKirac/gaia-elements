@@ -1639,6 +1639,80 @@
   cursor: progress;
 }
 
+/* GX-SIRALI (12.11): ordered evrak, "PDF" / "ZIP" next to "Fill" (same pill as GX-FILL); four states: idle, working, done, error */
+#dynamic-table-wrapper .dt-sirali {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 176px;   /* Fill and the row's open button always keep their place; a note shrinks first */
+  overflow: hidden;
+  margin-right: 4px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+#dynamic-table-wrapper .dt-sirali > .dt-row-sirali {
+  flex: 0 0 auto;
+}
+#dynamic-table-wrapper .dt-row-sirali {
+  display: inline-block;
+  box-sizing: border-box;
+  height: 24px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--gx-primary, #6366f1);
+  border-radius: 999px;
+  background: var(--gx-surface, #fff);
+  color: var(--gx-primary, #6366f1);
+  font: 600 12px/22px var(--gx-font, system-ui, sans-serif);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease;
+}
+#dynamic-table-wrapper .dt-row-sirali:hover,
+#dynamic-table-wrapper .dt-row-sirali:focus-visible {
+  background: var(--gx-primary, #6366f1);
+  color: #fff;
+}
+#dynamic-table-wrapper .dt-row-sirali:focus-visible {
+  outline: 2px solid var(--gx-ring, rgba(99, 102, 241, .45));
+  outline-offset: 1px;
+}
+#dynamic-table-wrapper .dt-row-sirali.is-busy,
+#dynamic-table-wrapper .dt-row-sirali.is-busy:hover {
+  background: var(--gx-surface, #fff);
+  color: var(--gx-primary, #6366f1);
+  opacity: .75;
+  cursor: progress;
+  font-variant-numeric: tabular-nums;
+}
+#dynamic-table-wrapper .dt-row-sirali.is-done {
+  background: var(--gx-primary, #6366f1);
+  color: #fff;
+}
+#dynamic-table-wrapper .dt-row-sirali.is-err {
+  border-color: var(--gx-err, #dc2626);
+  color: var(--gx-err, #dc2626);
+}
+#dynamic-table-wrapper .dt-row-sirali.is-err:hover,
+#dynamic-table-wrapper .dt-row-sirali.is-err:focus-visible {
+  background: var(--gx-err, #dc2626);
+  color: #fff;
+}
+#dynamic-table-wrapper .dt-sirali-note {
+  flex: 0 1 auto;
+  min-width: 24px;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--gx-ink-2, #475569);
+  font: 500 11px/24px var(--gx-font, system-ui, sans-serif);
+  cursor: help;
+}
+#dynamic-table-wrapper .dt-sirali-note.is-err {
+  color: var(--gx-err, #dc2626);
+}
+
 /* ── Yatay kaydırma (25.09) ──────────────────────────────────────────────────
    İlk kolon sabit (JS fixedColumnsStart) → kaydırılınca kenarında gölge; sağda devamı varken solma + ok;
    satırı aç düğmesi satır başlığında (hover / mobilde hep), satır vurgusu klonlar arası (.dt-row-hover);
@@ -3799,7 +3873,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return {
       id: UI_ACTIONS_COL_ID,
       header: '',
-      width: 92,
+      width: 92 + dtSiraliExtraW(),   // GX-SIRALI: room for the PDF / ZIP pills on a claim table
       readOnly: true,
       type: 'text',
       sourceKeys: [UI_ACTIONS_COL_ID],
@@ -3949,14 +4023,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const mod = Number(row && row._gxDurumMod) || aynaLiveTime(row && row._modified);
     if (!id) return mod || 0;
     const key = id + '|' + st, prev = _dtWaitStart.get(key);
-    const at = mod ? (prev ? Math.min(prev, mod) : mod) : (prev || Date.now());
+    const at = mod ? (prev ? Math.min(prev, mod) : mod) : (prev || dtNow());   // CANLI-VERI: the server's clock (mod is Bubble's)
     _dtWaitStart.set(key, at);
     return at;
   }
   function dtClaimTimeText(row, st) {
     if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued')) return '';
     const at = dtWaitStart(row, st);
-    const min = at ? Math.max(0, Math.floor((Date.now() - at) / 60000)) : null;
+    const min = at ? Math.max(0, Math.floor((dtNow() - at) / 60000)) : null;   // CANLI-VERI: a browser clock 28 s fast said "1 min" 28 s early
     if (st === 'queued') return min === null ? '' : (min < 1 ? '<1 min' : min + ' min');
     const n = dtEvrakCount(row);
     const est = (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
@@ -4008,9 +4082,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!had) out.push('"Durum": "Claim Hazırlanıyor"');
       const w = await fetch(u, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonarray: out }) });
       if (!w.ok) throw new Error('write ' + w.status);
+      dtLiveTouch([id]);   // CANLI-VERI: the other viewers see it at their next look
       const cols = AYNA.fields.length ? AYNA.fields : (AYNA.cfg ? aynaFieldsOf(AYNA.cfg.columns) : []);
       const dc = cols.find(c => dtNormKey(c) === 'durum') || 'Durum';
-      const now = Date.now();
+      const now = dtNow();   // CANLI-VERI: compared with the mirror's _modified (the server's clock)
       _dtDirect.set(id, { mod: now, fields: { [dc]: 'Claim Hazırlanıyor' } });   // GX-DIRECT shows it before the mirror does
       _dtAsama.set(id, { mod: now, text: 'Tekrar sırada' });
       _dtWaitStart.delete(id + '|preparing'); _dtWaitStart.set(id + '|preparing', now);   // TIDY-CLAIMTIME: a new clock
@@ -4123,6 +4198,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const g = dtTableHasClaimField();
       if (g === _dtFillGate) return;
       _dtFillGate = g;
+      if (g) dtSiraliWiden();   // GX-SIRALI
       if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render());
     } catch (e) {}
   }
@@ -4279,6 +4355,172 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) {}
   }
   /* GX-FILL-END */
+
+  /* GX-SIRALI-BEGIN (12.11) */
+  // GX-SIRALI (12.11.2026, NOD x GAIA customer complaint): eksper offices sort a claim's documents into a fixed order and print them
+  // straight; in Gaia a record's files sit in upload order. Two pills next to "Fill" on the same rows (dtFillState):
+  //   "PDF" → one print-ready PDF in the office order · "ZIP" (Klasör) → numbered, named files in the same order.
+  // Click → bridge op evrak_sirali {id, bicim} (server: same walls as mirror_get, the job builds in the background) → evrak_sirali_durum
+  // {job} every ~2 s, "k/n" on the pill → the result opens in a new tab (when the browser still allows it) and the pill becomes
+  // "Open PDF" / "Open ZIP" (a plain link, 15 min, as long as the server keeps the file). Skipped files: "N skipped" beside it, the
+  // names and reasons in its tooltip. An error stays in place ("Retry" + the reason), never a silent fail. A second press while a
+  // job runs does nothing; the server joins the same job anyway. The order itself lives on the server (octo_evrak_sirali.js).
+  // State by row id and format survives re-renders. Off: window.__gxNoSirali = true.
+  const DT_SIRALI_FMT = ['pdf', 'zip'];
+  const DT_SIRALI_LBL = { pdf: 'PDF', zip: 'ZIP' };
+  const DT_SIRALI_TIP = { pdf: 'Ordered PDF: all documents in office order, ready to print', zip: 'Klasör (ZIP): numbered files in office order' };
+  const DT_SIRALI_W = 160;           // extra width of the actions column on a table that shows the pills
+  const DT_SIRALI_POLL_MS = [2000, 3000];   // first minute every 2 s, then every 3 s
+  const DT_SIRALI_MAX_MS = 15 * 60000;
+  const _dtSirali = new Map();       // id|bicim → { st: 'working'|'done'|'error', job, k, n, queued, skipped, url, exp, msg, t0, fails }
+  function dtSiraliKey(id, bicim) { return id + '|' + bicim; }
+  function dtSiraliOn(raw) {
+    try {
+      if (window.__gxNoSirali || !raw || raw.__gxPend || !rowIdOf(raw)) return false;
+      if (!dtFillState(raw)) return false;   // the NOD x GAIA rows GX-FILL serves (a table with a Claim field)
+      return dtEvrakCount(raw) !== 0;         // an Evraklar list the row itself says is empty
+    } catch (e) { return false; }
+  }
+  function dtSiraliExtraW() { try { return (!window.__gxNoSirali && dtTableHasClaimField()) ? DT_SIRALI_W : 0; } catch (e) { return 0; } }
+  // the gate turned on after the grid was mounted (field list arrived later): widen the actions column now; the next mount keeps it
+  function dtSiraliWiden() {
+    try {
+      if (!state.hot || state.hot.isDestroyed || !dtSiraliExtraW()) return;
+      const cols = state._mountedCols || [];
+      const i = cols.findIndex(c => c && c.__uiOnly);
+      if (i < 0 || (Number(cols[i].width) || 0) >= 92 + DT_SIRALI_W) return;
+      state.hot.getPlugin('manualColumnResize').setManualSize(i, 92 + DT_SIRALI_W);
+    } catch (e) {}
+  }
+  function dtSiraliSkippedTip(s) {
+    const l = Array.isArray(s.skipped) ? s.skipped : [];
+    const lines = l.slice(0, 12).map(x => String((x && x.name) || 'file') + ': ' + String((x && x.reason) || 'skipped'));
+    if (s.skippedCount > lines.length) lines.push('and ' + (s.skippedCount - lines.length) + ' more');
+    return 'Not in the ' + (s.bicim === 'zip' ? 'ZIP' : 'PDF') + ':\n' + lines.join('\n');
+  }
+  function dtSiraliOne(id, bicim) {
+    const key = dtSiraliKey(id, bicim);
+    let s = _dtSirali.get(key);
+    if (s && s.st === 'done' && Date.now() > s.exp) { _dtSirali.delete(key); s = null; }   // the link has expired: back to idle
+    const lbl = DT_SIRALI_LBL[bicim];
+    if (!s) return [`<button class="dt-row-sirali" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(DT_SIRALI_TIP[bicim])}" title="${escapeHtml(DT_SIRALI_TIP[bicim])}">${lbl}</button>`, ''];
+    if (s.st === 'working') {
+      const txt = s.queued ? 'Queued' : (s.n ? s.k + '/' + s.n : 'Starting');
+      const tip = s.queued ? 'Waiting for other files to finish' : (s.n ? 'Putting the ' + lbl + ' together: ' + s.k + ' of ' + s.n + ' files' : 'Reading the record files');
+      return [`<button class="dt-row-sirali is-busy" type="button" data-bicim="${bicim}" aria-busy="true" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(txt)}</button>`, ''];
+    }
+    if (s.st === 'done') {
+      const tip = 'Open the ' + lbl + ' in a new tab (link works for 15 min)';
+      const skip = s.skippedCount ? `<span class="dt-sirali-note" title="${escapeHtml(dtSiraliSkippedTip(s))}">${s.skippedCount} skipped</span>` : '';
+      return [`<a class="dt-row-sirali is-done" data-bicim="${bicim}" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">Open ${lbl}</a>`, skip];
+    }
+    const msg = s.msg || 'Something went wrong.';
+    const etip = lbl + ' failed: ' + msg + ' Press to try again.';
+    return [`<button class="dt-row-sirali is-err" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(etip)}" title="${escapeHtml(etip)}">Retry</button>`,
+      `<span class="dt-sirali-note is-err" title="${escapeHtml(msg + (s.skippedCount ? '\n\n' + dtSiraliSkippedTip(s) : ''))}">${escapeHtml(msg)}</span>`];
+  }
+  // pills first, notes after them (a long note is cut with an ellipsis; the pills and the row's open button stay whole)
+  function dtSiraliInner(id) {
+    const parts = DT_SIRALI_FMT.map(b => dtSiraliOne(id, b));
+    return parts.map(p => p[0]).join('') + parts.map(p => p[1]).join('');
+  }
+  function dtSiraliHtml(raw) {
+    if (!dtSiraliOn(raw)) return '';
+    const id = rowIdOf(raw);
+    return `<span class="dt-sirali" role="group" aria-label="Documents in office order" data-gx-sirali="${escapeHtml(id)}">` + dtSiraliInner(id) + '</span>';
+  }
+  function dtSiraliPaint(id) {   // the pills of one row, in place (no full grid render)
+    try {
+      if (!els.container) return;
+      els.container.querySelectorAll('.dt-sirali').forEach(el => {
+        if (el.getAttribute('data-gx-sirali') !== id) return;
+        const had = el.contains(document.activeElement) && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-bicim') : '';
+        el.innerHTML = dtSiraliInner(id);
+        if (had) { const f = el.querySelector('[data-bicim="' + had + '"]'); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} }
+      });
+    } catch (e) {}
+  }
+  function dtSiraliFail(id, bicim, s, msg) {
+    s.st = 'error'; s.msg = String(msg || 'The file could not be made. Try again.');
+    dtSiraliPaint(id);
+    showWakeToast((DT_SIRALI_LBL[bicim] || 'File') + ': ' + s.msg, 'error');
+  }
+  function dtSiraliTake(s, d) {
+    s.k = Number(d.done) || 0; s.n = Number(d.total) || 0; s.queued = d.state === 'queued';
+    s.skipped = Array.isArray(d.skipped) ? d.skipped : [];
+    s.skippedCount = Number(d.skipped_count) || s.skipped.length;
+  }
+  async function dtSiraliStart(raw, bicim) {
+    const id = rowIdOf(raw);
+    if (!id || DT_SIRALI_FMT.indexOf(bicim) < 0) return;
+    const key = dtSiraliKey(id, bicim), cur = _dtSirali.get(key);
+    if (cur && cur.st === 'working') return;   // double press: the job already runs
+    if (cur && cur.st === 'done' && Date.now() < cur.exp) { window.open(cur.url, '_blank', 'noopener'); return; }
+    const s = { st: 'working', bicim: bicim, job: '', k: 0, n: 0, queued: false, skipped: [], skippedCount: 0, url: '', exp: 0, msg: '', t0: Date.now(), fails: 0 };
+    _dtSirali.set(key, s);
+    dtSiraliPaint(id);
+    const r = await aynaBridge('evrak_sirali', { id: id, bicim: bicim }, null, { timeoutMs: 25000 });
+    if (_dtSirali.get(key) !== s) return;
+    if (!r || !r.ok || !r.data || !r.data.job) {
+      const m = (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : (r && r.error === 'server' && r.message) ? String(r.message)
+        : (r && r.error === 'timeout') ? 'Gaia did not answer in time. Try again.' : 'Could not start. Try again.';
+      dtSiraliFail(id, bicim, s, m);
+      return;
+    }
+    s.job = String(r.data.job);
+    dtSiraliPoll(id, bicim, s);
+  }
+  async function dtSiraliPoll(id, bicim, s) {
+    const key = dtSiraliKey(id, bicim);
+    while (_dtSirali.get(key) === s && s.st === 'working') {
+      const wait = (Date.now() - s.t0 < 60000) ? DT_SIRALI_POLL_MS[0] : DT_SIRALI_POLL_MS[1];
+      await new Promise(res => setTimeout(res, wait));
+      if (_dtSirali.get(key) !== s) return;
+      if (Date.now() - s.t0 > DT_SIRALI_MAX_MS) { dtSiraliFail(id, bicim, s, 'This is taking too long. Try again later.'); return; }
+      const r = await aynaBridge('evrak_sirali_durum', { job: s.job }, null, { timeoutMs: 15000 });
+      if (_dtSirali.get(key) !== s) return;
+      if (!r || !r.ok || !r.data) {
+        if (r && r.error === 'server') { dtSiraliFail(id, bicim, s, r.message || 'This file is no longer available. Make it again.'); return; }
+        if (++s.fails >= 4) { dtSiraliFail(id, bicim, s, (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : 'Lost contact with Gaia. Try again.'); return; }
+        continue;   // a lost answer (network, a waking server): ask again
+      }
+      s.fails = 0;
+      const d = r.data;
+      dtSiraliTake(s, d);
+      if (d.state === 'ready' && d.url) {
+        s.st = 'done'; s.url = String(d.url);
+        s.exp = Date.now() + Math.max(30, Math.min(900, Number(d.expires_in_s) || 900)) * 1000 - 15000;
+        dtSiraliPaint(id);
+        try { if (navigator.userActivation && navigator.userActivation.isActive) window.open(s.url, '_blank', 'noopener'); } catch (e) {}
+        showWakeToast((DT_SIRALI_LBL[bicim] || 'File') + ' ready' + (s.skippedCount ? ', ' + s.skippedCount + ' file' + (s.skippedCount === 1 ? '' : 's') + ' skipped' : '') + '. Use "Open ' + DT_SIRALI_LBL[bicim] + '" on the row.', 'success');
+        setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, Math.max(0, s.exp - Date.now()));
+        return;
+      }
+      if (d.state === 'error') { dtSiraliFail(id, bicim, s, d.message); return; }
+      dtSiraliPaint(id);
+    }
+  }
+  // the row of a pill (same lookup as GX-FILL)
+  function dtSiraliRowOf(el) {
+    const td = el && el.closest ? el.closest('td') : null;
+    if (!td || !state.hot) return null;
+    const coords = state.hot.getCoords(td);
+    if (!coords || typeof coords.row !== 'number' || coords.row < 0) return null;
+    const p = state.hot.toPhysicalRow(coords.row), dr = state.displayRows[p];
+    return dr ? state.rawRows[dr.__sourceIndex] : null;
+  }
+  function dtSiraliAttach(container) {
+    container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-sirali') : null; if (b) event.stopPropagation(); }, true);
+    container.addEventListener('click', event => {
+      const el = event.target && event.target.closest ? event.target.closest('.dt-row-sirali') : null;
+      if (!el) return;
+      event.stopPropagation();
+      if (el.tagName === 'A') return;   // "Open PDF": the link opens in a new tab by itself
+      event.preventDefault();
+      try { const raw = dtSiraliRowOf(el); if (raw) dtSiraliStart(raw, el.getAttribute('data-bicim')); } catch (e) {}
+    }, true);
+  }
+  /* GX-SIRALI-END */
 
   function normalizeRow(row, index) {
     if (row && typeof row === 'object' && !Array.isArray(row)) {
@@ -4627,6 +4869,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     els.container.addEventListener('click', handleCellLinkClick, true);
     // GX-FILL: "Fill on portal" (the package goes to the extension; the row is not opened, and the press does not select it)
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null; if (b) event.stopPropagation(); }, true);
+    dtSiraliAttach(els.container);   // GX-SIRALI: PDF / ZIP pills (the press does not select or open the row)
     // TIDY-STAGE: "Retry" on a Failed claim cell
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-claim-retry') : null; if (b) event.stopPropagation(); }, true);
     els.container.addEventListener('click', event => {
@@ -5204,9 +5447,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
             width: col.width,
             renderer: (instance, td, visualRow) => {
               // GX-FILL: "Fill on portal" before "Open record" on a row with a claim package (or one that may have it)
-              let fill = '';
-              try { const p = instance.toPhysicalRow(visualRow), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; fill = dtFillButtonHtml(dtFillState(raw)); } catch (e) { fill = ''; }
-              td.innerHTML = fill + `<button class="dt-row-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
+              let fill = '', sirali = '';
+              try { const p = instance.toPhysicalRow(visualRow), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; fill = dtFillButtonHtml(dtFillState(raw)); sirali = dtSiraliHtml(raw); } catch (e) { fill = ''; sirali = ''; }   // GX-SIRALI: PDF / ZIP after Fill
+              td.innerHTML = fill + sirali + `<button class="dt-row-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
             }
           };
         }
@@ -6215,16 +6458,29 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // one bridge call → { ok, data } | { error }; an outer controller lets a newer search / page abort the one in flight;
   // mr18: opts.timeoutMs per call (field read 8 s, field write 20 s; row loads keep AYNA.timeoutMs)
+  // CANLI-VERI: a mirror_screen call goes straight to the server while the table holds a live ticket; anything else, or a refused
+  // / failed direct call, goes through the Bubble bridge as before
   async function aynaBridge(op, payload, outerCtrl, opts) {
+    if (op === 'mirror_screen' && dtLiveOk()) {
+      const tms = (opts && Number(opts.timeoutMs) > 0) ? Number(opts.timeoutMs) : AYNA.timeoutMs;
+      const d = await dtLiveScreen(payload, outerCtrl, tms);
+      if (d) return d;
+      if (outerCtrl && outerCtrl.signal && outerCtrl.signal.aborted) return { error: 'timeout', message: 'aborted' };
+    }
+    return aynaBridgeCall(op, payload, outerCtrl, opts);
+  }
+  async function aynaBridgeCall(op, payload, outerCtrl, opts) {
     const ctrl = outerCtrl || ((typeof AbortController === 'function') ? new AbortController() : null);
     const tms = (opts && Number(opts.timeoutMs) > 0) ? Number(opts.timeoutMs) : AYNA.timeoutMs;
     const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, tms) : null;
     try {
+      const t0 = Date.now();   // CANLI-VERI: the server clock sample
       const r = await fetch(aynaBridgeUrl(), {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ op: op, bridge_payload: JSON.stringify(payload || {}) }), signal: ctrl ? ctrl.signal : undefined
       });
       const text = await r.text();
+      const t1 = Date.now();
       let j = null; try { j = JSON.parse(text); } catch (e) {}
       if (r.status === 401 || r.status === 403) return { error: 'session', message: 'Sign in to Gaia to load this table.' };
       if (r.status === 404) return { error: 'no-bridge', message: 'The Gaia bridge workflow is missing.' };
@@ -6242,7 +6498,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // answered 12/12 four seconds later, to a closed socket). A timeout = outcome unknown (a write may still land).
       const st = String(inner.status || '').toUpperCase();
       if (st && st !== 'SUCCESS' && st !== 'OK') return { error: 'timeout', waking: true, kod: st, message: 'The Gaia server did not answer in time (it was probably waking up).' };
-      return { ok: true, data: inner.data && typeof inner.data === 'object' && !inner.rows && !inner.cols ? inner.data : inner };
+      const data = inner.data && typeof inner.data === 'object' && !inner.rows && !inner.cols ? inner.data : inner;
+      try {   // CANLI-VERI: the server's clock, and a fresh live ticket on a mirror_screen answer
+        dtSaatNoteSrv(inner.server_now || (data && data.mirror && data.mirror.server_now), t0, t1);
+        if (op === 'mirror_screen' && data && data.live) dtLiveTake(data.live, t1);
+      } catch (e) {}
+      return { ok: true, data: data };
     } catch (e) {
       return { error: (e && e.name === 'AbortError') ? 'timeout' : 'network', message: (e && e.message) || String(e) };
     } finally { if (timer) clearTimeout(timer); }
@@ -6413,6 +6674,178 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
     } catch (e) { log('[GX-GONE] ' + ((e && e.message) || e)); }
   }
+  /* GX-SAAT (12.11, Saltuk: "sildim, hâlâ görüyorum" · "Claim hazırlanıyor görünen kayıt güven vermiyor"). A pending row (GX-PEND)
+     was matched to the mirror's row of its record by time only: a row created from 20 s before the save on. The save time was the
+     BROWSER's clock, the row's _created Bubble's. The founder's laptop ran 28 s fast (Windows time service stopped), so no real row
+     was ever "late enough": every save left a "Preparing…" twin without an id for 30 min next to the real row (the real row
+     deleted → the twin stayed; its claim ready → the twin still said Preparing…). GX-DUP and GX-PEND-SIL searched Bubble from the
+     same skewed time and missed the record too. Now:
+       · a pending row and a record are the same when they share an upload: every Bubble file address carries its own upload id
+         (/f<digits>x<digits>/, cdn.bubble.io and /fileupload/ alike); the mirror row's Evraklar holds the ids the form uploaded,
+         whatever the clocks say. A record older than 10 min that holds the same address (a copy) is not it.
+       · every comparison of a browser time with Bubble's dates first moves it onto Bubble's clock: the offset comes from the Date
+         header of a HEAD on the page's own origin (once per save, again after 10 min) and of the table's Data API calls; under
+         2 s it counts as 0 (the header is cut to the second).
+     Off: window.__gxNoSaat = true (time only, browser clock: the old behaviour). */
+  var DT_SAAT = { minMs: 2000, refreshMs: 10 * 60000, fileWindowMs: 10 * 60000 };
+  var _dtSaat = { ms: 0, n: 0, at: 0, busy: false };
+  // a same-origin answer (fetch Response) taken between browser times t0 and t1: its Date header updates the offset
+  function dtSaatNote(r, t0, t1) {
+    try {
+      const h = r && r.headers && typeof r.headers.get === 'function' ? r.headers.get('Date') : null;
+      const s = h ? Date.parse(h) : NaN;
+      if (!isFinite(s) || !t0 || !t1 || t1 < t0 || t1 - t0 > 10000) return;
+      const k = (t0 + t1) / 2 - (s + 500);   // the header is cut to the second: +500 ms on average
+      _dtSaat.ms = _dtSaat.n ? Math.round(_dtSaat.ms * 0.6 + k * 0.4) : Math.round(k);
+      _dtSaat.n++; _dtSaat.at = Date.now();
+    } catch (e) {}
+  }
+  // the browser's clock minus Bubble's (ms): 0 while unknown, under the threshold, or switched off. CANLI-VERI: a server-clock
+  // sample (ms exact, the mirror's server_now) wins over the Date header (cut to the second) while it is under 15 min old.
+  function dtSaatMs() {
+    if (window.__gxNoSaat) return 0;
+    if (_dtSrv && _dtSrv.n && Date.now() - _dtSrv.at < DT_LIVE.srvMaxAgeMs) return Math.abs(_dtSrv.ms) >= DT_LIVE.srvMinMs ? _dtSrv.ms : 0;   // var-hoisted: undefined until this part of the script ran
+    return (_dtSaat.n && Math.abs(_dtSaat.ms) >= DT_SAAT.minMs) ? _dtSaat.ms : 0;
+  }
+  // a browser time on Bubble's clock
+  function dtSaatSrv(t) { return Number(t) - dtSaatMs(); }
+  // CANLI-VERI: now on the server's clock (Render and Bubble keep real time; this browser may not)
+  function dtNow() { return Date.now() - dtSaatMs(); }
+  /* CANLI-VERI (12.11, Saltuk: "local pc saatine göre database göstermek ne kadar sağlıklı? bize düzgün bir canlı data deneyimi ver,
+     maliyeti de göz önüne al"). The table half of the server's live layer (composio-agent-api octo_live.js, mirror l1):
+       · clock: every mirror answer carries server_now (ms). The table keeps the best sample, the one with the shortest round trip:
+         its error is at most half of it. A sample that disagrees with the kept one by more than both error bounds means the clock
+         jumped (the user set the time) and replaces it at once. Every time the table compares with the server's dates goes through
+         dtNow() / dtSaatSrv(): the GX-PEND match, PEND-SIL, GX-DUP, the Preparing / Queued minutes (TIDY-CLAIMTIME), GX-DIRECT.
+       · direct: a signed-in mirror_screen answer through the bridge carries a 15 min ticket (live: {url, t, exp, server_now}).
+         With it every mirror_screen call (load, page, probe, refresh) goes straight to the server (POST, text/plain: no
+         preflight). It is the same answer behind the same walls, without a Bubble workflow run per call: the probes were most of
+         the "Workflow: bridge" workload units. 3 min before the end the calls go through the bridge again, and its answer brings
+         a new ticket (about one bridge call per 12 min per tab). A refused ticket (401) is dropped. A refused origin or a server
+         without tickets (403 / 404) closes the direct path for 30 min, two failures in a row for 5 min, a rate answer (429) for
+         1 min. In every such case the call goes through the bridge, as before.
+       · GX-DIRECT reads its Preparing / Queued / Failed rows from the mirror (one direct call for all of them, hidden rows
+         flagged) instead of one Bubble Data API read per row every 5 s. The claim lines now write their records into the mirror
+         at once (touch), so the mirror is as new as Bubble for them. Without a ticket: Bubble, as before.
+       · touch: the table's own writes (a confirmed delete, Retry, a pending row's record deleted) ask the server to read those
+         records into the mirror now, so the other viewers see them at their next probe.
+     Off: window.__gxNoLive = true (bridge only, GX-DIRECT from Bubble; the clock part follows window.__gxNoSaat). */
+  var DT_LIVE = { srvMaxAgeMs: 15 * 60000, srvMinMs: 1000, srvRefreshMs: 5 * 60000, renewBeforeMs: 3 * 60000, timeoutMs: 12000, failOffMs: 5 * 60000, deniedOffMs: 30 * 60000, rateOffMs: 60000 };
+  var _dtSrv = { ms: 0, rtt: 0, at: 0, n: 0 };
+  // a server answer (server_now, ms) received between browser times t0 and t1
+  function dtSaatNoteSrv(serverNow, t0, t1) {
+    try {
+      const s = Number(serverNow);
+      if (!isFinite(s) || s <= 0 || !t0 || !t1 || t1 < t0 || t1 - t0 > 20000) return;
+      const rtt = t1 - t0, k = Math.round((t0 + t1) / 2 - s), now = Date.now();
+      const take = !_dtSrv.n || now - _dtSrv.at > DT_LIVE.srvRefreshMs || rtt < _dtSrv.rtt
+        || Math.abs(k - _dtSrv.ms) > (rtt + _dtSrv.rtt) / 2 + 250;   // the clock jumped
+      if (!take) return;
+      const was = _dtSrv.n ? _dtSrv.ms : null;
+      _dtSrv.ms = k; _dtSrv.rtt = rtt; _dtSrv.at = now; _dtSrv.n++;
+      if (Math.abs(k) >= DT_LIVE.srvMinMs && (was === null || Math.abs(was - k) >= DT_LIVE.srvMinMs)) log('[GX-SAAT] this browser\'s clock is ' + Math.round(k / 100) / 10 + ' s off the server\'s; the table uses the server\'s clock');
+    } catch (e) {}
+  }
+  function dtSaatLearn(force) {
+    try {
+      if (window.__gxNoSaat || _dtSaat.busy || typeof fetch !== 'function') return;
+      if (!force && _dtSrv && _dtSrv.n && Date.now() - _dtSrv.at < DT_LIVE.srvMaxAgeMs) return;   // CANLI-VERI: the mirror's answers keep the clock
+      if (!force && _dtSaat.n && Date.now() - _dtSaat.at < DT_SAAT.refreshMs) return;
+      _dtSaat.busy = true;
+      const t0 = Date.now();
+      fetch(location.origin + '/robots.txt', { method: 'HEAD', cache: 'no-store', credentials: 'omit' })   // 200, no body; /favicon.ico is a 404 on Gaia
+        .then(r => {
+          dtSaatNote(r, t0, Date.now());
+          if (dtSaatMs()) log('[GX-SAAT] this browser\'s clock is ' + Math.round(_dtSaat.ms / 1000) + ' s off Bubble\'s; pending rows use Bubble\'s clock');
+        })
+        .catch(() => {})
+        .then(() => { _dtSaat.busy = false; });
+    } catch (e) { _dtSaat.busy = false; }
+  }
+  // CANLI-VERI: the ticket of the last bridge answer; until = its end on THIS browser's clock (its life, not the server's date)
+  var _dtLive = null;   // { url, t, until, fails, offUntil }
+  function dtLiveTake(lv, t1) {
+    try {
+      if (window.__gxNoLive || !lv || typeof lv.t !== 'string' || !lv.t || !/^https:\/\/[^\s]+$/.test(String(lv.url || ''))) return;
+      const life = Number(lv.exp) - Number(lv.server_now);
+      if (!(life > 60000) || life > 24 * 3600000) return;
+      const prev = _dtLive;
+      const same = !!(prev && prev.url === String(lv.url));   // failures belong to the path, not the ticket: a new ticket keeps them
+      _dtLive = { url: String(lv.url), t: lv.t, until: (t1 || Date.now()) + life, fails: same ? (prev.fails || 0) : 0, offUntil: same ? (prev.offUntil || 0) : 0 };
+    } catch (e) {}
+  }
+  function dtLiveOk() {
+    const L = _dtLive;
+    if (!L || window.__gxNoLive) return false;
+    const now = Date.now();
+    return now < L.until - DT_LIVE.renewBeforeMs && now >= (L.offUntil || 0);
+  }
+  // one direct call: { ok, j } · { fallback, rate? } (use the bridge / skip) · { error } (the caller gave up: aborted)
+  async function dtLiveCall(op, body, outer, tms) {
+    const L = _dtLive;
+    if (!L) return { fallback: true };
+    const sig = outer && outer.signal;
+    if (sig && sig.aborted) return { error: 'timeout', message: 'aborted' };
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const onOuter = () => { try { if (ctrl) ctrl.abort(); } catch (e) {} };
+    if (sig && sig.addEventListener) sig.addEventListener('abort', onOuter);
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, Math.min(Number(tms) > 0 ? Number(tms) : DT_LIVE.timeoutMs, DT_LIVE.timeoutMs)) : null;
+    const t0 = Date.now();
+    const fail = () => { L.fails = (L.fails || 0) + 1; if (L.fails >= 2) { L.offUntil = Date.now() + DT_LIVE.failOffMs; log('[CANLI-VERI] direct calls off for 5 min (no answer), the bridge carries them'); } return { fallback: true }; };
+    try {
+      const r = await fetch(L.url, { method: 'POST', mode: 'cors', credentials: 'omit', cache: 'no-store', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(Object.assign({ t: L.t, op: op }, body || {})), signal: ctrl ? ctrl.signal : undefined });
+      const t1 = Date.now();
+      let j = null; try { j = await r.json(); } catch (e) { j = null; }
+      if (j && j.server_now) dtSaatNoteSrv(j.server_now, t0, t1);
+      if (r.status === 401) { if (_dtLive === L) _dtLive = null; return { fallback: true }; }
+      if (r.status === 429) { L.offUntil = Date.now() + DT_LIVE.rateOffMs; return { fallback: true, rate: true }; }
+      if (r.status === 403 || r.status === 404) { L.offUntil = Date.now() + DT_LIVE.deniedOffMs; log('[CANLI-VERI] direct calls refused (' + r.status + '), the bridge carries them'); return { fallback: true }; }
+      if (!r.ok || !j || typeof j !== 'object') return fail();
+      L.fails = 0;
+      return { ok: true, j: j };
+    } catch (e) {
+      if (sig && sig.aborted) return { error: 'timeout', message: 'aborted' };
+      return fail();
+    } finally { if (timer) clearTimeout(timer); if (sig && sig.removeEventListener) sig.removeEventListener('abort', onOuter); }
+  }
+  // mirror_screen straight to the server: the bridge's answer shape, or null (the bridge takes the call)
+  async function dtLiveScreen(payload, outer, tms) {
+    const d = await dtLiveCall('screen', { p: payload || {} }, outer, tms);
+    if (d.error) return d;
+    if (!d.ok) return null;
+    const inner = d.j;
+    if (String(inner.status || '').toUpperCase() === 'ERROR') return inner.kod ? null : { error: 'server', message: inner.message || 'Mirror error', kod: '' };   // a transport refusal (kod) goes to the bridge; the screen's own error is the answer
+    if (String(inner.status || '').toUpperCase() !== 'SUCCESS') return null;
+    return { ok: true, direct: true, data: inner.data && typeof inner.data === 'object' && !inner.rows && !inner.cols ? inner.data : inner };
+  }
+  // the table's own writes reach the mirror now (the server reads them from Bubble); delayMs lets Bubble's workflow land first
+  function dtLiveTouch(ids, delayMs) {
+    try {
+      const list = (Array.isArray(ids) ? ids : []).map(String).filter(Boolean).slice(0, 20);
+      if (!list.length || !dtLiveOk()) return;
+      setTimeout(() => { try { dtLiveCall('touch', { ids: list }, null, 10000).catch(() => {}); } catch (e) {} }, Math.max(0, Number(delayMs) || 0));
+    } catch (e) {}
+  }
+  // the upload ids anywhere in a value (strings, arrays, objects; a JSON text of addresses too)
+  function dtUploadIds(v) {
+    const out = new Set(), re = /\/f(\d{6,}x\d{6,})\//g;
+    const walk = (x, d) => {
+      if (d > 4 || x == null) return;
+      if (typeof x === 'string') { if (x.indexOf('/f') < 0) return; re.lastIndex = 0; let m; while ((m = re.exec(x))) out.add(m[1]); return; }
+      if (Array.isArray(x)) { x.forEach(y => walk(y, d + 1)); return; }
+      if (typeof x === 'object') Object.keys(x).forEach(k => walk(x[k], d + 1));
+    };
+    try { walk(v, 0); } catch (e) {}
+    return out;
+  }
+  // two values share at least one upload (a Set is taken as the ids themselves)
+  function dtUploadShare(a, b) {
+    const x = a instanceof Set ? a : dtUploadIds(a); if (!x.size) return false;
+    const y = b instanceof Set ? b : dtUploadIds(b);
+    for (const k of y) { if (x.has(k)) return true; }
+    return false;
+  }
+
   /* GX-PEND (29.10, Ömer): a record saved in the form shows in the table at once ("Claim Hazırla dediğim anda tabloya düşsün").
      The mirror learns of Bubble's create 10-20 s later at best (29.10: it stalled for 27 min), so the row waited for it.
      Now the table builds the row from what the form handed Bubble (output_full_obj: the same field names as the table's
@@ -6449,16 +6882,27 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!list.length) return base;
     const now = Date.now(), key = AYNA.screenKey || '';
     const taken = new Set();
+    const ups = new Map(), rowUps = i => { let s = ups.get(i); if (!s) { s = dtUploadIds(base[i]); ups.set(i, s); } return s; };   // GX-SAAT: a row's upload ids, once per merge
     let dirty = false;
     const keep = list.filter(e => {
       if (now - e.at >= DT_PEND_TTL_MS) { dirty = true; return false; }
       if (e.key !== key) return true;   // another screen's record: kept for when that screen is back
       if (e.del) return true;   // GX-PEND-SIL: the background delete owns it (dtPendDelRun) until done or failed
       const pl = dtPendPlaka(e.row);
+      const at = dtSaatSrv(e.at);   // GX-SAAT: the save on Bubble's clock
+      const ids = window.__gxNoSaat ? null : dtUploadIds(e.files || []);
+      if (ids && ids.size) {   // GX-SAAT: the same upload = the same record, whatever the clocks say
+        for (let i = 0; i < base.length; i++) {
+          const r = base[i]; if (!r || taken.has(i)) continue;
+          const c = aynaLiveTime(r._created);
+          if (c && c < at - DT_SAAT.fileWindowMs) continue;   // an older record holding the same address (a copy) is not it
+          if (dtUploadShare(ids, rowUps(i))) { taken.add(i); dirty = true; return false; }
+        }
+      }
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || taken.has(i)) continue;
         const c = aynaLiveTime(r._created);
-        if (!c || c < e.at - DT_PEND_EARLY_MS) continue;
+        if (!c || c < at - DT_PEND_EARLY_MS) continue;
         const rp = dtPendPlaka(r);
         if (pl && rp && pl !== rp) continue;
         taken.add(i); dirty = true; return false;   // the mirror's own row is here
@@ -6494,6 +6938,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         row[col] = v; n++;
       });
       if (!n) return;
+      dtSaatLearn();   // GX-SAAT: the offset is known before the mirror's row arrives
       const list = dtPendList(), key = AYNA.screenKey || '';
       // one create can reach Bubble twice (an autosave, then Save): a second submit within 15 s replaces the first row
       const last = list.length ? list[list.length - 1] : null;
@@ -6550,8 +6995,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || held.has(i)) continue;
         if (e.delId) { if (rowIdOf(r) === e.delId) { held.add(i); break; } continue; }
-        const c = aynaLiveTime(r._created);
-        if (!c || c < e.at - DT_PEND_EARLY_MS || c > e.at + DT_PSIL_NEAR_MS) continue;
+        if (!window.__gxNoSaat && dtUploadShare(e.files || [], r)) { held.add(i); break; }   // GX-SAAT: the same upload
+        const c = aynaLiveTime(r._created), at = dtSaatSrv(e.at);   // GX-SAAT: Bubble's clock
+        if (!c || c < at - DT_PEND_EARLY_MS || c > at + DT_PSIL_NEAR_MS) continue;
         const rp = dtPendPlaka(r);
         if (e.plaka && rp && e.plaka !== rp) continue;
         held.add(i); break;
@@ -6581,7 +7027,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function dtApiFetch(url, opt) {
     const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
     const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 10000) : null;
-    try { return await fetch(url, Object.assign({ credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opt || {})); }
+    const t0 = Date.now();
+    try { const r = await fetch(url, Object.assign({ credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opt || {})); dtSaatNote(r, t0, Date.now()); return r; }   // GX-SAAT
     catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
   }
   function dtJsonArrayMap(arr) {   // a record's jsonarray (["\"Alan\": value", …]) as { Alan: value }
@@ -6591,18 +7038,19 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // { st: 'id', id } · { st: '' } not there yet · { st: 'many' } more than one candidate · { st: 'err' } Gaia not readable
   async function dtPendFindRecord(e) {
-    const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(e.at - DT_PEND_EARLY_MS).toISOString() }];
+    const files = Array.isArray(e.files) ? e.files : [];
+    const at = dtSaatSrv(e.at);   // GX-SAAT: Bubble's clock; with files the search may look 2 min back (the files decide)
+    const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(at - (files.length && !window.__gxNoSaat ? DT_PSIL_NEAR_MS : DT_PEND_EARLY_MS)).toISOString() }];
     const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
     if (!r || !r.ok) return { st: 'err' };
     let res = [];
     try { const j = await r.json(); res = (j && j.response && j.response.results) || []; } catch (x) { return { st: 'err' }; }
-    const files = Array.isArray(e.files) ? e.files : [];
     const hits = res.filter(o => {
       if (!o || !o._id || o.NotVisible === true) return false;
       const m = dtJsonArrayMap(o.jsonarray);
-      if (files.length) { const have = new Set(dtPendFiles(m)); return files.some(f => have.has(f)); }
+      if (files.length) { const have = new Set(dtPendFiles(m)); return files.some(f => have.has(f)) || (!window.__gxNoSaat && dtUploadShare(files, m)); }
       const t = Date.parse(o['Created Date'] || '');
-      if (!t || Math.abs(t - e.at) > DT_PSIL_NEAR_MS) return false;
+      if (!t || Math.abs(t - at) > DT_PSIL_NEAR_MS) return false;
       return dtPendPlaka(m) === (e.plaka || '');
     });
     if (hits.length > 1) return { st: 'many' };
@@ -6611,7 +7059,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function dtPendDeleteRecord(id) {   // true = gone (NotVisible / 404) once written
     const r = await dtApiFetch(dtApiBase() + '/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ NotVisible: true }) });
     if (!r || !(r.ok || r.status === 404)) return false;
-    return (await dtGoneRead(id)) === 'gone';
+    const gone = (await dtGoneRead(id)) === 'gone';
+    if (gone) dtLiveTouch([id]);   // CANLI-VERI
+    return gone;
   }
   function dtPendDelFail(e, why) {
     delete e.del; e.fail = Date.now();
@@ -6701,7 +7151,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!list.length) return;
     _dtDupBusy = true;
     try {
-      const from = Math.min.apply(null, list.map(e => e.at)) - DT_PEND_EARLY_MS;
+      const from = Math.min.apply(null, list.map(e => dtSaatSrv(e.at))) - (window.__gxNoSaat ? DT_PEND_EARLY_MS : DT_PSIL_NEAR_MS);   // GX-SAAT: Bubble's clock; the files decide
       const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(from).toISOString() }];
       const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
       if (!r || !r.ok) return;
@@ -6711,7 +7161,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!hidden.length) return;
       let off = 0;
       list.forEach(e => {
-        const h = hidden.find(x => { const have = new Set(dtPendFiles(x.m)); return e.files.some(f => have.has(f)); });
+        const h = hidden.find(x => { const have = new Set(dtPendFiles(x.m)); return e.files.some(f => have.has(f)) || (!window.__gxNoSaat && dtUploadShare(e.files, x.m)); });   // GX-SAAT
         if (!h) return;
         let asama = '';
         Object.keys(h.m).forEach(k => { if (dtNormKey(k) === 'claimasamasi') asama = String(h.m[k] == null ? '' : h.m[k]); });
@@ -6796,6 +7246,31 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return { mod: aynaLiveTime(o['Modified Date']), fields: fields, asama: asama, hidden: o.NotVisible === true };   // GX-DUP
     } catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
   }
+  // CANLI-VERI: the same reads from the mirror, all rows in one direct call: Map id → { mod, fields, asama, hidden } (a row the
+  // answer lacks is not readable by this viewer: null) · 'skip' (rate: this look is skipped, Bubble is not asked) · null (no
+  // direct answer: this look reads Bubble as before)
+  async function dtDirectLiveRead(ids) {
+    const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
+    const want = new Map(cols.filter(c => DT_DIRECT_KEYS.has(dtNormKey(c))).map(c => [dtNormKey(c), c]));
+    const d = await dtLiveCall('rows', { ids: ids, fields: Array.from(want.values()).concat(['Claim Aşaması']) }, null, 8000);
+    if (d.rate) return 'skip';
+    if (!d.ok || !d.j || String(d.j.status || '').toUpperCase() !== 'SUCCESS' || !d.j.data || !Array.isArray(d.j.data.rows)) return null;
+    const out = new Map();
+    d.j.data.rows.forEach(r => {
+      if (!r || !r._id) return;
+      const fields = {};
+      let asama = '';
+      for (const k in r) {
+        if (k.charAt(0) === '_') continue;
+        if (dtNormKey(k) === 'claimasamasi') { asama = String(r[k] == null ? '' : r[k]); continue; }
+        const col = want.get(dtNormKey(k)); if (!col) continue;
+        const v = r[k];
+        if (typeof v === 'string' || typeof v === 'number' || (Array.isArray(v) && v.every(x => typeof x === 'string'))) fields[col] = v;
+      }
+      out.set(String(r._id), { mod: aynaLiveTime(r._modified), fields: fields, asama: asama, hidden: r._notvisible === true });
+    });
+    return out;
+  }
   async function dtDirectTick() {
     if (window.__gxNoDirect || _dtDirectBusy || !AYNA.cfg || !aynaAlive() || aynaLiveHidden()) return;
     const ids = dtDirectWanted();
@@ -6804,12 +7279,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try {
       const raw = new Map((AYNA.painted || []).filter(r => r && r._id).map(r => [String(r._id), r]));
       let n = 0, stg = 0;
+      const live = dtLiveOk() ? await dtDirectLiveRead(ids) : null;   // CANLI-VERI
+      if (live === 'skip') return;
       for (const id of ids) {
-        const got = await dtDirectRead(id);
+        const got = live ? (live.get(id) || null) : await dtDirectRead(id);
         const row = raw.get(id);
         if (got && got.hidden && !window.__gxNoDup) { dtDupGone(id, got.asama, dtDupPlakaText(row), row ? dtPendFiles(row) : []); continue; }   // GX-DUP
         if (got && got.asama !== undefined) {   // TIDY-STAGE
-          const pa = _dtAsama.get(id), mod = got.mod || Date.now();
+          const pa = _dtAsama.get(id), mod = got.mod || dtNow();   // CANLI-VERI
           if (!pa || pa.text !== got.asama) { _dtAsama.set(id, { mod: mod, text: got.asama }); stg++; } else pa.mod = Math.max(pa.mod, mod);
         }
         if (!got || !got.mod || !row || !Object.keys(got.fields).length) continue;
@@ -7324,7 +7801,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // its own table delta, mirror.settled; then no follow-up is needed).
   // ═══════════════════════════════════════════════════════════════════════════
   const AYNA_LIVE = { defMs: 30000, minMs: 5000, idleAfterMs: 5 * 60000, idleMs: 5 * 60000, backGapMs: 10000, boostMs: 8000, boostForMs: 120000, boostTailMs: 10000,
-                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000, settleOkMs: 2000 };   // AYNA-SETTLE
+                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000, settleOkMs: 2000,   // AYNA-SETTLE
+                      directMs: 15000 };   // CANLI-VERI: with a live ticket an active tab looks every 15 s (the server only, no Bubble call); a fresh look (a Bubble table delta) stays at most every config.mirror_live seconds
   AYNA.live = { timer: null, at: 0, base: null, dirty: null, busy: false, checks: 0, changes: 0, errors: 0, input: Date.now(), keyAt: 0, downAt: 0,
                 boostUntil: 0, queue: [], signalAt: 0, wantFresh: false, retrySoon: false, bound: false, last: '', changedAt: 0,
                 settle: 0, settleEarly: false, settleAt: 0, settleWhy: '', settles: 0, atFresh: false, srvSettle: false };   // AYNA-SETTLE: follow-ups left for the current event (at most 2), a wait for the server done, when the next one runs, its event, how many ran; the last probe asked for a delta
@@ -7372,7 +7850,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (L.timer) { clearTimeout(L.timer); L.timer = null; }
     if (!aynaLiveOn() || aynaLiveHidden()) return;   // hidden: coming back re-arms (visibilitychange / focus)
     const now = Date.now(), w = why || 'timer';
-    let wait = (typeof ms === 'number') ? ms : (now < L.boostUntil ? AYNA_LIVE.boostMs : (aynaLiveIdle() ? Math.max(AYNA_LIVE.idleMs, aynaLiveMs()) : aynaLiveMs()));
+    let wait = (typeof ms === 'number') ? ms : (now < L.boostUntil ? AYNA_LIVE.boostMs : (aynaLiveIdle() ? Math.max(AYNA_LIVE.idleMs, aynaLiveMs()) : (dtLiveOk() ? Math.min(aynaLiveMs(), AYNA_LIVE.directMs) : aynaLiveMs())));   // CANLI-VERI
     if (typeof ms !== 'number' && L.errors) wait = Math.min(AYNA_LIVE.maxBackoffMs, wait * Math.pow(2, Math.min(L.errors, 4)));
     if (L.queue.length) wait = Math.min(wait, L.queue[0] - now);
     if (L.settleAt) wait = Math.min(wait, L.settleAt - now);   // AYNA-SETTLE
@@ -7478,11 +7956,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     while (L.queue.length && L.queue[0] <= now + 50) { L.queue.shift(); due = true; }
     if (L.settleAt && L.settleAt <= now + 50) { L.settleAt = 0; due = true; L.settles++; }   // AYNA-SETTLE: a follow-up look is due
     if (due || why !== 'timer' || now < L.boostUntil || !aynaLiveIdle()) L.wantFresh = true;
+    if (L.wantFresh && !due && why === 'timer' && now >= L.boostUntil && dtLiveOk() && now - (L.freshAt || 0) < aynaLiveMs() - 1000) L.wantFresh = false;   // CANLI-VERI: the 15 s look reads the mirror as it is; Bubble is asked at the old pace
     if (AYNA.last || !AYNA.stats || !AYNA.screenKey) { aynaLiveArm(); return; }   // no healthy load to compare with (an error keeps its "Try again")
     if (L.busy || AYNA.loading || aynaLiveUserBusy()) { aynaLiveArm(AYNA_LIVE.retryMs, why); return; }
     const seq0 = AYNA.seq, key0 = AYNA.screenKey, cfg0 = AYNA.cfg, scr = aynaScreenOf(cfg0);
     if (scr.key !== key0) { aynaLiveArm(); return; }   // the screen id moved: aynaRescreen loads the new screen
     const fresh = L.wantFresh; L.wantFresh = false;
+    if (fresh) L.freshAt = now;   // CANLI-VERI
     L.busy = true; L.at = now; L.atFresh = fresh; L.last = why + (fresh ? ' · fresh' : '');   // AYNA-SETTLE: atFresh = that probe asked for a table delta
     try {
       let p = null;
@@ -8995,6 +9475,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     a.ids = left;
     if (!left.length) _dtGoneArmed = null;
     dtGoneAdd(ids);   // GX-GONE: off the grid now, not at the mirror's next full pull
+    dtLiveTouch(ids, 2500);   // CANLI-VERI: the mirror takes the delete now (after Bubble's workflow wrote it), not at its next delta
     aynaLiveBoost('delete');   // AYNA-LIVE
   }
   async function dtGoneWatch(a) {
