@@ -5227,8 +5227,17 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     const groups = dtGezGruplar(g.files);
     if (g.folder !== null && groups[g.folder]) return warn + '<ul class="dt-gez-list">' + groups[g.folder].files.map(i => dtGezFileRow(g, i)).join('') + '</ul>';
-    return warn + '<ul class="dt-gez-list">' + groups.map((gr, gi) => `<li class="dt-gez-item" data-gez-key="g${gi}"><button class="dt-gez-folder" type="button" data-gez-act="folder" data-g="${gi}">`
-      + `<span class="dt-gez-ico is-folder">${DT_GEZ_FOLDER_SVG}</span><span class="dt-gez-fname">${escapeHtml(gr.ad)}</span><span class="dt-gez-cnt">${escapeHtml(dtGezCount(gr.files.length))}</span></button></li>`).join('') + '</ul>';
+    // Saltuk 12.11: documents are not put in folders (most are one file); only a set of photos is a folder, in its place in the order
+    return warn + '<ul class="dt-gez-list">' + groups.map((gr, gi) => !dtGezFotoGrup(g, gr) ? gr.files.map(i => dtGezFileRow(g, i)).join('')
+      : `<li class="dt-gez-item" data-gez-key="g${gi}"><button class="dt-gez-folder" type="button" data-gez-act="folder" data-g="${gi}">`
+      + `<span class="dt-gez-ico is-folder">${DT_GEZ_FOLDER_SVG}</span><span class="dt-gez-fname">${escapeHtml(gr.ad)}</span><span class="dt-gez-cnt">${escapeHtml(dtGezCount(gr.files.length) + ' (photos)')}</span></button></li>`).join('') + '</ul>';
+  }
+  // a folder only for a set of photos: at least 2 files, more than half of them pictures (HEIC counts: it is a phone photo)
+  function dtGezFotoGrup(g, gr) {
+    const n = gr.files.length;
+    if (n < 2) return false;
+    const foto = gr.files.filter(i => /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(String((g.files[i] || {}).name || ''))).length;
+    return foto * 2 > n;
   }
   function dtGezRender(focusKey) {
     const root = dtGezRoot(), g = _dtGez;
