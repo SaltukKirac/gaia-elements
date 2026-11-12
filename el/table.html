@@ -5232,10 +5232,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       : `<li class="dt-gez-item" data-gez-key="g${gi}"><button class="dt-gez-folder" type="button" data-gez-act="folder" data-g="${gi}">`
       + `<span class="dt-gez-ico is-folder">${DT_GEZ_FOLDER_SVG}</span><span class="dt-gez-fname">${escapeHtml(gr.ad)}</span><span class="dt-gez-cnt">${escapeHtml(dtGezCount(gr.files.length) + ' (photos)')}</span></button></li>`).join('') + '</ul>';
   }
-  // a folder only for a set of photos: at least 2 files, more than half of them pictures (HEIC counts: it is a phone photo)
+  // a folder only for a set of photos: at least 3 files (a licence front + back stays in the list), more than half of them pictures (HEIC counts)
   function dtGezFotoGrup(g, gr) {
     const n = gr.files.length;
-    if (n < 2) return false;
+    if (n < 3) return false;
     const foto = gr.files.filter(i => /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(String((g.files[i] || {}).name || ''))).length;
     return foto * 2 > n;
   }
