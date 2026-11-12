@@ -3832,6 +3832,8 @@
       function syncActionOptions() {
         const nextOptions = parseActionOptionsFromInput(getRawActionOptionsSource());
         actionOptions = nextOptions;
+        // BULK: açık onay kartı yeni aksiyon listesini göstersin (tick yeniden çizer).
+        try { if (window.__gxBulk) window.__gxBulk.actsChanged = true; } catch (_) { }
         if (!actionOptions.some((opt) => opt.id === selectedActionId)) {
           selectedActionId = "";
           selectedActionName = getDefaultActionLabel();
@@ -5007,8 +5009,46 @@
       const BDF_BULK_BG_IDLE_MS = 3000;
       const BDF_BULK_ACTION_KEY = "gx_bulk_action_v1";   // kişinin son seçtiği aksiyon adı (yalnız kolaylık)
 
-      function bdf_bulkActionList() {
+      // Formun o anki aksiyonları (kaydetme adımı yalnız bunları kullanır).
+      function bdf_bulkCurrentActs() {
         try { return (Array.isArray(actionOptions) ? actionOptions : []).filter((o) => o && o.id && o.name); } catch (_) { return []; }
+      }
+
+      // Onay kartının listesi: formun aksiyonları; panel kapalıyken / aksiyonlar henüz gelmediyse bu tablonun son bilinen
+      // aksiyonları (kart klasörler tablodan bırakılınca da seçimi gösterir). Kaydederken yalnız formun o anki listesi geçer.
+      function bdf_bulkActionList() {
+        try {
+          const cur = bdf_bulkCurrentActs();
+          const G = window.__gxBulk;
+          const sig = bdf_bulkScreenSig();
+          const KEY = "gx_bulk_acts_v1";   // ekran imzası -> son bilinen aksiyonlar (sayfa yenilenince de)
+          if (cur.length) {
+            const list = cur.map((o) => ({ id: o.id, name: o.name }));
+            if (G && sig) {
+              const prev = G.knownActs && G.knownActs.sig === sig ? JSON.stringify(G.knownActs.list) : "";
+              G.knownActs = { sig, list };
+              if (prev !== JSON.stringify(list)) {
+                try {
+                  const all = JSON.parse(localStorage.getItem(KEY) || "{}") || {};
+                  all[sig] = { list, at: Date.now() };
+                  const keys = Object.keys(all).sort((a, b) => Number(all[b].at || 0) - Number(all[a].at || 0));
+                  keys.slice(10).forEach((k) => { delete all[k]; });
+                  localStorage.setItem(KEY, JSON.stringify(all));
+                } catch (_) { }
+              }
+            }
+            return cur;
+          }
+          if (G && G.knownActs && sig && G.knownActs.sig === sig) return G.knownActs.list.slice();
+          if (sig) {
+            try {
+              const all = JSON.parse(localStorage.getItem(KEY) || "{}") || {};
+              const hit = all[sig] && Array.isArray(all[sig].list) ? all[sig].list.filter((o) => o && o.id && o.name) : [];
+              if (hit.length) { if (G) G.knownActs = { sig, list: hit }; return hit.slice(); }
+            } catch (_) { }
+          }
+          return [];
+        } catch (_) { return []; }
       }        // arka planda: kişi bu süre sayfaya dokunmadan New açılmaz (tıklamasını çalmasın)
       var bdfBulkFeeders = {};                 // alan anahtarı -> { el, accept, max(), feed(files, name) } (FOLDER-UP kaydeder)
 
@@ -5602,6 +5642,7 @@
           card.innerHTML = `
             <div class="gxb-h">One record per folder</div>
             <div class="gxb-p">${offer.groups.length} folder${offer.groups.length === 1 ? "" : "s"} found. Each ticked folder becomes a new record with its files. ${act ? `Each record then runs ${bdf_bulkEsc(act.name)}.` : "Records are only saved, no action starts."}</div>
+            ${!acts.length && !bdf_bulkFormVisible() ? `<div class="gxb-act"><span>Actions show when the form is open.</span><button type="button" data-a="loadacts">Load actions</button></div>` : ""}
             ${acts.length ? `<label class="gxb-act"><span>Action for each record</span><select data-a="act">
               <option value="">None, save only</option>
               ${acts.map((o) => `<option value="${bdf_bulkEsc(o.id)}" ${act && o.id === act.id ? "selected" : ""}>${bdf_bulkEsc(o.name)}</option>`).join("")}
@@ -5629,6 +5670,14 @@
             offer.action = o ? { id: o.id, name: o.name } : null;
             try { localStorage.setItem(BDF_BULK_ACTION_KEY, o ? o.name : ""); } catch (_) { }
             bdf_bulkRender();
+          });
+          const la = card.querySelector('[data-a="loadacts"]');
+          if (la) la.addEventListener("click", () => {
+            // Yeni kayıt formunu açar (kayıt oluşmaz); Bubble aksiyonları verince kart seçimi gösterir.
+            la.disabled = true;
+            la.textContent = "Opening the form...";
+            if (!bdf_bulkOpenNewRecord()) { la.disabled = false; la.textContent = "Load actions"; }
+            setTimeout(() => { try { if (G.view === "confirm") bdf_bulkRender(); } catch (_) { } }, 4000);
           });
           card.querySelector('[data-a="cancel"]').addEventListener("click", () => { G.offer = null; G.view = ""; bdf_bulkRender(); });
           card.querySelector('[data-a="start"]').addEventListener("click", () => bdf_bulkStart(offer.groups.filter((g) => g.pick)));
@@ -5884,6 +5933,10 @@
       function bdf_bulkTick() {
         const G = BDF_BULK;
         try { bdf_bulkSyncPark(); } catch (_) { }
+        if (G.actsChanged) {
+          G.actsChanged = false;
+          try { if (G.view === "confirm" && bdf_bulkActionList().length) bdf_bulkRender(); } catch (_) { }
+        }
         if (!G.running || G.paused) return;
         const job = G.jobs[G.i];
         if (!job) { bdf_bulkNext(Date.now()); return; }
@@ -6172,7 +6225,7 @@
             G.selfAt = now;
             G.stepAt = now;
             const want = G.action;
-            const opt = want ? (bdf_bulkActionList().find((o) => o.id === want.id) || bdf_bulkActionList().find((o) => o.name === want.name)) : null;
+            const opt = want ? (bdf_bulkCurrentActs().find((o) => o.id === want.id) || bdf_bulkCurrentActs().find((o) => o.name === want.name)) : null;
             if (opt) {
               console.log("[BULK] save with action", { folder: job.name, action: opt.name });
               selectActionAndTrigger(opt);
