@@ -1639,7 +1639,7 @@
   cursor: progress;
 }
 
-/* GX-SIRALI (12.11): ordered evrak, "PDF" / "ZIP" next to "Fill" (same pill as GX-FILL); four states: idle, working, done, error */
+/* GX-SIRALI (12.11): ordered evrak, "PDF" / "Klasör" next to "Fill" (same pill as GX-FILL); four states: idle, working, done, error */
 #dynamic-table-wrapper .dt-sirali {
   display: inline-flex;
   align-items: center;
@@ -3873,7 +3873,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return {
       id: UI_ACTIONS_COL_ID,
       header: '',
-      width: 92 + dtSiraliExtraW(),   // GX-SIRALI: room for the PDF / ZIP pills on a claim table
+      width: 92 + dtSiraliExtraW(),   // GX-SIRALI: room for the PDF / Klasör pills on a claim table
       readOnly: true,
       type: 'text',
       sourceKeys: [UI_ACTIONS_COL_ID],
@@ -4359,21 +4359,37 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   /* GX-SIRALI-BEGIN (12.11) */
   // GX-SIRALI (12.11.2026, NOD x GAIA customer complaint): eksper offices sort a claim's documents into a fixed order and print them
   // straight; in Gaia a record's files sit in upload order. Two pills next to "Fill" on the same rows (dtFillState):
-  //   "PDF" → one print-ready PDF in the office order · "ZIP" (Klasör) → numbered, named files in the same order.
-  // Click → bridge op evrak_sirali {id, bicim} (server: same walls as mirror_get, the job builds in the background) → evrak_sirali_durum
-  // {job} every ~2 s, "k/n" on the pill → the result opens in a new tab (when the browser still allows it) and the pill becomes
-  // "Open PDF" / "Open ZIP" (a plain link, 15 min, as long as the server keeps the file). Skipped files: "N skipped" beside it, the
-  // names and reasons in its tooltip. An error stays in place ("Retry" + the reason), never a silent fail. A second press while a
-  // job runs does nothing; the server joins the same job anyway. The order itself lives on the server (octo_evrak_sirali.js).
-  // State by row id and format survives re-renders. Off: window.__gxNoSirali = true.
-  const DT_SIRALI_FMT = ['pdf', 'zip'];
-  const DT_SIRALI_LBL = { pdf: 'PDF', zip: 'ZIP' };
-  const DT_SIRALI_TIP = { pdf: 'Ordered PDF: all documents in office order, ready to print', zip: 'Klasör (ZIP): numbered files in office order' };
+  //   "PDF"    → one print-ready PDF in the office order (server builds it, link 15 min).
+  //   "Klasör" → (Saltuk 12.11: "zip istemiyorum, direkt klasör indirmek isterim") the browser asks for a place (File System Access
+  //              API, Chrome / Edge), opens a sub folder named after the record's Hasar Dosya No (else its id) and writes the files
+  //              one by one as "01 - Poliçe.pdf", "02 - ..." (server bicim 'liste': ordered names + one proxied address per file).
+  //              No folder API (Firefox, Safari, a sandboxed frame): the server's ZIP comes as one download instead; the pill keeps its
+  //              name "Klasör" (Saltuk: no "ZIP" on screen), its tooltip and the toast say what happens.
+  // Click → bridge op evrak_sirali {id, bicim} (server: same walls as mirror_get) → the job's own status address (durum_url, a direct
+  // CORS call to the server; 12.11 live test: the bridge polls never reached the server) every ~2 s, the bridge op evrak_sirali_durum
+  // as the fallback; "k/n" on the pill; lost answers are retried for about a minute and the cause is named. Four states: idle, working (k/n), done ("Open PDF" link / "Saved"), error ("Retry" + the reason in place, never silent).
+  // Skipped files: "N skipped" beside it, names and reasons in its tooltip. A second press while a job runs does nothing.
+  // The order itself lives on the server (octo_evrak_sirali.js). State by row id and format survives re-renders.
+  // Off: window.__gxNoSirali = true · folder off (always ZIP): window.__gxNoKlasor = true.
+  const DT_SIRALI_FMT = ['pdf', 'klasor'];
   const DT_SIRALI_W = 160;           // extra width of the actions column on a table that shows the pills
   const DT_SIRALI_POLL_MS = [2000, 3000];   // first minute every 2 s, then every 3 s
   const DT_SIRALI_MAX_MS = 15 * 60000;
-  const _dtSirali = new Map();       // id|bicim → { st: 'working'|'done'|'error', job, k, n, queued, skipped, url, exp, msg, t0, fails }
+  const _dtSirali = new Map();       // id|bicim → { st: 'working'|'done'|'error', job, k, n, queued, skipped, url, exp, msg, t0, fails, dir, zip, klasor, saved }
+  let _dtSiraliNoFolder = false;     // the folder API refused once (sandboxed frame): ZIP from then on
+  let _dtSiraliPicking = false;      // a folder dialog is open
   function dtSiraliKey(id, bicim) { return id + '|' + bicim; }
+  function dtSiraliCanFolder() {
+    try { return !window.__gxNoKlasor && !_dtSiraliNoFolder && typeof window.showDirectoryPicker === 'function' && window.isSecureContext !== false; } catch (e) { return false; }
+  }
+  function dtSiraliLbl(b) { return b === 'pdf' ? 'PDF' : 'Klasör'; }
+  function dtSiraliTip(b) {
+    if (b === 'pdf') return 'Ordered PDF: all documents in office order, ready to print';
+    return dtSiraliCanFolder() ? 'Klasör: pick a place, the files are saved there in office order (01, 02, ...)'
+      : 'Klasör: this browser cannot save into a folder, so the same numbered files come as one download';
+  }
+  // the job's direct status address from the server (only that shape is followed)
+  function dtSiraliUrlOk(u) { const t = String(u || ''); return /^https:\/\/[a-z0-9.-]+(:\d+)?\/evrak-sirali\/durum\/[a-f0-9]{64}$/i.test(t) ? t : ''; }
   function dtSiraliOn(raw) {
     try {
       if (window.__gxNoSirali || !raw || raw.__gxPend || !rowIdOf(raw)) return false;
@@ -4392,27 +4408,40 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       state.hot.getPlugin('manualColumnResize').setManualSize(i, 92 + DT_SIRALI_W);
     } catch (e) {}
   }
+  // a Windows-safe file / folder name (the server already cleans them; the browser checks again before it writes)
+  function dtSiraliAd(v) {
+    let t = String(v == null ? '' : v).replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/g, '');
+    if (t.length > 120) t = t.slice(0, 120).replace(/[. ]+$/g, '');
+    if (/^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i.test(t)) t = '_' + t;
+    return t;
+  }
   function dtSiraliSkippedTip(s) {
     const l = Array.isArray(s.skipped) ? s.skipped : [];
     const lines = l.slice(0, 12).map(x => String((x && x.name) || 'file') + ': ' + String((x && x.reason) || 'skipped'));
     if (s.skippedCount > lines.length) lines.push('and ' + (s.skippedCount - lines.length) + ' more');
-    return 'Not in the ' + (s.bicim === 'zip' ? 'ZIP' : 'PDF') + ':\n' + lines.join('\n');
+    return 'Not in the ' + (s.bicim === 'pdf' ? 'PDF' : s.zip ? 'download' : 'folder') + ':\n' + lines.join('\n');
   }
   function dtSiraliOne(id, bicim) {
     const key = dtSiraliKey(id, bicim);
     let s = _dtSirali.get(key);
     if (s && s.st === 'done' && Date.now() > s.exp) { _dtSirali.delete(key); s = null; }   // the link has expired: back to idle
-    const lbl = DT_SIRALI_LBL[bicim];
-    if (!s) return [`<button class="dt-row-sirali" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(DT_SIRALI_TIP[bicim])}" title="${escapeHtml(DT_SIRALI_TIP[bicim])}">${lbl}</button>`, ''];
+    const lbl = dtSiraliLbl(bicim);
+    if (!s) return [`<button class="dt-row-sirali" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(dtSiraliTip(bicim))}" title="${escapeHtml(dtSiraliTip(bicim))}">${escapeHtml(lbl)}</button>`, ''];
+    const skip = s.skippedCount ? `<span class="dt-sirali-note${s.st === 'error' ? ' is-err' : ''}" title="${escapeHtml(dtSiraliSkippedTip(s))}">${s.skippedCount} skipped</span>` : '';
     if (s.st === 'working') {
       const txt = s.queued ? 'Queued' : (s.n ? s.k + '/' + s.n : 'Starting');
-      const tip = s.queued ? 'Waiting for other files to finish' : (s.n ? 'Putting the ' + lbl + ' together: ' + s.k + ' of ' + s.n + ' files' : 'Reading the record files');
+      const tip = s.queued ? 'Waiting for other files to finish' : (s.yaz ? 'Saving into the folder: ' + s.k + ' of ' + s.n + ' files'
+        : s.n ? 'Putting the ' + lbl + ' together: ' + s.k + ' of ' + s.n + ' files' : 'Reading the record files');
       return [`<button class="dt-row-sirali is-busy" type="button" data-bicim="${bicim}" aria-busy="true" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(txt)}</button>`, ''];
     }
-    if (s.st === 'done') {
-      const tip = 'Open the ' + lbl + ' in a new tab (link works for 15 min)';
-      const skip = s.skippedCount ? `<span class="dt-sirali-note" title="${escapeHtml(dtSiraliSkippedTip(s))}">${s.skippedCount} skipped</span>` : '';
-      return [`<a class="dt-row-sirali is-done" data-bicim="${bicim}" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">Open ${lbl}</a>`, skip];
+    if (s.st === 'done' && s.url) {
+      const tip = s.zip ? 'Download the numbered files (link works for 15 min)' : 'Open the ' + lbl + ' in a new tab (link works for 15 min)';
+      const txt = s.zip ? 'Download' : 'Open ' + lbl;
+      return [`<a class="dt-row-sirali is-done" data-bicim="${bicim}" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(txt)}</a>`, skip];
+    }
+    if (s.st === 'done') {   // the folder is written
+      const tip = 'Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into the folder ' + s.klasor + '. Press to save again.';
+      return [`<button class="dt-row-sirali is-done" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">Saved</button>`, skip];
     }
     const msg = s.msg || 'Something went wrong.';
     const etip = lbl + ' failed: ' + msg + ' Press to try again.';
@@ -4441,9 +4470,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) {}
   }
   function dtSiraliFail(id, bicim, s, msg) {
-    s.st = 'error'; s.msg = String(msg || 'The file could not be made. Try again.');
+    s.st = 'error'; s.msg = String(msg || 'The file could not be made. Try again.'); s.dir = null;
     dtSiraliPaint(id);
-    showWakeToast((DT_SIRALI_LBL[bicim] || 'File') + ': ' + s.msg, 'error');
+    showWakeToast(dtSiraliLbl(bicim) + ': ' + s.msg, 'error');
   }
   function dtSiraliTake(s, d) {
     s.k = Number(d.done) || 0; s.n = Number(d.total) || 0; s.queued = d.state === 'queued';
@@ -4455,50 +4484,127 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!id || DT_SIRALI_FMT.indexOf(bicim) < 0) return;
     const key = dtSiraliKey(id, bicim), cur = _dtSirali.get(key);
     if (cur && cur.st === 'working') return;   // double press: the job already runs
-    if (cur && cur.st === 'done' && Date.now() < cur.exp) { window.open(cur.url, '_blank', 'noopener'); return; }
-    const s = { st: 'working', bicim: bicim, job: '', k: 0, n: 0, queued: false, skipped: [], skippedCount: 0, url: '', exp: 0, msg: '', t0: Date.now(), fails: 0 };
+    if (cur && cur.st === 'done' && cur.url && Date.now() < cur.exp) { window.open(cur.url, '_blank', 'noopener'); return; }
+    let dir = null, zip = false;
+    if (bicim === 'klasor') {
+      if (_dtSiraliPicking) return;
+      if (dtSiraliCanFolder()) {
+        _dtSiraliPicking = true;
+        try { dir = await window.showDirectoryPicker({ id: 'gaia-evrak', mode: 'readwrite', startIn: 'downloads' }); }   // first await: still inside the click
+        catch (e) {
+          if (e && e.name === 'AbortError') return;   // the person closed the dialog: nothing to say
+          _dtSiraliNoFolder = true;                    // a frame / policy that refuses the folder API: ZIP from now on
+          showWakeToast('This browser cannot save into a folder here, so the files come as one download.', 'success');
+        } finally { _dtSiraliPicking = false; }
+      }
+      if (!dir) zip = true;
+    }
+    if (_dtSirali.get(key) && _dtSirali.get(key).st === 'working') return;
+    const s = { st: 'working', bicim: bicim, job: '', durumUrl: '', directFails: 0, directOff: false, k: 0, n: 0, queued: false, skipped: [], skippedCount: 0, url: '', exp: 0, msg: '', t0: Date.now(), fails: 0, dir: dir, zip: zip, klasor: '', saved: 0, yaz: false };
     _dtSirali.set(key, s);
     dtSiraliPaint(id);
-    const r = await aynaBridge('evrak_sirali', { id: id, bicim: bicim }, null, { timeoutMs: 25000 });
+    const r = await aynaBridge('evrak_sirali', { id: id, bicim: bicim === 'pdf' ? 'pdf' : (dir ? 'liste' : 'zip') }, null, { timeoutMs: 25000 });
     if (_dtSirali.get(key) !== s) return;
-    if (!r || !r.ok || !r.data || !r.data.job) {
+    if (!r || !r.ok || !r.data) {
       const m = (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : (r && r.error === 'server' && r.message) ? String(r.message)
         : (r && r.error === 'timeout') ? 'Gaia did not answer in time. Try again.' : 'Could not start. Try again.';
       dtSiraliFail(id, bicim, s, m);
       return;
     }
-    s.job = String(r.data.job);
+    const d0 = r.data || {};
+    s.job = String(d0.job || (d0.data && d0.data.job) || '');
+    s.durumUrl = dtSiraliUrlOk(d0.durum_url || (d0.data && d0.data.durum_url));
+    if (!s.job) { try { log('[GX-SIRALI] start answer without a job: ' + Object.keys(d0).slice(0, 8).join(',')); } catch (e) {} dtSiraliFail(id, bicim, s, 'Could not start (no job came back). Try again.'); return; }
     dtSiraliPoll(id, bicim, s);
+  }
+  // one status read: the direct address first (two failures in a row turn it off for this job), else the bridge op
+  async function dtSiraliDurumOku(s) {
+    if (s.durumUrl && !s.directOff) {
+      let r = null;
+      try {
+        const x = await fetch(s.durumUrl, { cache: 'no-store', credentials: 'omit' });
+        if (x.status === 404) r = { error: 'server', message: 'This file is no longer available. Make it again.' };
+        else if (x.ok) { const j = await x.json(); r = (j && j.status === 'SUCCESS' && j.data && typeof j.data === 'object') ? { ok: true, data: j.data } : { error: 'shape' }; }
+        else r = { error: 'http', status: x.status };
+      } catch (e) { r = { error: 'network' }; }
+      if (r.ok || r.error === 'server') { s.directFails = 0; return r; }
+      if (++s.directFails >= 2) { s.directOff = true; try { log('[GX-SIRALI] direct status off (' + (r.status || r.error) + '), using the bridge'); } catch (e) {} }
+    }
+    return aynaBridge('evrak_sirali_durum', { job: s.job }, null, { timeoutMs: 15000 });
   }
   async function dtSiraliPoll(id, bicim, s) {
     const key = dtSiraliKey(id, bicim);
     while (_dtSirali.get(key) === s && s.st === 'working') {
-      const wait = (Date.now() - s.t0 < 60000) ? DT_SIRALI_POLL_MS[0] : DT_SIRALI_POLL_MS[1];
+      const wait = s.fails ? Math.min(8000, 2000 * s.fails) : ((Date.now() - s.t0 < 60000) ? DT_SIRALI_POLL_MS[0] : DT_SIRALI_POLL_MS[1]);
       await new Promise(res => setTimeout(res, wait));
       if (_dtSirali.get(key) !== s) return;
       if (Date.now() - s.t0 > DT_SIRALI_MAX_MS) { dtSiraliFail(id, bicim, s, 'This is taking too long. Try again later.'); return; }
-      const r = await aynaBridge('evrak_sirali_durum', { job: s.job }, null, { timeoutMs: 15000 });
+      const r = await dtSiraliDurumOku(s);
       if (_dtSirali.get(key) !== s) return;
       if (!r || !r.ok || !r.data) {
         if (r && r.error === 'server') { dtSiraliFail(id, bicim, s, r.message || 'This file is no longer available. Make it again.'); return; }
-        if (++s.fails >= 4) { dtSiraliFail(id, bicim, s, (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : 'Lost contact with Gaia. Try again.'); return; }
-        continue;   // a lost answer (network, a waking server): ask again
+        const why = String((r && (r.kod || (r.status ? 'http ' + r.status : '') || r.error)) || 'no answer');
+        try { log('[GX-SIRALI] status read failed (' + why + '), try ' + (s.fails + 1)); } catch (e) {}
+        if (r && r.error === 'session') { dtSiraliFail(id, bicim, s, 'Sign in to Gaia and try again.'); return; }
+        if (++s.fails >= 8) { dtSiraliFail(id, bicim, s, 'Lost contact with Gaia (' + why + '). Try again.'); return; }
+        continue;   // a lost answer (network, a waking server, a challenge page): ask again, a little later each time
       }
       s.fails = 0;
       const d = r.data;
       dtSiraliTake(s, d);
+      if (d.state === 'ready' && s.dir && Array.isArray(d.files)) { await dtSiraliYaz(id, bicim, s, d); return; }
+      if (d.state === 'ready' && s.dir) { dtSiraliFail(id, bicim, s, 'Saving into a folder is not on the Gaia server yet. Use PDF for now.'); return; }   // an older server made a PDF instead of the list
       if (d.state === 'ready' && d.url) {
         s.st = 'done'; s.url = String(d.url);
         s.exp = Date.now() + Math.max(30, Math.min(900, Number(d.expires_in_s) || 900)) * 1000 - 15000;
         dtSiraliPaint(id);
         try { if (navigator.userActivation && navigator.userActivation.isActive) window.open(s.url, '_blank', 'noopener'); } catch (e) {}
-        showWakeToast((DT_SIRALI_LBL[bicim] || 'File') + ' ready' + (s.skippedCount ? ', ' + s.skippedCount + ' file' + (s.skippedCount === 1 ? '' : 's') + ' skipped' : '') + '. Use "Open ' + DT_SIRALI_LBL[bicim] + '" on the row.', 'success');
+        const lbl = dtSiraliLbl(bicim);
+        showWakeToast(lbl + ' ready' + (s.skippedCount ? ', ' + s.skippedCount + ' file' + (s.skippedCount === 1 ? '' : 's') + ' skipped' : '') + '. Use "' + (s.zip ? 'Download' : 'Open ' + lbl) + '" on the row.', 'success');
         setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, Math.max(0, s.exp - Date.now()));
         return;
       }
       if (d.state === 'error') { dtSiraliFail(id, bicim, s, d.message); return; }
       dtSiraliPaint(id);
     }
+  }
+  // "Klasör": one sub folder in the place the person picked, the files streamed into it one by one (no ZIP, nothing held in memory)
+  async function dtSiraliYaz(id, bicim, s, d) {
+    const key = dtSiraliKey(id, bicim);
+    const files = d.files.filter(f => f && f.url && f.name);
+    s.yaz = true; s.k = 0; s.n = files.length; s.skipped = []; s.skippedCount = 0;
+    s.klasor = dtSiraliAd(d.klasor) || 'Evrak';
+    dtSiraliPaint(id);
+    let sub = null;
+    try { sub = await s.dir.getDirectoryHandle(s.klasor, { create: true }); }
+    catch (e) { dtSiraliFail(id, bicim, s, (e && e.name === 'NotAllowedError') ? 'Gaia may not write there. Pick another place.' : 'Could not create the folder. Pick another place.'); return; }
+    for (let i = 0; i < files.length; i++) {
+      if (_dtSirali.get(key) !== s) return;
+      const f = files[i], ad = dtSiraliAd(f.name) || ('Evrak ' + (i + 1));
+      try {
+        const r = await fetch(f.url, { cache: 'no-store', credentials: 'omit' });
+        if (!r.ok || !r.body) {
+          let why = r.status === 404 ? 'link expired' : 'download failed';
+          try { const t = (await r.text()).trim(); if (t && t.length < 80 && r.status === 502) why = t; } catch (e) {}
+          throw Object.assign(new Error(why), { gx: why });
+        }
+        const h = await sub.getFileHandle(ad, { create: true });
+        const w = await h.createWritable();
+        await r.body.pipeTo(w);   // closes the file; a broken download aborts it
+      } catch (e) {
+        s.skipped.push({ name: ad, reason: (e && e.gx) || ((e && e.name === 'NotAllowedError') ? 'not allowed to write' : (e && e.name === 'QuotaExceededError') ? 'disk full' : 'could not save') });
+        s.skippedCount = s.skipped.length;
+      }
+      s.k = i + 1;
+      dtSiraliPaint(id);
+    }
+    s.dir = null;   // the folder handle is not kept after the run
+    s.saved = files.length - s.skippedCount;
+    if (!s.saved) { dtSiraliFail(id, bicim, s, 'No file could be saved. Try again.'); return; }
+    s.st = 'done'; s.exp = Date.now() + 15 * 60000;
+    dtSiraliPaint(id);
+    showWakeToast('Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into the folder ' + s.klasor + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '.', 'success');
+    setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, 15 * 60000);
   }
   // the row of a pill (same lookup as GX-FILL)
   function dtSiraliRowOf(el) {
@@ -4517,7 +4623,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       event.stopPropagation();
       if (el.tagName === 'A') return;   // "Open PDF": the link opens in a new tab by itself
       event.preventDefault();
-      try { const raw = dtSiraliRowOf(el); if (raw) dtSiraliStart(raw, el.getAttribute('data-bicim')); } catch (e) {}
+      try { const raw = dtSiraliRowOf(el); if (raw) dtSiraliStart(raw, el.getAttribute('data-bicim')); } catch (e) {}   // synchronous up to the folder dialog (needs the click)
     }, true);
   }
   /* GX-SIRALI-END */
@@ -4869,7 +4975,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     els.container.addEventListener('click', handleCellLinkClick, true);
     // GX-FILL: "Fill on portal" (the package goes to the extension; the row is not opened, and the press does not select it)
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null; if (b) event.stopPropagation(); }, true);
-    dtSiraliAttach(els.container);   // GX-SIRALI: PDF / ZIP pills (the press does not select or open the row)
+    dtSiraliAttach(els.container);   // GX-SIRALI: PDF / Klasör pills (the press does not select or open the row)
     // TIDY-STAGE: "Retry" on a Failed claim cell
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-claim-retry') : null; if (b) event.stopPropagation(); }, true);
     els.container.addEventListener('click', event => {
@@ -5448,7 +5554,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
             renderer: (instance, td, visualRow) => {
               // GX-FILL: "Fill on portal" before "Open record" on a row with a claim package (or one that may have it)
               let fill = '', sirali = '';
-              try { const p = instance.toPhysicalRow(visualRow), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; fill = dtFillButtonHtml(dtFillState(raw)); sirali = dtSiraliHtml(raw); } catch (e) { fill = ''; sirali = ''; }   // GX-SIRALI: PDF / ZIP after Fill
+              try { const p = instance.toPhysicalRow(visualRow), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; fill = dtFillButtonHtml(dtFillState(raw)); sirali = dtSiraliHtml(raw); } catch (e) { fill = ''; sirali = ''; }   // GX-SIRALI: PDF / Klasör after Fill
               td.innerHTML = fill + sirali + `<button class="dt-row-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
             }
           };
