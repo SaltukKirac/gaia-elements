@@ -5579,6 +5579,9 @@
 #gx-bulk-card button:focus-visible,#gx-bulk-card input:focus-visible{outline:2px solid var(--gx-ring,#6366f1);outline-offset:2px}
 .gx-bulk-parked{transform:translateX(calc(100% + 48px))!important;transition:transform .25s ease!important;pointer-events:none!important}
 .gx-bulk-parked.gx-bulk-parked-l{transform:translateX(calc(-100% - 48px))!important}
+#bdf-root.gx-bulk-locked{position:relative}
+#bdf-root.gx-bulk-locked>*{opacity:.45}
+#bdf-root.gx-bulk-locked::after{content:attr(data-gx-lock);position:absolute;inset:0;z-index:2147482000;display:block;padding:20px 24px;background:linear-gradient(rgba(248,250,252,.97) 0,rgba(248,250,252,.97) 92px,rgba(248,250,252,.5) 132px);color:#0f172a;font:600 14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;cursor:not-allowed}
 @media (prefers-reduced-motion:reduce){.gx-bulk-parked{transition:none!important}}`;
           document.head.appendChild(st);
         }
@@ -5604,6 +5607,7 @@
           });
         }
         try { bdf_bulkSyncPark(); } catch (_) { }
+        try { bdf_bulkSyncLock(); } catch (_) { }
         if (!G.view) { card.hidden = true; card.innerHTML = ""; return; }
         card.hidden = false;
         const jobs = G.jobs || [];
@@ -5855,6 +5859,7 @@
         G.parkAfter = false;
         bdf_bulkSetPark(false);
         console.log("[BULK] stop", { message, created: G.jobs.filter((j) => j.st === "done").length });
+        bdf_bulkSaveRun();
         bdf_bulkRender();
       }
 
@@ -5881,20 +5886,64 @@
         return now - Number(G.visibleAt || 0) < 15000 ? BDF_BULK_HIDDEN_SLOW : 1;
       }
 
+      // BULK-LOCK: sıra formu kullanırken form kişiye kapalı (tıklama / yazma yok, üstünde not). Sıra duraklayınca, durunca,
+      // bitince ya da kişi kendi kaydını açınca (arka planda) açılır. Programatik besleme / kaydetme etkilenmez.
+      function bdf_bulkSyncLock() {
+        const G = window.__gxBulk;
+        const root = document.getElementById("bdf-root");
+        if (!G || !root) return;
+        const job = G.running ? G.jobs[G.i] : null;
+        const want = Boolean(G.running && !G.paused && !(job && job.yield) && !G.userRecord);
+        const has = root.classList.contains("gx-bulk-locked");
+        if (want === has) return;
+        try {
+          if (want) {
+            bdf_bulkEnsureCard();   // stil
+            root.setAttribute("data-gx-lock", "Creating records from your folders. The form is in use until it finishes. Use Pause on the card to work in it.");
+            root.classList.add("gx-bulk-locked");
+            root.inert = true;
+            root.setAttribute("aria-busy", "true");
+          } else {
+            root.classList.remove("gx-bulk-locked");
+            root.inert = false;
+            root.removeAttribute("aria-busy");
+            root.removeAttribute("data-gx-lock");
+          }
+        } catch (_) { }
+      }
+
+      // Son koşunun özeti tarayıcıda kalır (sekme kapansa da): klasör adının ilk 9 harfi, adım, not, iz. Tanı için
+      // konsolda: copy(localStorage.getItem("gx_bulk_last_run")).
+      function bdf_bulkSaveRun() {
+        const G = window.__gxBulk;
+        if (!G || !G.jobs) return;
+        try {
+          const snap = {
+            at: new Date().toISOString(), view: G.view, i: G.i, running: Boolean(G.running), paused: Boolean(G.paused), pm: G.pauseMsg || "",
+            bg: Boolean(G.bg), action: G.action ? G.action.name : "",
+            jobs: G.jobs.map((j) => ({ n: String(j.name || "").slice(0, 9), st: j.st, note: j.note || "", up: j.up || 0, exp: j.expect || 0, fed: j.fed, why: j.fedWhy || "" })),
+            trace: (G.trace || []).slice(-150)
+          };
+          localStorage.setItem("gx_bulk_last_run", JSON.stringify(snap));
+        } catch (_) { }
+      }
+
       // Tanı izi: her adım değişimi (zaman, klasör sırası, adım, sekme gizli mi). Konsolda __gxBulk.trace.
       function bdf_bulkTrace(job, now) {
         const G = BDF_BULK;
         try {
           G.trace = G.trace || [];
-          G.trace.push({ t: now || Date.now(), i: G.i, st: job ? job.st : "", up: job ? (job.up || 0) : 0, h: document.hidden ? 1 : 0 });
+          G.trace.push({ t: now || Date.now(), i: G.i, st: job ? job.st : "", up: job ? (job.up || 0) : 0, h: document.hidden ? 1 : 0, fv: bdf_bulkFormVisible() ? 1 : 0, rec: bdf_bulkShownId() ? 1 : 0, ur: G.userRecord ? 1 : 0 });
           if (G.trace.length > 400) G.trace.splice(0, G.trace.length - 400);
         } catch (_) { }
+        bdf_bulkSaveRun();
       }
 
       function bdf_bulkPause(message) {
         if (!BDF_BULK.pausedAt) BDF_BULK.pausedAt = Date.now();
         BDF_BULK.paused = true;
         BDF_BULK.pauseMsg = message;
+        try { bdf_bulkTrace(BDF_BULK.jobs[BDF_BULK.i], Date.now()); } catch (_) { }
         console.warn("[BULK] paused:", message);
         bdf_bulkRender();
       }
@@ -5911,6 +5960,7 @@
           bdf_bulkTitle();
           try { window.removeEventListener("beforeunload", bdf_bulkBeforeUnload); } catch (_) { }
           bdf_bulkParkAfterFinish();
+          bdf_bulkSaveRun();
           console.log("[BULK] finished", G.jobs.map((j) => `${j.name}: ${j.st}${j.note ? " (" + j.note + ")" : ""}`));
         }
         bdf_bulkRender();
@@ -5933,6 +5983,7 @@
       function bdf_bulkTick() {
         const G = BDF_BULK;
         try { bdf_bulkSyncPark(); } catch (_) { }
+        try { bdf_bulkSyncLock(); } catch (_) { }
         if (G.actsChanged) {
           G.actsChanged = false;
           try { if (G.view === "confirm" && bdf_bulkActionList().length) bdf_bulkRender(); } catch (_) { }
