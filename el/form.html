@@ -14969,6 +14969,40 @@
           } catch (e) { console.warn("[KLASOR] watch", e); }
         }, 700);
       }
+      // EVRAK-DONE (13.11.2026, uçtan uca deneme bulgusu): Document folder'a dosya bırakıp Done'a basan kişinin dosyası kayda girmiyordu.
+      // Done paneli kapatınca form özet görünümüne döner ve değişen alanları o listeden hesaplar; Evraklar orada yoksa pakete girmez.
+      // Şimdi: klasörde kayda henüz girmemiş dosya varsa Done önce (yükleme sürüyorsa bitmesini bekleyip) paneli AÇIKKEN kaydeder,
+      // kayıt bitince paneli kapatır. Kapatma: window.__gxNoKlasorDone = true.
+      function bdf_klasorYeniAdresler() {
+        try {
+          const f = bdf_klasorAlani(state.config && state.config.fields);
+          if (!f) return [];
+          const s = safeStringify(readCurrentBubbleDataObject() || {});
+          return (Array.isArray(state.fileBuffers[f.key]) ? state.fileBuffers[f.key] : [])
+            .map((x) => String((x && x.url) || ""))
+            .filter((u) => u && /^(https?:)?\/\//i.test(u))
+            .filter((u) => { const k = bdf_klasorAdresAnahtar(u); return k && s.indexOf(k) < 0; });
+        } catch (_) { return []; }
+      }
+      let bdfKlasorDoneT = 0;
+      function bdf_klasorDone() {
+        try {
+          if (window.__gxNoKlasorDone || !isEditPanelOpen || bdfKlasorDoneT) return Boolean(bdfKlasorDoneT);
+          if (!bdf_klasorAlani(state.config && state.config.fields)) return false;
+          // yükleme sürüyor: bitince Done yeniden denenir (kişiye "yükleme bitince devam edecek" denir)
+          if (bdf_deferUntilUploadsSettle(() => { if (isEditPanelOpen && !bdf_klasorDone()) setInlineEditPanelOpen(false); }, "Done")) return true;
+          if (!bdf_klasorYeniAdresler().length || isFormSaving) return false;
+          console.log("[KLASOR] Done: saving the new documents before the panel closes");
+          runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "klasor-done", modeHint: "edit" });
+          const t0 = Date.now();
+          bdfKlasorDoneT = setInterval(() => {
+            if (isFormSaving && Date.now() - t0 < 20000) return;
+            clearInterval(bdfKlasorDoneT); bdfKlasorDoneT = 0;
+            if (isEditPanelOpen) setInlineEditPanelOpen(false);
+          }, 300);
+          return true;
+        } catch (e) { console.warn("[KLASOR] done", e); return false; }
+      }
       function bdf_klasorTeslimAl() {
         try {
           const t = window.__gxKlasorTeslim;
@@ -19666,6 +19700,7 @@
 
         bdf_bindDomListenerOnce(toggleInlineEditBtn, "toggleInlineEditClick", "click", (event) => {
           event.preventDefault();
+          if (isEditPanelOpen && bdf_klasorDone()) return;   // EVRAK-DONE: klasöre eklenen dosyalar önce kaydedilir
           setInlineEditPanelOpen(!isEditPanelOpen);
         });
 

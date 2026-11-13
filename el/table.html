@@ -5689,6 +5689,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (d.state === 'ready' && Array.isArray(d.files)) {
         g.files = d.files.filter(f => f && f.url && f.name).map(f => ({ name: String(f.name), url: String(f.url), grup: f.grup ? String(f.grup) : '' }));
         g.klasor = String(d.klasor || '');
+        if (/^\d{10,}x\d+$/.test(g.klasor)) g.klasor = '';   // an older server names a record without plate / file number by its long Gaia id: not shown
         g.exp = Date.now() + Math.max(30, Math.min(900, Number(d.expires_in_s) || 900)) * 1000;
         g.st = g.files.length ? 'ready' : 'empty';
         dtEkleListeyeGirdi(g);
