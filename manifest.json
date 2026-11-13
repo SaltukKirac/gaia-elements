@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "klasor",
-    "rev":  65,
-    "updated":  "2026-11-13T08:34:51Z",
+    "rev":  66,
+    "updated":  "2026-11-13T10:29:22Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -21,12 +21,12 @@
                                        "updated":  "2026-10-27T16:50:45Z"
                                    },
                      "form":  {
-                                  "commit":  "b2be622ae7b3634264102db47262f62d0ae3bb6a",
+                                  "commit":  "cb199dc105de8ca42f411a53ebbd01d12b4bb877",
                                   "path":  "el/form.html",
-                                  "blob":  "90c9fbc53a5a6748a920785a113fa3bbba86bdbf",
-                                  "bytes":  952755,
+                                  "blob":  "641e91ef677e318b5b7e2ebde6417eecd576e28c",
+                                  "bytes":  957139,
                                   "title":  "Dynamic form - app page",
-                                  "updated":  "2026-11-13T08:34:51Z"
+                                  "updated":  "2026-11-13T10:29:22Z"
                               },
                      "onboarding":  {
                                         "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
@@ -53,12 +53,12 @@
                                             "updated":  "2026-09-24T20:35:50Z"
                                         },
                      "table":  {
-                                   "commit":  "f27875a22cbc0f464b20387b9ab31bddb0743ae7",
+                                   "commit":  "cb199dc105de8ca42f411a53ebbd01d12b4bb877",
                                    "path":  "el/table.html",
-                                   "blob":  "525386ae35c302e388c50a96039d7893a5fbc019",
-                                   "bytes":  664732,
+                                   "blob":  "80bded2f7294a7b43eef960500f9a5947d3e4d06",
+                                   "bytes":  665056,
                                    "title":  "Dynamic table (tablev2) - app page",
-                                   "updated":  "2026-11-11T22:48:06Z"
+                                   "updated":  "2026-11-13T10:29:22Z"
                                },
                      "template-page":  {
                                            "commit":  "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
