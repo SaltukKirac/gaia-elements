@@ -5014,8 +5014,14 @@
       // Folders düğmesi 8 sn'de çalışır, aksiyonlar 17-23 sn'de; New basmak yalnız ~8 sn sonrasına çeker). Kart bu arada aksiyonsuz
       // açılıyordu ("Load actions" 4 sn bekleyip vazgeçiyordu), kişi seçemeden başlatınca ilk kayıt aksiyonsuz kalabiliyordu.
       const BDF_BULK_ACTS_WAIT_MS = 30000;     // kart: form verisi gelmediyse aksiyonları bu kadar bekler (sonra yalnız kaydet)
-      const BDF_BULK_ACTS_WARM_MS = 8000;      // kart: bu sürede veri gelmezse yeni kayıt formu bir kez açılır (Bubble veriyi göndersin)
       const BDF_BULK_ACT_SAVE_WAIT_MS = 30000; // kaydetme: seçilen aksiyon formda henüz yoksa bu kadar beklenir
+      // BULK-TAB (13.11 Saltuk): "toplu yükleme sırasında form açılıp kapanıyor, kullanılamaz hale geliyor; yüklemeye özel sekme
+      // açılsın, iş bitince kapansın". Kişinin sekmesi formu hiç kullanmaz: Start yeni bir sekme açar (aynı adres + ?gxbulk=<id>),
+      // klasörlerin dosyaları BroadcastChannel ile oraya geçer (File nesneleri kopyalanmadan gider), sıra o sekmede yürür, ilerleme
+      // buraya gelir, bitince o sekme kendini kapatır. Açılamazsa (açılır pencere engeli, tablo açılmadı) bu sekmede çalışır.
+      const BDF_BULK_TAB_PARAM = "gxbulk";
+      const BDF_BULK_TAB_READY_MS = 90000;     // yeni sekme bu sürede tabloyu açıp "hazırım" demezse vazgeçilir
+      const BDF_BULK_TAB_QUIET_MS = 45000;     // çalışırken bu kadar haber gelmezse "sekme yanıt vermiyor" denir
 
       // Formun o anki aksiyonları (kaydetme adımı yalnız bunları kullanır).
       function bdf_bulkCurrentActs() {
@@ -5766,6 +5772,7 @@
         try { bdf_bulkSyncLock(); } catch (_) { }
         if (!G.view) { card.hidden = true; card.innerHTML = ""; return; }
         card.hidden = false;
+        if (G.view === "remote") { if (G.remote) bdf_bulkRenderRemote(card); else { G.view = ""; card.hidden = true; } return; }
         const jobs = G.jobs || [];
         if (G.view === "notice") {
           card.innerHTML = `
@@ -5838,17 +5845,16 @@
           });
           const la = card.querySelector('[data-a="loadacts"]');
           if (la) la.addEventListener("click", () => {
-            // Bekleme baştan: yeni kayıt formu açılır (kayıt oluşmaz); Bubble verisi gelince kart aksiyonları gösterir.
+            // Bekleme baştan; Bubble verisi gelince kart aksiyonları gösterir.
             offer.openedAt = Date.now();
-            offer.warmed = false;
             bdf_bulkRender();
           });
           card.querySelector('[data-a="cancel"]').addEventListener("click", () => { G.offer = null; G.view = ""; bdf_bulkRender(); });
-          card.querySelector('[data-a="start"]').addEventListener("click", () => bdf_bulkStart(offer.groups.filter((g) => g.pick)));
+          card.querySelector('[data-a="start"]').addEventListener("click", () => bdf_bulkStartInTab(offer.groups.filter((g) => g.pick)));
           const here = card.querySelector('[data-a="here"]');
           if (here) here.addEventListener("click", () => { const fn = offer.allHere; G.offer = null; G.view = ""; bdf_bulkRender(); try { fn(); } catch (_) { } });
           const whole = card.querySelector('[data-a="whole"]');
-          if (whole) whole.addEventListener("click", () => bdf_bulkStart([offer.whole]));
+          if (whole) whole.addEventListener("click", () => bdf_bulkStartInTab([offer.whole]));
           if (focusKey) restoreFocus();
           else { try { card.querySelector('[data-a="start"]:not(:disabled)')?.focus(); } catch (_) { } }
           return;
@@ -5894,7 +5900,8 @@
             <li class="${i === G.i && G.view !== "done" ? "is-cur" : ""}"><span class="gxb-n" title="${bdf_bulkEsc(j.name)}">${bdf_bulkEsc(j.name)}</span>
               <span class="gxb-s ${j.st === "done" ? "is-ok" : (j.st === "fail" || j.st === "skip" ? "is-err" : "")}">${bdf_bulkEsc(bdf_bulkJobLabel(j))}</span></li>`).join("")}</ul>
           ${G.action ? `<div class="gxb-note">Each record runs ${bdf_bulkEsc(G.action.name)}.</div>` : ""}
-          ${G.view === "done" ? "" : '<div class="gxb-note">A folder that fails is skipped and listed; you can try it again at the end. In the background the form moves aside so you can use the table. You can switch tabs, but do not close this one.</div>'}
+          ${G.view === "done" ? "" : (G.tabId ? '<div class="gxb-note">This tab only adds your folders and closes itself when done. Go back to your other tab and keep working.</div>' : '<div class="gxb-note">A folder that fails is skipped and listed; you can try it again at the end. In the background the form moves aside so you can use the table. You can switch tabs, but do not close this one.</div>')}
+          ${G.tabNote && G.view !== "done" ? `<div class="gxb-note">${bdf_bulkEsc(G.tabNote)}</div>` : ""}
           <div class="gxb-f">${G.view === "done"
             ? `${retryN ? `<button type="button" data-a="retry">Try ${retryN} again</button>` : ""}<button type="button" class="is-primary" data-a="close">Close</button>`
             : `<button type="button" data-a="stop">Stop</button><button type="button" data-a="pause">${G.paused ? "Resume" : "Pause"}</button><button type="button" class="is-primary" data-a="bg">Run in background</button>`}</div>`;
@@ -5932,7 +5939,7 @@
 
       function bdf_bulkOffer(result, allHere) {
         const G = BDF_BULK;
-        if (G.running) { bdf_bulkNotice("Folders are already being added. Wait for that to finish.", "err"); return false; }
+        if (G.running || (G.view === "remote" && G.remote && (G.remote.state === "opening" || G.remote.state === "run" || G.remote.state === "quiet"))) { bdf_bulkNotice("Folders are already being added. Wait for that to finish.", "err"); return false; }
         if (!result || !result.groups || !result.groups.length) {
           bdf_bulkNotice("No folders found. Drop or choose folders that hold the files.", "err");
           return false;
@@ -5955,6 +5962,252 @@
         event.preventDefault();
         event.returnValue = "Folders are still being added.";
         return event.returnValue;
+      }
+
+      // ---- BULK-TAB ----
+      // Bu sekme yükleme sekmesi mi (?gxbulk=<id>)? Bubble adresi değiştirse de sekme oturumunda kalır.
+      function bdf_bulkTabId() {
+        try {
+          const id = new URL(location.href).searchParams.get(BDF_BULK_TAB_PARAM);
+          if (id && /^[a-z0-9]{6,40}$/i.test(id)) { sessionStorage.setItem("gx_bulk_tab", id); return id; }
+          return String(sessionStorage.getItem("gx_bulk_tab") || "");
+        } catch (_) { return ""; }
+      }
+
+      function bdf_bulkTabSnap() {
+        const G = BDF_BULK;
+        const keep = ["name", "st", "note", "up", "sent", "expect", "linkHold", "syncWait", "actHold", "yield", "quietMs", "unsure"];
+        return {
+          view: G.view, i: G.i, running: Boolean(G.running), paused: Boolean(G.paused), pm: G.pauseMsg || "",
+          pill: G.running ? bdf_bulkPillLine() : "", pct: bdf_bulkProgress().pct, action: G.action ? G.action.name : "",
+          jobs: (G.jobs || []).map((j) => { const o = {}; keep.forEach((k) => { if (j[k] !== undefined) o[k] = j[k]; }); return o; })
+        };
+      }
+
+      // Yükleme sekmesi: tablo ve form hazır olunca "hazırım" der, klasörleri alır, sırayı yürütür, ilerlemeyi bildirir, bitince kapanır.
+      function bdf_bulkTabWorkerTick() {
+        const G = BDF_BULK;
+        const id = G.tabId;
+        if (!id || typeof BroadcastChannel !== "function") return;
+        if (!G.tabChan) {
+          G.tabChan = new BroadcastChannel(`gx-bulk-${id}`);
+          G.tabChan.onmessage = (ev) => {
+            const m = ev && ev.data;
+            if (!m || typeof m !== "object") return;
+            if (m.t === "go" && !G.tabGot && !G.running) {
+              const mine = bdf_bulkTableKey();
+              if (m.tkey && mine && m.tkey !== mine) {
+                G.tabChan.postMessage({ t: "refused", why: "table" });
+                return;
+              }
+              G.tabGot = true;
+              const groups = (m.groups || []).filter((g) => g && g.name && Array.isArray(g.files));
+              console.log("[BULK] upload tab got folders", { folders: groups.length, action: m.action ? m.action.name : "" });
+              G.offer = { action: m.action || null, groups };
+              bdf_bulkStart(groups);
+              // Bu sekmenin formu aksiyonları henüz vermediyse seçim yine geçerli: kaydetme adımı aksiyonu bekler (BULK-ACTS).
+              if (!G.action && m.action && m.action.name) G.action = { id: String(m.action.id || ""), name: String(m.action.name) };
+              G.tabChan.postMessage({ t: "accepted" });
+            } else if (m.t === "stop" && G.running) {
+              bdf_bulkStop("Stopped from your other tab.");
+            } else if (m.t === "close") {
+              G.tabCloseAt = Date.now();
+            }
+          };
+        }
+        const now = Date.now();
+        if (!G.tabGot) {
+          // Hazır: form betiği yüklendi ve tablo bu sekmede açık (tablo kimliği var).
+          if (now - Number(G.tabReadyAt || 0) > 1000 && bdf_bulkTableKey()) {
+            G.tabReadyAt = now;
+            G.tabChan.postMessage({ t: "ready", tkey: bdf_bulkTableKey() });
+          }
+          return;
+        }
+        if (now - Number(G.tabProgAt || 0) > 1000 || (G.view === "done" && !G.tabDoneSent)) {
+          G.tabProgAt = now;
+          const snap = bdf_bulkTabSnap();
+          if (G.view === "done") {
+            if (!G.tabDoneSent) {
+              G.tabDoneSent = true;
+              G.tabChan.postMessage({ t: "done", snap });
+              try { sessionStorage.removeItem("gx_bulk_tab"); } catch (_) { }
+              G.tabCloseAt = now + 2500;
+            }
+          } else {
+            G.tabChan.postMessage({ t: "prog", snap });
+          }
+        }
+        if (G.tabCloseAt && now >= G.tabCloseAt && !G.running) {
+          G.tabCloseAt = 0;
+          try { window.removeEventListener("beforeunload", bdf_bulkBeforeUnload); } catch (_) { }
+          try { window.close(); } catch (_) { }
+        }
+      }
+
+      // Kişinin sekmesi: yükleme sekmesini açar, klasörleri gönderir, ilerlemeyi kartta gösterir.
+      function bdf_bulkStartInTab(groups) {
+        const G = BDF_BULK;
+        if (!groups || !groups.length) return;
+        // window.__gxBulkSameTab = true: eski yol (bu sekmede); kapatma anahtarı ve yerel düzenek için.
+        if (typeof BroadcastChannel !== "function" || G.tabId || window.__gxBulkSameTab === true) { bdf_bulkStart(groups); return; }
+        const offerNow = G.offer;
+        const acts = bdf_bulkActionList();
+        const w0 = offerNow && offerNow.action;
+        const act = w0 ? (acts.find((o) => o.id === w0.id) || acts.find((o) => o.name === w0.name) || null) : null;
+        const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        let url = "";
+        try { const u = new URL(location.href); u.searchParams.set(BDF_BULK_TAB_PARAM, id); u.searchParams.delete("start"); url = u.toString(); } catch (_) { url = ""; }
+        let w = null;
+        try { w = url ? window.open(url, "_blank") : null; } catch (_) { w = null; }
+        if (!w) {
+          console.warn("[BULK] the upload tab did not open (blocked?), running here");
+          bdf_bulkStart(groups);
+          G.bg = true;
+          G.tabNote = "Your browser did not open a new tab, so the folders are added here.";
+          bdf_bulkRender();
+          return;
+        }
+        const chan = new BroadcastChannel(`gx-bulk-${id}`);
+        const R = G.remote = {
+          id, w, chan, state: "opening", at: Date.now(), last: Date.now(), sent: false,
+          groups: groups.map((g) => ({ name: g.name, files: g.files, truncated: g.truncated })),
+          action: act ? { id: act.id, name: act.name } : null, tkey: bdf_bulkTableKey(), snap: null
+        };
+        chan.onmessage = (ev) => {
+          const m = ev && ev.data;
+          if (!m || typeof m !== "object" || G.remote !== R) return;
+          R.last = Date.now();
+          if (m.t === "ready" && !R.sent) {
+            R.sent = true;
+            chan.postMessage({ t: "go", groups: R.groups, action: R.action, tkey: R.tkey });
+          } else if (m.t === "accepted") {
+            R.state = "run";
+            bdf_bulkRender();
+          } else if (m.t === "refused") {
+            R.state = "refused";
+            try { R.w.close(); } catch (_) { }
+            bdf_bulkRender();
+          } else if (m.t === "prog") {
+            R.state = "run";
+            R.snap = m.snap;
+            bdf_bulkPaintRemote();
+          } else if (m.t === "done") {
+            R.state = "done";
+            R.snap = m.snap;
+            try { chan.close(); } catch (_) { }
+            bdf_bulkRender();
+          }
+        };
+        G.offer = null;
+        G.view = "remote";
+        console.log("[BULK] upload tab opened", { id, folders: R.groups.length, action: R.action ? R.action.name : "" });
+        bdf_bulkRender();
+      }
+
+      // Kişinin sekmesinde: yükleme sekmesi açıldı ama hazır olmadı / sustu mu?
+      function bdf_bulkRemoteTick() {
+        const G = BDF_BULK;
+        const R = G.remote;
+        if (!R || G.view !== "remote") return;
+        const now = Date.now();
+        let closed = false;
+        try { closed = Boolean(R.w && R.w.closed); } catch (_) { closed = false; }
+        if (R.state === "opening" && (now - R.at > BDF_BULK_TAB_READY_MS || closed)) {
+          R.state = "noready";
+          try { if (!closed) R.w.close(); } catch (_) { }
+          bdf_bulkRender();
+        } else if (R.state === "run" && (closed || now - R.last > BDF_BULK_TAB_QUIET_MS)) {
+          R.state = closed ? "closed" : "quiet";
+          bdf_bulkRender();
+        } else if (R.state === "quiet" && now - R.last < 5000) {
+          R.state = "run";
+          bdf_bulkRender();
+        }
+      }
+
+      function bdf_bulkPaintRemote() {
+        const G = BDF_BULK;
+        const card = document.getElementById("gx-bulk-card");
+        const R = G.remote;
+        if (!card || card.hidden || G.view !== "remote" || !R || !R.snap) { bdf_bulkRender(); return; }
+        const t = card.querySelector(".gxb-pill-t");
+        const bar = card.querySelector(".gxb-bar>i");
+        if (!t || !bar) { bdf_bulkRender(); return; }
+        const line = R.snap.paused ? `Paused in the upload tab. ${R.snap.pm || ""}`.trim() : `In another tab: ${R.snap.pill || "Starting"}`;
+        if (t.textContent !== line) t.textContent = line;
+        bar.style.width = `${Number(R.snap.pct || 0)}%`;
+      }
+
+      function bdf_bulkRenderRemote(card) {
+        const G = BDF_BULK;
+        const R = G.remote;
+        const snap = R.snap || { jobs: [], pct: 0 };
+        const runFallback = () => {
+          const groups = R.groups.slice();
+          G.offer = { action: R.action, groups };
+          G.remote = null;
+          bdf_bulkStart(groups);
+          G.bg = true;
+          bdf_bulkRender();
+        };
+        if (R.state === "opening" || R.state === "run" || R.state === "quiet") {
+          card.classList.add("is-bg");
+          const line = R.state === "opening" ? "Opening a tab for the upload..."
+            : R.state === "quiet" ? "The upload tab is not answering. Check that tab."
+            : (snap.paused ? `Paused in the upload tab. ${snap.pm || ""}`.trim() : `In another tab: ${snap.pill || "Starting"}`);
+          card.innerHTML = `
+            <div class="gxb-pill">
+              <span class="gxb-pill-t" role="status" aria-live="polite">${bdf_bulkEsc(line)}</span>
+              <button type="button" data-a="tab">Open tab</button>
+              <button type="button" data-a="tabstop">Stop</button>
+            </div>
+            <div class="gxb-bar" aria-hidden="true"><i style="width:${Number(snap.pct || 0)}%"></i></div>`;
+          card.querySelector('[data-a="tab"]').addEventListener("click", () => { try { R.w.focus(); } catch (_) { } });
+          card.querySelector('[data-a="tabstop"]').addEventListener("click", () => {
+            try { R.chan.postMessage({ t: "stop" }); } catch (_) { }
+            if (R.state === "opening") { try { R.w.close(); } catch (_) { } G.remote = null; G.view = ""; bdf_bulkRender(); }
+          });
+          return;
+        }
+        card.classList.remove("is-bg");
+        const jobs = snap.jobs || [];
+        const created = jobs.filter((j) => j.st === "done").length;
+        let head = "";
+        let status = "";
+        let foot = '<button type="button" class="is-primary" data-a="close">Close</button>';
+        if (R.state === "done") {
+          head = created === jobs.length ? `${created} record${created === 1 ? "" : "s"} created` : `${created} of ${jobs.length} records created`;
+          status = created === jobs.length ? "They will show in the table in a moment. The upload tab closed itself." : "Folders that were not created are listed with the reason.";
+          const retryN = jobs.filter((j) => j.st === "fail" && !j.unsure).length;
+          if (retryN) foot = `<button type="button" data-a="retry">Try ${retryN} again</button>${foot}`;
+        } else if (R.state === "closed") {
+          head = created ? `${created} of ${jobs.length} records created` : "The upload tab was closed";
+          status = "The upload tab was closed before it finished. Check the table, then add the rest again.";
+        } else if (R.state === "noready" || R.state === "refused") {
+          head = "The upload tab could not start";
+          status = R.state === "refused" ? "The new tab opened a different table." : "The new tab did not open this table in time.";
+          foot = `<button type="button" data-a="cancelr">Cancel</button><button type="button" class="is-primary" data-a="here">Add them in this tab</button>`;
+        }
+        card.innerHTML = `
+          <div class="gxb-h">${bdf_bulkEsc(head)}</div>
+          <div class="gxb-status" role="status" aria-live="polite">${bdf_bulkEsc(status)}</div>
+          ${jobs.length ? `<ul>${jobs.map((j) => `
+            <li><span class="gxb-n" title="${bdf_bulkEsc(j.name)}">${bdf_bulkEsc(j.name)}</span>
+              <span class="gxb-s ${j.st === "done" ? "is-ok" : (j.st === "fail" || j.st === "skip" ? "is-err" : "")}">${bdf_bulkEsc(bdf_bulkJobLabel(j))}</span></li>`).join("")}</ul>` : ""}
+          <div class="gxb-f">${foot}</div>`;
+        const b = (a) => card.querySelector(`[data-a="${a}"]`);
+        if (b("close")) b("close").addEventListener("click", () => { G.remote = null; G.view = ""; bdf_bulkRender(); });
+        if (b("cancelr")) b("cancelr").addEventListener("click", () => { G.remote = null; G.view = ""; bdf_bulkRender(); });
+        if (b("here")) b("here").addEventListener("click", runFallback);
+        if (b("retry")) b("retry").addEventListener("click", () => {
+          const failed = new Set(jobs.filter((j) => j.st === "fail" && !j.unsure).map((j) => j.name));
+          const again = R.groups.filter((g) => failed.has(g.name));
+          G.offer = { action: R.action, groups: again };
+          G.remote = null;
+          bdf_bulkStartInTab(again);
+        });
+        try { card.querySelector(".gxb-f .is-primary")?.focus(); } catch (_) { }
       }
 
       function bdf_bulkStart(groups) {
@@ -6149,23 +6402,21 @@
 
       function bdf_bulkTick() {
         const G = BDF_BULK;
+        try { bdf_bulkRemoteTick(); } catch (_) { }
+        try { if (G.tabId) bdf_bulkTabWorkerTick(); } catch (e) { console.warn("[BULK] upload tab", e); }
         try { bdf_bulkSyncPark(); } catch (_) { }
         try { bdf_bulkSyncLock(); } catch (_) { }
         if (G.actsChanged) {
           G.actsChanged = false;
           try { if (G.view === "confirm" && bdf_bulkActionList().length) bdf_bulkRender(); } catch (_) { }
         }
-        // BULK-ACTS: kart aksiyon beklerken veri gelince / süre dolunca yeniden çizilir; veri gelmezse form bir kez açılır.
+        // BULK-ACTS: kart aksiyon beklerken veri gelince / süre dolunca yeniden çizilir.
         if (G.view === "confirm" && G.offer && G.offer.actsWait) {
           try {
             const offer = G.offer;
             const waited = Date.now() - Number(offer.openedAt || 0);
+            // Form açılmaz (13.11 Saltuk: klasöre basınca form açılmasın); veri Bubble'dan kendiliğinden gelir.
             if (bdf_bulkActionList().length || bdf_bulkFormHasConfig() || waited >= BDF_BULK_ACTS_WAIT_MS) bdf_bulkRender();
-            else if (!offer.warmed && waited >= BDF_BULK_ACTS_WARM_MS && !bdf_bulkFormVisible()) {
-              offer.warmed = true;
-              console.log("[BULK] form data not here yet, opening a new record form so Bubble sends it");
-              bdf_bulkOpenNewRecord();
-            }
           } catch (_) { }
         }
         if (!G.running || G.paused) return;
@@ -6661,6 +6912,7 @@
       // Tablo ve form bu kapıdan girer. Her çizim kendi işlevlerini bağlar.
       BDF_BULK.tick = bdf_bulkTick;
       BDF_BULK.canRun = bdf_bulkCanRun;
+      if (!BDF_BULK.tabId) BDF_BULK.tabId = bdf_bulkTabId();
       BDF_BULK.offerEntries = (entries, allHere) => {
         if (!bdf_bulkCanRun()) return false;
         bdf_bulkGroupsFromEntries(entries).then((res) => bdf_bulkOffer(res, allHere), () => bdf_bulkNotice("Couldn't read those folders. Please try again.", "err"));
