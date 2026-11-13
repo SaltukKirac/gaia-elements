@@ -5966,7 +5966,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     else if (j.st === 'up') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.k, n: j.n, line: j.k + ' of ' + j.n + ' uploaded' };
     else if (j.st === 'saving') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.n, n: j.n, line: 'Saving to the file' };
     else if (j.st === 'done') kart = { title: 'Added ' + dtEkleAd(j.k), sub: kime, state: 'done', k: j.k, n: j.n, line: [j.k < j.n ? (j.n - j.k) + ' could not be added.' : '', 'Only the new ones are read for the claim.', j.not].filter(Boolean).join(' ') };
-    else kart = { title: 'Files not added', sub: kime, state: 'error', msg: j.msg };
+    else kart = { title: 'Files not added', sub: kime, state: 'error', msg: j.msg, line: '' };
+    if (kart.state !== 'error') kart.msg = '';   // the card keeps earlier fields: the error shows its own sentence, not the last line
     kart.onRetry = j.st === 'error' && !j.kayit ? () => dtEkleCalistir(j) : null;
     kart.href = '';
     dtIslerSet('ekle:' + j.id, kart);
