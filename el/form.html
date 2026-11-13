@@ -14800,7 +14800,14 @@
           if (readCurrentUniqueId() !== t.id) return;
           const field = bdf_klasorAlani(state.config && state.config.fields);
           const feeder = field && bdfBulkFeeders[field.key];
-          if (!field || !feeder || typeof feeder.feed !== "function") return;
+          if (!field || !feeder || typeof feeder.feed !== "function") {
+            // kayıt özet görünümünde açıldı (klasör alanı orada yok): bir kez düzenleme görünümüne geçilir, klasör orada çizilir
+            if (!t.editIstendi && !(IS_EDITING_MODE || isEditPanelOpen)) {
+              const eb = Array.from(document.querySelectorAll("#bdf-root button")).find((b) => (b.textContent || "").trim() === "Edit" && b.offsetParent);
+              if (eb) { t.editIstendi = true; try { eb.click(); } catch (_) { } }
+            }
+            return;
+          }
           window.__gxKlasorTeslim = null;
           const n = t.files.length;
           const kart = (state, line) => { try { if (window.__gxIsler && t.kart) window.__gxIsler.set(t.kart, { title: "Add to folder", sub: t.etiket || "", state, line, k: 0, n: 0 }); } catch (_) { } };
