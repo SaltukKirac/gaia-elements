@@ -131,6 +131,13 @@
 /* TIDY-LABELS (29.10, Omer): icon-only Import / Export read as mystery arrows; on a wide table they carry their word,
    narrow screens keep the icon (and the More menu). The hover tip below opens at once instead of the browser's slow title. */
 #dynamic-table-wrapper .dt-btn-label { display: none; }
+/* BULK-FOLDERS (12.11): Folders button + drop overlay; the queue and its card live in the form element */
+#dynamic-table-wrapper #dt-btn-folders[hidden], #dynamic-table-wrapper #dt-folders-input { display: none !important; }
+#dynamic-table-wrapper #dt-folders-drop { display: none; position: absolute; inset: 0; z-index: 200; padding: 12px; background: rgba(238, 242, 255, .82); pointer-events: none; }
+#dynamic-table-wrapper.dt-folders-over #dt-folders-drop { display: flex; }
+#dynamic-table-wrapper .dt-folders-drop-in { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 2px dashed var(--gx-primary, #6366f1); border-radius: 16px; color: var(--gx-ink, #0f172a); font-size: 14px; text-align: center; }
+#dynamic-table-wrapper .dt-folders-drop-in svg { width: 32px; height: 32px; fill: none; stroke: var(--gx-primary, #6366f1); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#dynamic-table-wrapper .dt-folders-drop-in span { color: var(--gx-ink-2, #475569); }
 @media (min-width: 1100px) {
   #dynamic-table-wrapper #dt-btn-import,
   #dynamic-table-wrapper #dt-btn-download { width: auto; padding: 0 12px 0 10px; font-size: 13px; color: var(--gx-ink-2, #475569); }
@@ -521,6 +528,7 @@
 #dynamic-table-wrapper .dt-toast-action:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 2px; }
 #dynamic-table-wrapper .dt-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+#dynamic-table-wrapper #dt-btn-folders,
 #dynamic-table-wrapper #dt-btn-import,
 #dynamic-table-wrapper #dt-btn-download,
 #dynamic-table-wrapper #dt-btn-more {
@@ -1271,6 +1279,7 @@
     margin-left: auto;
   }
 
+  #dynamic-table-wrapper #dt-btn-folders,
   #dynamic-table-wrapper #dt-btn-import,
   #dynamic-table-wrapper #dt-btn-download {
     display: none;
@@ -1637,6 +1646,550 @@
 #dynamic-table-wrapper .dt-row-fill.is-busy {
   opacity: .6;
   cursor: progress;
+}
+
+/* GX-ISLER (13.11): the jobs panel, bottom right of the window (outside the table, its own root; tokens redeclared here) */
+#gx-isler {
+  --is-ink: #0f172a; --is-ink-2: #475569; --is-line: #e2e8f0; --is-acc: #6366f1; --is-acc-deep: #4f46e5;
+  --is-ok: #16a34a; --is-err: #dc2626; --is-ring: rgba(99, 102, 241, .45);
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9000;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  max-height: min(60vh, 460px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #fff;
+  color: var(--is-ink);
+  border: 1px solid var(--is-line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px -14px rgba(15, 23, 42, .28);
+  font: 400 12px/1.45 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+#gx-isler[hidden] { display: none; }
+#gx-isler *, #gx-isler *::before, #gx-isler *::after { box-sizing: border-box; }
+#gx-isler .gx-is-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; margin: 0; padding: 8px 12px;
+  border: 0; border-bottom: 1px solid var(--is-line); background: #f8fafc; color: var(--is-ink);
+  font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; text-align: left; cursor: pointer;
+}
+#gx-isler.is-folded .gx-is-head { border-bottom: 0; }
+#gx-isler .gx-is-head:focus-visible, #gx-isler .gx-is-btn:focus-visible, #gx-isler .gx-is-x:focus-visible { outline: 2px solid var(--is-ring); outline-offset: 1px; }
+#gx-isler .gx-is-head-t { flex: 0 0 auto; }
+#gx-isler .gx-is-head-n { flex: 1 1 auto; color: var(--is-ink-2); font-weight: 500; font-variant-numeric: tabular-nums; }
+#gx-isler .gx-is-chev { width: 8px; height: 8px; border-right: 2px solid var(--is-ink-2); border-bottom: 2px solid var(--is-ink-2); transform: rotate(45deg) translate(-2px, -2px); transition: transform 160ms ease; }
+#gx-isler.is-folded .gx-is-chev { transform: rotate(-135deg) translate(-2px, -2px); }
+#gx-isler .gx-is-list { overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+#gx-isler.is-folded .gx-is-list { display: none; }
+#gx-isler .gx-is-card {
+  position: relative; padding: 8px 10px; border: 1px solid var(--is-line); border-left: 3px solid var(--is-acc);
+  border-radius: 8px; background: #fff; transition: box-shadow 300ms ease, background 300ms ease;
+}
+#gx-isler .gx-is-card.is-done { border-left-color: var(--is-ok); }
+#gx-isler .gx-is-card.is-error { border-left-color: var(--is-err); }
+#gx-isler .gx-is-card.is-queued { border-left-color: #94a3b8; }
+#gx-isler .gx-is-card.is-new { background: #eef2ff; box-shadow: 0 0 0 3px rgba(99, 102, 241, .25); }
+#gx-isler .gx-is-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#gx-isler .gx-is-dot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 999px; background: var(--is-acc); }
+#gx-isler .is-working .gx-is-dot { animation: gx-is-puls 1.2s ease-in-out infinite; }
+#gx-isler .is-queued .gx-is-dot { background: #94a3b8; }
+#gx-isler .is-done .gx-is-dot { background: var(--is-ok); }
+#gx-isler .is-error .gx-is-dot { background: var(--is-err); }
+#gx-isler .gx-is-title { flex: 0 0 auto; font-weight: 600; }
+#gx-isler .gx-is-sub { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--is-ink-2); }
+#gx-isler .gx-is-x {
+  flex: 0 0 auto; margin: -4px -4px -4px auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px;
+  background: transparent; color: var(--is-ink-2); font-family: inherit; font-size: 18px; font-weight: 400; line-height: 28px; cursor: pointer;
+}
+#gx-isler .gx-is-x:hover { background: #f1f5f9; color: var(--is-ink); }
+#gx-isler .gx-is-line { margin-top: 3px; color: var(--is-ink-2); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#gx-isler .is-error .gx-is-line { color: var(--is-err); }
+#gx-isler .gx-is-left { color: var(--is-ink-2); }
+#gx-isler .gx-is-bar { position: relative; height: 4px; margin-top: 6px; border-radius: 999px; background: #eef2f7; overflow: hidden; }
+#gx-isler .gx-is-bar > i { display: block; height: 100%; border-radius: inherit; background: var(--is-acc); transition: width 400ms ease; }
+#gx-isler .gx-is-bar.is-wait > i { position: absolute; left: 0; top: 0; animation: gx-is-kay 1.4s ease-in-out infinite; }
+#gx-isler .gx-is-acts { display: flex; gap: 6px; margin-top: 6px; }
+#gx-isler .gx-is-btn {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; margin: 0; border: 1px solid var(--is-acc);
+  border-radius: 999px; background: #fff; color: var(--is-acc-deep); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1;
+  text-decoration: none; cursor: pointer;
+}
+#gx-isler .gx-is-btn.is-primary { background: var(--is-acc); color: #fff; }
+#gx-isler .gx-is-btn:hover { background: var(--is-acc-deep); border-color: var(--is-acc-deep); color: #fff; }
+#gx-isler .gx-is-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.gx-is-fly {
+  position: fixed; z-index: 9001; width: 12px; height: 12px; border-radius: 999px; pointer-events: none;
+  background: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, .25);
+}
+@keyframes gx-is-puls { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes gx-is-kay { 0% { left: -30%; } 100% { left: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  #gx-isler .is-working .gx-is-dot, #gx-isler .gx-is-bar.is-wait > i { animation: none; }
+  #gx-isler .gx-is-card, #gx-isler .gx-is-bar > i, #gx-isler .gx-is-chev { transition: none; }
+}
+@media (max-width: 480px) {
+  #gx-isler { right: 8px; left: 8px; bottom: 8px; width: auto; max-width: none; }
+}
+
+/* GX-SIRALI (12.11): ordered evrak, "PDF" / "Klasör" next to "Fill" (same pill as GX-FILL); four states: idle, working, done, error */
+#dynamic-table-wrapper .dt-sirali {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 176px;   /* Fill and the row's open button always keep their place; a note shrinks first */
+  overflow: hidden;
+  margin-right: 4px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+#dynamic-table-wrapper .dt-sirali > .dt-row-sirali {
+  flex: 0 0 auto;
+}
+#dynamic-table-wrapper .dt-row-sirali {
+  display: inline-block;
+  box-sizing: border-box;
+  height: 24px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--gx-primary, #6366f1);
+  border-radius: 999px;
+  background: var(--gx-surface, #fff);
+  color: var(--gx-primary, #6366f1);
+  font: 600 12px/22px var(--gx-font, system-ui, sans-serif);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease;
+}
+#dynamic-table-wrapper .dt-row-sirali:hover,
+#dynamic-table-wrapper .dt-row-sirali:focus-visible {
+  background: var(--gx-primary, #6366f1);
+  color: #fff;
+}
+#dynamic-table-wrapper .dt-row-sirali:focus-visible {
+  outline: 2px solid var(--gx-ring, rgba(99, 102, 241, .45));
+  outline-offset: 1px;
+}
+#dynamic-table-wrapper .dt-row-sirali.is-busy,
+#dynamic-table-wrapper .dt-row-sirali.is-busy:hover {
+  background: var(--gx-surface, #fff);
+  color: var(--gx-primary, #6366f1);
+  opacity: .75;
+  cursor: progress;
+  font-variant-numeric: tabular-nums;
+}
+#dynamic-table-wrapper .dt-row-sirali.is-done {
+  background: var(--gx-primary, #6366f1);
+  color: #fff;
+}
+#dynamic-table-wrapper .dt-row-sirali.is-err {
+  border-color: var(--gx-err, #dc2626);
+  color: var(--gx-err, #dc2626);
+}
+#dynamic-table-wrapper .dt-row-sirali.is-err:hover,
+#dynamic-table-wrapper .dt-row-sirali.is-err:focus-visible {
+  background: var(--gx-err, #dc2626);
+  color: #fff;
+}
+#dynamic-table-wrapper .dt-sirali-note {
+  flex: 0 1 auto;
+  min-width: 24px;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--gx-ink-2, #475569);
+  font: 500 11px/24px var(--gx-font, system-ui, sans-serif);
+  cursor: help;
+}
+#dynamic-table-wrapper .dt-sirali-note.is-err {
+  color: var(--gx-err, #dc2626);
+}
+
+/* GX-GEZGIN (12.11): folder icon at the start of a NOD x GAIA row + the document browser (four states: loading, empty, error, ready) */
+#dynamic-table-wrapper.dt-gez-on {
+  --dt-row-header-width: 68px;
+}
+#dynamic-table-wrapper .handsontable th .dt-rh-gez {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin: 0 4px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gx-primary, #6366f1);
+  cursor: pointer;
+  vertical-align: middle;
+}
+#dynamic-table-wrapper .handsontable th .dt-rh-gez:hover {
+  background: var(--dt-highlight, #eef2ff);
+}
+#dynamic-table-wrapper .handsontable th .dt-rh-gez:focus-visible {
+  outline: 2px solid var(--gx-ring, rgba(99, 102, 241, .45));
+  outline-offset: 1px;
+}
+#dynamic-table-wrapper .dt-gez-root[hidden] {
+  display: none !important;
+}
+#dynamic-table-wrapper .dt-gez-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .24);
+  z-index: 330;
+}
+#dynamic-table-wrapper .dt-gez {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, 94vw);
+  height: min(680px, 88vh);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--gx-line-soft, #eef2f7);
+  border-radius: var(--gx-r-lg, 16px);
+  box-shadow: 0 24px 48px -16px rgba(15, 23, 42, .22);
+  z-index: 331;
+  overflow: hidden;
+  font: 13px/1.4 var(--gx-font, Inter, system-ui, sans-serif);
+  color: var(--gx-ink, #0f172a);
+  text-align: left;
+}
+#dynamic-table-wrapper .dt-gez *,
+#dynamic-table-wrapper .dt-gez *::before,
+#dynamic-table-wrapper .dt-gez *::after {
+  box-sizing: border-box;
+}
+#dynamic-table-wrapper .dt-gez button {
+  margin: 0;   /* another element on /app leaks a global button margin (tablo-buton-css-sizintisi) */
+  font-family: inherit;
+}
+#dynamic-table-wrapper .dt-gez-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 8px 20px;
+}
+#dynamic-table-wrapper .dt-gez-head-txt {
+  min-width: 0;
+}
+#dynamic-table-wrapper .dt-gez-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+#dynamic-table-wrapper .dt-gez-sub {
+  margin-top: 2px;
+  color: var(--gx-ink-2, #475569);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#dynamic-table-wrapper .dt-gez-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--gx-r-md, 10px);
+  background: transparent;
+  color: var(--gx-ink-2, #475569);
+  cursor: pointer;
+}
+#dynamic-table-wrapper .dt-gez-x:hover {
+  background: var(--gx-bg, #f8fafc);
+}
+#dynamic-table-wrapper .dt-gez-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 20px 12px;
+}
+#dynamic-table-wrapper .dt-gez-act,
+#dynamic-table-wrapper .dt-gez-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--gx-line, #e2e8f0);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--gx-ink, #0f172a);
+  font: 500 12px/1 var(--gx-font, Inter, system-ui, sans-serif);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+#dynamic-table-wrapper .dt-gez-act:hover,
+#dynamic-table-wrapper .dt-gez-btn:hover {
+  background: var(--gx-bg, #f8fafc);
+}
+#dynamic-table-wrapper .dt-gez-act.is-primary,
+#dynamic-table-wrapper .dt-gez-btn.is-primary,
+#dynamic-table-wrapper .dt-gez-act.is-done {
+  border-color: var(--gx-primary, #6366f1);
+  background: var(--gx-primary, #6366f1);
+  color: #fff;
+}
+#dynamic-table-wrapper .dt-gez-act.is-busy {
+  opacity: .75;
+  cursor: progress;
+  font-variant-numeric: tabular-nums;
+}
+#dynamic-table-wrapper .dt-gez-act.is-err {
+  border-color: var(--gx-err, #dc2626);
+  background: #fff;
+  color: var(--gx-err, #dc2626);
+}
+#dynamic-table-wrapper .dt-gez-btn[disabled] {
+  opacity: .6;
+  cursor: progress;
+}
+#dynamic-table-wrapper .dt-gez-act:focus-visible,
+#dynamic-table-wrapper .dt-gez-btn:focus-visible,
+#dynamic-table-wrapper .dt-gez-x:focus-visible,
+#dynamic-table-wrapper .dt-gez-folder:focus-visible,
+#dynamic-table-wrapper .dt-gez-name:focus-visible,
+#dynamic-table-wrapper .dt-gez-crumb-btn:focus-visible {
+  outline: 2px solid var(--gx-ring, rgba(99, 102, 241, .45));
+  outline-offset: 1px;
+}
+#dynamic-table-wrapper .dt-gez-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 20px;
+  border-top: 1px solid var(--gx-line-soft, #eef2f7);
+  border-bottom: 1px solid var(--gx-line-soft, #eef2f7);
+  color: var(--gx-ink-2, #475569);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-gez-crumb[hidden] {
+  display: none;
+}
+#dynamic-table-wrapper .dt-gez-crumb [aria-current] {
+  color: var(--gx-ink, #0f172a);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#dynamic-table-wrapper .dt-gez-crumb-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gx-primary, #6366f1);
+  font: inherit;
+  cursor: pointer;
+}
+#dynamic-table-wrapper .dt-gez-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+#dynamic-table-wrapper .dt-gez-list {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+}
+#dynamic-table-wrapper .dt-gez-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px 0 20px;
+  border-bottom: 1px solid var(--gx-line-soft, #eef2f7);
+}
+#dynamic-table-wrapper .dt-gez-item:hover {
+  background: var(--gx-bg, #f8fafc);
+}
+#dynamic-table-wrapper .dt-gez-ico {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--gx-ink-2, #475569);
+}
+#dynamic-table-wrapper .dt-gez-ico.is-folder {
+  color: var(--gx-primary, #6366f1);
+}
+#dynamic-table-wrapper .dt-gez-folder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+#dynamic-table-wrapper .dt-gez-fname {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+#dynamic-table-wrapper .dt-gez-cnt {
+  flex: 0 0 auto;
+  color: var(--gx-ink-2, #475569);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-gez-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gx-ink, #0f172a);
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+#dynamic-table-wrapper .dt-gez-name:hover {
+  color: var(--gx-primary, #6366f1);
+}
+#dynamic-table-wrapper .dt-gez-btns {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+#dynamic-table-wrapper .dt-gez-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  padding: 32px 24px;
+  color: var(--gx-ink-2, #475569);
+  text-align: center;
+}
+#dynamic-table-wrapper .dt-gez-state strong {
+  color: var(--gx-ink, #0f172a);
+  font-weight: 600;
+}
+#dynamic-table-wrapper .dt-gez-state.is-err strong {
+  color: var(--gx-err, #dc2626);
+}
+#dynamic-table-wrapper .dt-gez-spin {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gx-line, #e2e8f0);
+  border-top-color: var(--gx-primary, #6366f1);
+  border-radius: 50%;
+  animation: dt-gez-spin 800ms linear infinite;
+}
+@keyframes dt-gez-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #dynamic-table-wrapper .dt-gez-spin { animation: none; }
+}
+#dynamic-table-wrapper .dt-gez-warn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 20px 0;
+  padding: 8px 12px;
+  border-radius: var(--gx-r-md, 10px);
+  background: #fef2f2;
+  color: var(--gx-err, #dc2626);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-gez-pbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--gx-line-soft, #eef2f7);
+}
+#dynamic-table-wrapper .dt-gez-pname {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+#dynamic-table-wrapper .dt-gez-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: var(--gx-bg, #f8fafc);
+}
+#dynamic-table-wrapper .dt-gez-imgbox {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  overflow: auto;
+  background: var(--gx-bg, #f8fafc);
+}
+#dynamic-table-wrapper .dt-gez-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+#dynamic-table-wrapper .dt-gez-foot {
+  padding: 8px 20px 12px;
+  border-top: 1px solid var(--gx-line-soft, #eef2f7);
+  color: var(--gx-ink-2, #475569);
+  font-size: 11px;
+}
+@media (max-width: 600px) {
+  #dynamic-table-wrapper .dt-gez {
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100vw;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+  #dynamic-table-wrapper .dt-gez-head { padding: 12px 8px 4px 16px; }
+  #dynamic-table-wrapper .dt-gez-acts,
+  #dynamic-table-wrapper .dt-gez-crumb,
+  #dynamic-table-wrapper .dt-gez-pbar,
+  #dynamic-table-wrapper .dt-gez-foot { padding-left: 16px; padding-right: 16px; }
+  #dynamic-table-wrapper .dt-gez-item { flex-wrap: wrap; padding: 6px 12px 6px 16px; }
+  #dynamic-table-wrapper .dt-gez-name { flex-basis: calc(100% - 30px); }
+  #dynamic-table-wrapper .dt-gez-btns { margin-left: 26px; }
+  #dynamic-table-wrapper .dt-gez-act,
+  #dynamic-table-wrapper .dt-gez-btn,
+  #dynamic-table-wrapper .dt-gez-x { min-height: 44px; }
+  #dynamic-table-wrapper .dt-gez-x { width: 44px; }
+  #dynamic-table-wrapper .dt-gez-pbar { flex-wrap: wrap; }
+  #dynamic-table-wrapper .dt-gez-pname { flex-basis: 100%; order: -1; }
 }
 
 /* ── Yatay kaydırma (25.09) ──────────────────────────────────────────────────
@@ -2603,6 +3156,8 @@
         <div class="dt-toolbar-right">
           <span id="dt-selection-count" class="dt-selection-count dt-hidden" aria-live="polite"></span>
           <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" data-tip="Delete selected"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
+          <button id="dt-btn-folders" class="dt-icon-btn" type="button" hidden aria-label="Add case folders, one record per folder" data-tip="Add case folders, one record each"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M12 11v5M9.5 13.5h5"></path></svg></button>
+          <input id="dt-folders-input" type="file" multiple webkitdirectory directory tabindex="-1" aria-hidden="true" hidden />
           <button id="dt-btn-import" class="dt-icon-btn" type="button" aria-label="Import" data-tip="Import from a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V9"></path><path d="m8.5 12.5 3.5-3.5 3.5 3.5"></path><path d="M5 19h14"></path></svg><span class="dt-btn-label">Import</span></button>
           <button id="dt-btn-download" class="dt-icon-btn" type="button" aria-label="Export" data-tip="Export to a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v10"></path><path d="m8.5 11.5 3.5 3.5 3.5-3.5"></path><path d="M5 18h14"></path></svg><span class="dt-btn-label">Export</span></button>
           <div id="dt-toolbar-more-wrap" class="dt-toolbar-more-wrap">
@@ -2622,6 +3177,7 @@
     </div>
     <div id="dt-empty-state" aria-live="polite"></div>
     <div id="hot-container"></div>
+    <div id="dt-folders-drop" aria-hidden="true"><div class="dt-folders-drop-in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><strong>Drop folders here</strong><span>Each folder becomes one new record</span></div></div>
     <div id="dt-create-row" role="button" tabindex="0" aria-label="New record" title="New record">
       <div class="dt-create-row-inner">
         <span class="dt-create-row-icon">+</span>
@@ -3676,6 +4232,9 @@
     selectionCount: document.getElementById('dt-selection-count'),
     deleteButton: document.getElementById('dt-btn-delete'),
     importButton: document.getElementById('dt-btn-import'),
+    foldersButton: document.getElementById('dt-btn-folders'),
+    foldersInput: document.getElementById('dt-folders-input'),
+    foldersDrop: document.getElementById('dt-folders-drop'),
     downloadButton: document.getElementById('dt-btn-download'),
     moreButton: document.getElementById('dt-btn-more'),
     toolbarMoreWrap: document.getElementById('dt-toolbar-more-wrap'),
@@ -3799,7 +4358,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return {
       id: UI_ACTIONS_COL_ID,
       header: '',
-      width: 92,
+      width: 92 + dtSiraliExtraW(),   // GX-SIRALI: room for the PDF / Klasör pills on a claim table
       readOnly: true,
       type: 'text',
       sourceKeys: [UI_ACTIONS_COL_ID],
@@ -3949,14 +4508,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const mod = Number(row && row._gxDurumMod) || aynaLiveTime(row && row._modified);
     if (!id) return mod || 0;
     const key = id + '|' + st, prev = _dtWaitStart.get(key);
-    const at = mod ? (prev ? Math.min(prev, mod) : mod) : (prev || Date.now());
+    const at = mod ? (prev ? Math.min(prev, mod) : mod) : (prev || dtNow());   // CANLI-VERI: the server's clock (mod is Bubble's)
     _dtWaitStart.set(key, at);
     return at;
   }
   function dtClaimTimeText(row, st) {
     if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued')) return '';
     const at = dtWaitStart(row, st);
-    const min = at ? Math.max(0, Math.floor((Date.now() - at) / 60000)) : null;
+    const min = at ? Math.max(0, Math.floor((dtNow() - at) / 60000)) : null;   // CANLI-VERI: a browser clock 28 s fast said "1 min" 28 s early
     if (st === 'queued') return min === null ? '' : (min < 1 ? '<1 min' : min + ' min');
     const n = dtEvrakCount(row);
     const est = (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
@@ -4008,9 +4567,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!had) out.push('"Durum": "Claim Hazırlanıyor"');
       const w = await fetch(u, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonarray: out }) });
       if (!w.ok) throw new Error('write ' + w.status);
+      dtLiveTouch([id]);   // CANLI-VERI: the other viewers see it at their next look
       const cols = AYNA.fields.length ? AYNA.fields : (AYNA.cfg ? aynaFieldsOf(AYNA.cfg.columns) : []);
       const dc = cols.find(c => dtNormKey(c) === 'durum') || 'Durum';
-      const now = Date.now();
+      const now = dtNow();   // CANLI-VERI: compared with the mirror's _modified (the server's clock)
       _dtDirect.set(id, { mod: now, fields: { [dc]: 'Claim Hazırlanıyor' } });   // GX-DIRECT shows it before the mirror does
       _dtAsama.set(id, { mod: now, text: 'Tekrar sırada' });
       _dtWaitStart.delete(id + '|preparing'); _dtWaitStart.set(id + '|preparing', now);   // TIDY-CLAIMTIME: a new clock
@@ -4123,6 +4683,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const g = dtTableHasClaimField();
       if (g === _dtFillGate) return;
       _dtFillGate = g;
+      if (g) dtSiraliWiden();   // GX-SIRALI
+      if (g) dtGezWiden();      // GX-GEZGIN
       if (state.hot && !state.hot.isDestroyed) keepOutsideFocus(() => state.hot.render());
     } catch (e) {}
   }
@@ -4279,6 +4841,820 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) {}
   }
   /* GX-FILL-END */
+
+  /* GX-SIRALI-BEGIN (12.11) */
+  // GX-SIRALI (12.11.2026, NOD x GAIA customer complaint): eksper offices sort a claim's documents into a fixed order and print them
+  // straight; in Gaia a record's files sit in upload order. Two pills next to "Fill" on the same rows (dtFillState):
+  //   "PDF"    → one print-ready PDF in the office order (server builds it, link 15 min).
+  //   "Klasör" → (Saltuk 12.11: "zip istemiyorum, direkt klasör indirmek isterim") the browser asks for a place (File System Access
+  //              API, Chrome / Edge), opens a sub folder named after the record's Hasar Dosya No (else its id) and writes the files
+  //              one by one as "01 - Poliçe.pdf", "02 - ..." (server bicim 'liste': ordered names + one proxied address per file).
+  //              No folder API (Firefox, Safari, a sandboxed frame): the server's ZIP comes as one download instead; the pill keeps its
+  //              name "Klasör" (Saltuk: no "ZIP" on screen), its tooltip and the toast say what happens.
+  // Click → bridge op evrak_sirali {id, bicim} (server: same walls as mirror_get) → the job's own status address (durum_url, a direct
+  // CORS call to the server; 12.11 live test: the bridge polls never reached the server) every ~2 s, the bridge op evrak_sirali_durum
+  // as the fallback; "k/n" on the pill; lost answers are retried for about a minute and the cause is named. Four states: idle, working (k/n), done ("Open PDF" link / "Saved"), error ("Retry" + the reason in place, never silent).
+  // Skipped files: "N skipped" beside it, names and reasons in its tooltip. A second press while a job runs does nothing.
+  // The order itself lives on the server (octo_evrak_sirali.js). State by row id and format survives re-renders.
+  // Off: window.__gxNoSirali = true · folder off (always ZIP): window.__gxNoKlasor = true.
+  const DT_SIRALI_FMT = ['pdf', 'klasor'];
+  const DT_SIRALI_W = 160;           // extra width of the actions column on a table that shows the pills
+  const DT_SIRALI_POLL_MS = [2000, 3000];   // first minute every 2 s, then every 3 s
+  const DT_SIRALI_MAX_MS = 15 * 60000;
+  const DT_SIRALI_PAR = 5;           // GX-HIZ: folder files fetched and written this many at a time
+  const _dtSirali = new Map();       // id|bicim → { st: 'working'|'done'|'error', job, k, n, queued, skipped, url, exp, msg, t0, fails, dir, zip, klasor, saved }
+  let _dtSiraliNoFolder = false;     // the folder API refused once (sandboxed frame): ZIP from then on
+  let _dtSiraliPicking = false;      // a folder dialog is open
+  function dtSiraliKey(id, bicim) { return id + '|' + bicim; }
+  function dtSiraliCanFolder() {
+    try { return !window.__gxNoKlasor && !_dtSiraliNoFolder && typeof window.showDirectoryPicker === 'function' && window.isSecureContext !== false; } catch (e) { return false; }
+  }
+  function dtSiraliLbl(b) { return b === 'pdf' ? 'PDF' : 'Klasör'; }
+  function dtSiraliTip(b) {
+    if (b === 'pdf') return 'Ordered PDF: all documents in office order, ready to print';
+    return dtSiraliCanFolder() ? 'Klasör: pick a place, the files are saved there in office order (01, 02, ...)'
+      : 'Klasör: this browser cannot save into a folder, so the same numbered files come as one download';
+  }
+  // the job's direct status address from the server (only that shape is followed)
+  function dtSiraliUrlOk(u) { const t = String(u || ''); return /^https:\/\/[a-z0-9.-]+(:\d+)?\/evrak-sirali\/durum\/[a-f0-9]{64}$/i.test(t) ? t : ''; }
+  function dtSiraliOn(raw) {
+    try {
+      if (window.__gxNoSirali || !raw || raw.__gxPend || !rowIdOf(raw)) return false;
+      if (!dtFillState(raw)) return false;   // the NOD x GAIA rows GX-FILL serves (a table with a Claim field)
+      return dtEvrakCount(raw) !== 0;         // an Evraklar list the row itself says is empty
+    } catch (e) { return false; }
+  }
+  function dtSiraliExtraW() { try { return (!window.__gxNoSirali && dtTableHasClaimField()) ? DT_SIRALI_W : 0; } catch (e) { return 0; } }
+  // the gate turned on after the grid was mounted (field list arrived later): widen the actions column now; the next mount keeps it
+  function dtSiraliWiden() {
+    try {
+      if (!state.hot || state.hot.isDestroyed || !dtSiraliExtraW()) return;
+      const cols = state._mountedCols || [];
+      const i = cols.findIndex(c => c && c.__uiOnly);
+      if (i < 0 || (Number(cols[i].width) || 0) >= 92 + DT_SIRALI_W) return;
+      state.hot.getPlugin('manualColumnResize').setManualSize(i, 92 + DT_SIRALI_W);
+    } catch (e) {}
+  }
+  // a Windows-safe file / folder name (the server already cleans them; the browser checks again before it writes)
+  function dtSiraliAd(v) {
+    let t = String(v == null ? '' : v).replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/g, '');
+    if (t.length > 120) t = t.slice(0, 120).replace(/[. ]+$/g, '');
+    if (/^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i.test(t)) t = '_' + t;
+    return t;
+  }
+  function dtSiraliSkippedTip(s) {
+    const l = Array.isArray(s.skipped) ? s.skipped : [];
+    const lines = l.slice(0, 12).map(x => String((x && x.name) || 'file') + ': ' + String((x && x.reason) || 'skipped'));
+    if (s.skippedCount > lines.length) lines.push('and ' + (s.skippedCount - lines.length) + ' more');
+    return 'Not in the ' + (s.bicim === 'pdf' ? 'PDF' : s.zip ? 'download' : 'folder') + ':\n' + lines.join('\n');
+  }
+  function dtSiraliOne(id, bicim) {
+    const key = dtSiraliKey(id, bicim);
+    let s = _dtSirali.get(key);
+    if (s && s.st === 'done' && Date.now() > s.exp) { _dtSirali.delete(key); s = null; }   // the link has expired: back to idle
+    const lbl = dtSiraliLbl(bicim);
+    if (!s) return [`<button class="dt-row-sirali" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(dtSiraliTip(bicim))}" title="${escapeHtml(dtSiraliTip(bicim))}">${escapeHtml(lbl)}</button>`, ''];
+    const skip = s.skippedCount ? `<span class="dt-sirali-note${s.st === 'error' ? ' is-err' : ''}" title="${escapeHtml(dtSiraliSkippedTip(s))}">${s.skippedCount} skipped</span>` : '';
+    if (s.st === 'working') {
+      const txt = s.queued ? 'Queued' : (s.n ? s.k + '/' + s.n : 'Starting');
+      const tip = s.queued ? 'Waiting for other files to finish' : (s.yaz ? 'Saving into the folder: ' + s.k + ' of ' + s.n + ' files'
+        : s.n ? 'Putting the ' + lbl + ' together: ' + s.k + ' of ' + s.n + ' files' : 'Reading the record files');
+      return [`<button class="dt-row-sirali is-busy" type="button" data-bicim="${bicim}" aria-busy="true" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(txt)}</button>`, ''];
+    }
+    if (s.st === 'done' && s.url) {
+      const tip = s.zip ? 'Download the numbered files (link works for 15 min)' : 'Open the ' + lbl + ' in a new tab (link works for 15 min)';
+      const txt = s.zip ? 'Download' : 'Open ' + lbl;
+      return [`<a class="dt-row-sirali is-done" data-bicim="${bicim}" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(txt)}</a>`, skip];
+    }
+    if (s.st === 'done') {   // the folder is written
+      const tip = 'Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into the folder ' + s.klasor + '. Press to save again.';
+      return [`<button class="dt-row-sirali is-done" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">Saved</button>`, skip];
+    }
+    const msg = s.msg || 'Something went wrong.';
+    const etip = lbl + ' failed: ' + msg + ' Press to try again.';
+    return [`<button class="dt-row-sirali is-err" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(etip)}" title="${escapeHtml(etip)}">Retry</button>`,
+      `<span class="dt-sirali-note is-err" title="${escapeHtml(msg + (s.skippedCount ? '\n\n' + dtSiraliSkippedTip(s) : ''))}">${escapeHtml(msg)}</span>`];
+  }
+  // pills first, notes after them (a long note is cut with an ellipsis; the pills and the row's open button stay whole)
+  function dtSiraliInner(id) {
+    const parts = DT_SIRALI_FMT.map(b => dtSiraliOne(id, b));
+    return parts.map(p => p[0]).join('') + parts.map(p => p[1]).join('');
+  }
+  function dtSiraliHtml(raw) {
+    if (!dtSiraliOn(raw)) return '';
+    const id = rowIdOf(raw);
+    return `<span class="dt-sirali" role="group" aria-label="Documents in office order" data-gx-sirali="${escapeHtml(id)}">` + dtSiraliInner(id) + '</span>';
+  }
+  function dtSiraliPaint(id) {   // the pills of one row, in place (no full grid render)
+    try {
+      if (!els.container) return;
+      els.container.querySelectorAll('.dt-sirali').forEach(el => {
+        if (el.getAttribute('data-gx-sirali') !== id) return;
+        const had = el.contains(document.activeElement) && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-bicim') : '';
+        el.innerHTML = dtSiraliInner(id);
+        if (had) { const f = el.querySelector('[data-bicim="' + had + '"]'); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} }
+      });
+    } catch (e) {}
+    try { if (_dtGezOpen && _dtGez && _dtGez.id === id) dtGezPaintActs(); } catch (e) {}   // GX-GEZGIN: the same jobs show in the document browser
+    try { dtIslerSirali(id); } catch (e) {}   // GX-ISLER: the same jobs show in the jobs panel
+  }
+  function dtSiraliFail(id, bicim, s, msg) {
+    s.st = 'error'; s.msg = String(msg || 'The file could not be made. Try again.'); s.dir = null;
+    dtSiraliPaint(id);
+    if (!dtIslerOn()) showWakeToast(dtSiraliLbl(bicim) + ': ' + s.msg, 'error');
+  }
+  function dtSiraliTake(s, d) {
+    s.k = Number(d.done) || 0; s.n = Number(d.total) || 0; s.queued = d.state === 'queued';
+    s.skipped = Array.isArray(d.skipped) ? d.skipped : [];
+    s.skippedCount = Number(d.skipped_count) || s.skipped.length;
+  }
+  async function dtSiraliStart(raw, bicim) {
+    const id = rowIdOf(raw);
+    if (!id || DT_SIRALI_FMT.indexOf(bicim) < 0) return;
+    const key = dtSiraliKey(id, bicim), cur = _dtSirali.get(key);
+    if (cur && cur.st === 'working') return;   // double press: the job already runs
+    if (cur && cur.st === 'done' && cur.url && Date.now() < cur.exp) { window.open(cur.url, '_blank', 'noopener'); return; }
+    let dir = null, zip = false;
+    if (bicim === 'klasor') {
+      if (_dtSiraliPicking) return;
+      if (dtSiraliCanFolder()) {
+        _dtSiraliPicking = true;
+        try { dir = await window.showDirectoryPicker({ id: 'gaia-evrak', mode: 'readwrite', startIn: 'downloads' }); }   // first await: still inside the click
+        catch (e) {
+          if (e && e.name === 'AbortError') return;   // the person closed the dialog: nothing to say
+          _dtSiraliNoFolder = true;                    // a frame / policy that refuses the folder API: ZIP from now on
+          showWakeToast('This browser cannot save into a folder here, so the files come as one download.', 'success');
+        } finally { _dtSiraliPicking = false; }
+      }
+      if (!dir) zip = true;
+    }
+    if (_dtSirali.get(key) && _dtSirali.get(key).st === 'working') return;
+    const s = { raw: raw, etiket: dtIslerEtiket(raw), st: 'working', bicim: bicim, job: '', durumUrl: '', directFails: 0, directOff: false, k: 0, n: 0, queued: false, skipped: [], skippedCount: 0, url: '', exp: 0, msg: '', t0: Date.now(), fails: 0, dir: dir, zip: zip, klasor: '', saved: 0, yaz: false };
+    _dtSirali.set(key, s);
+    dtSiraliPaint(id);
+    const r = await aynaBridge('evrak_sirali', { id: id, bicim: bicim === 'pdf' ? 'pdf' : (dir ? 'liste' : 'zip') }, null, { timeoutMs: 25000 });
+    if (_dtSirali.get(key) !== s) return;
+    if (!r || !r.ok || !r.data) {
+      const m = (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : (r && r.error === 'server' && r.message) ? String(r.message)
+        : (r && r.error === 'timeout') ? 'Gaia did not answer in time. Try again.' : 'Could not start. Try again.';
+      dtSiraliFail(id, bicim, s, m);
+      return;
+    }
+    const d0 = r.data || {};
+    s.job = String(d0.job || (d0.data && d0.data.job) || '');
+    s.durumUrl = dtSiraliUrlOk(d0.durum_url || (d0.data && d0.data.durum_url));
+    if (!s.job) { try { log('[GX-SIRALI] start answer without a job: ' + Object.keys(d0).slice(0, 8).join(',')); } catch (e) {} dtSiraliFail(id, bicim, s, 'Could not start (no job came back). Try again.'); return; }
+    dtSiraliPoll(id, bicim, s);
+  }
+  // one status read: the direct address first (two failures in a row turn it off for this job), else the bridge op
+  async function dtSiraliDurumOku(s) {
+    if (s.durumUrl && !s.directOff) {
+      let r = null;
+      try {
+        const x = await fetch(s.durumUrl, { cache: 'no-store', credentials: 'omit' });
+        if (x.status === 404) r = { error: 'server', message: 'This file is no longer available. Make it again.' };
+        else if (x.ok) { const j = await x.json(); r = (j && j.status === 'SUCCESS' && j.data && typeof j.data === 'object') ? { ok: true, data: j.data } : { error: 'shape' }; }
+        else r = { error: 'http', status: x.status };
+      } catch (e) { r = { error: 'network' }; }
+      if (r.ok || r.error === 'server') { s.directFails = 0; return r; }
+      if (++s.directFails >= 2) { s.directOff = true; try { log('[GX-SIRALI] direct status off (' + (r.status || r.error) + '), using the bridge'); } catch (e) {} }
+    }
+    return aynaBridge('evrak_sirali_durum', { job: s.job }, null, { timeoutMs: 15000 });
+  }
+  async function dtSiraliPoll(id, bicim, s) {
+    const key = dtSiraliKey(id, bicim);
+    while (_dtSirali.get(key) === s && s.st === 'working') {
+      const wait = !s.polled ? 700 : s.fails ? Math.min(8000, 2000 * s.fails) : ((Date.now() - s.t0 < 60000) ? DT_SIRALI_POLL_MS[0] : DT_SIRALI_POLL_MS[1]);   // GX-HIZ: first read after 0.7 s
+      s.polled = true;
+      await new Promise(res => setTimeout(res, wait));
+      if (_dtSirali.get(key) !== s) return;
+      if (Date.now() - s.t0 > DT_SIRALI_MAX_MS) { dtSiraliFail(id, bicim, s, 'This is taking too long. Try again later.'); return; }
+      const r = await dtSiraliDurumOku(s);
+      if (_dtSirali.get(key) !== s) return;
+      if (!r || !r.ok || !r.data) {
+        if (r && r.error === 'server') { dtSiraliFail(id, bicim, s, r.message || 'This file is no longer available. Make it again.'); return; }
+        const why = String((r && (r.kod || (r.status ? 'http ' + r.status : '') || r.error)) || 'no answer');
+        try { log('[GX-SIRALI] status read failed (' + why + '), try ' + (s.fails + 1)); } catch (e) {}
+        if (r && r.error === 'session') { dtSiraliFail(id, bicim, s, 'Sign in to Gaia and try again.'); return; }
+        if (++s.fails >= 8) { dtSiraliFail(id, bicim, s, 'Lost contact with Gaia (' + why + '). Try again.'); return; }
+        continue;   // a lost answer (network, a waking server, a challenge page): ask again, a little later each time
+      }
+      s.fails = 0;
+      const d = r.data;
+      dtSiraliTake(s, d);
+      if (d.state === 'ready' && s.dir && Array.isArray(d.files)) { await dtSiraliYaz(id, bicim, s, d); return; }
+      if (d.state === 'ready' && s.dir) { dtSiraliFail(id, bicim, s, 'Saving into a folder is not on the Gaia server yet. Use PDF for now.'); return; }   // an older server made a PDF instead of the list
+      if (d.state === 'ready' && d.url) {
+        s.st = 'done'; s.url = String(d.url);
+        s.exp = Date.now() + Math.max(30, Math.min(900, Number(d.expires_in_s) || 900)) * 1000 - 15000;
+        dtSiraliPaint(id);
+        try { if (navigator.userActivation && navigator.userActivation.isActive) window.open(s.url, '_blank', 'noopener'); } catch (e) {}
+        const lbl = dtSiraliLbl(bicim);
+        if (!dtIslerOn()) showWakeToast(lbl + ' ready' + (s.skippedCount ? ', ' + s.skippedCount + ' file' + (s.skippedCount === 1 ? '' : 's') + ' skipped' : '') + '. Use "' + (s.zip ? 'Download' : 'Open ' + lbl) + '" on the row.', 'success');
+        setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, Math.max(0, s.exp - Date.now()));
+        return;
+      }
+      if (d.state === 'error') { dtSiraliFail(id, bicim, s, d.message); return; }
+      dtSiraliPaint(id);
+    }
+  }
+  // "Klasör": one sub folder in the place the person picked, the files streamed into it one by one (no ZIP, nothing held in memory)
+  async function dtSiraliYaz(id, bicim, s, d) {
+    const key = dtSiraliKey(id, bicim);
+    const files = d.files.filter(f => f && f.url && f.name);
+    s.yaz = true; s.k = 0; s.n = files.length; s.skipped = []; s.skippedCount = 0;
+    s.klasor = dtSiraliAd(d.klasor) || 'Evrak';
+    dtSiraliPaint(id);
+    let sub = null;
+    try { sub = await s.dir.getDirectoryHandle(s.klasor, { create: true }); }
+    catch (e) { dtSiraliFail(id, bicim, s, (e && e.name === 'NotAllowedError') ? 'Gaia may not write there. Pick another place.' : 'Could not create the folder. Pick another place.'); return; }
+    // GX-HIZ (13.11): DT_SIRALI_PAR files at a time (one by one took ~1 s per file of waiting: 106 files 115 s; 4 at a time 24 s).
+    // The names carry the order (001, 002, ...), so the finishing order does not matter; k counts finished files.
+    let next = 0, bitti = 0;
+    const one = async (i) => {
+      const f = files[i], ad = dtSiraliAd(f.name) || ('Evrak ' + (i + 1));
+      try {
+        const r = await fetch(f.url, { cache: 'no-store', credentials: 'omit' });
+        if (!r.ok || !r.body) {
+          let why = r.status === 404 ? 'link expired' : 'download failed';
+          try { const t = (await r.text()).trim(); if (t && t.length < 80 && r.status === 502) why = t; } catch (e) {}
+          throw Object.assign(new Error(why), { gx: why });
+        }
+        const h = await sub.getFileHandle(ad, { create: true });
+        const w = await h.createWritable();
+        await r.body.pipeTo(w);   // closes the file; a broken download aborts it
+      } catch (e) {
+        s.skipped.push({ name: ad, reason: (e && e.gx) || ((e && e.name === 'NotAllowedError') ? 'not allowed to write' : (e && e.name === 'QuotaExceededError') ? 'disk full' : 'could not save') });
+        s.skippedCount = s.skipped.length;
+      }
+      s.k = ++bitti;
+      dtSiraliPaint(id);
+    };
+    await Promise.all(Array.from({ length: Math.min(DT_SIRALI_PAR, files.length) }, async () => {
+      while (next < files.length) { if (_dtSirali.get(key) !== s) return; await one(next++); }
+    }));
+    if (_dtSirali.get(key) !== s) return;
+    s.dir = null;   // the folder handle is not kept after the run
+    s.saved = files.length - s.skippedCount;
+    if (!s.saved) { dtSiraliFail(id, bicim, s, 'No file could be saved. Try again.'); return; }
+    s.st = 'done'; s.exp = Date.now() + 15 * 60000;
+    dtSiraliPaint(id);
+    if (!dtIslerOn()) showWakeToast('Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into the folder ' + s.klasor + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '.', 'success');
+    setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, 15 * 60000);
+  }
+  // the row of a pill (same lookup as GX-FILL)
+  function dtSiraliRowOf(el) {
+    const td = el && el.closest ? el.closest('td') : null;
+    if (!td || !state.hot) return null;
+    const coords = state.hot.getCoords(td);
+    if (!coords || typeof coords.row !== 'number' || coords.row < 0) return null;
+    const p = state.hot.toPhysicalRow(coords.row), dr = state.displayRows[p];
+    return dr ? state.rawRows[dr.__sourceIndex] : null;
+  }
+  function dtSiraliAttach(container) {
+    container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-sirali') : null; if (b) event.stopPropagation(); }, true);
+    container.addEventListener('click', event => {
+      const el = event.target && event.target.closest ? event.target.closest('.dt-row-sirali') : null;
+      if (!el) return;
+      event.stopPropagation();
+      if (el.tagName === 'A') return;   // "Open PDF": the link opens in a new tab by itself
+      event.preventDefault();
+      dtIslerKaynak(el);
+      try { const raw = dtSiraliRowOf(el); if (raw) dtSiraliStart(raw, el.getAttribute('data-bicim')); } catch (e) {}   // synchronous up to the folder dialog (needs the click)
+    }, true);
+  }
+  /* GX-SIRALI-END */
+
+  /* GX-ISLER-BEGIN (13.11) */
+  // GX-ISLER (13.11.2026, Saltuk: "bunlar olacaksa da sağ süte bildirim gibi bir kısımda bekleyen devam eden biten işlemlere geçmeli,
+  // ekranda kitliyor hissi yaratıyor"): the long jobs of the table (ordered PDF, folder save, the document browser's "Save all")
+  // show in one small panel at the bottom right of the window: waiting, running (k of n, time left), finished (Open PDF / the
+  // folder name), failed (Try again). The panel is not a layer over the page: only its own cards take clicks, the rows keep
+  // working, and it folds to one line. A job that starts flies from its button to the panel, then its card lights up
+  // (devir hareketi; reduced motion: the highlight only). Generic: window.__gxIsler.set(id, job) / .remove(id) / .list() lets other
+  // long jobs (bulk folder upload) show here too: job = { title, sub, state: 'queued'|'working'|'done'|'error', k, n, line,
+  // msg, href, hrefLabel, onRetry }. Off: window.__gxNoIsler = true (the row pills and toasts carry it as before).
+  const _dtIsler = new Map();   // id → job (+ tk0 / kk0: first progress seen, for the time left; at: when it was added)
+  let _dtIslerKaynak = null, _dtIslerKaynakT = 0, _dtIslerKapali = false;
+  const _dtIslerGizli = new Map();   // id → the state its card was hidden in (comes back only when the state changes)
+  function dtIslerOn() { try { return !window.__gxNoIsler; } catch (e) { return false; } }
+  function dtIslerKaynak(el) { try { if (el && el.getBoundingClientRect) { _dtIslerKaynak = el.getBoundingClientRect(); _dtIslerKaynakT = Date.now(); } } catch (e) {} }
+  // the row's own file number for the card (the server names the folder the same way); never plate or names
+  function dtIslerEtiket(raw) {
+    try { for (const k in (raw || {})) { if (k !== '__sourceIndex' && dtNormKey(k) === 'hasardosyano') { const v = String(raw[k] == null ? '' : raw[k]).trim(); if (v) return v.slice(0, 40); } } } catch (e) {}
+    return '';
+  }
+  function dtIslerSure(ms) {
+    const sn = Math.max(1, Math.round(ms / 1000));
+    if (sn < 60) return 'about ' + (sn < 10 ? sn : Math.ceil(sn / 5) * 5) + ' s left';
+    return 'about ' + Math.ceil(sn / 60) + ' min left';
+  }
+  function dtIslerKalan(j) {   // from the pace since the first progress was seen; nothing until there is a pace to go by
+    if (j.state !== 'working' || !j.n || !(j.k > 0)) return '';
+    const now = Date.now();
+    if (j.tk0 === undefined || j.k < (j.kk0 || 0)) { j.tk0 = now; j.kk0 = j.k; return ''; }
+    const yapilan = j.k - j.kk0, gecen = now - j.tk0;
+    if (yapilan < 2 || gecen < 1500 || j.k >= j.n) return '';
+    return dtIslerSure((j.n - j.k) * gecen / yapilan);
+  }
+  function dtIslerRoot() {
+    let r = document.getElementById('gx-isler');
+    if (r) return r;
+    r = document.createElement('section');
+    r.id = 'gx-isler';
+    r.setAttribute('aria-label', 'Downloads');
+    r.innerHTML = '<button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Downloads</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
+      + '<div class="gx-is-list" role="list"></div><div class="gx-is-sr" role="status" aria-live="polite"></div>';
+    r.querySelector('.gx-is-head').addEventListener('click', () => { _dtIslerKapali = !_dtIslerKapali; dtIslerCiz(); });
+    r.addEventListener('click', (ev) => {
+      const b = ev.target && ev.target.closest ? ev.target.closest('[data-is-act]') : null;
+      if (!b) return;
+      const card = b.closest('.gx-is-card'), id = card && card.getAttribute('data-is-id'), j = id && _dtIsler.get(id);
+      if (!j) return;
+      const act = b.getAttribute('data-is-act');
+      if (act === 'hide') { _dtIslerGizli.set(id, j.state); _dtIsler.delete(id); dtIslerCiz(); }
+      else if (act === 'retry' && typeof j.onRetry === 'function') { dtIslerKaynak(b); try { j.onRetry(); } catch (e) {} }
+    });
+    document.body.appendChild(r);
+    return r;
+  }
+  function dtIslerCardHtml(id, j) {
+    const st = j.state === 'queued' || j.state === 'working' || j.state === 'done' || j.state === 'error' ? j.state : 'working';
+    const pct = j.n ? Math.max(0, Math.min(100, Math.round(100 * (j.k || 0) / j.n))) : 0;
+    let line = j.line || '';
+    if (!line) {
+      if (st === 'queued') line = 'Waiting for other files to finish';
+      else if (st === 'working') line = j.n ? (j.k || 0) + ' of ' + j.n + ' files' : 'Reading the record files';
+      else if (st === 'error') line = j.msg || 'Something went wrong.';
+    }
+    const kalan = st === 'working' ? dtIslerKalan(j) : '';
+    const bar = st === 'working' || st === 'queued'
+      ? `<div class="gx-is-bar${j.n ? '' : ' is-wait'}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${j.n ? pct : 30}%"></i></div>` : '';
+    let act = '';
+    if (st === 'done' && j.href) act = `<a class="gx-is-btn is-primary" href="${escapeHtml(j.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(j.hrefLabel || 'Open')}</a>`;
+    if (st === 'error' && typeof j.onRetry === 'function') act = '<button class="gx-is-btn" type="button" data-is-act="retry">Try again</button>';
+    const x = st === 'done' || st === 'error' ? '<button class="gx-is-x" type="button" data-is-act="hide" aria-label="Hide">&times;</button>' : '';
+    return `<div class="gx-is-card is-${st}" role="listitem" data-is-id="${escapeHtml(id)}" aria-busy="${st === 'working' || st === 'queued' ? 'true' : 'false'}">`
+      + `<div class="gx-is-top"><span class="gx-is-dot" aria-hidden="true"></span><span class="gx-is-title">${escapeHtml(j.title || 'Job')}</span>`
+      + (j.sub ? `<span class="gx-is-sub">${escapeHtml(j.sub)}</span>` : '') + x + '</div>'
+      + `<div class="gx-is-line">${escapeHtml(line)}${kalan ? ' <span class="gx-is-left">· ' + escapeHtml(kalan) + '</span>' : ''}</div>` + bar
+      + (act ? `<div class="gx-is-acts">${act}</div>` : '') + '</div>';
+  }
+  function dtIslerCiz() {
+    try {
+      if (!dtIslerOn() || !document.body) return;
+      let r = document.getElementById('gx-isler');
+      if (!_dtIsler.size) { if (r) r.hidden = true; return; }
+      r = dtIslerRoot(); r.hidden = false;
+      const l = Array.from(_dtIsler.entries()).sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
+      const calisan = l.filter(([, j]) => j.state === 'working' || j.state === 'queued').length;
+      const biten = l.length - calisan;
+      r.classList.toggle('is-folded', _dtIslerKapali);
+      const head = r.querySelector('.gx-is-head');
+      head.setAttribute('aria-expanded', _dtIslerKapali ? 'false' : 'true');
+      r.querySelector('.gx-is-head-n').textContent = calisan ? calisan + ' running' : (biten ? biten + ' ready' : '');
+      const list = r.querySelector('.gx-is-list');
+      const had = list.contains(document.activeElement) && document.activeElement.closest ? document.activeElement.closest('.gx-is-card') : null;
+      const hadId = had ? had.getAttribute('data-is-id') : '';
+      list.innerHTML = l.map(([id, j]) => dtIslerCardHtml(id, j)).join('');
+      if (hadId) { const c = list.querySelector('.gx-is-card[data-is-id="' + (window.CSS && CSS.escape ? CSS.escape(hadId) : hadId) + '"] [data-is-act], .gx-is-card[data-is-id="' + (window.CSS && CSS.escape ? CSS.escape(hadId) : hadId) + '"] a'); if (c) try { c.focus({ preventScroll: true }); } catch (e) {} }
+    } catch (e) {}
+  }
+  // a new card: a small dot flies from the pressed button to the card, then the card lights up
+  function dtIslerUcur(id) {
+    try {
+      const r = document.getElementById('gx-isler');
+      const card = r && r.querySelector('.gx-is-card[data-is-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+      if (!card) return;
+      const yak = () => { card.classList.add('is-new'); setTimeout(() => card.classList.remove('is-new'), 1400); };
+      const az = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const k = _dtIslerKaynak;
+      if (az || !k || Date.now() - _dtIslerKaynakT > 3000 || typeof document.body.animate !== 'function' || _dtIslerKapali) { yak(); return; }
+      _dtIslerKaynak = null;
+      const h = card.getBoundingClientRect();
+      const d = document.createElement('div');
+      d.className = 'gx-is-fly';
+      d.setAttribute('aria-hidden', 'true');
+      const x0 = k.left + k.width / 2 - 6, y0 = k.top + k.height / 2 - 6, x1 = h.left + 18, y1 = h.top + 16;
+      d.style.left = x0 + 'px'; d.style.top = y0 + 'px';
+      document.body.appendChild(d);
+      const a = d.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${(x1 - x0) * 0.5}px,${Math.min(y0, y1) - y0 - 40}px) scale(1.15)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(${x1 - x0}px,${y1 - y0}px) scale(.6)`, opacity: .2 }], { duration: 520, easing: 'cubic-bezier(.4,0,.2,1)' });
+      a.onfinish = () => { d.remove(); yak(); };
+      a.oncancel = () => { d.remove(); yak(); };
+    } catch (e) {}
+  }
+  function dtIslerSet(id, job) {
+    if (!dtIslerOn() || !id || !job) return;
+    if (_dtIslerGizli.has(String(id))) { if (_dtIslerGizli.get(String(id)) === job.state) return; _dtIslerGizli.delete(String(id)); }
+    const eski = _dtIsler.get(String(id));
+    const j = Object.assign({}, eski || {}, job);
+    if (!eski) j.at = Date.now();
+    if (eski && (job.n !== eski.n || job.state !== eski.state)) { delete j.tk0; delete j.kk0; }   // a new phase: a new pace
+    if (eski && eski.tk0 !== undefined && job.n === eski.n && job.state === eski.state) { j.tk0 = eski.tk0; j.kk0 = eski.kk0; }
+    _dtIsler.set(String(id), j);
+    if (!eski) { _dtIslerKapali = false; }
+    dtIslerCiz();
+    if (!eski) dtIslerUcur(String(id));
+    if (eski && eski.state !== j.state && (j.state === 'done' || j.state === 'error')) {   // the screen reader hears the end
+      try { const sr = document.querySelector('#gx-isler .gx-is-sr'); if (sr) sr.textContent = (j.title || 'Job') + (j.sub ? ' ' + j.sub : '') + ': ' + (j.state === 'done' ? (j.line || 'ready') : (j.msg || 'failed')); } catch (e) {}
+    }
+  }
+  function dtIslerSil(id) { if (_dtIsler.delete(String(id))) dtIslerCiz(); }
+  // GX-SIRALI jobs of one row → cards (called on every repaint of that row's pills)
+  function dtIslerSirali(id) {
+    if (!dtIslerOn()) return;
+    DT_SIRALI_FMT.forEach(b => {
+      const key = 'sirali:' + dtSiraliKey(id, b), s = _dtSirali.get(dtSiraliKey(id, b));
+      if (!s) { dtIslerSil(key); return; }
+      const pdf = b === 'pdf';
+      const title = pdf ? 'Ordered PDF' : s.zip ? 'Numbered files' : 'Save to folder';
+      const sub = s.klasor || s.etiket || '';
+      const retry = s.raw ? () => dtSiraliStart(s.raw, b) : null;
+      if (s.st === 'working') {
+        const line = s.queued ? 'Waiting for other files to finish'
+          : !s.n ? 'Reading the record files'
+          : s.yaz ? 'Saving ' + s.k + ' of ' + s.n + ' files'
+          : (pdf ? 'Making the PDF: ' : 'Packing: ') + s.k + ' of ' + s.n + ' files';
+        dtIslerSet(key, { title, sub, state: s.queued ? 'queued' : 'working', k: s.k, n: s.n, line, onRetry: retry, href: '', msg: '' });
+      } else if (s.st === 'done' && s.url) {
+        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: 'Ready' + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '. Link works for 15 min.', href: s.url, hrefLabel: s.zip ? 'Download' : 'Open PDF', onRetry: retry, msg: '' });
+      } else if (s.st === 'done') {
+        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: 'Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into ' + (s.klasor || 'the folder') + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : ''), href: '', onRetry: retry, msg: '' });
+      } else {
+        dtIslerSet(key, { title, sub, state: 'error', line: '', msg: s.msg || 'Something went wrong.', href: '', onRetry: retry });
+      }
+    });
+  }
+  // the time left moves even when no new file finished
+  setInterval(() => { try { if (Array.from(_dtIsler.values()).some(j => j.state === 'working')) dtIslerCiz(); } catch (e) {} }, 2000);
+  try { window.__gxIsler = { set: dtIslerSet, remove: dtIslerSil, list: () => Array.from(_dtIsler.entries()).map(([id, j]) => ({ id, title: j.title, state: j.state, k: j.k, n: j.n })) }; } catch (e) {}
+  /* GX-ISLER-END */
+
+  /* GX-GEZGIN-BEGIN (12.11) */
+  // GX-GEZGIN (12.11.2026, Saltuk: "tablomuzdan klasör ikonu ile en baştaki evraklarıma erişmek istiyorum; sistem onları zaten
+  // isimlendirmiş, indirmeye hazır hale getiriyor; içinde de gezebileyim, indirme hakkım da olsun"): a folder icon at the very start of
+  // every NOD x GAIA row (the row header, same rows as the GX-SIRALI pills) opens a document browser over the table.
+  // The list comes from the same server job as "Klasör" (evrak_sirali bicim 'liste': office order, "01 - Poliçe.pdf" names, one address
+  // per file for 15 min) and the same status reads (dtSiraliDurumOku: direct address first, the bridge as the fallback). No new server op.
+  // Folders: the server's office group per file (f.grup) when it sends one, else the label in the name ("03 - Tutanak 02.pdf" → "Tutanak"),
+  // in order of first appearance. Root = folders; a folder = its files (Preview / Download); Preview shows a PDF or an image inside the
+  // panel (bytes fetched, shown from a local blob), other types say so and offer Download. "Save all to a folder" / "Ordered PDF" start the
+  // GX-SIRALI jobs of the same row (their state shows here and on the row). Four states: loading (k/n), empty, error (+ Try again), ready;
+  // links past their 15 min say so and offer "Refresh list". Escape steps back (preview → folder) then closes; focus returns to the icon.
+  // Off: window.__gxNoGezgin = true.
+  const DT_GEZ_RH_W = 68;   // row header width on a claim table: folder icon + number / open
+  const DT_GEZ_FOLDER_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M1.75 4.25c0-.69.56-1.25 1.25-1.25h3.1l1.4 1.5H13c.69 0 1.25.56 1.25 1.25v6.5c0 .69-.56 1.25-1.25 1.25H3c-.69 0-1.25-.56-1.25-1.25z"/></svg>';
+  const DT_GEZ_FILE_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>';
+  const DT_GEZ_IMG_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2.75" width="12" height="10.5" rx="1.5"/><circle cx="5.75" cy="6.25" r="1.1"/><path d="M2.5 12l3.5-3.5 2.5 2.5 2-2 3 3"/></svg>';
+  const DT_GEZ_CLOSE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  let _dtGez = null;        // the last opened record: { id, raw, st: 'loading'|'ready'|'empty'|'error', files, klasor, exp, folder, prev, prevSt, blobUrl, msg, k, n, queued, job, durumUrl, directFails, directOff, fails, t0, dead, expired, busy }
+  let _dtGezOpen = false;   // the panel is on screen
+  let _dtGezOpener = null;  // the icon that opened it (focus goes back there)
+  function dtGezOnTable() { try { return !window.__gxNoGezgin && dtSiraliExtraW() > 0; } catch (e) { return false; } }
+  function dtGezRhW() { return dtGezOnTable() ? DT_GEZ_RH_W : 44; }
+  function dtGezIconHtml(raw) {
+    if (window.__gxNoGezgin || !dtSiraliOn(raw)) return '';
+    return `<button class="dt-rh-gez" type="button" aria-label="Browse documents" title="Browse documents">${DT_GEZ_FOLDER_SVG}</button>`;
+  }
+  // the gate turned on after the grid was mounted: give the row header room for the icon now
+  function dtGezWiden() {
+    try {
+      if (!dtGezOnTable()) return;
+      if (els.wrapper) els.wrapper.classList.add('dt-gez-on');
+      if (state.hot && !state.hot.isDestroyed && state.hot.getSettings().rowHeaderWidth !== DT_GEZ_RH_W) state.hot.updateSettings({ rowHeaderWidth: DT_GEZ_RH_W });
+    } catch (e) {}
+  }
+  // "03 - Tutanak 02.pdf" → "Tutanak" (number, extension and repeat counter off)
+  function dtGezEtiket(name) {
+    return String(name || '').replace(/^\s*\d+\s*-\s*/, '').replace(/\.[a-z0-9]{1,8}$/i, '').replace(/\s+\d{2,}$/, '').trim();
+  }
+  function dtGezGruplar(files) {
+    const out = [], by = new Map();
+    (files || []).forEach((f, i) => {
+      const ad = String((f && f.grup) || dtGezEtiket(f && f.name) || 'Other').trim() || 'Other';
+      const k = ad.toLocaleLowerCase('tr');
+      if (!by.has(k)) { const g = { ad: ad, files: [] }; by.set(k, g); out.push(g); }
+      by.get(k).files.push(i);
+    });
+    return out;
+  }
+  function dtGezTur(name) {
+    const m = /\.([a-z0-9]{1,8})$/i.exec(String(name || '')), x = m ? m[1].toLowerCase() : '';
+    if (x === 'pdf') return 'pdf';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].indexOf(x) >= 0) return 'img';
+    return 'other';
+  }
+  function dtGezMime(name) {
+    const m = /\.([a-z0-9]{1,8})$/i.exec(String(name || '')), x = m ? m[1].toLowerCase() : '';
+    return { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', heic: 'image/heic',
+      doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain' }[x] || 'application/octet-stream';
+  }
+  function dtGezCount(n) { return n + ' file' + (n === 1 ? '' : 's'); }
+  // the panel: built once inside the table's wrapper (all CSS stays under #dynamic-table-wrapper)
+  function dtGezRoot() {
+    let root = els.wrapper ? els.wrapper.querySelector('.dt-gez-root') : null;
+    if (root || !els.wrapper) return root;
+    root = document.createElement('div');
+    root.className = 'dt-gez-root';
+    root.hidden = true;
+    root.innerHTML = '<div class="dt-gez-backdrop" data-gez-act="close"></div>'
+      + '<div class="dt-gez" role="dialog" aria-modal="true" aria-labelledby="dt-gez-title" aria-describedby="dt-gez-sub">'
+      + '<div class="dt-gez-head"><div class="dt-gez-head-txt"><div class="dt-gez-title" id="dt-gez-title">Documents</div><div class="dt-gez-sub" id="dt-gez-sub"></div></div>'
+      + `<button class="dt-gez-x" type="button" data-gez-act="close" aria-label="Close" title="Close">${DT_GEZ_CLOSE_SVG}</button></div>`
+      + '<div class="dt-gez-acts"></div><nav class="dt-gez-crumb" aria-label="Folders"></nav>'
+      + '<div class="dt-gez-body" aria-live="polite"></div>'
+      + '<div class="dt-gez-foot">Only you can open these files. Links work for 15 minutes.</div></div>';
+    root.addEventListener('click', dtGezClick);
+    // EVRAK-KLASOR: panele bırakılan dosyalar kaydın evrak klasörüne (klasör bırakma desteklenmez: tek tek dosyalar)
+    root.addEventListener('dragover', (e) => { if (_dtGez && !window.__gxNoKlasorEkle && e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+    root.addEventListener('drop', (e) => { if (!_dtGez || window.__gxNoKlasorEkle || !e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return; e.preventDefault(); dtIslerKaynak(root.querySelector('.dt-gez')); dtGezEkle(_dtGez, e.dataTransfer.files); });
+    root.addEventListener('keydown', dtGezKey);
+    els.wrapper.appendChild(root);
+    return root;
+  }
+  function dtGezOpenFor(raw, opener) {
+    const id = rowIdOf(raw);
+    if (!id || window.__gxNoGezgin) return;
+    const root = dtGezRoot();
+    if (!root) return;
+    _dtGezOpener = opener || null;
+    let g = _dtGez;
+    const fresh = g && g.id === id && !g.dead && (g.st === 'loading' || (g.st === 'ready' && Date.now() < g.exp - 15000) || g.st === 'empty');
+    if (!fresh) {
+      if (g) { g.dead = true; dtGezDropBlob(g); }
+      g = { id: id, raw: raw, st: 'loading', files: [], klasor: '', exp: 0, folder: null, prev: null, prevSt: '', blobUrl: '', msg: '', k: 0, n: 0, queued: false, job: '', durumUrl: '', directFails: 0, directOff: false, fails: 0, t0: 0, dead: false, expired: false, busy: {} };
+      _dtGez = g;
+    } else { g.raw = raw; g.folder = null; g.prev = null; dtGezDropBlob(g); }
+    _dtGezOpen = true;
+    root.hidden = false;
+    try { if (state.hot && !state.hot.isDestroyed) state.hot.unlisten(); } catch (e) {}   // arrow keys stay in the panel
+    dtGezRender();
+    try { root.querySelector('.dt-gez-x').focus({ preventScroll: true }); } catch (e) {}
+    if (!fresh) dtGezLoad(g);
+  }
+  function dtGezClose() {
+    const root = dtGezRoot();
+    _dtGezOpen = false;
+    if (_dtGez) { _dtGez.prev = null; dtGezDropBlob(_dtGez); }
+    if (root) { root.hidden = true; const b = root.querySelector('.dt-gez-body'); if (b) b.innerHTML = ''; }
+    const o = _dtGezOpener; _dtGezOpener = null;
+    try { if (o && o.isConnected) o.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function dtGezDropBlob(g) { try { if (g && g.blobUrl) URL.revokeObjectURL(g.blobUrl); } catch (e) {} if (g) { g.blobUrl = ''; g.prevSt = ''; } }
+  function dtGezFail(g, msg) { g.st = 'error'; g.msg = String(msg || 'Could not open the documents. Try again.'); dtGezRender(); }
+  // the list job: evrak_sirali bicim 'liste' (the "Klasör" job), polled like GX-SIRALI
+  async function dtGezLoad(g) {
+    Object.assign(g, { st: 'loading', msg: '', k: 0, n: 0, queued: false, job: '', durumUrl: '', directFails: 0, directOff: false, fails: 0, t0: Date.now(), expired: false, files: [], folder: null, prev: null });
+    dtGezRender();
+    const r = await aynaBridge('evrak_sirali', { id: g.id, bicim: 'liste' }, null, { timeoutMs: 25000 });
+    if (g.dead) return;
+    if (!r || !r.ok || !r.data) {
+      dtGezFail(g, (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : (r && r.error === 'server' && r.message) ? String(r.message)
+        : (r && r.error === 'timeout') ? 'Gaia did not answer in time. Try again.' : 'Could not open the documents. Try again.');
+      return;
+    }
+    const d0 = r.data || {};
+    g.job = String(d0.job || (d0.data && d0.data.job) || '');
+    g.durumUrl = dtSiraliUrlOk(d0.durum_url || (d0.data && d0.data.durum_url));
+    if (!g.job) { dtGezFail(g, 'Could not open the documents. Try again.'); return; }
+    let first = true;
+    while (!g.dead && g.st === 'loading') {
+      const wait = first ? 700 : g.fails ? Math.min(8000, 2000 * g.fails) : ((Date.now() - g.t0 < 60000) ? DT_SIRALI_POLL_MS[0] : DT_SIRALI_POLL_MS[1]);
+      first = false;
+      await new Promise(res => setTimeout(res, wait));
+      if (g.dead) return;
+      if (Date.now() - g.t0 > DT_SIRALI_MAX_MS) { dtGezFail(g, 'This is taking too long. Try again later.'); return; }
+      const r2 = await dtSiraliDurumOku(g);
+      if (g.dead) return;
+      if (!r2 || !r2.ok || !r2.data) {
+        if (r2 && r2.error === 'server') { dtGezFail(g, r2.message || 'This list is no longer available. Try again.'); return; }
+        if (r2 && r2.error === 'session') { dtGezFail(g, 'Sign in to Gaia and try again.'); return; }
+        if (++g.fails >= 8) { dtGezFail(g, 'Lost contact with Gaia. Try again.'); return; }
+        continue;
+      }
+      g.fails = 0;
+      const d = r2.data;
+      g.k = Number(d.done) || 0; g.n = Number(d.total) || 0; g.queued = d.state === 'queued';
+      if (d.state === 'ready' && Array.isArray(d.files)) {
+        g.files = d.files.filter(f => f && f.url && f.name).map(f => ({ name: String(f.name), url: String(f.url), grup: f.grup ? String(f.grup) : '' }));
+        g.klasor = String(d.klasor || '');
+        g.exp = Date.now() + Math.max(30, Math.min(900, Number(d.expires_in_s) || 900)) * 1000;
+        g.st = g.files.length ? 'ready' : 'empty';
+        dtGezRender();
+        return;
+      }
+      if (d.state === 'ready') { dtGezFail(g, 'The Gaia server cannot list the files yet. Use Ordered PDF for now.'); return; }
+      if (d.state === 'error') {
+        if (/no files/i.test(String(d.message || ''))) { g.st = 'empty'; dtGezRender(); return; }
+        dtGezFail(g, d.message); return;
+      }
+      dtGezRender();
+    }
+  }
+  // the two record-wide jobs of GX-SIRALI, with the state they have right now
+  function dtGezActHtml(id, bicim) {
+    const s = _dtSirali.get(dtSiraliKey(id, bicim));
+    const base = bicim === 'pdf' ? 'Ordered PDF' : 'Save all to a folder';
+    const tip = bicim === 'pdf' ? 'One PDF with all documents in office order, ready to print' : dtSiraliTip('klasor');
+    const cls = 'dt-gez-act' + (bicim === 'klasor' ? ' is-primary' : '');
+    if (!s || (s.st === 'done' && s.exp && Date.now() > s.exp)) return `<button class="${cls}" type="button" data-gez-act="job" data-bicim="${bicim}" title="${escapeHtml(tip)}">${escapeHtml(base)}</button>`;
+    if (s.st === 'working') {
+      const t = s.queued ? 'Queued' : s.n ? (s.yaz ? 'Saving ' : 'Making PDF ') + s.k + '/' + s.n : 'Starting';
+      return `<button class="${cls} is-busy" type="button" data-gez-act="job" data-bicim="${bicim}" aria-busy="true" title="${escapeHtml(base)}">${escapeHtml(t)}</button>`;
+    }
+    if (s.st === 'done' && s.url) return `<a class="${cls} is-done" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" title="Link works for 15 minutes">${s.zip ? 'Download files' : 'Open PDF'}</a>`;
+    if (s.st === 'done') return `<button class="${cls} is-done" type="button" data-gez-act="job" data-bicim="${bicim}" title="${escapeHtml('Saved into ' + s.klasor + '. Press to save again.')}">Saved ${escapeHtml(dtGezCount(s.saved))}</button>`;
+    return `<button class="${cls} is-err" type="button" data-gez-act="job" data-bicim="${bicim}" title="${escapeHtml(String(s.msg || 'Something went wrong.') + ' Press to try again.')}">Try again: ${escapeHtml(base)}</button>`;
+  }
+  function dtGezPaintActs() {
+    const root = dtGezRoot(), g = _dtGez;
+    if (!root || !g || !_dtGezOpen) return;
+    const box = root.querySelector('.dt-gez-acts');
+    if (!box) return;
+    const had = box.contains(document.activeElement) && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-bicim') : '';
+    box.innerHTML = dtGezActHtml(g.id, 'klasor') + dtGezActHtml(g.id, 'pdf')
+      + (window.__gxNoKlasorEkle ? '' : '<button class="dt-gez-act" type="button" data-gez-act="add" title="Add new documents to this file. Only the new ones are read and the claim is completed.">Add files</button>');   // EVRAK-KLASOR
+    if (had) { const f = box.querySelector('[data-bicim="' + had + '"]'); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  function dtGezFileRow(g, i) {
+    const f = g.files[i], tur = dtGezTur(f.name), busy = g.busy[i];
+    return `<li class="dt-gez-item" data-gez-key="f${i}"><span class="dt-gez-ico">${tur === 'img' ? DT_GEZ_IMG_SVG : DT_GEZ_FILE_SVG}</span>`
+      + `<button class="dt-gez-name" type="button" data-gez-act="preview" data-i="${i}" title="Preview">${escapeHtml(f.name)}</button>`
+      + `<span class="dt-gez-btns"><button class="dt-gez-btn" type="button" data-gez-act="preview" data-i="${i}">Preview</button>`
+      + `<button class="dt-gez-btn" type="button" data-gez-act="download" data-i="${i}"${busy ? ' aria-busy="true" disabled' : ''}>${busy ? 'Downloading...' : 'Download'}</button></span></li>`;
+  }
+  function dtGezBodyHtml(g) {
+    if (g.st === 'loading') {
+      const t = g.queued ? 'Waiting for other documents to finish...' : g.n ? 'Putting the documents in office order: ' + g.k + ' of ' + g.n : 'Reading the record files...';
+      return `<div class="dt-gez-state" role="status"><span class="dt-gez-spin" aria-hidden="true"></span>${escapeHtml(t)}</div>`;
+    }
+    if (g.st === 'empty') return '<div class="dt-gez-state"><strong>This record has no documents yet.</strong><span>Add them in the Evraklar field of the record.</span></div>';
+    if (g.st === 'error') return `<div class="dt-gez-state is-err" role="alert"><strong>${escapeHtml(g.msg)}</strong><button class="dt-gez-btn is-primary" type="button" data-gez-act="reload">Try again</button></div>`;
+    const warn = g.expired || Date.now() > g.exp ? '<div class="dt-gez-warn" role="alert">These links have expired. <button class="dt-gez-btn" type="button" data-gez-act="reload">Refresh list</button></div>' : '';
+    if (g.prev !== null && g.files[g.prev]) {
+      const f = g.files[g.prev], tur = dtGezTur(f.name);
+      const bar = `<div class="dt-gez-pbar"><button class="dt-gez-btn" type="button" data-gez-act="back">Back</button><span class="dt-gez-pname">${escapeHtml(f.name)}</span>`
+        + (g.blobUrl ? `<a class="dt-gez-btn" href="${escapeHtml(g.blobUrl)}" target="_blank" rel="noopener">Open in new tab</a>` : '')
+        + `<button class="dt-gez-btn is-primary" type="button" data-gez-act="download" data-i="${g.prev}"${g.busy[g.prev] ? ' aria-busy="true" disabled' : ''}>${g.busy[g.prev] ? 'Downloading...' : 'Download'}</button></div>`;
+      let view;
+      if (tur === 'other') view = '<div class="dt-gez-state"><strong>This file type cannot be shown here.</strong><span>Download it to open it on your computer.</span></div>';
+      else if (g.prevSt === 'loading') view = '<div class="dt-gez-state" role="status"><span class="dt-gez-spin" aria-hidden="true"></span>Opening the file...</div>';
+      else if (g.prevSt === 'error') view = `<div class="dt-gez-state is-err" role="alert"><strong>${escapeHtml(g.msg || 'The file could not be opened.')}</strong><button class="dt-gez-btn" type="button" data-gez-act="preview" data-i="${g.prev}">Try again</button></div>`;
+      else if (g.blobUrl && tur === 'pdf') view = `<iframe class="dt-gez-frame" src="${escapeHtml(g.blobUrl)}" title="${escapeHtml(f.name)}"></iframe>`;
+      else if (g.blobUrl) view = `<div class="dt-gez-imgbox"><img class="dt-gez-img" src="${escapeHtml(g.blobUrl)}" alt="${escapeHtml(f.name)}"></div>`;
+      else view = '';
+      return warn + bar + view;
+    }
+    const groups = dtGezGruplar(g.files);
+    if (g.folder !== null && groups[g.folder]) return warn + '<ul class="dt-gez-list">' + groups[g.folder].files.map(i => dtGezFileRow(g, i)).join('') + '</ul>';
+    // Saltuk 12.11: documents are not put in folders (most are one file); only a set of photos is a folder, in its place in the order
+    // 13.11: the files keep the server's order (001, 002, ...); a name label shared by two files ("Poliçe 01" / "Poliçe 02") no longer pulls the second one up
+    const fotoOf = new Map();
+    groups.forEach((gr, gi) => { if (dtGezFotoGrup(g, gr)) gr.files.forEach(i => fotoOf.set(i, gi)); });
+    return warn + '<ul class="dt-gez-list">' + g.files.map((f, i) => {
+      if (!fotoOf.has(i)) return dtGezFileRow(g, i);
+      const gi = fotoOf.get(i), gr = groups[gi];
+      if (gr.files[0] !== i) return '';
+      return `<li class="dt-gez-item" data-gez-key="g${gi}"><button class="dt-gez-folder" type="button" data-gez-act="folder" data-g="${gi}">`
+        + `<span class="dt-gez-ico is-folder">${DT_GEZ_FOLDER_SVG}</span><span class="dt-gez-fname">${escapeHtml(gr.ad)}</span><span class="dt-gez-cnt">${escapeHtml(dtGezCount(gr.files.length) + ' (photos)')}</span></button></li>`;
+    }).join('') + '</ul>';
+  }
+  // a folder only for a set of photos: at least 3 files (a licence front + back stays in the list), more than half of them pictures (HEIC counts)
+  function dtGezFotoGrup(g, gr) {
+    const n = gr.files.length;
+    if (n < 3) return false;
+    const foto = gr.files.filter(i => /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(String((g.files[i] || {}).name || ''))).length;
+    return foto * 2 > n;
+  }
+  function dtGezRender(focusKey) {
+    const root = dtGezRoot(), g = _dtGez;
+    if (!root || !g || !_dtGezOpen) return;
+    const sub = root.querySelector('.dt-gez-sub'), crumb = root.querySelector('.dt-gez-crumb'), body = root.querySelector('.dt-gez-body');
+    sub.textContent = g.st === 'ready' ? ((g.klasor ? g.klasor + ', ' : '') + dtGezCount(g.files.length) + ' in office order') : g.st === 'loading' ? 'Opening...' : '';
+    const groups = g.st === 'ready' ? dtGezGruplar(g.files) : [];
+    const inFolder = g.folder !== null && groups[g.folder];
+    crumb.innerHTML = g.st !== 'ready' ? '' : (inFolder || g.prev !== null)
+      ? `<button class="dt-gez-crumb-btn" type="button" data-gez-act="root">All documents</button><span aria-hidden="true">/</span><span aria-current="page">${escapeHtml(inFolder ? groups[g.folder].ad : 'Preview')}</span>`
+      : '<span aria-current="page">All documents</span>';
+    crumb.hidden = g.st !== 'ready';
+    body.innerHTML = dtGezBodyHtml(g);
+    dtGezPaintActs();
+    if (focusKey) { const el = body.querySelector('[data-gez-key="' + focusKey + '"] button, [data-gez-act="' + focusKey + '"]'); if (el) try { el.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  async function dtGezFetch(g, f) {
+    if (Date.now() > g.exp) throw Object.assign(new Error('expired'), { gx: 'expired' });
+    let r;
+    try { r = await fetch(f.url, { cache: 'no-store', credentials: 'omit' }); } catch (e) { throw Object.assign(new Error('network'), { gx: 'network' }); }
+    if (r.status === 404) throw Object.assign(new Error('expired'), { gx: 'expired' });
+    if (!r.ok) throw Object.assign(new Error('http'), { gx: 'http' });
+    const b = await r.blob();
+    return new Blob([b], { type: dtGezMime(f.name) });
+  }
+  function dtGezWhy(e) { return (e && e.gx === 'expired') ? 'The link has expired. Refresh the list.' : (e && e.gx === 'network') ? 'No connection to the Gaia server. Try again.' : 'The file could not be downloaded. Try again.'; }
+  async function dtGezPreview(g, i) {
+    const f = g.files[i];
+    if (!f) return;
+    dtGezDropBlob(g);
+    g.prev = i; g.msg = '';
+    g.prevSt = dtGezTur(f.name) === 'other' ? '' : 'loading';
+    dtGezRender('back');
+    if (!g.prevSt) return;
+    try {
+      const b = await dtGezFetch(g, f);
+      if (g.dead || g.prev !== i) return;
+      g.blobUrl = URL.createObjectURL(b); g.prevSt = 'ready';
+    } catch (e) {
+      if (g.dead || g.prev !== i) return;
+      if (e && e.gx === 'expired') g.expired = true;
+      g.prevSt = 'error'; g.msg = dtGezWhy(e);
+    }
+    dtGezRender('back');
+  }
+  async function dtGezDownload(g, i) {
+    const f = g.files[i];
+    if (!f || g.busy[i]) return;
+    g.busy[i] = true; dtGezRender();
+    try {
+      const b = await dtGezFetch(g, f);
+      const u = URL.createObjectURL(b), a = document.createElement('a');
+      a.href = u; a.download = dtSiraliAd(f.name) || 'Evrak'; a.rel = 'noopener'; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => { try { URL.revokeObjectURL(u); } catch (e) {} }, 60000);
+    } catch (e) {
+      if (e && e.gx === 'expired') g.expired = true;
+      showWakeToast(dtGezWhy(e), 'error');
+    } finally { g.busy[i] = false; if (!g.dead) dtGezRender(); }
+  }
+  // EVRAK-KLASOR (13.11.2026, Saltuk: "yeni eklenen file ikonu ile açılan kısma da"): gezginden kaydın evrak klasörüne dosya ekleme.
+  // Kaydı tablonun kendi yolundan açar (çift tık ile aynı), dosyaları formun "Document folder" alanına devreder (window.__gxKlasorTeslim,
+  // form bdf_klasorTeslimAl). Bubble yükleyicisi ve kayıt yolu formunki; kişi Save'e basınca kayda girer, claim hattı yalnız yeni belgeleri
+  // okuyup claim'i tamamlar. İlerleme iş panelinde (GX-ISLER). Kapatma: window.__gxNoKlasorEkle = true.
+  function dtGezEkleSec(g, btn) {
+    if (!g) return;
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.multiple = true; inp.style.display = 'none';
+    inp.addEventListener('change', () => { try { if (inp.files && inp.files.length) { dtIslerKaynak(btn); dtGezEkle(g, inp.files); } } finally { inp.remove(); } });
+    (document.body || document.documentElement).appendChild(inp);
+    inp.click();
+  }
+  function dtGezEkle(g, files) {
+    const l = Array.from(files || []).filter(f => f && typeof f.name === 'string');
+    if (!g || !l.length) return;
+    const id = g.id, etiket = dtIslerEtiket(g.raw), kart = 'klasor:' + id + ':' + Date.now();
+    window.__gxKlasorTeslim = { id: id, files: l, at: Date.now(), kart: kart, etiket: etiket };
+    dtIslerSet(kart, { title: 'Add to folder', sub: etiket, state: 'working', line: 'Opening the file (' + l.length + ' file' + (l.length === 1 ? '' : 's') + ')', k: 0, n: 0 });
+    dtGezClose();
+    const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === id) : -1;
+    if (si < 0) { window.__gxKlasorTeslim = null; dtIslerSet(kart, { title: 'Add to folder', sub: etiket, state: 'error', msg: 'This record is not in the table any more.' }); return; }
+    try { prioritizeSelection(si); start(); } catch (e) {}
+    setTimeout(() => {
+      const t = window.__gxKlasorTeslim;
+      if (t && t.kart === kart) { window.__gxKlasorTeslim = null; dtIslerSet(kart, { title: 'Add to folder', sub: etiket, state: 'error', msg: 'The file did not open. Open it and drop the files into Document folder.' }); }
+    }, 120000);
+  }
+  function dtGezClick(event) {
+    const el = event.target && event.target.closest ? event.target.closest('[data-gez-act]') : null;
+    const g = _dtGez;
+    if (!el || !g) return;
+    const act = el.getAttribute('data-gez-act'), i = Number(el.getAttribute('data-i'));
+    if (act === 'close') { event.preventDefault(); dtGezClose(); return; }
+    if (act === 'reload') { dtGezLoad(g); return; }
+    if (act === 'root') { const back = g.folder; g.folder = null; g.prev = null; dtGezDropBlob(g); dtGezRender(back !== null ? 'g' + back : ''); return; }
+    if (act === 'folder') { g.folder = Number(el.getAttribute('data-g')); g.prev = null; dtGezRender('f' + (dtGezGruplar(g.files)[g.folder] || { files: [''] }).files[0]); return; }
+    if (act === 'back') { const was = g.prev; g.prev = null; dtGezDropBlob(g); dtGezRender(was !== null ? 'f' + was : ''); return; }
+    if (act === 'preview' && i >= 0) { dtGezPreview(g, i); return; }
+    if (act === 'download' && i >= 0) { dtGezDownload(g, i); return; }
+    if (act === 'add') { event.preventDefault(); dtGezEkleSec(g, el); return; }   // EVRAK-KLASOR
+    if (act === 'job') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, el.getAttribute('data-bicim')); } catch (e) {} }   // synchronous up to the folder dialog (needs the click)
+  }
+  function dtGezKey(event) {
+    if (event.key !== 'Escape') return;
+    event.preventDefault(); event.stopPropagation();
+    const g = _dtGez;
+    if (g && g.prev !== null) { const was = g.prev; g.prev = null; dtGezDropBlob(g); dtGezRender('f' + was); return; }
+    dtGezClose();
+  }
+  // the row of a row-header icon
+  function dtGezRowOf(el) {
+    const th = el && el.closest ? el.closest('th, td') : null;
+    if (!th || !state.hot) return null;
+    const coords = state.hot.getCoords(th);
+    if (!coords || typeof coords.row !== 'number' || coords.row < 0) return null;
+    const p = state.hot.toPhysicalRow(coords.row), dr = state.displayRows[p];
+    return dr ? state.rawRows[dr.__sourceIndex] : null;
+  }
+  function dtGezAttach(container) {
+    container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-rh-gez') : null; if (b) event.stopPropagation(); }, true);
+    container.addEventListener('click', event => {
+      const el = event.target && event.target.closest ? event.target.closest('.dt-rh-gez') : null;
+      if (!el) return;
+      event.stopPropagation(); event.preventDefault();
+      try { const raw = dtGezRowOf(el); if (raw) dtGezOpenFor(raw, el); } catch (e) {}
+    }, true);
+  }
+  /* GX-GEZGIN-END */
 
   function normalizeRow(row, index) {
     if (row && typeof row === 'object' && !Array.isArray(row)) {
@@ -4627,6 +6003,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     els.container.addEventListener('click', handleCellLinkClick, true);
     // GX-FILL: "Fill on portal" (the package goes to the extension; the row is not opened, and the press does not select it)
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null; if (b) event.stopPropagation(); }, true);
+    dtSiraliAttach(els.container);   // GX-SIRALI: PDF / Klasör pills (the press does not select or open the row)
+    dtGezAttach(els.container);      // GX-GEZGIN: the folder icon at the start of a row opens the document browser
     // TIDY-STAGE: "Retry" on a Failed claim cell
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-claim-retry') : null; if (b) event.stopPropagation(); }, true);
     els.container.addEventListener('click', event => {
@@ -5194,6 +6572,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const holderBefore = els.container.querySelector('.ht_master .wtHolder');
     const scrollBefore = holderBefore ? { top: holderBefore.scrollTop, left: holderBefore.scrollLeft } : null;
 
+    try { if (els.wrapper) els.wrapper.classList.toggle('dt-gez-on', dtGezRhW() > 44); } catch (e) {}   // GX-GEZGIN: wider row header
     const settings = {
       data: state.displayRows,
       columns: visibleColumns.map(col => {
@@ -5204,9 +6583,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
             width: col.width,
             renderer: (instance, td, visualRow) => {
               // GX-FILL: "Fill on portal" before "Open record" on a row with a claim package (or one that may have it)
-              let fill = '';
-              try { const p = instance.toPhysicalRow(visualRow), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; fill = dtFillButtonHtml(dtFillState(raw)); } catch (e) { fill = ''; }
-              td.innerHTML = fill + `<button class="dt-row-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
+              let fill = '', sirali = '';
+              try { const p = instance.toPhysicalRow(visualRow), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; fill = dtFillButtonHtml(dtFillState(raw)); sirali = dtSiraliHtml(raw); } catch (e) { fill = ''; sirali = ''; }   // GX-SIRALI: PDF / Klasör after Fill
+              td.innerHTML = fill + sirali + `<button class="dt-row-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
             }
           };
         }
@@ -5233,21 +6612,23 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // Satır başlığı hep solda sabit: numaranın yerinde (hover / mobilde her zaman) "aç" düğmesi → sondaki
       // aç düğmesine ulaşmak için tablonun sonuna kaydırmak gerekmez
       rowHeaders: index => {
-        const head = `<span class="dt-rh-num">${index + 1}</span>${ROW_HEADER_OPEN_HTML}`;
-        if (!state.dueDateSort.active || state.dueDateSort.fields.length === 0) {
-          return head;
-        }
         const hot = state.hot;
         const physIdx = (hot && typeof hot.toPhysicalRow === 'function')
           ? (hot.toPhysicalRow(index) ?? index)
           : index;
         const dispRow = state.displayRows[physIdx >= 0 ? physIdx : index];
+        let gez = '';   // GX-GEZGIN: the record's documents, first thing on the row
+        try { gez = (dispRow && dtGezOnTable()) ? dtGezIconHtml(state.rawRows[dispRow.__sourceIndex]) : ''; } catch (e) { gez = ''; }
+        const head = `${gez}<span class="dt-rh-num">${index + 1}</span>${ROW_HEADER_OPEN_HTML}`;
+        if (!state.dueDateSort.active || state.dueDateSort.fields.length === 0) {
+          return head;
+        }
         if (!dispRow || !dispRow.__dueToday) return head;
         // buildDisplayRows'ta bir kez hesaplanan bayrak; satır numarası korunur + küçük nokta
         const tooltip = escapeHtml('Due today: ' + (dispRow.__dueTodayLabels || ''));
         return `${head}<span class="dt-row-due-dot" role="img" aria-label="${tooltip}" title="${tooltip}"></span>`;
       },
-      rowHeaderWidth: 44,
+      rowHeaderWidth: dtGezRhW(),   // GX-GEZGIN: 68 on a claim table (folder icon + number)
       // Yatay kaydırmada satırın kimliği (ilk alan: plaka, ad …) görünür kalsın
       fixedColumnsStart: getFrozenColumnCount(visibleColumns),
       height: getAdaptiveTableHeight(),
@@ -6215,16 +7596,29 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // one bridge call → { ok, data } | { error }; an outer controller lets a newer search / page abort the one in flight;
   // mr18: opts.timeoutMs per call (field read 8 s, field write 20 s; row loads keep AYNA.timeoutMs)
+  // CANLI-VERI: a mirror_screen call goes straight to the server while the table holds a live ticket; anything else, or a refused
+  // / failed direct call, goes through the Bubble bridge as before
   async function aynaBridge(op, payload, outerCtrl, opts) {
+    if (op === 'mirror_screen' && dtLiveOk()) {
+      const tms = (opts && Number(opts.timeoutMs) > 0) ? Number(opts.timeoutMs) : AYNA.timeoutMs;
+      const d = await dtLiveScreen(payload, outerCtrl, tms);
+      if (d) return d;
+      if (outerCtrl && outerCtrl.signal && outerCtrl.signal.aborted) return { error: 'timeout', message: 'aborted' };
+    }
+    return aynaBridgeCall(op, payload, outerCtrl, opts);
+  }
+  async function aynaBridgeCall(op, payload, outerCtrl, opts) {
     const ctrl = outerCtrl || ((typeof AbortController === 'function') ? new AbortController() : null);
     const tms = (opts && Number(opts.timeoutMs) > 0) ? Number(opts.timeoutMs) : AYNA.timeoutMs;
     const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, tms) : null;
     try {
+      const t0 = Date.now();   // CANLI-VERI: the server clock sample
       const r = await fetch(aynaBridgeUrl(), {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ op: op, bridge_payload: JSON.stringify(payload || {}) }), signal: ctrl ? ctrl.signal : undefined
       });
       const text = await r.text();
+      const t1 = Date.now();
       let j = null; try { j = JSON.parse(text); } catch (e) {}
       if (r.status === 401 || r.status === 403) return { error: 'session', message: 'Sign in to Gaia to load this table.' };
       if (r.status === 404) return { error: 'no-bridge', message: 'The Gaia bridge workflow is missing.' };
@@ -6232,7 +7626,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const g = (j && j.response) ? j.response : j;
       let inner = null;
       if (g && typeof g.final_json === 'string' && g.final_json.trim()) { try { inner = JSON.parse(g.final_json); } catch (e) { inner = null; } }
-      if (!inner && g && typeof g === 'object' && (g.rows || g.data || g.status)) inner = g;
+      if (!inner && g && typeof g === 'object' && (g.rows || g.data || g.status || g.job || g.state)) inner = g;   // GX-SIRALI: the plugin hands back the server's data object itself ({job, durum_url} / {state, ...})
       if (g && String(g.error_message || '').trim()) return { error: 'server', message: String(g.error_message) };
       if (!inner || typeof inner !== 'object') return { error: 'shape', message: 'Unexpected bridge answer.' };
       if (String(inner.status || '').toUpperCase() === 'ERROR') return { error: 'server', message: inner.message || 'Mirror error', kod: inner.kod || '' };
@@ -6242,7 +7636,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // answered 12/12 four seconds later, to a closed socket). A timeout = outcome unknown (a write may still land).
       const st = String(inner.status || '').toUpperCase();
       if (st && st !== 'SUCCESS' && st !== 'OK') return { error: 'timeout', waking: true, kod: st, message: 'The Gaia server did not answer in time (it was probably waking up).' };
-      return { ok: true, data: inner.data && typeof inner.data === 'object' && !inner.rows && !inner.cols ? inner.data : inner };
+      const data = inner.data && typeof inner.data === 'object' && !inner.rows && !inner.cols ? inner.data : inner;
+      try {   // CANLI-VERI: the server's clock, and a fresh live ticket on a mirror_screen answer
+        dtSaatNoteSrv(inner.server_now || (data && data.mirror && data.mirror.server_now), t0, t1);
+        if (op === 'mirror_screen' && data && data.live) dtLiveTake(data.live, t1);
+      } catch (e) {}
+      return { ok: true, data: data };
     } catch (e) {
       return { error: (e && e.name === 'AbortError') ? 'timeout' : 'network', message: (e && e.message) || String(e) };
     } finally { if (timer) clearTimeout(timer); }
@@ -6413,6 +7812,178 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
     } catch (e) { log('[GX-GONE] ' + ((e && e.message) || e)); }
   }
+  /* GX-SAAT (12.11, Saltuk: "sildim, hâlâ görüyorum" · "Claim hazırlanıyor görünen kayıt güven vermiyor"). A pending row (GX-PEND)
+     was matched to the mirror's row of its record by time only: a row created from 20 s before the save on. The save time was the
+     BROWSER's clock, the row's _created Bubble's. The founder's laptop ran 28 s fast (Windows time service stopped), so no real row
+     was ever "late enough": every save left a "Preparing…" twin without an id for 30 min next to the real row (the real row
+     deleted → the twin stayed; its claim ready → the twin still said Preparing…). GX-DUP and GX-PEND-SIL searched Bubble from the
+     same skewed time and missed the record too. Now:
+       · a pending row and a record are the same when they share an upload: every Bubble file address carries its own upload id
+         (/f<digits>x<digits>/, cdn.bubble.io and /fileupload/ alike); the mirror row's Evraklar holds the ids the form uploaded,
+         whatever the clocks say. A record older than 10 min that holds the same address (a copy) is not it.
+       · every comparison of a browser time with Bubble's dates first moves it onto Bubble's clock: the offset comes from the Date
+         header of a HEAD on the page's own origin (once per save, again after 10 min) and of the table's Data API calls; under
+         2 s it counts as 0 (the header is cut to the second).
+     Off: window.__gxNoSaat = true (time only, browser clock: the old behaviour). */
+  var DT_SAAT = { minMs: 2000, refreshMs: 10 * 60000, fileWindowMs: 10 * 60000 };
+  var _dtSaat = { ms: 0, n: 0, at: 0, busy: false };
+  // a same-origin answer (fetch Response) taken between browser times t0 and t1: its Date header updates the offset
+  function dtSaatNote(r, t0, t1) {
+    try {
+      const h = r && r.headers && typeof r.headers.get === 'function' ? r.headers.get('Date') : null;
+      const s = h ? Date.parse(h) : NaN;
+      if (!isFinite(s) || !t0 || !t1 || t1 < t0 || t1 - t0 > 10000) return;
+      const k = (t0 + t1) / 2 - (s + 500);   // the header is cut to the second: +500 ms on average
+      _dtSaat.ms = _dtSaat.n ? Math.round(_dtSaat.ms * 0.6 + k * 0.4) : Math.round(k);
+      _dtSaat.n++; _dtSaat.at = Date.now();
+    } catch (e) {}
+  }
+  // the browser's clock minus Bubble's (ms): 0 while unknown, under the threshold, or switched off. CANLI-VERI: a server-clock
+  // sample (ms exact, the mirror's server_now) wins over the Date header (cut to the second) while it is under 15 min old.
+  function dtSaatMs() {
+    if (window.__gxNoSaat) return 0;
+    if (_dtSrv && _dtSrv.n && Date.now() - _dtSrv.at < DT_LIVE.srvMaxAgeMs) return Math.abs(_dtSrv.ms) >= DT_LIVE.srvMinMs ? _dtSrv.ms : 0;   // var-hoisted: undefined until this part of the script ran
+    return (_dtSaat.n && Math.abs(_dtSaat.ms) >= DT_SAAT.minMs) ? _dtSaat.ms : 0;
+  }
+  // a browser time on Bubble's clock
+  function dtSaatSrv(t) { return Number(t) - dtSaatMs(); }
+  // CANLI-VERI: now on the server's clock (Render and Bubble keep real time; this browser may not)
+  function dtNow() { return Date.now() - dtSaatMs(); }
+  /* CANLI-VERI (12.11, Saltuk: "local pc saatine göre database göstermek ne kadar sağlıklı? bize düzgün bir canlı data deneyimi ver,
+     maliyeti de göz önüne al"). The table half of the server's live layer (composio-agent-api octo_live.js, mirror l1):
+       · clock: every mirror answer carries server_now (ms). The table keeps the best sample, the one with the shortest round trip:
+         its error is at most half of it. A sample that disagrees with the kept one by more than both error bounds means the clock
+         jumped (the user set the time) and replaces it at once. Every time the table compares with the server's dates goes through
+         dtNow() / dtSaatSrv(): the GX-PEND match, PEND-SIL, GX-DUP, the Preparing / Queued minutes (TIDY-CLAIMTIME), GX-DIRECT.
+       · direct: a signed-in mirror_screen answer through the bridge carries a 15 min ticket (live: {url, t, exp, server_now}).
+         With it every mirror_screen call (load, page, probe, refresh) goes straight to the server (POST, text/plain: no
+         preflight). It is the same answer behind the same walls, without a Bubble workflow run per call: the probes were most of
+         the "Workflow: bridge" workload units. 3 min before the end the calls go through the bridge again, and its answer brings
+         a new ticket (about one bridge call per 12 min per tab). A refused ticket (401) is dropped. A refused origin or a server
+         without tickets (403 / 404) closes the direct path for 30 min, two failures in a row for 5 min, a rate answer (429) for
+         1 min. In every such case the call goes through the bridge, as before.
+       · GX-DIRECT reads its Preparing / Queued / Failed rows from the mirror (one direct call for all of them, hidden rows
+         flagged) instead of one Bubble Data API read per row every 5 s. The claim lines now write their records into the mirror
+         at once (touch), so the mirror is as new as Bubble for them. Without a ticket: Bubble, as before.
+       · touch: the table's own writes (a confirmed delete, Retry, a pending row's record deleted) ask the server to read those
+         records into the mirror now, so the other viewers see them at their next probe.
+     Off: window.__gxNoLive = true (bridge only, GX-DIRECT from Bubble; the clock part follows window.__gxNoSaat). */
+  var DT_LIVE = { srvMaxAgeMs: 15 * 60000, srvMinMs: 1000, srvRefreshMs: 5 * 60000, renewBeforeMs: 3 * 60000, timeoutMs: 12000, failOffMs: 5 * 60000, deniedOffMs: 30 * 60000, rateOffMs: 60000 };
+  var _dtSrv = { ms: 0, rtt: 0, at: 0, n: 0 };
+  // a server answer (server_now, ms) received between browser times t0 and t1
+  function dtSaatNoteSrv(serverNow, t0, t1) {
+    try {
+      const s = Number(serverNow);
+      if (!isFinite(s) || s <= 0 || !t0 || !t1 || t1 < t0 || t1 - t0 > 20000) return;
+      const rtt = t1 - t0, k = Math.round((t0 + t1) / 2 - s), now = Date.now();
+      const take = !_dtSrv.n || now - _dtSrv.at > DT_LIVE.srvRefreshMs || rtt < _dtSrv.rtt
+        || Math.abs(k - _dtSrv.ms) > (rtt + _dtSrv.rtt) / 2 + 250;   // the clock jumped
+      if (!take) return;
+      const was = _dtSrv.n ? _dtSrv.ms : null;
+      _dtSrv.ms = k; _dtSrv.rtt = rtt; _dtSrv.at = now; _dtSrv.n++;
+      if (Math.abs(k) >= DT_LIVE.srvMinMs && (was === null || Math.abs(was - k) >= DT_LIVE.srvMinMs)) log('[GX-SAAT] this browser\'s clock is ' + Math.round(k / 100) / 10 + ' s off the server\'s; the table uses the server\'s clock');
+    } catch (e) {}
+  }
+  function dtSaatLearn(force) {
+    try {
+      if (window.__gxNoSaat || _dtSaat.busy || typeof fetch !== 'function') return;
+      if (!force && _dtSrv && _dtSrv.n && Date.now() - _dtSrv.at < DT_LIVE.srvMaxAgeMs) return;   // CANLI-VERI: the mirror's answers keep the clock
+      if (!force && _dtSaat.n && Date.now() - _dtSaat.at < DT_SAAT.refreshMs) return;
+      _dtSaat.busy = true;
+      const t0 = Date.now();
+      fetch(location.origin + '/robots.txt', { method: 'HEAD', cache: 'no-store', credentials: 'omit' })   // 200, no body; /favicon.ico is a 404 on Gaia
+        .then(r => {
+          dtSaatNote(r, t0, Date.now());
+          if (dtSaatMs()) log('[GX-SAAT] this browser\'s clock is ' + Math.round(_dtSaat.ms / 1000) + ' s off Bubble\'s; pending rows use Bubble\'s clock');
+        })
+        .catch(() => {})
+        .then(() => { _dtSaat.busy = false; });
+    } catch (e) { _dtSaat.busy = false; }
+  }
+  // CANLI-VERI: the ticket of the last bridge answer; until = its end on THIS browser's clock (its life, not the server's date)
+  var _dtLive = null;   // { url, t, until, fails, offUntil }
+  function dtLiveTake(lv, t1) {
+    try {
+      if (window.__gxNoLive || !lv || typeof lv.t !== 'string' || !lv.t || !/^https:\/\/[^\s]+$/.test(String(lv.url || ''))) return;
+      const life = Number(lv.exp) - Number(lv.server_now);
+      if (!(life > 60000) || life > 24 * 3600000) return;
+      const prev = _dtLive;
+      const same = !!(prev && prev.url === String(lv.url));   // failures belong to the path, not the ticket: a new ticket keeps them
+      _dtLive = { url: String(lv.url), t: lv.t, until: (t1 || Date.now()) + life, fails: same ? (prev.fails || 0) : 0, offUntil: same ? (prev.offUntil || 0) : 0 };
+    } catch (e) {}
+  }
+  function dtLiveOk() {
+    const L = _dtLive;
+    if (!L || window.__gxNoLive) return false;
+    const now = Date.now();
+    return now < L.until - DT_LIVE.renewBeforeMs && now >= (L.offUntil || 0);
+  }
+  // one direct call: { ok, j } · { fallback, rate? } (use the bridge / skip) · { error } (the caller gave up: aborted)
+  async function dtLiveCall(op, body, outer, tms) {
+    const L = _dtLive;
+    if (!L) return { fallback: true };
+    const sig = outer && outer.signal;
+    if (sig && sig.aborted) return { error: 'timeout', message: 'aborted' };
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const onOuter = () => { try { if (ctrl) ctrl.abort(); } catch (e) {} };
+    if (sig && sig.addEventListener) sig.addEventListener('abort', onOuter);
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, Math.min(Number(tms) > 0 ? Number(tms) : DT_LIVE.timeoutMs, DT_LIVE.timeoutMs)) : null;
+    const t0 = Date.now();
+    const fail = () => { L.fails = (L.fails || 0) + 1; if (L.fails >= 2) { L.offUntil = Date.now() + DT_LIVE.failOffMs; log('[CANLI-VERI] direct calls off for 5 min (no answer), the bridge carries them'); } return { fallback: true }; };
+    try {
+      const r = await fetch(L.url, { method: 'POST', mode: 'cors', credentials: 'omit', cache: 'no-store', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(Object.assign({ t: L.t, op: op }, body || {})), signal: ctrl ? ctrl.signal : undefined });
+      const t1 = Date.now();
+      let j = null; try { j = await r.json(); } catch (e) { j = null; }
+      if (j && j.server_now) dtSaatNoteSrv(j.server_now, t0, t1);
+      if (r.status === 401) { if (_dtLive === L) _dtLive = null; return { fallback: true }; }
+      if (r.status === 429) { L.offUntil = Date.now() + DT_LIVE.rateOffMs; return { fallback: true, rate: true }; }
+      if (r.status === 403 || r.status === 404) { L.offUntil = Date.now() + DT_LIVE.deniedOffMs; log('[CANLI-VERI] direct calls refused (' + r.status + '), the bridge carries them'); return { fallback: true }; }
+      if (!r.ok || !j || typeof j !== 'object') return fail();
+      L.fails = 0;
+      return { ok: true, j: j };
+    } catch (e) {
+      if (sig && sig.aborted) return { error: 'timeout', message: 'aborted' };
+      return fail();
+    } finally { if (timer) clearTimeout(timer); if (sig && sig.removeEventListener) sig.removeEventListener('abort', onOuter); }
+  }
+  // mirror_screen straight to the server: the bridge's answer shape, or null (the bridge takes the call)
+  async function dtLiveScreen(payload, outer, tms) {
+    const d = await dtLiveCall('screen', { p: payload || {} }, outer, tms);
+    if (d.error) return d;
+    if (!d.ok) return null;
+    const inner = d.j;
+    if (String(inner.status || '').toUpperCase() === 'ERROR') return inner.kod ? null : { error: 'server', message: inner.message || 'Mirror error', kod: '' };   // a transport refusal (kod) goes to the bridge; the screen's own error is the answer
+    if (String(inner.status || '').toUpperCase() !== 'SUCCESS') return null;
+    return { ok: true, direct: true, data: inner.data && typeof inner.data === 'object' && !inner.rows && !inner.cols ? inner.data : inner };
+  }
+  // the table's own writes reach the mirror now (the server reads them from Bubble); delayMs lets Bubble's workflow land first
+  function dtLiveTouch(ids, delayMs) {
+    try {
+      const list = (Array.isArray(ids) ? ids : []).map(String).filter(Boolean).slice(0, 20);
+      if (!list.length || !dtLiveOk()) return;
+      setTimeout(() => { try { dtLiveCall('touch', { ids: list }, null, 10000).catch(() => {}); } catch (e) {} }, Math.max(0, Number(delayMs) || 0));
+    } catch (e) {}
+  }
+  // the upload ids anywhere in a value (strings, arrays, objects; a JSON text of addresses too)
+  function dtUploadIds(v) {
+    const out = new Set(), re = /\/f(\d{6,}x\d{6,})\//g;
+    const walk = (x, d) => {
+      if (d > 4 || x == null) return;
+      if (typeof x === 'string') { if (x.indexOf('/f') < 0) return; re.lastIndex = 0; let m; while ((m = re.exec(x))) out.add(m[1]); return; }
+      if (Array.isArray(x)) { x.forEach(y => walk(y, d + 1)); return; }
+      if (typeof x === 'object') Object.keys(x).forEach(k => walk(x[k], d + 1));
+    };
+    try { walk(v, 0); } catch (e) {}
+    return out;
+  }
+  // two values share at least one upload (a Set is taken as the ids themselves)
+  function dtUploadShare(a, b) {
+    const x = a instanceof Set ? a : dtUploadIds(a); if (!x.size) return false;
+    const y = b instanceof Set ? b : dtUploadIds(b);
+    for (const k of y) { if (x.has(k)) return true; }
+    return false;
+  }
+
   /* GX-PEND (29.10, Ömer): a record saved in the form shows in the table at once ("Claim Hazırla dediğim anda tabloya düşsün").
      The mirror learns of Bubble's create 10-20 s later at best (29.10: it stalled for 27 min), so the row waited for it.
      Now the table builds the row from what the form handed Bubble (output_full_obj: the same field names as the table's
@@ -6441,6 +8012,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return '';
   }
   // the grid's rows plus the saved records the mirror has not shown yet (the same array when there are none)
+  var _dtPendUsedRows = new Set();
   function dtPendMerge(rows) {
     if (!Array.isArray(rows)) return rows;
     const base = rows.some(r => r && r.__gxPend) ? rows.filter(r => !(r && r.__gxPend)) : rows;
@@ -6449,18 +8021,35 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!list.length) return base;
     const now = Date.now(), key = AYNA.screenKey || '';
     const taken = new Set();
+    const ups = new Map(), rowUps = i => { let s = ups.get(i); if (!s) { s = dtUploadIds(base[i]); ups.set(i, s); } return s; };   // GX-SAAT: a row's upload ids, once per merge
     let dirty = false;
     const keep = list.filter(e => {
       if (now - e.at >= DT_PEND_TTL_MS) { dirty = true; return false; }
       if (e.key !== key) return true;   // another screen's record: kept for when that screen is back
       if (e.del) return true;   // GX-PEND-SIL: the background delete owns it (dtPendDelRun) until done or failed
       const pl = dtPendPlaka(e.row);
+      const at = dtSaatSrv(e.at);   // GX-SAAT: the save on Bubble's clock
+      const ids = window.__gxNoSaat ? null : dtUploadIds(e.files || []);
+      if (ids && ids.size) {   // GX-SAAT: the same upload = the same record, whatever the clocks say
+        for (let i = 0; i < base.length; i++) {
+          const r = base[i]; if (!r || taken.has(i)) continue;
+          const c = aynaLiveTime(r._created);
+          if (c && c < at - DT_SAAT.fileWindowMs) continue;   // an older record holding the same address (a copy) is not it
+          if (dtUploadShare(ids, rowUps(i))) { taken.add(i); dirty = true; return false; }
+        }
+      }
+      const ef = Array.isArray(e.files) ? e.files : [];
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || taken.has(i)) continue;
         const c = aynaLiveTime(r._created);
-        if (!c || c < e.at - DT_PEND_EARLY_MS) continue;
+        if (!c || c < at - DT_PEND_EARLY_MS) continue;
         const rp = dtPendPlaka(r);
         if (pl && rp && pl !== rp) continue;
+        const rf = ef.length ? dtPendFiles(r) : [];
+        const fileHit = rf.length > 0 && rf.some(f => ef.indexOf(f) >= 0);
+        if (ef.length && rf.length && !fileHit) continue;   // BULK-FOLDERS: several saves without Plaka; the files tell them apart
+        if (!fileHit && r._id && _dtPendUsedRows.has(r._id)) continue;   // BULK-FOLDERS: a guessed match uses a mirror row once; a file match may repeat (same record saved twice)
+        if (r._id) { _dtPendUsedRows.add(r._id); if (_dtPendUsedRows.size > 500) _dtPendUsedRows.clear(); }
         taken.add(i); dirty = true; return false;   // the mirror's own row is here
       }
       return true;
@@ -6494,13 +8083,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         row[col] = v; n++;
       });
       if (!n) return;
+      dtSaatLearn();   // GX-SAAT: the offset is known before the mirror's row arrives
       const list = dtPendList(), key = AYNA.screenKey || '';
       // one create can reach Bubble twice (an autosave, then Save): a second submit within 15 s replaces the first row
       const last = list.length ? list[list.length - 1] : null;
-      if (last && last.key === key && now - last.at < 15000) list.pop();
+      // BULK-FOLDERS: two saves with different files are two records (one record per folder), not a repeat
+      const newFiles = dtPendFiles(obj);
+      const lastFiles = (last && Array.isArray(last.files)) ? last.files : [];
+      const sameRecord = !lastFiles.length || lastFiles.some(f => newFiles.indexOf(f) >= 0);
+      if (last && last.key === key && now - last.at < 15000 && sameRecord) list.pop();
       const pid = 'p' + now.toString(36) + Math.random().toString(36).slice(2, 6);
       row.__gxPendId = pid;
-      list.push({ at: now, key: key, row: row, pid: pid, files: dtPendFiles(obj), plaka: dtPendPlaka(row) });   // GX-PEND-SIL
+      list.push({ at: now, key: key, row: row, pid: pid, files: newFiles, plaka: dtPendPlaka(row) });   // GX-PEND-SIL
       dtPendSave();
       aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
       log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
@@ -6550,8 +8144,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       for (let i = 0; i < base.length; i++) {
         const r = base[i]; if (!r || held.has(i)) continue;
         if (e.delId) { if (rowIdOf(r) === e.delId) { held.add(i); break; } continue; }
-        const c = aynaLiveTime(r._created);
-        if (!c || c < e.at - DT_PEND_EARLY_MS || c > e.at + DT_PSIL_NEAR_MS) continue;
+        if (!window.__gxNoSaat && dtUploadShare(e.files || [], r)) { held.add(i); break; }   // GX-SAAT: the same upload
+        const c = aynaLiveTime(r._created), at = dtSaatSrv(e.at);   // GX-SAAT: Bubble's clock
+        if (!c || c < at - DT_PEND_EARLY_MS || c > at + DT_PSIL_NEAR_MS) continue;
         const rp = dtPendPlaka(r);
         if (e.plaka && rp && e.plaka !== rp) continue;
         held.add(i); break;
@@ -6581,7 +8176,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function dtApiFetch(url, opt) {
     const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
     const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 10000) : null;
-    try { return await fetch(url, Object.assign({ credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opt || {})); }
+    const t0 = Date.now();
+    try { const r = await fetch(url, Object.assign({ credentials: 'include', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opt || {})); dtSaatNote(r, t0, Date.now()); return r; }   // GX-SAAT
     catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
   }
   function dtJsonArrayMap(arr) {   // a record's jsonarray (["\"Alan\": value", …]) as { Alan: value }
@@ -6591,18 +8187,19 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // { st: 'id', id } · { st: '' } not there yet · { st: 'many' } more than one candidate · { st: 'err' } Gaia not readable
   async function dtPendFindRecord(e) {
-    const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(e.at - DT_PEND_EARLY_MS).toISOString() }];
+    const files = Array.isArray(e.files) ? e.files : [];
+    const at = dtSaatSrv(e.at);   // GX-SAAT: Bubble's clock; with files the search may look 2 min back (the files decide)
+    const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(at - (files.length && !window.__gxNoSaat ? DT_PSIL_NEAR_MS : DT_PEND_EARLY_MS)).toISOString() }];
     const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
     if (!r || !r.ok) return { st: 'err' };
     let res = [];
     try { const j = await r.json(); res = (j && j.response && j.response.results) || []; } catch (x) { return { st: 'err' }; }
-    const files = Array.isArray(e.files) ? e.files : [];
     const hits = res.filter(o => {
       if (!o || !o._id || o.NotVisible === true) return false;
       const m = dtJsonArrayMap(o.jsonarray);
-      if (files.length) { const have = new Set(dtPendFiles(m)); return files.some(f => have.has(f)); }
+      if (files.length) { const have = new Set(dtPendFiles(m)); return files.some(f => have.has(f)) || (!window.__gxNoSaat && dtUploadShare(files, m)); }
       const t = Date.parse(o['Created Date'] || '');
-      if (!t || Math.abs(t - e.at) > DT_PSIL_NEAR_MS) return false;
+      if (!t || Math.abs(t - at) > DT_PSIL_NEAR_MS) return false;
       return dtPendPlaka(m) === (e.plaka || '');
     });
     if (hits.length > 1) return { st: 'many' };
@@ -6611,7 +8208,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function dtPendDeleteRecord(id) {   // true = gone (NotVisible / 404) once written
     const r = await dtApiFetch(dtApiBase() + '/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ NotVisible: true }) });
     if (!r || !(r.ok || r.status === 404)) return false;
-    return (await dtGoneRead(id)) === 'gone';
+    const gone = (await dtGoneRead(id)) === 'gone';
+    if (gone) dtLiveTouch([id]);   // CANLI-VERI
+    return gone;
   }
   function dtPendDelFail(e, why) {
     delete e.del; e.fail = Date.now();
@@ -6701,7 +8300,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!list.length) return;
     _dtDupBusy = true;
     try {
-      const from = Math.min.apply(null, list.map(e => e.at)) - DT_PEND_EARLY_MS;
+      const from = Math.min.apply(null, list.map(e => dtSaatSrv(e.at))) - (window.__gxNoSaat ? DT_PEND_EARLY_MS : DT_PSIL_NEAR_MS);   // GX-SAAT: Bubble's clock; the files decide
       const c = [{ key: 'Created Date', constraint_type: 'greater than', value: new Date(from).toISOString() }];
       const r = await dtApiFetch(dtApiBase() + '?limit=50&sort_field=Created%20Date&descending=true&constraints=' + encodeURIComponent(JSON.stringify(c)));
       if (!r || !r.ok) return;
@@ -6711,7 +8310,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!hidden.length) return;
       let off = 0;
       list.forEach(e => {
-        const h = hidden.find(x => { const have = new Set(dtPendFiles(x.m)); return e.files.some(f => have.has(f)); });
+        const h = hidden.find(x => { const have = new Set(dtPendFiles(x.m)); return e.files.some(f => have.has(f)) || (!window.__gxNoSaat && dtUploadShare(e.files, x.m)); });   // GX-SAAT
         if (!h) return;
         let asama = '';
         Object.keys(h.m).forEach(k => { if (dtNormKey(k) === 'claimasamasi') asama = String(h.m[k] == null ? '' : h.m[k]); });
@@ -6796,6 +8395,31 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return { mod: aynaLiveTime(o['Modified Date']), fields: fields, asama: asama, hidden: o.NotVisible === true };   // GX-DUP
     } catch (e) { return null; } finally { if (timer) clearTimeout(timer); }
   }
+  // CANLI-VERI: the same reads from the mirror, all rows in one direct call: Map id → { mod, fields, asama, hidden } (a row the
+  // answer lacks is not readable by this viewer: null) · 'skip' (rate: this look is skipped, Bubble is not asked) · null (no
+  // direct answer: this look reads Bubble as before)
+  async function dtDirectLiveRead(ids) {
+    const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
+    const want = new Map(cols.filter(c => DT_DIRECT_KEYS.has(dtNormKey(c))).map(c => [dtNormKey(c), c]));
+    const d = await dtLiveCall('rows', { ids: ids, fields: Array.from(want.values()).concat(['Claim Aşaması']) }, null, 8000);
+    if (d.rate) return 'skip';
+    if (!d.ok || !d.j || String(d.j.status || '').toUpperCase() !== 'SUCCESS' || !d.j.data || !Array.isArray(d.j.data.rows)) return null;
+    const out = new Map();
+    d.j.data.rows.forEach(r => {
+      if (!r || !r._id) return;
+      const fields = {};
+      let asama = '';
+      for (const k in r) {
+        if (k.charAt(0) === '_') continue;
+        if (dtNormKey(k) === 'claimasamasi') { asama = String(r[k] == null ? '' : r[k]); continue; }
+        const col = want.get(dtNormKey(k)); if (!col) continue;
+        const v = r[k];
+        if (typeof v === 'string' || typeof v === 'number' || (Array.isArray(v) && v.every(x => typeof x === 'string'))) fields[col] = v;
+      }
+      out.set(String(r._id), { mod: aynaLiveTime(r._modified), fields: fields, asama: asama, hidden: r._notvisible === true });
+    });
+    return out;
+  }
   async function dtDirectTick() {
     if (window.__gxNoDirect || _dtDirectBusy || !AYNA.cfg || !aynaAlive() || aynaLiveHidden()) return;
     const ids = dtDirectWanted();
@@ -6804,12 +8428,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try {
       const raw = new Map((AYNA.painted || []).filter(r => r && r._id).map(r => [String(r._id), r]));
       let n = 0, stg = 0;
+      const live = dtLiveOk() ? await dtDirectLiveRead(ids) : null;   // CANLI-VERI
+      if (live === 'skip') return;
       for (const id of ids) {
-        const got = await dtDirectRead(id);
+        const got = live ? (live.get(id) || null) : await dtDirectRead(id);
         const row = raw.get(id);
         if (got && got.hidden && !window.__gxNoDup) { dtDupGone(id, got.asama, dtDupPlakaText(row), row ? dtPendFiles(row) : []); continue; }   // GX-DUP
         if (got && got.asama !== undefined) {   // TIDY-STAGE
-          const pa = _dtAsama.get(id), mod = got.mod || Date.now();
+          const pa = _dtAsama.get(id), mod = got.mod || dtNow();   // CANLI-VERI
           if (!pa || pa.text !== got.asama) { _dtAsama.set(id, { mod: mod, text: got.asama }); stg++; } else pa.mod = Math.max(pa.mod, mod);
         }
         if (!got || !got.mod || !row || !Object.keys(got.fields).length) continue;
@@ -7324,7 +8950,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // its own table delta, mirror.settled; then no follow-up is needed).
   // ═══════════════════════════════════════════════════════════════════════════
   const AYNA_LIVE = { defMs: 30000, minMs: 5000, idleAfterMs: 5 * 60000, idleMs: 5 * 60000, backGapMs: 10000, boostMs: 8000, boostForMs: 120000, boostTailMs: 10000,
-                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000, settleOkMs: 2000 };   // AYNA-SETTLE
+                      retryMs: 3000, timeoutMs: 20000, signalAfterMs: [4000, 12000, 30000], afterLoadMs: 4000, maxBackoffMs: 5 * 60000, settleOkMs: 2000,   // AYNA-SETTLE
+                      directMs: 15000 };   // CANLI-VERI: with a live ticket an active tab looks every 15 s (the server only, no Bubble call); a fresh look (a Bubble table delta) stays at most every config.mirror_live seconds
   AYNA.live = { timer: null, at: 0, base: null, dirty: null, busy: false, checks: 0, changes: 0, errors: 0, input: Date.now(), keyAt: 0, downAt: 0,
                 boostUntil: 0, queue: [], signalAt: 0, wantFresh: false, retrySoon: false, bound: false, last: '', changedAt: 0,
                 settle: 0, settleEarly: false, settleAt: 0, settleWhy: '', settles: 0, atFresh: false, srvSettle: false };   // AYNA-SETTLE: follow-ups left for the current event (at most 2), a wait for the server done, when the next one runs, its event, how many ran; the last probe asked for a delta
@@ -7372,7 +8999,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (L.timer) { clearTimeout(L.timer); L.timer = null; }
     if (!aynaLiveOn() || aynaLiveHidden()) return;   // hidden: coming back re-arms (visibilitychange / focus)
     const now = Date.now(), w = why || 'timer';
-    let wait = (typeof ms === 'number') ? ms : (now < L.boostUntil ? AYNA_LIVE.boostMs : (aynaLiveIdle() ? Math.max(AYNA_LIVE.idleMs, aynaLiveMs()) : aynaLiveMs()));
+    let wait = (typeof ms === 'number') ? ms : (now < L.boostUntil ? AYNA_LIVE.boostMs : (aynaLiveIdle() ? Math.max(AYNA_LIVE.idleMs, aynaLiveMs()) : (dtLiveOk() ? Math.min(aynaLiveMs(), AYNA_LIVE.directMs) : aynaLiveMs())));   // CANLI-VERI
     if (typeof ms !== 'number' && L.errors) wait = Math.min(AYNA_LIVE.maxBackoffMs, wait * Math.pow(2, Math.min(L.errors, 4)));
     if (L.queue.length) wait = Math.min(wait, L.queue[0] - now);
     if (L.settleAt) wait = Math.min(wait, L.settleAt - now);   // AYNA-SETTLE
@@ -7478,11 +9105,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     while (L.queue.length && L.queue[0] <= now + 50) { L.queue.shift(); due = true; }
     if (L.settleAt && L.settleAt <= now + 50) { L.settleAt = 0; due = true; L.settles++; }   // AYNA-SETTLE: a follow-up look is due
     if (due || why !== 'timer' || now < L.boostUntil || !aynaLiveIdle()) L.wantFresh = true;
+    if (L.wantFresh && !due && why === 'timer' && now >= L.boostUntil && dtLiveOk() && now - (L.freshAt || 0) < aynaLiveMs() - 1000) L.wantFresh = false;   // CANLI-VERI: the 15 s look reads the mirror as it is; Bubble is asked at the old pace
     if (AYNA.last || !AYNA.stats || !AYNA.screenKey) { aynaLiveArm(); return; }   // no healthy load to compare with (an error keeps its "Try again")
     if (L.busy || AYNA.loading || aynaLiveUserBusy()) { aynaLiveArm(AYNA_LIVE.retryMs, why); return; }
     const seq0 = AYNA.seq, key0 = AYNA.screenKey, cfg0 = AYNA.cfg, scr = aynaScreenOf(cfg0);
     if (scr.key !== key0) { aynaLiveArm(); return; }   // the screen id moved: aynaRescreen loads the new screen
     const fresh = L.wantFresh; L.wantFresh = false;
+    if (fresh) L.freshAt = now;   // CANLI-VERI
     L.busy = true; L.at = now; L.atFresh = fresh; L.last = why + (fresh ? ' · fresh' : '');   // AYNA-SETTLE: atFresh = that probe asked for a table delta
     try {
       let p = null;
@@ -8995,6 +10624,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     a.ids = left;
     if (!left.length) _dtGoneArmed = null;
     dtGoneAdd(ids);   // GX-GONE: off the grid now, not at the mirror's next full pull
+    dtLiveTouch(ids, 2500);   // CANLI-VERI: the mirror takes the delete now (after Bubble's workflow wrote it), not at its next delta
     aynaLiveBoost('delete');   // AYNA-LIVE
   }
   async function dtGoneWatch(a) {
@@ -11355,7 +12985,97 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     openFilterPanel(columnIndex);
   }
 
+  // === BULK-FOLDERS (12.11.2026): many case folders -> one new record per folder ===
+  // The table only collects folders (Folders button or a drop on the table) and hands them to the form element's
+  // queue (window.__gxBulk, form BULK-FOLDERS). The queue opens a new record per folder, uploads its files through the
+  // form's own folder path and presses Save only. Shown on desktop, when the form is on the page and the table has a
+  // file column. Off: window.__gxNoBulk = true.
+  function dtBulkApi() {
+    const g = window.__gxBulk;
+    return (g && typeof g.canRun === 'function' && !window.__gxNoBulk && g.canRun()) ? g : null;
+  }
+  function dtBulkHasFileColumn() {
+    return (state.columns || []).some(c => c && c.type === 'multifile');
+  }
+  function dtBulkAvailable() {
+    return Boolean(dtBulkApi()) && dtBulkHasFileColumn() && !isMobileViewport();
+  }
+  function dtBulkSync() {
+    if (!els.foldersButton) return;
+    const on = dtBulkAvailable();
+    if (els.foldersButton.hidden === on) els.foldersButton.hidden = !on;
+  }
+  function dtBulkHasFiles(e) {
+    try { return Array.from((e.dataTransfer && e.dataTransfer.types) || []).indexOf('Files') >= 0; } catch (_) { return false; }
+  }
+  function attachBulkFolders() {
+    // BULK-ACTS (13.11): the form remembers this table's actions under this key, so the folder card can offer them before
+    // Bubble sends the form its data (15-23 s after the page opens)
+    window.__dtBulkKey = () => (state.columns || []).filter(c => c && !c.__uiOnly && c.id).map(c => String(c.id)).sort().join('|');
+    if (!els.wrapper || !els.foldersButton || !els.foldersInput || els.wrapper.__dtBulkBound) return;
+    els.wrapper.__dtBulkBound = true;
+    dtBulkSync();
+    // the form element can load after the table; one timer per page (Bubble re-renders run this script again)
+    window.__dtBulkSync = dtBulkSync;
+    if (!window.__dtBulkSyncTimer) window.__dtBulkSyncTimer = setInterval(() => { try { if (window.__dtBulkSync) window.__dtBulkSync(); } catch (_) {} }, 2000);
+    els.foldersButton.addEventListener('click', () => {
+      if (!dtBulkAvailable()) return;
+      try { els.foldersInput.value = ''; } catch (_) {}
+      els.foldersInput.click();
+    });
+    els.foldersInput.addEventListener('change', () => {
+      const api = dtBulkApi();
+      const files = els.foldersInput.files;
+      if (!api || !files || !files.length) return;
+      api.offerFileList(files);
+      try { els.foldersInput.value = ''; } catch (_) {}
+    });
+    let depth = 0;
+    const over = (on) => { els.wrapper.classList.toggle('dt-folders-over', on); };
+    els.wrapper.addEventListener('dragenter', e => {
+      if (!dtBulkHasFiles(e) || !dtBulkAvailable()) return;
+      depth += 1; over(true);
+    });
+    let watch = 0;
+    const reset = () => { depth = 0; over(false); };
+    els.wrapper.addEventListener('dragover', e => {
+      if (!dtBulkHasFiles(e) || !dtBulkAvailable()) return;
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = 'copy'; } catch (_) {}
+      over(true);
+      clearTimeout(watch); watch = setTimeout(reset, 400);   // dragover stops when the drag leaves or is cancelled
+    });
+    els.wrapper.addEventListener('dragleave', e => {
+      if (!dtBulkHasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (!depth || !e.relatedTarget || !els.wrapper.contains(e.relatedTarget)) reset();
+    });
+    window.addEventListener('dragend', reset, true);
+    window.addEventListener('drop', reset, true);
+    els.wrapper.addEventListener('drop', e => {
+      depth = 0; over(false);
+      if (!dtBulkHasFiles(e)) return;
+      const api = dtBulkApi();
+      if (!api || !dtBulkAvailable()) return;
+      e.preventDefault();
+      // entries must be taken while the drop event runs
+      const entries = [];
+      try {
+        Array.from(e.dataTransfer.items || []).forEach(it => {
+          if (it && it.kind === 'file' && typeof it.webkitGetAsEntry === 'function') { const en = it.webkitGetAsEntry(); if (en) entries.push(en); }
+        });
+      } catch (_) {}
+      if (!entries.some(en => en && en.isDirectory)) {
+        showWakeToast('Drop folders here. To add single files, open a record.');
+        return;
+      }
+      showWakeToast('Reading folders...');
+      api.offerEntries(entries);
+    });
+  }
+
   function attachActionButtons() {
+    attachBulkFolders();
     if (els.newButton) {
       els.newButton.addEventListener('click', create);
     }
