@@ -14895,7 +14895,23 @@
       // sekmesi, ?gxadd=) form kişiye hiçbir şey sormaz: dosyaları verir, yükleme bitince Done ile kaydeder (elle düzenlemenin kayıt yolu),
       // kaydın Bubble verisinde yeni adresleri görünce t.rapor({ st: 'done' }) der. İlerleme t.rapor ile tabloya döner.
       window.__gxKlasorForm = 2;   // tablo: bu form otomatik devri biliyor
+      // yardımcı sekme: form verisi (alanlar) Bubble'dan sayfa açıldıktan ~15-23 sn sonra gelir; ondan önce açılan kayıt boş "Create" kalıyor (13.11 deneme)
+      window.__gxKlasorFormHazir = () => { try { return Boolean(state.config && Array.isArray(state.config.fields) && state.config.fields.length); } catch (_) { return false; } };
       let bdfKlasorTeslimZaman = 0;
+      let bdfKlasorOtoKey = "";   // otomatik eklemenin alanı (iş bitene dek panelde tutulur)
+      // tanı (konsolda __gxKlasorTani()): klasör alanı, kayıt, yükleyicilerin sayfaya bağlı olup olmadığı
+      window.__gxKlasorTani = () => {
+        try {
+          const fl = (state.config && state.config.fields) || [];
+          const pin = byId("bdfKlasorPin");
+          return {
+            alan: (bdf_klasorAlani(fl) || {}).key || "", uid: Boolean(readCurrentUniqueId()), oto: bdfKlasorOtoKey, edit: Boolean(isEditPanelOpen),
+            evrakAlanlari: fl.filter((f) => /evrak/.test(bdf_klasorAd(f))).map((f) => ({ key: f.key, ad: bdf_klasorAd(f), tur: f.type })),
+            besleyici: Object.keys(bdfBulkFeeders).map((k) => k + (bdfBulkFeeders[k] && bdfBulkFeeders[k].el && bdfBulkFeeders[k].el.isConnected ? ":bagli" : ":kopuk")),
+            pin: pin ? { gorunur: pin.style.display !== "none", cocuk: pin.children.length } : null
+          };
+        } catch (e) { return { hata: String(e && e.message || e) }; }
+      };
       function bdf_klasorAdresAnahtar(u) {   // adresin değişmeyen kısmı (soru işaretinden önce, son iki parça)
         const p = String(u || "").split("?")[0].split("/").filter(Boolean);
         return p.slice(-2).join("/");
@@ -14911,11 +14927,17 @@
         const key = field.key;
         const adresler = () => (Array.isArray(state.fileBuffers[key]) ? state.fileBuffers[key] : [])
           .map((f) => String((f && f.url) || "")).filter((u) => u && !onceki.has(u.split("?")[0]));
-        let sonK = -1, hareket = Date.now(), kayitAt = 0, kayitOk = 0, yeni = [], bitti = false;
-        const bitir = (o) => { if (bitti) return; bitti = true; clearInterval(iv); rapor(o); };
+        let sonK = -1, hareket = Date.now(), kayitAt = 0, kayitOk = 0, yeni = [], bitti = false, kopukAt = 0;
+        const bitir = (o) => { if (bitti) return; bitti = true; clearInterval(iv); bdfKlasorOtoKey = ""; rapor(o); };
         const iv = setInterval(() => {
           try {
             const now = Date.now();
+            // yükleme sürerken yükleyici sayfadan koptuysa (form başka görünüme geçti) adresler forma dönmez: beklemeden söylenir
+            const fd = bdfBulkFeeders[key];
+            if (!kayitAt && !(fd && fd.el && fd.el.isConnected)) {
+              if (!kopukAt) kopukAt = now;
+              if (now - kopukAt > 10000) { bitir({ st: "error", msg: "The form changed while uploading. Try again." }); return; }
+            } else kopukAt = 0;
             if (readCurrentUniqueId() !== t.id) { bitir({ st: "error", msg: kayitOk ? "The file closed before Gaia confirmed the save. Check its documents." : "The file closed before saving. Try again." }); return; }
             if (!kayitAt) {
               yeni = adresler();
@@ -14926,6 +14948,7 @@
               if (dz.prog > 0) hareket = Math.max(hareket, Number(BDF.__upProgressAt || 0));
               const tamam = !busy && yeni.length >= n;
               const kismi = !busy && yeni.length > 0 && now - hareket > 30000;
+              if ((tamam || kismi) && t.kuru) { bitir({ st: "error", msg: `Test run: ${yeni.length} of ${n} uploaded, not saved.` }); return; }
               if (tamam || kismi) {
                 kayitAt = now;
                 if (kismi) t.not = `${yeni.length} of ${n} files uploaded.`;
@@ -14953,9 +14976,23 @@
           if (Date.now() - (Number(t.at) || 0) > (t.auto ? 180000 : 120000)) { window.__gxKlasorTeslim = null; return; }
           if (!bdfKlasorTeslimZaman) bdfKlasorTeslimZaman = setTimeout(() => { bdfKlasorTeslimZaman = 0; bdf_klasorTeslimAl(); }, 800);
           if (readCurrentUniqueId() !== t.id) return;
+          // EVRAK-BIRAK: otomatik devirde form görünümü 3 sn değişmeden durmadan dosya verilmez (13.11 deneme: kayıt açılır açılmaz verilen
+          // dosyalar, hemen ardından düzenleme görünümüne geçilince sayfadan kopan yükleyicide kaldı)
+          if (t.auto) {
+            const imza = [readCurrentUniqueId(), Boolean(IS_EDITING_MODE || isEditPanelOpen), ((state.config && state.config.fields) || []).length].join("|");
+            if (t.imza !== imza) { t.imza = imza; t.imzaAt = Date.now(); }
+            if (Date.now() - t.imzaAt < 3000) return;
+          }
           const field = bdf_klasorAlani(state.config && state.config.fields);
           const feeder = field && bdfBulkFeeders[field.key];
-          if (!field || !feeder || typeof feeder.feed !== "function") {
+          if (!field || !feeder || typeof feeder.feed !== "function" || (t.auto && !(feeder.el && feeder.el.isConnected))) {
+            // düzenleme görünümü oturdu ve klasör alanı yine yok: bu tabloda kaydın evrak klasörü formda yok
+            if (t.auto && !field && (IS_EDITING_MODE || isEditPanelOpen) && Date.now() - t.imzaAt > 8000) {
+              window.__gxKlasorTeslim = null;
+              try { console.warn("[KLASOR] no document folder in this form", window.__gxKlasorTani()); } catch (_) { }
+              try { if (typeof t.rapor === "function") t.rapor({ st: "error", msg: "This table's form has no document folder (Evraklar), so files cannot be added here." }); } catch (_) { }
+              return;
+            }
             // kayıt özet görünümünde açıldı (klasör alanı orada yok): bir kez düzenleme görünümüne geçilir, klasör orada çizilir
             if (!t.editIstendi && !(IS_EDITING_MODE || isEditPanelOpen)) {
               const eb = Array.from(document.querySelectorAll("#bdf-root button")).find((b) => (b.textContent || "").trim() === "Edit" && b.offsetParent);
@@ -14969,13 +15006,15 @@
             const rapor = (o) => { try { if (typeof t.rapor === "function") t.rapor(o); } catch (_) { } };
             const onceki = new Set((Array.isArray(state.fileBuffers[field.key]) ? state.fileBuffers[field.key] : []).map((f) => String((f && f.url) || "").split("?")[0]).filter(Boolean));
             const dzBase = bdf_bulkDzStats(field.key);
+            bdfKlasorOtoKey = field.key;
+            try { console.log("[KLASOR] auto add", window.__gxKlasorTani()); } catch (_) { }
             rapor({ st: "upload", k: 0, n });
             let verildi = false;
-            setTimeout(() => { if (!verildi) { verildi = true; rapor({ st: "error", msg: "The file uploader did not take the files. Try again." }); } }, 60000);
+            setTimeout(() => { if (!verildi) { verildi = true; bdfKlasorOtoKey = ""; rapor({ st: "error", msg: "The file uploader did not take the files. Try again." }); } }, 60000);
             feeder.feed(t.files, "Add files", (ok, msg) => {
               if (verildi) return;
               verildi = true;
-              if (ok === false) { rapor({ st: "error", msg: ({ full: "The folder already has the most files it accepts.", notready: "The file was not ready. Try again.", type: "These files are not a supported type.", read: "The files could not be read." })[msg] || "The files could not be added. Try again." }); return; }
+              if (ok === false) { bdfKlasorOtoKey = ""; rapor({ st: "error", msg: ({ full: "The folder already has the most files it accepts.", notready: "The file was not ready. Try again.", type: "These files are not a supported type.", read: "The files could not be read." })[msg] || "The files could not be added. Try again." }); return; }
               bdf_klasorOtoIzle(t, field, n, onceki, dzBase);
             });
             return;
@@ -17410,7 +17449,10 @@
         }
 
         // EVRAK-KLASOR: kaydın evrak klasörü aşama listesine ve dosya sayfalamasına girmez, panelin üstünde sabit (aramada sonuçlarda kalır)
-        const bdfKlasorAlan = searchMode ? null : bdf_klasorAlani(fields);
+        let bdfKlasorAlan = searchMode ? null : bdf_klasorAlani(fields);
+        // EVRAK-BIRAK: otomatik ekleme sürerken klasör alanı panelden kalkmaz (13.11 deneme: ara bir çizimde bölüm boşaldı, yükleme kopuk
+        // yükleyicide bitti, adresler forma hiç dönmedi)
+        if (!bdfKlasorAlan && !searchMode && bdfKlasorOtoKey) bdfKlasorAlan = fields.find((f) => f && f.key === bdfKlasorOtoKey) || null;
         if (bdfKlasorAlan) selectedFields = selectedFields.filter((f) => f && f.key !== bdfKlasorAlan.key);
 
         if (searchMode && !selectedFields.length && editSearchEmpty) {

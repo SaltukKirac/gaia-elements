@@ -5874,6 +5874,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // (form EVRAK-BIRAK, t.auto). İlerleme BroadcastChannel ile döner: gezginde "New" altında dosyalar (dönen işaret / tik), Activity
   // panelinde "Adding 3 files · 2 of 3" → "Added 3 files". Yalnız ekleme; silme yok. Kart dosya numarasından başka bir şey göstermez.
   // Kapatma: window.__gxNoKlasorEkle = true. Yardımcı sekme yerine bu sekmede eski yol: window.__gxKlasorAyniSekme = true.
+  // Deneme (kaydetmez): window.__gxKlasorKuru = true; yükleme biter, kayıt adımında durur, dosyalar kayda girmez.
   const DT_EKLE_PARAM = 'gxadd';
   const DT_EKLE_TIK_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>';
   const DT_EKLE_HATA_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>';
@@ -5918,10 +5919,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const m = ev && ev.data;
       if (!m || typeof m !== 'object' || j.chan !== ch) return;
       j.last = Date.now();
-      if (m.t === 'ready' && !j.sent) { j.sent = true; ch.postMessage({ t: 'go', rid: j.rid, files: j.files, etiket: j.etiket }); return; }
+      if (m.t === 'ready' && !j.sent) { j.sent = true; ch.postMessage({ t: 'go', rid: j.rid, files: j.files, etiket: j.etiket, kuru: window.__gxKlasorKuru === true }); return; }
       if (m.t === 'prog') {
         if (m.st === 'saving') { j.st = 'saving'; j.kayit = true; j.k = Math.max(j.k, Number(m.k) || 0); }
-        else if (m.st === 'upload') { j.st = 'up'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || 0)); }
+        else if (m.st === 'upload') { j.st = 'up'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || 0)); if (m.tani) { j.tani = m.tani; console.log('[EKLE] helper tab form', m.tani); } }
         else return;
       } else if (m.t === 'done') {
         j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || j.n)); j.not = String(m.not || ''); j.doneAt = Date.now();
@@ -5965,7 +5966,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     else if (j.st === 'up') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.k, n: j.n, line: j.k + ' of ' + j.n + ' uploaded' };
     else if (j.st === 'saving') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.n, n: j.n, line: 'Saving to the file' };
     else if (j.st === 'done') kart = { title: 'Added ' + dtEkleAd(j.k), sub: kime, state: 'done', k: j.k, n: j.n, line: [j.k < j.n ? (j.n - j.k) + ' could not be added.' : '', 'Only the new ones are read for the claim.', j.not].filter(Boolean).join(' ') };
-    else kart = { title: 'Files not added', sub: kime, state: 'error', msg: j.msg };
+    else kart = { title: 'Files not added', sub: kime, state: 'error', msg: j.msg, line: '' };
+    if (kart.state !== 'error') kart.msg = '';   // the card keeps earlier fields: the error shows its own sentence, not the last line
     kart.onRetry = j.st === 'error' && !j.kayit ? () => dtEkleCalistir(j) : null;
     kart.href = '';
     dtIslerSet('ekle:' + j.id, kart);
@@ -6046,6 +6048,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       v.classList.toggle('is-ok', D.bitti === 'done');
     } catch (e) {}
   }
+  // the record is selected first, opened a moment later (Bubble reads the selection before it opens the form)
+  function dtEkleIsciAc(si) {
+    try { prioritizeSelection(si); } catch (e) { console.warn('[EKLE] select', e); }
+    setTimeout(() => { try { start(); } catch (e) { console.warn('[EKLE] open', e); } }, 800);
+  }
   function dtEkleIsciTick() {
     const id = dtEkleTabId();
     if (!id || typeof BroadcastChannel !== 'function') return;
@@ -6066,13 +6073,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       D.chan.onmessage = (ev) => {
         const m = ev && ev.data;
         if (!m || m.t !== 'go' || D.got) return;
-        D.got = { rid: String(m.rid || ''), files: Array.from(m.files || []), etiket: String(m.etiket || ''), at: Date.now() };
+        D.got = { rid: String(m.rid || ''), files: Array.from(m.files || []), etiket: String(m.etiket || ''), kuru: m.kuru === true, at: Date.now() };
         D.adim = 'open';
         console.log('[EKLE] helper tab got files', { files: D.got.files.length });
       };
       D.rapor = (o) => {
         if (!o || D.bitti) return;
-        if (o.st === 'upload') { D.adim = 'upload'; D.k = Number(o.k) || 0; post({ t: 'prog', st: 'upload', k: D.k, n: D.got ? D.got.files.length : 0 }); }
+        if (o.st === 'upload') {
+          D.adim = 'upload'; D.k = Number(o.k) || 0;
+          let tani = null;
+          if (!D.taniGitti) { D.taniGitti = true; try { tani = typeof window.__gxKlasorTani === 'function' ? window.__gxKlasorTani() : null; } catch (e) { tani = null; } }
+          post({ t: 'prog', st: 'upload', k: D.k, n: D.got ? D.got.files.length : 0, tani });
+        }
         else if (o.st === 'saving') { D.adim = 'saving'; D.k = Number(o.k) || D.k; post({ t: 'prog', st: 'saving', k: D.k }); }
         else if (o.st === 'done') { D.k = Number(o.k) || D.k; son({ t: 'done', k: D.k, not: o.not || '' }); }
         else if (o.st === 'error') son({ t: 'error', msg: o.msg || 'The files could not be added.', kayit: D.adim === 'saving' });
@@ -6086,21 +6098,33 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return;
     }
     if (!D.got) {
-      const hazir = Number(window.__gxKlasorForm || 0) >= 2 && Array.isArray(state.rawRows) && state.rawRows.length > 0;
-      if (hazir && now - Number(D.readyAt || 0) > 1500) { D.readyAt = now; post({ t: 'ready' }); }
+      // hazır: form betiği ve tablo satırları geldi, Bubble'ın açma çağrısı var, 5 sn oturdu (13.11 deneme: sayfa oturmadan açılan kayıt
+      // formda boş "Create" kaldı; formun alanları ise ancak form açılınca gelir, onlar beklenemez)
+      let hazir = false;
+      try { hazir = Number(window.__gxKlasorForm || 0) >= 2 && typeof window.bubble_fn_start === 'function' && Array.isArray(state.rawRows) && state.rawRows.length > 0; } catch (e) { hazir = false; }
+      if (!hazir) D.hazirAt = 0; else if (!D.hazirAt) D.hazirAt = now;
+      if (hazir && now - D.hazirAt >= 5000 && now - Number(D.readyAt || 0) > 1500) { D.readyAt = now; post({ t: 'ready' }); }
       if (now - D.at > 180000) son({ t: 'error', msg: 'The helper tab could not start.' });
       return;
     }
     if (now - Number(D.hbAt || 0) > 2000) { D.hbAt = now; post({ t: 'prog', st: D.adim, k: D.k || 0, n: D.got.files.length }); }
+    const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === D.got.rid) : -1;
     if (!D.teslim) {
-      const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === D.got.rid) : -1;
       if (si < 0) { if (now - D.got.at > 30000) son({ t: 'error', msg: 'This file is not in the table any more.' }); return; }
-      D.teslim = true; D.acAt = now;
-      window.__gxKlasorTeslim = { id: D.got.rid, files: D.got.files, at: now, kart: '', etiket: D.got.etiket, auto: true, rapor: (o) => { try { window.__dtEkleIsci.rapor(o); } catch (e) {} } };
-      try { prioritizeSelection(si); start(); } catch (e) { console.warn('[EKLE] open', e); }
+      D.teslim = true; D.acAt = now; D.acIlk = now; D.acDeneme = 1;
+      window.__gxKlasorTeslim = { id: D.got.rid, files: D.got.files, at: now, kart: '', etiket: D.got.etiket, auto: true, kuru: D.got.kuru, rapor: (o) => { try { window.__dtEkleIsci.rapor(o); } catch (e) {} } };
+      dtEkleIsciAc(si);
       return;
     }
-    if (D.adim === 'open' && now - D.acAt > 150000) son({ t: 'error', msg: 'The file did not open in the helper tab. Try again.' });
+    // form kaydı almadıysa (devir hâlâ bekliyor) kayıt 20 sn arayla yeniden açılır, en çok 3 kez
+    const bekliyor = window.__gxKlasorTeslim && window.__gxKlasorTeslim.id === D.got.rid && !window.__gxKlasorTeslim.editIstendi;
+    if (D.adim === 'open' && bekliyor && si >= 0 && now - D.acAt > 15000 && D.acDeneme < 3) {
+      D.acDeneme += 1; D.acAt = now; window.__gxKlasorTeslim.at = now;
+      console.log('[EKLE] the file did not open, opening again', { try: D.acDeneme });
+      dtEkleIsciAc(si);
+      return;
+    }
+    if (D.adim === 'open' && now - (D.acIlk || D.acAt) > 150000) son({ t: 'error', msg: 'The file did not open in the helper tab. Try again.' });
   }
   if (dtEkleTabId()) {
     window.__dtEkleIsciTick = dtEkleIsciTick;   // Bubble bu betiği yeniden koşarsa son kopya çalışır
