@@ -5922,7 +5922,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (m.t === 'ready' && !j.sent) { j.sent = true; ch.postMessage({ t: 'go', rid: j.rid, files: j.files, etiket: j.etiket, kuru: window.__gxKlasorKuru === true }); return; }
       if (m.t === 'prog') {
         if (m.st === 'saving') { j.st = 'saving'; j.kayit = true; j.k = Math.max(j.k, Number(m.k) || 0); }
-        else if (m.st === 'upload') { j.st = 'up'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || 0)); }
+        else if (m.st === 'upload') { j.st = 'up'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || 0)); if (m.tani) { j.tani = m.tani; console.log('[EKLE] helper tab form', m.tani); } }
         else return;
       } else if (m.t === 'done') {
         j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || j.n)); j.not = String(m.not || ''); j.doneAt = Date.now();
@@ -6079,7 +6079,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       };
       D.rapor = (o) => {
         if (!o || D.bitti) return;
-        if (o.st === 'upload') { D.adim = 'upload'; D.k = Number(o.k) || 0; post({ t: 'prog', st: 'upload', k: D.k, n: D.got ? D.got.files.length : 0 }); }
+        if (o.st === 'upload') {
+          D.adim = 'upload'; D.k = Number(o.k) || 0;
+          let tani = null;
+          if (!D.taniGitti) { D.taniGitti = true; try { tani = typeof window.__gxKlasorTani === 'function' ? window.__gxKlasorTani() : null; } catch (e) { tani = null; } }
+          post({ t: 'prog', st: 'upload', k: D.k, n: D.got ? D.got.files.length : 0, tani });
+        }
         else if (o.st === 'saving') { D.adim = 'saving'; D.k = Number(o.k) || D.k; post({ t: 'prog', st: 'saving', k: D.k }); }
         else if (o.st === 'done') { D.k = Number(o.k) || D.k; son({ t: 'done', k: D.k, not: o.not || '' }); }
         else if (o.st === 'error') son({ t: 'error', msg: o.msg || 'The files could not be added.', kayit: D.adim === 'saving' });
