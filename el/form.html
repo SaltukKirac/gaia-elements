@@ -14927,11 +14927,17 @@
         const key = field.key;
         const adresler = () => (Array.isArray(state.fileBuffers[key]) ? state.fileBuffers[key] : [])
           .map((f) => String((f && f.url) || "")).filter((u) => u && !onceki.has(u.split("?")[0]));
-        let sonK = -1, hareket = Date.now(), kayitAt = 0, kayitOk = 0, yeni = [], bitti = false;
+        let sonK = -1, hareket = Date.now(), kayitAt = 0, kayitOk = 0, yeni = [], bitti = false, kopukAt = 0;
         const bitir = (o) => { if (bitti) return; bitti = true; clearInterval(iv); bdfKlasorOtoKey = ""; rapor(o); };
         const iv = setInterval(() => {
           try {
             const now = Date.now();
+            // yükleme sürerken yükleyici sayfadan koptuysa (form başka görünüme geçti) adresler forma dönmez: beklemeden söylenir
+            const fd = bdfBulkFeeders[key];
+            if (!kayitAt && !(fd && fd.el && fd.el.isConnected)) {
+              if (!kopukAt) kopukAt = now;
+              if (now - kopukAt > 10000) { bitir({ st: "error", msg: "The form changed while uploading. Try again." }); return; }
+            } else kopukAt = 0;
             if (readCurrentUniqueId() !== t.id) { bitir({ st: "error", msg: kayitOk ? "The file closed before Gaia confirmed the save. Check its documents." : "The file closed before saving. Try again." }); return; }
             if (!kayitAt) {
               yeni = adresler();
@@ -14970,9 +14976,23 @@
           if (Date.now() - (Number(t.at) || 0) > (t.auto ? 180000 : 120000)) { window.__gxKlasorTeslim = null; return; }
           if (!bdfKlasorTeslimZaman) bdfKlasorTeslimZaman = setTimeout(() => { bdfKlasorTeslimZaman = 0; bdf_klasorTeslimAl(); }, 800);
           if (readCurrentUniqueId() !== t.id) return;
+          // EVRAK-BIRAK: otomatik devirde form görünümü 3 sn değişmeden durmadan dosya verilmez (13.11 deneme: kayıt açılır açılmaz verilen
+          // dosyalar, hemen ardından düzenleme görünümüne geçilince sayfadan kopan yükleyicide kaldı)
+          if (t.auto) {
+            const imza = [readCurrentUniqueId(), Boolean(IS_EDITING_MODE || isEditPanelOpen), ((state.config && state.config.fields) || []).length].join("|");
+            if (t.imza !== imza) { t.imza = imza; t.imzaAt = Date.now(); }
+            if (Date.now() - t.imzaAt < 3000) return;
+          }
           const field = bdf_klasorAlani(state.config && state.config.fields);
           const feeder = field && bdfBulkFeeders[field.key];
           if (!field || !feeder || typeof feeder.feed !== "function" || (t.auto && !(feeder.el && feeder.el.isConnected))) {
+            // düzenleme görünümü oturdu ve klasör alanı yine yok: bu tabloda kaydın evrak klasörü formda yok
+            if (t.auto && !field && (IS_EDITING_MODE || isEditPanelOpen) && Date.now() - t.imzaAt > 8000) {
+              window.__gxKlasorTeslim = null;
+              try { console.warn("[KLASOR] no document folder in this form", window.__gxKlasorTani()); } catch (_) { }
+              try { if (typeof t.rapor === "function") t.rapor({ st: "error", msg: "This table's form has no document folder (Evraklar), so files cannot be added here." }); } catch (_) { }
+              return;
+            }
             // kayıt özet görünümünde açıldı (klasör alanı orada yok): bir kez düzenleme görünümüne geçilir, klasör orada çizilir
             if (!t.editIstendi && !(IS_EDITING_MODE || isEditPanelOpen)) {
               const eb = Array.from(document.querySelectorAll("#bdf-root button")).find((b) => (b.textContent || "").trim() === "Edit" && b.offsetParent);
