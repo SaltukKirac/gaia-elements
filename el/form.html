@@ -6560,7 +6560,20 @@
               if (!bdf_bulkOpenNewRecord()) { bdf_bulkFailJob(job, "The new record form did not open.", now); }
               return;
             }
-            if (now - job.openAt > 60000 * bdf_bulkSlow(now)) {
+            // BULK-TAB: yeni açılan sekmede sayfa hazır olmadan basılan New'e Bubble form verisini hiç göndermeyebiliyor (13.11
+            // gerçek deneme: 60 sn alansız kaldı, sonraki klasörün New'inde geldi). Veri 15 sn gelmezse New yeniden basılır (en çok 3).
+            if (why === "loading" && now - Number(G.lastOpenAt || 0) > 15000 * bdf_bulkSlow(now) && Number(job.loadRenew || 0) < 3) {
+              job.loadRenew = Number(job.loadRenew || 0) + 1;
+              job.opens = Number(job.opens || 0) + 1;
+              job.readySince = 0;
+              G.lastOpenAt = now;
+              G.selfAt = now;
+              G.stepAt = now;
+              console.warn("[BULK] form data did not come, opening New again", { folder: job.name, attempt: job.loadRenew });
+              if (!bdf_bulkOpenNewRecord()) { bdf_bulkFailJob(job, "The new record form did not open.", now); }
+              return;
+            }
+            if (now - job.openAt > (why === "loading" ? 90000 : 60000) * bdf_bulkSlow(now)) {
               bdf_bulkFailJob(job, why === "has-files" ? "The form still held files from the last record." : "The form was not ready.", now);
               return;
             }
