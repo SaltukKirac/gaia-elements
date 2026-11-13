@@ -1678,6 +1678,8 @@
   font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; text-align: left; cursor: pointer;
 }
 #gx-isler.is-folded .gx-is-head { border-bottom: 0; }
+#gx-isler.is-folded { width: auto; }   /* folded: a small pill, so it does not sit over the record form */
+#gx-isler.is-folded .gx-is-head-n { flex: 0 0 auto; }
 #gx-isler .gx-is-head:focus-visible, #gx-isler .gx-is-btn:focus-visible, #gx-isler .gx-is-x:focus-visible { outline: 2px solid var(--is-ring); outline-offset: 1px; }
 #gx-isler .gx-is-head-t { flex: 0 0 auto; }
 #gx-isler .gx-is-head-n { flex: 1 1 auto; color: var(--is-ink-2); font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -5136,6 +5138,24 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // msg, href, hrefLabel, onRetry }. Off: window.__gxNoIsler = true (the row pills and toasts carry it as before).
   const _dtIsler = new Map();   // id → job (+ tk0 / kk0: first progress seen, for the time left; at: when it was added)
   let _dtIslerKaynak = null, _dtIslerKaynakT = 0, _dtIslerKapali = false;
+  // GX-ISLER-KATLA (13.11): when nothing is running any more the panel folds itself to the small "Activity · 1 ready" pill
+  // after a few seconds (it sat over the record form's Document folder); opened by hand it stays open until the next job ends.
+  let _dtIslerElle = false, _dtIslerKatlaT = null;
+  const DT_ISLER_KATLA_MS = 8000;
+  function dtIslerKatlaPlan(calisan) {
+    try {
+      if (calisan || _dtIslerKapali || _dtIslerElle) { if (_dtIslerKatlaT) { clearTimeout(_dtIslerKatlaT); _dtIslerKatlaT = null; } return; }
+      if (_dtIslerKatlaT) return;
+      _dtIslerKatlaT = setTimeout(function katla() {
+        _dtIslerKatlaT = null;
+        const r = document.getElementById('gx-isler');
+        if (!r || r.hidden || _dtIslerKapali || _dtIslerElle) return;
+        if (Array.from(_dtIsler.values()).some(j => j.state === 'working' || j.state === 'queued')) return;
+        if (r.matches(':hover') || r.contains(document.activeElement)) { _dtIslerKatlaT = setTimeout(katla, 3000); return; }   // the person is using it
+        _dtIslerKapali = true; dtIslerCiz();
+      }, DT_ISLER_KATLA_MS);
+    } catch (e) {}
+  }
   const _dtIslerGizli = new Map();   // id → the state its card was hidden in (comes back only when the state changes)
   function dtIslerOn() { try { return !window.__gxNoIsler; } catch (e) { return false; } }
   function dtIslerKaynak(el) { try { if (el && el.getBoundingClientRect) { _dtIslerKaynak = el.getBoundingClientRect(); _dtIslerKaynakT = Date.now(); } } catch (e) {} }
@@ -5165,7 +5185,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     r.setAttribute('aria-label', 'Activity');
     r.innerHTML = '<button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Activity</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
       + '<div class="gx-is-list" role="list"></div><div class="gx-is-sr" role="status" aria-live="polite"></div>';
-    r.querySelector('.gx-is-head').addEventListener('click', () => { _dtIslerKapali = !_dtIslerKapali; dtIslerCiz(); });
+    r.querySelector('.gx-is-head').addEventListener('click', () => { _dtIslerKapali = !_dtIslerKapali; _dtIslerElle = !_dtIslerKapali; dtIslerCiz(); });
     r.addEventListener('click', (ev) => {
       const b = ev.target && ev.target.closest ? ev.target.closest('[data-is-act]') : null;
       if (!b) return;
@@ -5209,6 +5229,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const l = Array.from(_dtIsler.entries()).sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
       const calisan = l.filter(([, j]) => j.state === 'working' || j.state === 'queued').length;
       const biten = l.length - calisan;
+      dtIslerKatlaPlan(calisan);
       r.classList.toggle('is-folded', _dtIslerKapali);
       const head = r.querySelector('.gx-is-head');
       head.setAttribute('aria-expanded', _dtIslerKapali ? 'false' : 'true');
@@ -5254,6 +5275,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (eski && eski.tk0 !== undefined && job.n === eski.n && job.state === eski.state) { j.tk0 = eski.tk0; j.kk0 = eski.kk0; }
     _dtIsler.set(String(id), j);
     if (!eski) { _dtIslerKapali = false; }
+    if (eski && eski.state !== j.state && (j.state === 'done' || j.state === 'error')) { _dtIslerKapali = false; _dtIslerElle = false; }   // the end is seen, then it folds
     dtIslerCiz();
     if (!eski) dtIslerUcur(String(id));
     if (eski && eski.state !== j.state && (j.state === 'done' || j.state === 'error')) {   // the screen reader hears the end
