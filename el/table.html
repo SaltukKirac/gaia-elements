@@ -6087,21 +6087,32 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return;
     }
     if (!D.got) {
-      const hazir = Number(window.__gxKlasorForm || 0) >= 2 && Array.isArray(state.rawRows) && state.rawRows.length > 0;
-      if (hazir && now - Number(D.readyAt || 0) > 1500) { D.readyAt = now; post({ t: 'ready' }); }
+      // hazır: tablo satırları geldi ve formun alanları geldi (13.11 deneme: alanlar gelmeden açılan kayıt formda boş "Create" kaldı), 3 sn oturdu
+      let hazir = false;
+      try { hazir = Number(window.__gxKlasorForm || 0) >= 2 && typeof window.__gxKlasorFormHazir === 'function' && window.__gxKlasorFormHazir() && Array.isArray(state.rawRows) && state.rawRows.length > 0; } catch (e) { hazir = false; }
+      if (!hazir) D.hazirAt = 0; else if (!D.hazirAt) D.hazirAt = now;
+      if (hazir && now - D.hazirAt >= 3000 && now - Number(D.readyAt || 0) > 1500) { D.readyAt = now; post({ t: 'ready' }); }
       if (now - D.at > 180000) son({ t: 'error', msg: 'The helper tab could not start.' });
       return;
     }
     if (now - Number(D.hbAt || 0) > 2000) { D.hbAt = now; post({ t: 'prog', st: D.adim, k: D.k || 0, n: D.got.files.length }); }
+    const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === D.got.rid) : -1;
     if (!D.teslim) {
-      const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === D.got.rid) : -1;
       if (si < 0) { if (now - D.got.at > 30000) son({ t: 'error', msg: 'This file is not in the table any more.' }); return; }
-      D.teslim = true; D.acAt = now;
+      D.teslim = true; D.acAt = now; D.acIlk = now; D.acDeneme = 1;
       window.__gxKlasorTeslim = { id: D.got.rid, files: D.got.files, at: now, kart: '', etiket: D.got.etiket, auto: true, kuru: D.got.kuru, rapor: (o) => { try { window.__dtEkleIsci.rapor(o); } catch (e) {} } };
       try { prioritizeSelection(si); start(); } catch (e) { console.warn('[EKLE] open', e); }
       return;
     }
-    if (D.adim === 'open' && now - D.acAt > 150000) son({ t: 'error', msg: 'The file did not open in the helper tab. Try again.' });
+    // form kaydı almadıysa (devir hâlâ bekliyor) kayıt 20 sn arayla yeniden açılır, en çok 3 kez
+    const bekliyor = window.__gxKlasorTeslim && window.__gxKlasorTeslim.id === D.got.rid && !window.__gxKlasorTeslim.editIstendi;
+    if (D.adim === 'open' && bekliyor && si >= 0 && now - D.acAt > 20000 && D.acDeneme < 3) {
+      D.acDeneme += 1; D.acAt = now; window.__gxKlasorTeslim.at = now;
+      console.log('[EKLE] the file did not open, opening again', { try: D.acDeneme });
+      try { prioritizeSelection(si); start(); } catch (e) { console.warn('[EKLE] open', e); }
+      return;
+    }
+    if (D.adim === 'open' && now - (D.acIlk || D.acAt) > 150000) son({ t: 'error', msg: 'The file did not open in the helper tab. Try again.' });
   }
   if (dtEkleTabId()) {
     window.__dtEkleIsciTick = dtEkleIsciTick;   // Bubble bu betiği yeniden koşarsa son kopya çalışır

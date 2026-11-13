@@ -14895,6 +14895,8 @@
       // sekmesi, ?gxadd=) form kişiye hiçbir şey sormaz: dosyaları verir, yükleme bitince Done ile kaydeder (elle düzenlemenin kayıt yolu),
       // kaydın Bubble verisinde yeni adresleri görünce t.rapor({ st: 'done' }) der. İlerleme t.rapor ile tabloya döner.
       window.__gxKlasorForm = 2;   // tablo: bu form otomatik devri biliyor
+      // yardımcı sekme: form verisi (alanlar) Bubble'dan sayfa açıldıktan ~15-23 sn sonra gelir; ondan önce açılan kayıt boş "Create" kalıyor (13.11 deneme)
+      window.__gxKlasorFormHazir = () => { try { return Boolean(state.config && Array.isArray(state.config.fields) && state.config.fields.length); } catch (_) { return false; } };
       let bdfKlasorTeslimZaman = 0;
       function bdf_klasorAdresAnahtar(u) {   // adresin değişmeyen kısmı (soru işaretinden önce, son iki parça)
         const p = String(u || "").split("?")[0].split("/").filter(Boolean);
