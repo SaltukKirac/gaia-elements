@@ -1,8 +1,8 @@
 {
   "repo": "SaltukKirac/gaia-elements",
   "channel": "sabah-toplu",
-  "rev": 70,
-  "updated": "2026-11-13T15:18:37Z",
+  "rev": 71,
+  "updated": "2026-11-13T15:42:12Z",
   "elements": {
     "aithia-pricing": {
       "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -21,12 +21,12 @@
       "updated": "2026-10-27T16:50:45Z"
     },
     "form": {
-      "commit": "bdf861cf3e8783521d4f22cd7bbeb6bc4c960e3c",
+      "commit": "b5a79c7c0159d8595ee64f87560d4be7d5340993",
       "path": "el/form.html",
-      "blob": "a1a4636f18172dc14142e0daf59239b67bb55b7a",
-      "bytes": 1005876,
+      "blob": "b5c1010cb826722dfc235643bcd68c7bb9cbdfa5",
+      "bytes": 1005935,
       "title": "Dynamic form - app page",
-      "updated": "2026-11-13T15:18:37Z"
+      "updated": "2026-11-13T15:42:12Z"
     },
     "onboarding": {
       "commit": "f39ee569c4627b019ecd98938b52097296c54535",
