@@ -5162,8 +5162,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (r) return r;
     r = document.createElement('section');
     r.id = 'gx-isler';
-    r.setAttribute('aria-label', 'Downloads');
-    r.innerHTML = '<button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Downloads</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
+    r.setAttribute('aria-label', 'Activity');
+    r.innerHTML = '<button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Activity</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
       + '<div class="gx-is-list" role="list"></div><div class="gx-is-sr" role="status" aria-live="polite"></div>';
     r.querySelector('.gx-is-head').addEventListener('click', () => { _dtIslerKapali = !_dtIslerKapali; dtIslerCiz(); });
     r.addEventListener('click', (ev) => {
