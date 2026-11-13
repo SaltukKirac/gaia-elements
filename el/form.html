@@ -2544,6 +2544,26 @@
     #bdf-root .bdf-people-list { max-height: none; overflow: visible; }
     #bdf-root .bdf-people-pop .bdf-people-search { position: sticky; top: 0; z-index: 1; }
   }
+  /* EVRAK-KLASOR (13.11.2026): kayıtlı dosyada kaydın evrak klasörü formun en üstünde "Document folder" (aşamalardan bağımsız) */
+  #bdf-root .field-wrapper.bdf-klasor {
+    background: var(--gx-surface, #ffffff);
+    border: 1px solid var(--gx-line-soft, #e2e8f0);
+    border-left: 3px solid var(--gx-primary, #6366f1);
+    border-radius: var(--gx-r-md, 10px);
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    box-shadow: var(--gx-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.06));
+    transition: box-shadow 300ms ease, background 300ms ease;
+  }
+  #bdf-root .field-wrapper.bdf-klasor.is-flash { background: #eef2ff; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25); }
+  #bdf-root .bdf-klasor-bas { margin-bottom: 8px; }
+  #bdf-root .bdf-klasor-t { display: flex; align-items: baseline; gap: 8px; }
+  #bdf-root .bdf-klasor-ad { font: 600 14px/1.3 var(--gx-font, Inter, system-ui, sans-serif); color: var(--gx-ink, #0f172a); }
+  #bdf-root .bdf-klasor-n { font: 500 12px/1.3 var(--gx-font, Inter, system-ui, sans-serif); color: var(--gx-ink-2, #475569); font-variant-numeric: tabular-nums; }
+  #bdf-root .bdf-klasor-not { margin-top: 2px; font-size: 12px; line-height: 1.4; color: var(--gx-ink-2, #475569); }
+  #bdf-root .bdf-klasor-pin { margin-bottom: 12px; }
+  #bdf-root .bdf-klasor-pin .field-wrapper.bdf-klasor { margin-bottom: 0; }
+  @media (prefers-reduced-motion: reduce) { #bdf-root .field-wrapper.bdf-klasor { transition: none; } }
 </style>
 <style data-bdf-edit-layout-dropdown-only>
   /* ChatGPT patch: Edit UI'da sol sekme/akordiyon yerine sadece dropdown kullan */
@@ -14789,6 +14809,124 @@
         }
       }
 
+      // EVRAK-KLASOR (13.11.2026, Saltuk: "ek evrak bir custom field gibi eklendi; oysa öğe folder'ına yeni evrak eklenen statik bir yazılım
+      // parçası gerekiyordu: formda bir kısımda görülmeli, herhangi bir alandan bağımsız dosya galerisi gibi, hem de tablodaki file ikonuyla
+      // açılan kısımda"). Kayıtlı bir dosyada kaydın evrak klasörü (müşteri ayarı, varsayılan "Evraklar") formun EN ÜSTÜNDE "Document folder"
+      // olarak durur: aşama sekmelerinden ve dosya sayfalamasından bağımsız, sayısı başlıkta. Kullanıcılar evrakı claim için eksik olsa da
+      // önce atar; sonradan gelen belge buraya bırakılır, kaydedilince claim hattı yalnız yeni belgeleri okuyup claim'i tamamlar (baştan
+      // kurmaz). Bubble yükleyicisi ve kayıt yolu değişmez (alanın kendi yükleyicisi taşınır). Yalnız Claim / Eksikler / Durum alanı olan
+      // tablolarda ve kayıtlı dosyada. Ayar: window.__gxKlasorAlanlari = ["Evraklar"] (ilk eşleşen alan); kapatma: window.__gxNoKlasorAlani.
+      // Tablonun evrak gezgini "Add files" dosyaları buraya devreder: window.__gxKlasorTeslim = { id, files, at } (aynı sayfa, File nesneleri).
+      function bdf_klasorAd(f) { return String((f && (f.label || f.name || f.fieldName)) || "").trim().toLocaleLowerCase("tr"); }
+      function bdf_klasorAlani(fields) {
+        try {
+          if (window.__gxNoKlasorAlani) return null;
+          const list = Array.isArray(fields) ? fields : [];
+          if (!list.some((f) => ["claim", "eksikler", "durum", "hasar dosya no"].includes(bdf_klasorAd(f)))) return null;
+          if (!readCurrentUniqueId()) return null;
+          const ayar = Array.isArray(window.__gxKlasorAlanlari) && window.__gxKlasorAlanlari.length ? window.__gxKlasorAlanlari : ["Evraklar"];
+          for (const a0 of ayar) {
+            const a = String(a0 || "").trim().toLocaleLowerCase("tr");
+            const f = list.find((x) => x && bdf_isUploadLikeFieldType(String(x.type || "").toLowerCase()) && bdf_klasorAd(x) === a);
+            if (f) return f;
+          }
+        } catch (_) { }
+        return null;
+      }
+      function bdf_klasorSayi(field) {
+        try {
+          let v = state.values ? state.values[field.key] : null;
+          if (typeof v === "string") { const t = v.trim(); v = t.startsWith("[") ? JSON.parse(t) : (t ? [t] : []); }
+          return Array.isArray(v) ? v.filter(Boolean).length : 0;
+        } catch (_) { return 0; }
+      }
+      function bdf_klasorBaslik(wrapper, field) {
+        if (!wrapper || !field) return;
+        wrapper.classList.add("bdf-klasor");
+        let bas = wrapper.querySelector(":scope > .bdf-klasor-bas");
+        if (!bas) {
+          bas = document.createElement("div");
+          bas.className = "bdf-klasor-bas";
+          const t = document.createElement("div"); t.className = "bdf-klasor-t";
+          const ad = document.createElement("span"); ad.className = "bdf-klasor-ad"; ad.textContent = "Document folder";
+          const n = document.createElement("span"); n.className = "bdf-klasor-n";
+          const not = document.createElement("div"); not.className = "bdf-klasor-not";
+          not.textContent = "All documents of this file. Add new ones any time and press Save: only the new ones are read and the claim is completed.";
+          t.append(ad, n); bas.append(t, not);
+          wrapper.insertBefore(bas, wrapper.firstChild);
+        }
+        const n = bdf_klasorSayi(field);
+        const ne = bas.querySelector(".bdf-klasor-n");
+        if (ne) ne.textContent = n ? `${n} document${n === 1 ? "" : "s"}` : "";
+      }
+      // düzenleme panelinde sabit yuva (#bdfKlasorPin, aşama düzeninin hemen üstü); alanın güncel sarmalayıcısı oraya taşınır ve aşama
+      // alanlarındaki dosya alanlarıyla aynı yoldan Bubble yükleyicisine bağlanır. Alan yoksa yuva boşalır ve gizlenir.
+      function bdf_klasorSabitle(field, wrappersByKey) {
+        let pin = byId("bdfKlasorPin");
+        if (!field) { if (pin) { pin.innerHTML = ""; pin.style.display = "none"; } return; }
+        const wrapper = wrappersByKey && wrappersByKey.get(field.key);
+        if (!wrapper || !editStageLayout || !editStageLayout.parentNode) return;
+        if (!pin) {
+          pin = document.createElement("div");
+          pin.id = "bdfKlasorPin";
+          pin.className = "bdf-klasor-pin";
+          editStageLayout.parentNode.insertBefore(pin, editStageLayout);
+        }
+        pin.style.display = "";
+        if (wrapper.parentNode !== pin) { pin.innerHTML = ""; pin.appendChild(wrapper); }
+        wrapper.style.display = "";
+        bdf_klasorBaslik(wrapper, field);
+        const key = String(field.key || "").trim();
+        const mountEl = state.externalUploaderMountByField?.[key];
+        const uploaderId = String(state.externalUploaderIdByField?.[key] || "").trim();
+        if (!mountEl || !uploaderId) return;
+        const allowMultiple = (typeof state.externalUploaderAllowMultipleByField?.[key] !== "undefined")
+          ? Boolean(state.externalUploaderAllowMultipleByField[key])
+          : (field.type === "multifile" || field.allowMultiple === true);
+        const maxFiles = (typeof state.externalUploaderMaxFilesByField?.[key] !== "undefined" && state.externalUploaderMaxFilesByField[key])
+          ? bdf_readInt(state.externalUploaderMaxFilesByField[key], allowMultiple ? bdf_getDefaultExternalMaxFiles() : 1)
+          : bdf_getUploaderMaxFiles(field, allowMultiple);
+        bdf_syncExternalUploaderHostHeight(mountEl);
+        bdf_scheduleExternalUploaderMountForField({ field, mountEl, allowMultiple, accept: String(field?.ui?.accept || ""), maxFiles, uploaderId });
+      }
+      // gezginin "Add files" devri: form bu kaydı açınca dosyalar klasör alanının yükleyicisine verilir (FOLDER-UP yolu, elle bırakmayla
+      // aynı); kişi Save'e basınca kayda girer. Devir 2 dk tazedir; tablonun iş panelindeki kart güncellenir.
+      let bdfKlasorTeslimZaman = 0;
+      function bdf_klasorTeslimAl() {
+        try {
+          const t = window.__gxKlasorTeslim;
+          if (!t || !t.id || !Array.isArray(t.files) || !t.files.length) return;
+          if (Date.now() - (Number(t.at) || 0) > 120000) { window.__gxKlasorTeslim = null; return; }
+          if (!bdfKlasorTeslimZaman) bdfKlasorTeslimZaman = setTimeout(() => { bdfKlasorTeslimZaman = 0; bdf_klasorTeslimAl(); }, 800);
+          if (readCurrentUniqueId() !== t.id) return;
+          const field = bdf_klasorAlani(state.config && state.config.fields);
+          const feeder = field && bdfBulkFeeders[field.key];
+          if (!field || !feeder || typeof feeder.feed !== "function") {
+            // kayıt özet görünümünde açıldı (klasör alanı orada yok): bir kez düzenleme görünümüne geçilir, klasör orada çizilir
+            if (!t.editIstendi && !(IS_EDITING_MODE || isEditPanelOpen)) {
+              const eb = Array.from(document.querySelectorAll("#bdf-root button")).find((b) => (b.textContent || "").trim() === "Edit" && b.offsetParent);
+              if (eb) { t.editIstendi = true; try { eb.click(); } catch (_) { } }
+            }
+            return;
+          }
+          window.__gxKlasorTeslim = null;
+          const n = t.files.length;
+          const kart = (state, line) => { try { if (window.__gxIsler && t.kart) window.__gxIsler.set(t.kart, { title: "Add to folder", sub: t.etiket || "", state, line, k: 0, n: 0 }); } catch (_) { } };
+          kart("working", `Uploading ${n} file${n === 1 ? "" : "s"} into the folder`);
+          feeder.feed(t.files, "Add files", (ok, msg) => {
+            if (ok === false) { kart("error", ({ full: "The folder already has the most files it accepts.", notready: "The form was not ready. Try again.", type: "These files are not a supported type.", read: "The files could not be read." })[msg] || "The files could not be added. Try again."); return; }
+            kart("done", `${n} file${n === 1 ? "" : "s"} in the folder. Press Save to keep them.`);
+            bdf_showToast(`${n} file${n === 1 ? "" : "s"} added to the folder. Press Save to keep them.`, "info");
+          });
+          setTimeout(() => {
+            const w = byId("bdfKlasorPin")?.querySelector(".field-wrapper.bdf-klasor") || document.querySelector("#bdf-root .field-wrapper.bdf-klasor");
+            if (!w) return;
+            try { w.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (_) { }
+            w.classList.add("is-flash"); setTimeout(() => w.classList.remove("is-flash"), 1600);
+          }, 300);
+        } catch (_) { }
+      }
+
       function readCurrentUniqueId() {
         const inputs = window.BUBBLE_INPUTS || {};
         const candidates = [
@@ -17200,6 +17338,10 @@
           selectedFields = ungroupedFields;
         }
 
+        // EVRAK-KLASOR: kaydın evrak klasörü aşama listesine ve dosya sayfalamasına girmez, panelin üstünde sabit (aramada sonuçlarda kalır)
+        const bdfKlasorAlan = searchMode ? null : bdf_klasorAlani(fields);
+        if (bdfKlasorAlan) selectedFields = selectedFields.filter((f) => f && f.key !== bdfKlasorAlan.key);
+
         if (searchMode && !selectedFields.length && editSearchEmpty) {
           editSearchEmpty.style.display = "block";
           editSearchEmpty.textContent = "No matching fields";
@@ -17230,6 +17372,8 @@
           searchMode,
           retryCount: 0
         });
+        try { bdf_klasorSabitle(bdfKlasorAlan, wrappersByKey); } catch (_) { }
+        try { bdf_klasorTeslimAl(); } catch (_) { }
 
       }
 
@@ -17268,7 +17412,10 @@
         if (formEl) formEl.style.display = isEditUiActive ? "none" : "grid";
 
         let previousGroup = null;
-        config.fields.forEach((field, index) => {
+        // EVRAK-KLASOR: kayıtlı dosyada kaydın evrak klasörü en üstte ("Document folder")
+        const bdfKlasorF = bdf_klasorAlani(config.fields);
+        const bdfAlanSirasi = bdfKlasorF ? [bdfKlasorF, ...config.fields.filter((f) => f !== bdfKlasorF)] : config.fields;
+        bdfAlanSirasi.forEach((field, index) => {
 
           const wrapper = document.createElement("div");
           wrapper.className = "field-wrapper";
@@ -19014,6 +19161,7 @@
           row.append(labelColumn, controlStack);
           wrapper.append(row);
           formEl.append(wrapper);
+          if (field === bdfKlasorF) { try { bdf_klasorBaslik(wrapper, field); } catch (_) { } }   // EVRAK-KLASOR
 
           // ÇİFT-TIK (30.10): var olan kayıtta ilk alana odak verme. Her yeniden çizimde Plaka odağı alıyor, tabloya her
           // tıklama onu blur ediyor ve kullanıcının yazdığı tuşlar fark etmeden Plaka'ya gidebiliyordu. Yeni kayıtta sürer.
@@ -19027,6 +19175,7 @@
         if (IS_EDITING_MODE || isEditPanelOpen) {
           runEditModeFilterRender();
         }
+        try { bdf_klasorTeslimAl(); } catch (_) { }   // EVRAK-KLASOR: gezginden gelen dosyalar
         updateToolbarStatus();
         updateSubmitState(config);
         captureInitialSnapshot();

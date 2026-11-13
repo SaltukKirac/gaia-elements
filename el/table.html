@@ -5162,8 +5162,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (r) return r;
     r = document.createElement('section');
     r.id = 'gx-isler';
-    r.setAttribute('aria-label', 'Downloads');
-    r.innerHTML = '<button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Downloads</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
+    r.setAttribute('aria-label', 'Activity');
+    r.innerHTML = '<button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Activity</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
       + '<div class="gx-is-list" role="list"></div><div class="gx-is-sr" role="status" aria-live="polite"></div>';
     r.querySelector('.gx-is-head').addEventListener('click', () => { _dtIslerKapali = !_dtIslerKapali; dtIslerCiz(); });
     r.addEventListener('click', (ev) => {
@@ -5367,6 +5367,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       + '<div class="dt-gez-body" aria-live="polite"></div>'
       + '<div class="dt-gez-foot">Only you can open these files. Links work for 15 minutes.</div></div>';
     root.addEventListener('click', dtGezClick);
+    // EVRAK-KLASOR: panele bırakılan dosyalar kaydın evrak klasörüne (klasör bırakma desteklenmez: tek tek dosyalar)
+    root.addEventListener('dragover', (e) => { if (_dtGez && !window.__gxNoKlasorEkle && e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+    root.addEventListener('drop', (e) => { if (!_dtGez || window.__gxNoKlasorEkle || !e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return; e.preventDefault(); dtIslerKaynak(root.querySelector('.dt-gez')); dtGezEkle(_dtGez, e.dataTransfer.files); });
     root.addEventListener('keydown', dtGezKey);
     els.wrapper.appendChild(root);
     return root;
@@ -5471,7 +5474,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const box = root.querySelector('.dt-gez-acts');
     if (!box) return;
     const had = box.contains(document.activeElement) && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-bicim') : '';
-    box.innerHTML = dtGezActHtml(g.id, 'klasor') + dtGezActHtml(g.id, 'pdf');
+    box.innerHTML = dtGezActHtml(g.id, 'klasor') + dtGezActHtml(g.id, 'pdf')
+      + (window.__gxNoKlasorEkle ? '' : '<button class="dt-gez-act" type="button" data-gez-act="add" title="Add new documents to this file. Only the new ones are read and the claim is completed.">Add files</button>');   // EVRAK-KLASOR
     if (had) { const f = box.querySelector('[data-bicim="' + had + '"]'); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} }
   }
   function dtGezFileRow(g, i) {
@@ -5583,6 +5587,33 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       showWakeToast(dtGezWhy(e), 'error');
     } finally { g.busy[i] = false; if (!g.dead) dtGezRender(); }
   }
+  // EVRAK-KLASOR (13.11.2026, Saltuk: "yeni eklenen file ikonu ile açılan kısma da"): gezginden kaydın evrak klasörüne dosya ekleme.
+  // Kaydı tablonun kendi yolundan açar (çift tık ile aynı), dosyaları formun "Document folder" alanına devreder (window.__gxKlasorTeslim,
+  // form bdf_klasorTeslimAl). Bubble yükleyicisi ve kayıt yolu formunki; kişi Save'e basınca kayda girer, claim hattı yalnız yeni belgeleri
+  // okuyup claim'i tamamlar. İlerleme iş panelinde (GX-ISLER). Kapatma: window.__gxNoKlasorEkle = true.
+  function dtGezEkleSec(g, btn) {
+    if (!g) return;
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.multiple = true; inp.style.display = 'none';
+    inp.addEventListener('change', () => { try { if (inp.files && inp.files.length) { dtIslerKaynak(btn); dtGezEkle(g, inp.files); } } finally { inp.remove(); } });
+    (document.body || document.documentElement).appendChild(inp);
+    inp.click();
+  }
+  function dtGezEkle(g, files) {
+    const l = Array.from(files || []).filter(f => f && typeof f.name === 'string');
+    if (!g || !l.length) return;
+    const id = g.id, etiket = dtIslerEtiket(g.raw), kart = 'klasor:' + id + ':' + Date.now();
+    window.__gxKlasorTeslim = { id: id, files: l, at: Date.now(), kart: kart, etiket: etiket };
+    dtIslerSet(kart, { title: 'Add to folder', sub: etiket, state: 'working', line: 'Opening the file (' + l.length + ' file' + (l.length === 1 ? '' : 's') + ')', k: 0, n: 0 });
+    dtGezClose();
+    const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === id) : -1;
+    if (si < 0) { window.__gxKlasorTeslim = null; dtIslerSet(kart, { title: 'Add to folder', sub: etiket, state: 'error', msg: 'This record is not in the table any more.' }); return; }
+    try { prioritizeSelection(si); start(); } catch (e) {}
+    setTimeout(() => {
+      const t = window.__gxKlasorTeslim;
+      if (t && t.kart === kart) { window.__gxKlasorTeslim = null; dtIslerSet(kart, { title: 'Add to folder', sub: etiket, state: 'error', msg: 'The file did not open. Open it and drop the files into Document folder.' }); }
+    }, 120000);
+  }
   function dtGezClick(event) {
     const el = event.target && event.target.closest ? event.target.closest('[data-gez-act]') : null;
     const g = _dtGez;
@@ -5595,6 +5626,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (act === 'back') { const was = g.prev; g.prev = null; dtGezDropBlob(g); dtGezRender(was !== null ? 'f' + was : ''); return; }
     if (act === 'preview' && i >= 0) { dtGezPreview(g, i); return; }
     if (act === 'download' && i >= 0) { dtGezDownload(g, i); return; }
+    if (act === 'add') { event.preventDefault(); dtGezEkleSec(g, el); return; }   // EVRAK-KLASOR
     if (act === 'job') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, el.getAttribute('data-bicim')); } catch (e) {} }   // synchronous up to the folder dialog (needs the click)
   }
   function dtGezKey(event) {
