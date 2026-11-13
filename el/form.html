@@ -14953,9 +14953,9 @@
                 kayitAt = now;
                 if (kismi) t.not = `${yeni.length} of ${n} files uploaded.`;
                 rapor({ st: "saving", k: yeni.length, n });
-                // elle düzenlemedeki gibi: Done paneli kapatır ve değişikliği kaydeder; değişiklik görülmediyse kayıt zorla gönderilir
-                try { if (isEditPanelOpen) setInlineEditPanelOpen(false); } catch (_) { }
-                if (!isFormSaving) runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "klasor-ekle", modeHint: getSubmitModeHint() });
+                // düzenleme paneli AÇIKKEN kaydedilir: form değişen alanları o anki alan listesinden hesaplar; panel kapanınca (Done) liste özet
+                // görünümüne döner, orada Evraklar yoksa değişiklik paketine girmez (13.11 deneme: kayıt Bubble'a gitti, Evraklar değişmedi)
+                if (!isFormSaving) runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "klasor-ekle", modeHint: "edit" });
                 return;
               }
               if (now - hareket > 120000) bitir({ st: "error", msg: yeni.length ? "The upload stopped. Try again." : "The files did not upload. Try again." });
@@ -14963,8 +14963,8 @@
             }
             if (Number(BDF.__sonKayitOk || 0) >= kayitAt && !kayitOk) kayitOk = now;
             if (bdf_klasorKayittaMi(yeni)) { bitir({ st: "done", k: yeni.length, n, not: t.not || "" }); return; }
-            // kayıt Bubble'a verildi ama veri geri gelmedi: bir süre sonra "kaydedildi, doğrulanamadı" denir
-            if (kayitOk && now - kayitOk > 45000) { bitir({ st: "done", k: yeni.length, n, not: [t.not, "Saved. It can take a minute to show in the list."].filter(Boolean).join(" "), dogrulanmadi: true }); return; }
+            // kayıt Bubble'a verildi ama kaydın verisinde yeni adres görünmedi: başarı denmez (13.11 deneme: "Added" dendi, kayıt değişmemişti)
+            if (kayitOk && now - kayitOk > 60000) { bitir({ st: "error", msg: "Gaia did not confirm the save. Check the file's documents before you add them again." }); return; }
             if (now - kayitAt > 150000) bitir({ st: "error", msg: "Saving did not finish. Check the file's documents before you try again." });
           } catch (e) { console.warn("[KLASOR] watch", e); }
         }, 700);
