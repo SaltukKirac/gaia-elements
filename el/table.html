@@ -5028,6 +5028,37 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   const _dtSirali = new Map();       // id|bicim → { st: 'working'|'done'|'error', job, k, n, queued, skipped, url, exp, msg, t0, fails, dir, zip, klasor, saved }
   let _dtSiraliNoFolder = false;     // the folder API refused once (sandboxed frame): ZIP from then on
   let _dtSiraliPicking = false;      // a folder dialog is open
+  // GX-INDIR (13.11 Saltuk: "pdf yap dediğimde bitirip otomatik indirmesini beklerim, aynı şey klasör için de geçerli, plaka bilgisi
+  // ile inebilir"): a ready PDF / ZIP downloads by itself as "<Plaka> - <Hasar Dosya No>.pdf" (the server names it, ?dl=1); "Klasör"
+  // remembers the place picked the first time (IndexedDB, the browser's own folder handle) and writes "<Plaka> - <Hasar Dosya No>"
+  // there on the next presses without asking again; "Change place" on its card forgets it. Off: window.__gxNoIndir = true.
+  let _dtSiraliYer = null;           // the remembered parent folder (FileSystemDirectoryHandle)
+  function dtSiraliYerDb(mode, fn) {
+    return new Promise((res) => {
+      try {
+        const q = indexedDB.open('gx-evrak', 1);
+        q.onupgradeneeded = () => { try { q.result.createObjectStore('yer'); } catch (e) {} };
+        q.onerror = () => res(null);
+        q.onsuccess = () => {
+          try {
+            const db = q.result, tx = db.transaction('yer', mode), st = tx.objectStore('yer');
+            const r = fn(st);
+            tx.oncomplete = () => { try { db.close(); } catch (e) {} res(r && 'result' in r ? r.result : true); };
+            tx.onerror = () => { try { db.close(); } catch (e) {} res(null); };
+          } catch (e) { res(null); }
+        };
+      } catch (e) { res(null); }
+    });
+  }
+  function dtSiraliYerYaz(h) { if (h) dtSiraliYerDb('readwrite', st => st.put(h, 'kok')); else dtSiraliYerDb('readwrite', st => st.delete('kok')); }
+  function dtSiraliYerUnut() { _dtSiraliYer = null; dtSiraliYerYaz(null); showWakeToast('Next time Klasör asks where to save.', 'success'); }
+  try { if (!window.__gxNoIndir && typeof window.showDirectoryPicker === 'function') dtSiraliYerDb('readonly', st => st.get('kok')).then(h => { if (h && h.kind === 'directory' && !_dtSiraliYer) _dtSiraliYer = h; }); } catch (e) {}
+  // the server's download address of this very job (same address + ?dl=1), else nothing
+  function dtSiraliIndirOk(u, url) { const t = String(u || ''); return url && t === String(url) + '?dl=1' && /^https:\/\/[a-z0-9.-]+(:\d+)?\/evrak-sirali\/[a-f0-9]{64}\.(pdf|zip)\?dl=1$/i.test(t) ? t : ''; }
+  // a download without leaving the page: the server answers "attachment", so the browser saves it and the table stays
+  function dtSiraliIndir(u) {
+    try { const a = document.createElement('a'); a.href = u; a.rel = 'noopener'; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => { try { a.remove(); } catch (e) {} }, 1000); return true; } catch (e) { return false; }
+  }
   function dtSiraliKey(id, bicim) { return id + '|' + bicim; }
   function dtSiraliCanFolder() {
     try { return !window.__gxNoKlasor && !_dtSiraliNoFolder && typeof window.showDirectoryPicker === 'function' && window.isSecureContext !== false; } catch (e) { return false; }
@@ -5142,9 +5173,25 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (_dtSiraliPicking) return;
       if (dtSiraliCanFolder()) {
         _dtSiraliPicking = true;
-        try { dir = await window.showDirectoryPicker({ id: 'gaia-evrak', mode: 'readwrite', startIn: 'downloads' }); }   // first await: still inside the click
+        let denedi = false;
+        try {
+          // GX-INDIR: the place picked before, if the browser still lets Gaia write there (asks once with a small prompt if needed)
+          if (_dtSiraliYer && !window.__gxNoIndir) {
+            denedi = true;
+            try {
+              let p = await _dtSiraliYer.queryPermission({ mode: 'readwrite' });
+              if (p !== 'granted') p = await _dtSiraliYer.requestPermission({ mode: 'readwrite' });
+              if (p === 'granted') dir = _dtSiraliYer;
+            } catch (e) {}
+          }
+          if (!dir) {
+            dir = await window.showDirectoryPicker({ id: 'gaia-evrak', mode: 'readwrite', startIn: 'downloads' });   // first await when nothing is remembered: inside the click
+            if (dir && !window.__gxNoIndir) { _dtSiraliYer = dir; dtSiraliYerYaz(dir); }
+          }
+        }
         catch (e) {
           if (e && e.name === 'AbortError') return;   // the person closed the dialog: nothing to say
+          if (denedi && e && e.name === 'SecurityError') { showWakeToast('Press Klasör again to pick where to save.', 'success'); return; }   // the click was used up by the prompt
           _dtSiraliNoFolder = true;                    // a frame / policy that refuses the folder API: ZIP from now on
           showWakeToast('This browser cannot save into a folder here, so the files come as one download.', 'success');
         } finally { _dtSiraliPicking = false; }
@@ -5210,8 +5257,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (d.state === 'ready' && d.url) {
         s.st = 'done'; s.url = String(d.url);
         s.exp = Date.now() + Math.max(30, Math.min(900, Number(d.expires_in_s) || 900)) * 1000 - 15000;
+        s.indir = window.__gxNoIndir ? '' : dtSiraliIndirOk(d.indir, s.url);   // GX-INDIR: an older server sends no download address
+        if (s.indir) s.indirdi = dtSiraliIndir(s.indir);
         dtSiraliPaint(id);
-        try { if (navigator.userActivation && navigator.userActivation.isActive) window.open(s.url, '_blank', 'noopener'); } catch (e) {}
+        try { if (!s.indir && navigator.userActivation && navigator.userActivation.isActive) window.open(s.url, '_blank', 'noopener'); } catch (e) {}
         const lbl = dtSiraliLbl(bicim);
         if (!dtIslerOn()) showWakeToast(lbl + ' ready' + (s.skippedCount ? ', ' + s.skippedCount + ' file' + (s.skippedCount === 1 ? '' : 's') + ' skipped' : '') + '. Use "' + (s.zip ? 'Download' : 'Open ' + lbl) + '" on the row.', 'success');
         setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, Math.max(0, s.exp - Date.now()));
@@ -5354,6 +5403,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!j) return;
       const act = b.getAttribute('data-is-act');
       if (act === 'hide') { _dtIslerGizli.set(id, j.state); _dtIsler.delete(id); dtIslerCiz(); }
+      else if (act === 'alt' && typeof j.onAlt === 'function') { try { j.onAlt(); } catch (e) {} j.altLabel = ''; j.onAlt = null; dtIslerCiz(); }
       else if (act === 'retry' && typeof j.onRetry === 'function') { dtIslerKaynak(b); try { j.onRetry(); } catch (e) {} }
     });
     document.body.appendChild(r);
@@ -5374,6 +5424,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let act = '';
     if (st === 'done' && j.href) act = `<a class="gx-is-btn is-primary" href="${escapeHtml(j.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(j.hrefLabel || 'Open')}</a>`;
     if (st === 'error' && typeof j.onRetry === 'function') act = '<button class="gx-is-btn" type="button" data-is-act="retry">Try again</button>';
+    if (st === 'done' && j.altLabel && typeof j.onAlt === 'function') act += `<button class="gx-is-btn" type="button" data-is-act="alt">${escapeHtml(j.altLabel)}</button>`;
     const x = st === 'done' || st === 'error' ? '<button class="gx-is-x" type="button" data-is-act="hide" aria-label="Hide">&times;</button>' : '';
     return `<div class="gx-is-card is-${st}" role="listitem" data-is-id="${escapeHtml(id)}" aria-busy="${st === 'working' || st === 'queued' ? 'true' : 'false'}">`
       + `<div class="gx-is-top"><span class="gx-is-dot" aria-hidden="true"></span><span class="gx-is-title">${escapeHtml(j.title || 'Job')}</span>`
@@ -5461,9 +5512,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           : (pdf ? 'Making the PDF: ' : 'Packing: ') + s.k + ' of ' + s.n + ' files';
         dtIslerSet(key, { title, sub, state: s.queued ? 'queued' : 'working', k: s.k, n: s.n, line, onRetry: retry, href: '', msg: '' });
       } else if (s.st === 'done' && s.url) {
-        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: 'Ready' + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '. Link works for 15 min.', href: s.url, hrefLabel: s.zip ? 'Download' : 'Open PDF', onRetry: retry, msg: '' });
+        dtIslerSet(key, s.indirdi
+          ? { title, sub, state: 'done', k: s.n, n: s.n, line: 'Downloaded' + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '. Look in your downloads.', href: s.indir, hrefLabel: 'Download again', onRetry: retry, msg: '' }
+          : { title, sub, state: 'done', k: s.n, n: s.n, line: 'Ready' + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '. Link works for 15 min.', href: s.url, hrefLabel: s.zip ? 'Download' : 'Open PDF', onRetry: retry, msg: '' });
       } else if (s.st === 'done') {
-        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: 'Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into ' + (s.klasor || 'the folder') + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : ''), href: '', onRetry: retry, msg: '' });
+        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: 'Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into ' + (s.klasor || 'the folder') + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : ''), href: '', onRetry: retry, msg: '',
+          altLabel: _dtSiraliYer ? 'Change place' : '', onAlt: _dtSiraliYer ? dtSiraliYerUnut : null });
       } else {
         dtIslerSet(key, { title, sub, state: 'error', line: '', msg: s.msg || 'Something went wrong.', href: '', onRetry: retry });
       }
