@@ -5753,6 +5753,10 @@
 #gx-bulk-card button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;font:inherit;font-weight:600;cursor:pointer}
 #gx-bulk-card button.is-primary{background:#6366f1;border-color:#6366f1;color:#fff}
 #gx-bulk-card button:disabled{opacity:.55;cursor:default}
+#gx-bulk-veil{position:fixed;inset:0;z-index:2147482990;background:#f8fafc;display:flex;flex-direction:column;align-items:center;padding:40px 16px 0;box-sizing:border-box;font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#0f172a;text-align:center}
+#gx-bulk-veil .gxv-h{font-size:22px;font-weight:600;margin:0 0 6px}
+#gx-bulk-veil .gxv-p{color:#475569;max-width:520px;margin:0}
+#gx-bulk-card.is-tab{left:50%;right:auto;top:130px;bottom:auto;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 150px);box-shadow:0 1px 2px rgba(15,23,42,.05)}
 #gx-bulk-card.is-bg{width:auto;max-width:calc(100vw - 32px);border-radius:999px;padding:4px 4px 0 16px}
 #gx-bulk-card .gxb-pill{display:flex;align-items:center;gap:12px}
 #gx-bulk-card .gxb-pill-t{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -5790,6 +5794,7 @@
         }
         try { bdf_bulkSyncPark(); } catch (_) { }
         try { bdf_bulkSyncLock(); } catch (_) { }
+        try { bdf_bulkSyncVeil(); } catch (_) { }
         if (!G.view) { card.hidden = true; card.innerHTML = ""; return; }
         card.hidden = false;
         if (G.view === "remote") { if (G.remote) bdf_bulkRenderRemote(card); else { G.view = ""; card.hidden = true; } return; }
@@ -5925,7 +5930,7 @@
           ${G.tabNote && G.view !== "done" ? `<div class="gxb-note">${bdf_bulkEsc(G.tabNote)}</div>` : ""}
           <div class="gxb-f">${G.view === "done"
             ? `${retryN ? `<button type="button" data-a="retry">Try ${retryN} again</button>` : ""}<button type="button" class="is-primary" data-a="close">Close</button>`
-            : `<button type="button" data-a="stop">Stop</button><button type="button" data-a="pause">${G.paused ? "Resume" : "Pause"}</button><button type="button" class="is-primary" data-a="bg">Run in background</button>`}</div>`;
+            : (G.tabId ? '<button type="button" data-a="stop">Stop</button>' : `<button type="button" data-a="stop">Stop</button><button type="button" data-a="pause">${G.paused ? "Resume" : "Pause"}</button><button type="button" class="is-primary" data-a="bg">Run in background</button>`)}</div>`;
         const btn = (a) => card.querySelector(`[data-a="${a}"]`);
         if (btn("close")) btn("close").addEventListener("click", () => { G.view = ""; G.jobs = []; G.parkAfter = false; bdf_bulkSetPark(false); bdf_bulkRender(); });
         if (btn("stop")) btn("stop").addEventListener("click", () => bdf_bulkStop("Stopped. Folders after this one were not created."));
@@ -5979,7 +5984,7 @@
       }
 
       function bdf_bulkBeforeUnload(event) {
-        if (!BDF_BULK.running) return undefined;
+        if (!BDF_BULK.running || BDF_BULK.tabId) return undefined;
         event.preventDefault();
         event.returnValue = "Folders are still being added.";
         return event.returnValue;
@@ -5990,6 +5995,79 @@
       // düştü. Kullanıcı değişirse sıra hemen durur; yükleme sekmesi de başka kullanıcıyla açıldıysa klasörleri almaz.
       function bdf_bulkUserKey() {
         try { const m = String(location.pathname || "").match(/(\d{10,}x\d{6,})(?!.*\d{10,}x\d{6,})/); return m ? m[1] : ""; } catch (_) { return ""; }
+      }
+
+      // BULK-VEIL (13.11 Saltuk: "yeni sekmede önde bir şey olsun, o sekmenin tek amacının evrak yüklemek olduğu anlaşılsın, yalnız
+      // yüklemeyle ilgili şeyleri göreyim"): yükleme sekmesinde sayfanın üstünde tam ekran düz bir örtü ve ortada yükleme kartı.
+      // Örtü yalnız görünüşü kapatır; sıra formu kendi çağrılarıyla kullanır (tıklama gerekmez).
+      function bdf_bulkSyncVeil() {
+        const G = BDF_BULK;
+        let v = document.getElementById("gx-bulk-veil");
+        if (!G.tabId || window.__gxBulkSameTab === true) { if (v) v.remove(); return; }
+        if (!document.body) return;
+        if (!v) {
+          v = document.createElement("div");
+          v.id = "gx-bulk-veil";
+          v.innerHTML = '<p class="gxv-h"></p><p class="gxv-p"></p>';
+          document.body.appendChild(v);
+        }
+        const done = G.view === "done";
+        const h = done ? "Your folders are added" : "Adding your folders";
+        const p = done ? "This tab closes itself in a moment."
+          : G.tabGot ? "This tab only adds your folders to Gaia and closes itself when done. Go back to your other tab and keep working."
+          : "Getting the upload ready. This tab only adds your folders to Gaia and closes itself when done.";
+        const hEl = v.querySelector(".gxv-h"), pEl = v.querySelector(".gxv-p");
+        if (hEl && hEl.textContent !== h) hEl.textContent = h;
+        if (pEl && pEl.textContent !== p) pEl.textContent = p;
+        const card = document.getElementById("gx-bulk-card");
+        if (card) card.classList.add("is-tab");
+      }
+
+      // BULK-ISLER (13.11 Saltuk: "in another tab uyarısı çok yer kaplıyor, indirmelerin döndüğü ufak kısımda verelim"): kişinin
+      // sekmesinde ilerleme tablonun iş panelinde (GX-ISLER, window.__gxIsler) bir kart olur; panel yoksa eski küçük şerit.
+      function bdf_bulkIslerApi() {
+        try { const a = window.__gxIsler; return a && typeof a.set === "function" && !window.__gxNoIsler ? a : null; } catch (_) { return null; }
+      }
+
+      function bdf_bulkIslerSync(R) {
+        const api = bdf_bulkIslerApi();
+        if (!api || !R) return false;
+        const snap = R.snap || { jobs: [], pct: 0 };
+        const jobs = snap.jobs || [];
+        const total = jobs.length || (R.groups || []).length;
+        const finished = jobs.filter((j) => j.st === "done" || j.st === "skip" || j.st === "fail").length;
+        const created = jobs.filter((j) => j.st === "done").length;
+        const failed = jobs.filter((j) => j.st === "fail" || j.st === "skip");
+        const id = `bulk:${R.id}`;
+        const title = "Adding folders";
+        const sub = `${total} folder${total === 1 ? "" : "s"}`;
+        if (R.state === "opening") {
+          api.set(id, { title, sub, state: "queued", k: 0, n: total, line: "Opening a tab for the upload", href: "", msg: "", onRetry: null });
+        } else if (R.state === "run" || R.state === "quiet") {
+          const cur = jobs[Number(snap.i || 0)];
+          const line = R.state === "quiet" ? "The upload tab is not answering. Check that tab."
+            : snap.paused ? `Paused in the upload tab. ${snap.pm || ""}`.trim()
+            : cur ? `${cur.name}: ${bdf_bulkJobLabel(cur)}` : "Starting in another tab";
+          api.set(id, { title, sub, state: "working", k: finished, n: total, line, href: "", msg: "", onRetry: null });
+        } else if (R.state === "done" || R.state === "closed") {
+          const retryable = snap.stopUser ? [] : failed.filter((j) => !j.unsure);
+          const retry = retryable.length ? () => {
+            const names = new Set(retryable.map((j) => j.name));
+            const again = (R.groups || []).filter((g) => names.has(g.name));
+            BDF_BULK.offer = { action: R.action, groups: again };
+            bdf_bulkStartInTab(again);
+          } : null;
+          if (!failed.length && R.state === "done") {
+            api.set(id, { title, sub, state: "done", k: total, n: total, line: `${created} record${created === 1 ? "" : "s"} created`, href: "", msg: "", onRetry: null });
+          } else {
+            const first = failed[0];
+            const why = snap.stopUser ? "Stopped: you are signed in as another user."
+              : R.state === "closed" ? "The upload tab was closed before it finished."
+              : first ? `${first.name}: ${bdf_bulkJobLabel(first)}` : "";
+            api.set(id, { title, sub, state: "error", k: finished, n: total, line: "", msg: `${created} of ${total} created. ${why}`.trim(), href: "", onRetry: retry });
+          }
+        }
+        return true;
       }
 
       // ---- BULK-TAB ----
@@ -6048,6 +6126,7 @@
           };
         }
         const now = Date.now();
+        try { bdf_bulkSyncVeil(); } catch (_) { }
         if (!G.tabGot) {
           // Hazır: form betiği yüklendi ve tablo bu sekmede açık (tablo kimliği var).
           if (now - Number(G.tabReadyAt || 0) > 1000 && bdf_bulkTableKey()) {
@@ -6073,6 +6152,7 @@
         if (G.tabCloseAt && now >= G.tabCloseAt && !G.running) {
           G.tabCloseAt = 0;
           try { window.removeEventListener("beforeunload", bdf_bulkBeforeUnload); } catch (_) { }
+          try { window.onbeforeunload = null; } catch (_) { }
           try { window.close(); } catch (_) { }
         }
       }
@@ -6163,6 +6243,7 @@
         const G = BDF_BULK;
         const card = document.getElementById("gx-bulk-card");
         const R = G.remote;
+        if (R && G.view === "remote" && bdf_bulkIslerApi() && R.state !== "noready" && R.state !== "refused") { bdf_bulkIslerSync(R); return; }
         if (!card || card.hidden || G.view !== "remote" || !R || !R.snap) { bdf_bulkRender(); return; }
         const t = card.querySelector(".gxb-pill-t");
         const bar = card.querySelector(".gxb-bar>i");
@@ -6175,6 +6256,14 @@
       function bdf_bulkRenderRemote(card) {
         const G = BDF_BULK;
         const R = G.remote;
+        // İş paneli varsa kart hiç görünmez (açılış, ilerleme, sonuç panelde); yalnız seçim isteyen durumlar (sekme açılamadı) kartta.
+        if (R.state !== "noready" && R.state !== "refused" && bdf_bulkIslerSync(R)) {
+          card.hidden = true;
+          card.innerHTML = "";
+          card.classList.remove("is-bg");
+          if (R.state === "done" || R.state === "closed") { G.remote = null; G.view = ""; }
+          return;
+        }
         const snap = R.snap || { jobs: [], pct: 0 };
         const runFallback = () => {
           const groups = R.groups.slice();
@@ -6969,6 +7058,18 @@
       BDF_BULK.tick = bdf_bulkTick;
       BDF_BULK.canRun = bdf_bulkCanRun;
       if (!BDF_BULK.tabId) BDF_BULK.tabId = bdf_bulkTabId();
+      // BULK-TAB: yükleme sekmesi kapanırken "kaydedilmemiş değişiklik" sorulmaz. Chrome'da window üstündeki dinleyiciler eklenme
+      // sırasıyla çalışır (yakalama aşaması öne geçmez, 13.11 ölçüldü): durdurucu formun kendi dinleyicisinden önce, betik başında
+      // eklenir; sonradan eklenen beforeunload dinleyicileri ve onbeforeunload özelliği bu sekmede yok sayılır.
+      if (BDF_BULK.tabId && !BDF_BULK.tabUnloadGuard) {
+        BDF_BULK.tabUnloadGuard = true;
+        try { window.addEventListener("beforeunload", (e) => { try { e.stopImmediatePropagation(); } catch (_) { } }); } catch (_) { }
+        try {
+          const origAdd = window.addEventListener;
+          window.addEventListener = function (type) { if (String(type) === "beforeunload") return undefined; return origAdd.apply(this, arguments); };
+        } catch (_) { }
+        try { window.onbeforeunload = null; Object.defineProperty(window, "onbeforeunload", { configurable: true, get() { return null; }, set() { } }); } catch (_) { }
+      }
       BDF_BULK.offerEntries = (entries, allHere) => {
         if (!bdf_bulkCanRun()) return false;
         bdf_bulkGroupsFromEntries(entries).then((res) => bdf_bulkOffer(res, allHere), () => bdf_bulkNotice("Couldn't read those folders. Please try again.", "err"));
@@ -14790,12 +14891,66 @@
       }
       // gezginin "Add files" devri: form bu kaydı açınca dosyalar klasör alanının yükleyicisine verilir (FOLDER-UP yolu, elle bırakmayla
       // aynı); kişi Save'e basınca kayda girer. Devir 2 dk tazedir; tablonun iş panelindeki kart güncellenir.
+      // EVRAK-BIRAK (13.11 Saltuk: "evrak ekleme kısmı belirsiz, add files butonu değil"): devir t.auto ile gelirse (tablonun yardımcı
+      // sekmesi, ?gxadd=) form kişiye hiçbir şey sormaz: dosyaları verir, yükleme bitince Done ile kaydeder (elle düzenlemenin kayıt yolu),
+      // kaydın Bubble verisinde yeni adresleri görünce t.rapor({ st: 'done' }) der. İlerleme t.rapor ile tabloya döner.
+      window.__gxKlasorForm = 2;   // tablo: bu form otomatik devri biliyor
       let bdfKlasorTeslimZaman = 0;
+      function bdf_klasorAdresAnahtar(u) {   // adresin değişmeyen kısmı (soru işaretinden önce, son iki parça)
+        const p = String(u || "").split("?")[0].split("/").filter(Boolean);
+        return p.slice(-2).join("/");
+      }
+      function bdf_klasorKayittaMi(urls) {
+        try {
+          const s = safeStringify(readCurrentBubbleDataObject() || {});
+          return urls.length > 0 && urls.every((u) => { const k = bdf_klasorAdresAnahtar(u); return k && s.indexOf(k) >= 0; });
+        } catch (_) { return false; }
+      }
+      function bdf_klasorOtoIzle(t, field, n, onceki, dzBase) {
+        const rapor = (o) => { try { if (typeof t.rapor === "function") t.rapor(o); } catch (_) { } };
+        const key = field.key;
+        const adresler = () => (Array.isArray(state.fileBuffers[key]) ? state.fileBuffers[key] : [])
+          .map((f) => String((f && f.url) || "")).filter((u) => u && !onceki.has(u.split("?")[0]));
+        let sonK = -1, hareket = Date.now(), kayitAt = 0, kayitOk = 0, yeni = [], bitti = false;
+        const bitir = (o) => { if (bitti) return; bitti = true; clearInterval(iv); rapor(o); };
+        const iv = setInterval(() => {
+          try {
+            const now = Date.now();
+            if (readCurrentUniqueId() !== t.id) { bitir({ st: "error", msg: kayitOk ? "The file closed before Gaia confirmed the save. Check its documents." : "The file closed before saving. Try again." }); return; }
+            if (!kayitAt) {
+              yeni = adresler();
+              const busy = bdf_pendingUploadStatus().busy;
+              const dz = bdf_bulkDzStats(key);
+              const k = Math.min(n, Math.max(yeni.length, Math.max(0, dz.ok - dzBase.ok)));
+              if (k !== sonK) { sonK = k; hareket = now; rapor({ st: "upload", k, n }); }
+              if (dz.prog > 0) hareket = Math.max(hareket, Number(BDF.__upProgressAt || 0));
+              const tamam = !busy && yeni.length >= n;
+              const kismi = !busy && yeni.length > 0 && now - hareket > 30000;
+              if (tamam || kismi) {
+                kayitAt = now;
+                if (kismi) t.not = `${yeni.length} of ${n} files uploaded.`;
+                rapor({ st: "saving", k: yeni.length, n });
+                // elle düzenlemedeki gibi: Done paneli kapatır ve değişikliği kaydeder; değişiklik görülmediyse kayıt zorla gönderilir
+                try { if (isEditPanelOpen) setInlineEditPanelOpen(false); } catch (_) { }
+                if (!isFormSaving) runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "klasor-ekle", modeHint: getSubmitModeHint() });
+                return;
+              }
+              if (now - hareket > 120000) bitir({ st: "error", msg: yeni.length ? "The upload stopped. Try again." : "The files did not upload. Try again." });
+              return;
+            }
+            if (Number(BDF.__sonKayitOk || 0) >= kayitAt && !kayitOk) kayitOk = now;
+            if (bdf_klasorKayittaMi(yeni)) { bitir({ st: "done", k: yeni.length, n, not: t.not || "" }); return; }
+            // kayıt Bubble'a verildi ama veri geri gelmedi: bir süre sonra "kaydedildi, doğrulanamadı" denir
+            if (kayitOk && now - kayitOk > 45000) { bitir({ st: "done", k: yeni.length, n, not: [t.not, "Saved. It can take a minute to show in the list."].filter(Boolean).join(" "), dogrulanmadi: true }); return; }
+            if (now - kayitAt > 150000) bitir({ st: "error", msg: "Saving did not finish. Check the file's documents before you try again." });
+          } catch (e) { console.warn("[KLASOR] watch", e); }
+        }, 700);
+      }
       function bdf_klasorTeslimAl() {
         try {
           const t = window.__gxKlasorTeslim;
           if (!t || !t.id || !Array.isArray(t.files) || !t.files.length) return;
-          if (Date.now() - (Number(t.at) || 0) > 120000) { window.__gxKlasorTeslim = null; return; }
+          if (Date.now() - (Number(t.at) || 0) > (t.auto ? 180000 : 120000)) { window.__gxKlasorTeslim = null; return; }
           if (!bdfKlasorTeslimZaman) bdfKlasorTeslimZaman = setTimeout(() => { bdfKlasorTeslimZaman = 0; bdf_klasorTeslimAl(); }, 800);
           if (readCurrentUniqueId() !== t.id) return;
           const field = bdf_klasorAlani(state.config && state.config.fields);
@@ -14810,6 +14965,21 @@
           }
           window.__gxKlasorTeslim = null;
           const n = t.files.length;
+          if (t.auto) {
+            const rapor = (o) => { try { if (typeof t.rapor === "function") t.rapor(o); } catch (_) { } };
+            const onceki = new Set((Array.isArray(state.fileBuffers[field.key]) ? state.fileBuffers[field.key] : []).map((f) => String((f && f.url) || "").split("?")[0]).filter(Boolean));
+            const dzBase = bdf_bulkDzStats(field.key);
+            rapor({ st: "upload", k: 0, n });
+            let verildi = false;
+            setTimeout(() => { if (!verildi) { verildi = true; rapor({ st: "error", msg: "The file uploader did not take the files. Try again." }); } }, 60000);
+            feeder.feed(t.files, "Add files", (ok, msg) => {
+              if (verildi) return;
+              verildi = true;
+              if (ok === false) { rapor({ st: "error", msg: ({ full: "The folder already has the most files it accepts.", notready: "The file was not ready. Try again.", type: "These files are not a supported type.", read: "The files could not be read." })[msg] || "The files could not be added. Try again." }); return; }
+              bdf_klasorOtoIzle(t, field, n, onceki, dzBase);
+            });
+            return;
+          }
           const kart = (state, line) => { try { if (window.__gxIsler && t.kart) window.__gxIsler.set(t.kart, { title: "Add to folder", sub: t.etiket || "", state, line, k: 0, n: 0 }); } catch (_) { } };
           kart("working", `Uploading ${n} file${n === 1 ? "" : "s"} into the folder`);
           feeder.feed(t.files, "Add files", (ok, msg) => {
@@ -15436,6 +15606,7 @@
         activeSubmitAttemptId = 0;
         isFormSaving = false;
         isFormDirty = !success;
+        if (success) BDF.__sonKayitOk = Date.now();   // EVRAK-BIRAK: yardımcı sekme kaydın Bubble'a verildiğini buradan görür
         if (success && !autosave && hasExistingBubbleData()) {
           setFormRefreshLoading(true, "Saved");
           try { if (formRefreshLoading) formRefreshLoading.dataset.state = "saved"; } catch (_) { }
@@ -15449,6 +15620,10 @@
         return true;
       }
       function handleBeforeUnload(event) {
+        // BULK-TAB: yükleme sekmesi kapanırken uyarı yok ve kapanışta kayıt gönderilmez (13.11 Saltuk: "kapatırken değişiklik
+        // kaydedilmemiş olabilir uyarısı çıkıyor, o sekme yalnız yükleme için, direkt kapansın"; kapanışta otomatik kayıt boş kayıt açabilirdi).
+        try { if (window.__gxBulk && window.__gxBulk.tabId) return undefined; } catch (_) { }
+        try { if (window.__gxKlasorTab) return undefined; } catch (_) { }   // EVRAK-BIRAK yardımcı sekmesi: kaydı kendisi yaptı
         const dirtyNow = reconcileDirtyTracking("beforeunload");
         const hasUnsavedChanges = dirtyNow || hasChangesSinceStartOpen || changedFieldKeys.size > 0;
         // BULK-FOLDERS: toplu ekleme sürerken çıkışta yarım kayıt gönderilmez (sıranın kendi uyarısı çıkar).
