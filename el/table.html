@@ -1648,6 +1648,93 @@
   cursor: progress;
 }
 
+/* GX-ISLER (13.11): the jobs panel, bottom right of the window (outside the table, its own root; tokens redeclared here) */
+#gx-isler {
+  --is-ink: #0f172a; --is-ink-2: #475569; --is-line: #e2e8f0; --is-acc: #6366f1; --is-acc-deep: #4f46e5;
+  --is-ok: #16a34a; --is-err: #dc2626; --is-ring: rgba(99, 102, 241, .45);
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9000;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  max-height: min(60vh, 460px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #fff;
+  color: var(--is-ink);
+  border: 1px solid var(--is-line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px -14px rgba(15, 23, 42, .28);
+  font: 400 12px/1.45 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+#gx-isler[hidden] { display: none; }
+#gx-isler *, #gx-isler *::before, #gx-isler *::after { box-sizing: border-box; }
+#gx-isler .gx-is-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; margin: 0; padding: 8px 12px;
+  border: 0; border-bottom: 1px solid var(--is-line); background: #f8fafc; color: var(--is-ink);
+  font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; text-align: left; cursor: pointer;
+}
+#gx-isler.is-folded .gx-is-head { border-bottom: 0; }
+#gx-isler .gx-is-head:focus-visible, #gx-isler .gx-is-btn:focus-visible, #gx-isler .gx-is-x:focus-visible { outline: 2px solid var(--is-ring); outline-offset: 1px; }
+#gx-isler .gx-is-head-t { flex: 0 0 auto; }
+#gx-isler .gx-is-head-n { flex: 1 1 auto; color: var(--is-ink-2); font-weight: 500; font-variant-numeric: tabular-nums; }
+#gx-isler .gx-is-chev { width: 8px; height: 8px; border-right: 2px solid var(--is-ink-2); border-bottom: 2px solid var(--is-ink-2); transform: rotate(45deg) translate(-2px, -2px); transition: transform 160ms ease; }
+#gx-isler.is-folded .gx-is-chev { transform: rotate(-135deg) translate(-2px, -2px); }
+#gx-isler .gx-is-list { overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+#gx-isler.is-folded .gx-is-list { display: none; }
+#gx-isler .gx-is-card {
+  position: relative; padding: 8px 10px; border: 1px solid var(--is-line); border-left: 3px solid var(--is-acc);
+  border-radius: 8px; background: #fff; transition: box-shadow 300ms ease, background 300ms ease;
+}
+#gx-isler .gx-is-card.is-done { border-left-color: var(--is-ok); }
+#gx-isler .gx-is-card.is-error { border-left-color: var(--is-err); }
+#gx-isler .gx-is-card.is-queued { border-left-color: #94a3b8; }
+#gx-isler .gx-is-card.is-new { background: #eef2ff; box-shadow: 0 0 0 3px rgba(99, 102, 241, .25); }
+#gx-isler .gx-is-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#gx-isler .gx-is-dot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 999px; background: var(--is-acc); }
+#gx-isler .is-working .gx-is-dot { animation: gx-is-puls 1.2s ease-in-out infinite; }
+#gx-isler .is-queued .gx-is-dot { background: #94a3b8; }
+#gx-isler .is-done .gx-is-dot { background: var(--is-ok); }
+#gx-isler .is-error .gx-is-dot { background: var(--is-err); }
+#gx-isler .gx-is-title { flex: 0 0 auto; font-weight: 600; }
+#gx-isler .gx-is-sub { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--is-ink-2); }
+#gx-isler .gx-is-x {
+  flex: 0 0 auto; margin: -4px -4px -4px auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px;
+  background: transparent; color: var(--is-ink-2); font-family: inherit; font-size: 18px; font-weight: 400; line-height: 28px; cursor: pointer;
+}
+#gx-isler .gx-is-x:hover { background: #f1f5f9; color: var(--is-ink); }
+#gx-isler .gx-is-line { margin-top: 3px; color: var(--is-ink-2); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#gx-isler .is-error .gx-is-line { color: var(--is-err); }
+#gx-isler .gx-is-left { color: var(--is-ink-2); }
+#gx-isler .gx-is-bar { position: relative; height: 4px; margin-top: 6px; border-radius: 999px; background: #eef2f7; overflow: hidden; }
+#gx-isler .gx-is-bar > i { display: block; height: 100%; border-radius: inherit; background: var(--is-acc); transition: width 400ms ease; }
+#gx-isler .gx-is-bar.is-wait > i { position: absolute; left: 0; top: 0; animation: gx-is-kay 1.4s ease-in-out infinite; }
+#gx-isler .gx-is-acts { display: flex; gap: 6px; margin-top: 6px; }
+#gx-isler .gx-is-btn {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; margin: 0; border: 1px solid var(--is-acc);
+  border-radius: 999px; background: #fff; color: var(--is-acc-deep); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1;
+  text-decoration: none; cursor: pointer;
+}
+#gx-isler .gx-is-btn.is-primary { background: var(--is-acc); color: #fff; }
+#gx-isler .gx-is-btn:hover { background: var(--is-acc-deep); border-color: var(--is-acc-deep); color: #fff; }
+#gx-isler .gx-is-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.gx-is-fly {
+  position: fixed; z-index: 9001; width: 12px; height: 12px; border-radius: 999px; pointer-events: none;
+  background: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, .25);
+}
+@keyframes gx-is-puls { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes gx-is-kay { 0% { left: -30%; } 100% { left: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  #gx-isler .is-working .gx-is-dot, #gx-isler .gx-is-bar.is-wait > i { animation: none; }
+  #gx-isler .gx-is-card, #gx-isler .gx-is-bar > i, #gx-isler .gx-is-chev { transition: none; }
+}
+@media (max-width: 480px) {
+  #gx-isler { right: 8px; left: 8px; bottom: 8px; width: auto; max-width: none; }
+}
+
 /* GX-SIRALI (12.11): ordered evrak, "PDF" / "Klasör" next to "Fill" (same pill as GX-FILL); four states: idle, working, done, error */
 #dynamic-table-wrapper .dt-sirali {
   display: inline-flex;
@@ -4774,6 +4861,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   const DT_SIRALI_W = 160;           // extra width of the actions column on a table that shows the pills
   const DT_SIRALI_POLL_MS = [2000, 3000];   // first minute every 2 s, then every 3 s
   const DT_SIRALI_MAX_MS = 15 * 60000;
+  const DT_SIRALI_PAR = 5;           // GX-HIZ: folder files fetched and written this many at a time
   const _dtSirali = new Map();       // id|bicim → { st: 'working'|'done'|'error', job, k, n, queued, skipped, url, exp, msg, t0, fails, dir, zip, klasor, saved }
   let _dtSiraliNoFolder = false;     // the folder API refused once (sandboxed frame): ZIP from then on
   let _dtSiraliPicking = false;      // a folder dialog is open
@@ -4868,11 +4956,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       });
     } catch (e) {}
     try { if (_dtGezOpen && _dtGez && _dtGez.id === id) dtGezPaintActs(); } catch (e) {}   // GX-GEZGIN: the same jobs show in the document browser
+    try { dtIslerSirali(id); } catch (e) {}   // GX-ISLER: the same jobs show in the jobs panel
   }
   function dtSiraliFail(id, bicim, s, msg) {
     s.st = 'error'; s.msg = String(msg || 'The file could not be made. Try again.'); s.dir = null;
     dtSiraliPaint(id);
-    showWakeToast(dtSiraliLbl(bicim) + ': ' + s.msg, 'error');
+    if (!dtIslerOn()) showWakeToast(dtSiraliLbl(bicim) + ': ' + s.msg, 'error');
   }
   function dtSiraliTake(s, d) {
     s.k = Number(d.done) || 0; s.n = Number(d.total) || 0; s.queued = d.state === 'queued';
@@ -4900,7 +4989,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!dir) zip = true;
     }
     if (_dtSirali.get(key) && _dtSirali.get(key).st === 'working') return;
-    const s = { st: 'working', bicim: bicim, job: '', durumUrl: '', directFails: 0, directOff: false, k: 0, n: 0, queued: false, skipped: [], skippedCount: 0, url: '', exp: 0, msg: '', t0: Date.now(), fails: 0, dir: dir, zip: zip, klasor: '', saved: 0, yaz: false };
+    const s = { raw: raw, etiket: dtIslerEtiket(raw), st: 'working', bicim: bicim, job: '', durumUrl: '', directFails: 0, directOff: false, k: 0, n: 0, queued: false, skipped: [], skippedCount: 0, url: '', exp: 0, msg: '', t0: Date.now(), fails: 0, dir: dir, zip: zip, klasor: '', saved: 0, yaz: false };
     _dtSirali.set(key, s);
     dtSiraliPaint(id);
     const r = await aynaBridge('evrak_sirali', { id: id, bicim: bicim === 'pdf' ? 'pdf' : (dir ? 'liste' : 'zip') }, null, { timeoutMs: 25000 });
@@ -4935,7 +5024,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function dtSiraliPoll(id, bicim, s) {
     const key = dtSiraliKey(id, bicim);
     while (_dtSirali.get(key) === s && s.st === 'working') {
-      const wait = s.fails ? Math.min(8000, 2000 * s.fails) : ((Date.now() - s.t0 < 60000) ? DT_SIRALI_POLL_MS[0] : DT_SIRALI_POLL_MS[1]);
+      const wait = !s.polled ? 700 : s.fails ? Math.min(8000, 2000 * s.fails) : ((Date.now() - s.t0 < 60000) ? DT_SIRALI_POLL_MS[0] : DT_SIRALI_POLL_MS[1]);   // GX-HIZ: first read after 0.7 s
+      s.polled = true;
       await new Promise(res => setTimeout(res, wait));
       if (_dtSirali.get(key) !== s) return;
       if (Date.now() - s.t0 > DT_SIRALI_MAX_MS) { dtSiraliFail(id, bicim, s, 'This is taking too long. Try again later.'); return; }
@@ -4960,7 +5050,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         dtSiraliPaint(id);
         try { if (navigator.userActivation && navigator.userActivation.isActive) window.open(s.url, '_blank', 'noopener'); } catch (e) {}
         const lbl = dtSiraliLbl(bicim);
-        showWakeToast(lbl + ' ready' + (s.skippedCount ? ', ' + s.skippedCount + ' file' + (s.skippedCount === 1 ? '' : 's') + ' skipped' : '') + '. Use "' + (s.zip ? 'Download' : 'Open ' + lbl) + '" on the row.', 'success');
+        if (!dtIslerOn()) showWakeToast(lbl + ' ready' + (s.skippedCount ? ', ' + s.skippedCount + ' file' + (s.skippedCount === 1 ? '' : 's') + ' skipped' : '') + '. Use "' + (s.zip ? 'Download' : 'Open ' + lbl) + '" on the row.', 'success');
         setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, Math.max(0, s.exp - Date.now()));
         return;
       }
@@ -4978,8 +5068,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let sub = null;
     try { sub = await s.dir.getDirectoryHandle(s.klasor, { create: true }); }
     catch (e) { dtSiraliFail(id, bicim, s, (e && e.name === 'NotAllowedError') ? 'Gaia may not write there. Pick another place.' : 'Could not create the folder. Pick another place.'); return; }
-    for (let i = 0; i < files.length; i++) {
-      if (_dtSirali.get(key) !== s) return;
+    // GX-HIZ (13.11): DT_SIRALI_PAR files at a time (one by one took ~1 s per file of waiting: 106 files 115 s; 4 at a time 24 s).
+    // The names carry the order (001, 002, ...), so the finishing order does not matter; k counts finished files.
+    let next = 0, bitti = 0;
+    const one = async (i) => {
       const f = files[i], ad = dtSiraliAd(f.name) || ('Evrak ' + (i + 1));
       try {
         const r = await fetch(f.url, { cache: 'no-store', credentials: 'omit' });
@@ -4995,15 +5087,19 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         s.skipped.push({ name: ad, reason: (e && e.gx) || ((e && e.name === 'NotAllowedError') ? 'not allowed to write' : (e && e.name === 'QuotaExceededError') ? 'disk full' : 'could not save') });
         s.skippedCount = s.skipped.length;
       }
-      s.k = i + 1;
+      s.k = ++bitti;
       dtSiraliPaint(id);
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(DT_SIRALI_PAR, files.length) }, async () => {
+      while (next < files.length) { if (_dtSirali.get(key) !== s) return; await one(next++); }
+    }));
+    if (_dtSirali.get(key) !== s) return;
     s.dir = null;   // the folder handle is not kept after the run
     s.saved = files.length - s.skippedCount;
     if (!s.saved) { dtSiraliFail(id, bicim, s, 'No file could be saved. Try again.'); return; }
     s.st = 'done'; s.exp = Date.now() + 15 * 60000;
     dtSiraliPaint(id);
-    showWakeToast('Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into the folder ' + s.klasor + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '.', 'success');
+    if (!dtIslerOn()) showWakeToast('Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into the folder ' + s.klasor + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '.', 'success');
     setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, 15 * 60000);
   }
   // the row of a pill (same lookup as GX-FILL)
@@ -5023,10 +5119,177 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       event.stopPropagation();
       if (el.tagName === 'A') return;   // "Open PDF": the link opens in a new tab by itself
       event.preventDefault();
+      dtIslerKaynak(el);
       try { const raw = dtSiraliRowOf(el); if (raw) dtSiraliStart(raw, el.getAttribute('data-bicim')); } catch (e) {}   // synchronous up to the folder dialog (needs the click)
     }, true);
   }
   /* GX-SIRALI-END */
+
+  /* GX-ISLER-BEGIN (13.11) */
+  // GX-ISLER (13.11.2026, Saltuk: "bunlar olacaksa da sağ süte bildirim gibi bir kısımda bekleyen devam eden biten işlemlere geçmeli,
+  // ekranda kitliyor hissi yaratıyor"): the long jobs of the table (ordered PDF, folder save, the document browser's "Save all")
+  // show in one small panel at the bottom right of the window: waiting, running (k of n, time left), finished (Open PDF / the
+  // folder name), failed (Try again). The panel is not a layer over the page: only its own cards take clicks, the rows keep
+  // working, and it folds to one line. A job that starts flies from its button to the panel, then its card lights up
+  // (devir hareketi; reduced motion: the highlight only). Generic: window.__gxIsler.set(id, job) / .remove(id) / .list() lets other
+  // long jobs (bulk folder upload) show here too: job = { title, sub, state: 'queued'|'working'|'done'|'error', k, n, line,
+  // msg, href, hrefLabel, onRetry }. Off: window.__gxNoIsler = true (the row pills and toasts carry it as before).
+  const _dtIsler = new Map();   // id → job (+ tk0 / kk0: first progress seen, for the time left; at: when it was added)
+  let _dtIslerKaynak = null, _dtIslerKaynakT = 0, _dtIslerKapali = false;
+  const _dtIslerGizli = new Map();   // id → the state its card was hidden in (comes back only when the state changes)
+  function dtIslerOn() { try { return !window.__gxNoIsler; } catch (e) { return false; } }
+  function dtIslerKaynak(el) { try { if (el && el.getBoundingClientRect) { _dtIslerKaynak = el.getBoundingClientRect(); _dtIslerKaynakT = Date.now(); } } catch (e) {} }
+  // the row's own file number for the card (the server names the folder the same way); never plate or names
+  function dtIslerEtiket(raw) {
+    try { for (const k in (raw || {})) { if (k !== '__sourceIndex' && dtNormKey(k) === 'hasardosyano') { const v = String(raw[k] == null ? '' : raw[k]).trim(); if (v) return v.slice(0, 40); } } } catch (e) {}
+    return '';
+  }
+  function dtIslerSure(ms) {
+    const sn = Math.max(1, Math.round(ms / 1000));
+    if (sn < 60) return 'about ' + (sn < 10 ? sn : Math.ceil(sn / 5) * 5) + ' s left';
+    return 'about ' + Math.ceil(sn / 60) + ' min left';
+  }
+  function dtIslerKalan(j) {   // from the pace since the first progress was seen; nothing until there is a pace to go by
+    if (j.state !== 'working' || !j.n || !(j.k > 0)) return '';
+    const now = Date.now();
+    if (j.tk0 === undefined || j.k < (j.kk0 || 0)) { j.tk0 = now; j.kk0 = j.k; return ''; }
+    const yapilan = j.k - j.kk0, gecen = now - j.tk0;
+    if (yapilan < 2 || gecen < 1500 || j.k >= j.n) return '';
+    return dtIslerSure((j.n - j.k) * gecen / yapilan);
+  }
+  function dtIslerRoot() {
+    let r = document.getElementById('gx-isler');
+    if (r) return r;
+    r = document.createElement('section');
+    r.id = 'gx-isler';
+    r.setAttribute('aria-label', 'Downloads');
+    r.innerHTML = '<button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Downloads</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
+      + '<div class="gx-is-list" role="list"></div><div class="gx-is-sr" role="status" aria-live="polite"></div>';
+    r.querySelector('.gx-is-head').addEventListener('click', () => { _dtIslerKapali = !_dtIslerKapali; dtIslerCiz(); });
+    r.addEventListener('click', (ev) => {
+      const b = ev.target && ev.target.closest ? ev.target.closest('[data-is-act]') : null;
+      if (!b) return;
+      const card = b.closest('.gx-is-card'), id = card && card.getAttribute('data-is-id'), j = id && _dtIsler.get(id);
+      if (!j) return;
+      const act = b.getAttribute('data-is-act');
+      if (act === 'hide') { _dtIslerGizli.set(id, j.state); _dtIsler.delete(id); dtIslerCiz(); }
+      else if (act === 'retry' && typeof j.onRetry === 'function') { dtIslerKaynak(b); try { j.onRetry(); } catch (e) {} }
+    });
+    document.body.appendChild(r);
+    return r;
+  }
+  function dtIslerCardHtml(id, j) {
+    const st = j.state === 'queued' || j.state === 'working' || j.state === 'done' || j.state === 'error' ? j.state : 'working';
+    const pct = j.n ? Math.max(0, Math.min(100, Math.round(100 * (j.k || 0) / j.n))) : 0;
+    let line = j.line || '';
+    if (!line) {
+      if (st === 'queued') line = 'Waiting for other files to finish';
+      else if (st === 'working') line = j.n ? (j.k || 0) + ' of ' + j.n + ' files' : 'Reading the record files';
+      else if (st === 'error') line = j.msg || 'Something went wrong.';
+    }
+    const kalan = st === 'working' ? dtIslerKalan(j) : '';
+    const bar = st === 'working' || st === 'queued'
+      ? `<div class="gx-is-bar${j.n ? '' : ' is-wait'}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${j.n ? pct : 30}%"></i></div>` : '';
+    let act = '';
+    if (st === 'done' && j.href) act = `<a class="gx-is-btn is-primary" href="${escapeHtml(j.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(j.hrefLabel || 'Open')}</a>`;
+    if (st === 'error' && typeof j.onRetry === 'function') act = '<button class="gx-is-btn" type="button" data-is-act="retry">Try again</button>';
+    const x = st === 'done' || st === 'error' ? '<button class="gx-is-x" type="button" data-is-act="hide" aria-label="Hide">&times;</button>' : '';
+    return `<div class="gx-is-card is-${st}" role="listitem" data-is-id="${escapeHtml(id)}" aria-busy="${st === 'working' || st === 'queued' ? 'true' : 'false'}">`
+      + `<div class="gx-is-top"><span class="gx-is-dot" aria-hidden="true"></span><span class="gx-is-title">${escapeHtml(j.title || 'Job')}</span>`
+      + (j.sub ? `<span class="gx-is-sub">${escapeHtml(j.sub)}</span>` : '') + x + '</div>'
+      + `<div class="gx-is-line">${escapeHtml(line)}${kalan ? ' <span class="gx-is-left">· ' + escapeHtml(kalan) + '</span>' : ''}</div>` + bar
+      + (act ? `<div class="gx-is-acts">${act}</div>` : '') + '</div>';
+  }
+  function dtIslerCiz() {
+    try {
+      if (!dtIslerOn() || !document.body) return;
+      let r = document.getElementById('gx-isler');
+      if (!_dtIsler.size) { if (r) r.hidden = true; return; }
+      r = dtIslerRoot(); r.hidden = false;
+      const l = Array.from(_dtIsler.entries()).sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
+      const calisan = l.filter(([, j]) => j.state === 'working' || j.state === 'queued').length;
+      const biten = l.length - calisan;
+      r.classList.toggle('is-folded', _dtIslerKapali);
+      const head = r.querySelector('.gx-is-head');
+      head.setAttribute('aria-expanded', _dtIslerKapali ? 'false' : 'true');
+      r.querySelector('.gx-is-head-n').textContent = calisan ? calisan + ' running' : (biten ? biten + ' ready' : '');
+      const list = r.querySelector('.gx-is-list');
+      const had = list.contains(document.activeElement) && document.activeElement.closest ? document.activeElement.closest('.gx-is-card') : null;
+      const hadId = had ? had.getAttribute('data-is-id') : '';
+      list.innerHTML = l.map(([id, j]) => dtIslerCardHtml(id, j)).join('');
+      if (hadId) { const c = list.querySelector('.gx-is-card[data-is-id="' + (window.CSS && CSS.escape ? CSS.escape(hadId) : hadId) + '"] [data-is-act], .gx-is-card[data-is-id="' + (window.CSS && CSS.escape ? CSS.escape(hadId) : hadId) + '"] a'); if (c) try { c.focus({ preventScroll: true }); } catch (e) {} }
+    } catch (e) {}
+  }
+  // a new card: a small dot flies from the pressed button to the card, then the card lights up
+  function dtIslerUcur(id) {
+    try {
+      const r = document.getElementById('gx-isler');
+      const card = r && r.querySelector('.gx-is-card[data-is-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+      if (!card) return;
+      const yak = () => { card.classList.add('is-new'); setTimeout(() => card.classList.remove('is-new'), 1400); };
+      const az = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const k = _dtIslerKaynak;
+      if (az || !k || Date.now() - _dtIslerKaynakT > 3000 || typeof document.body.animate !== 'function' || _dtIslerKapali) { yak(); return; }
+      _dtIslerKaynak = null;
+      const h = card.getBoundingClientRect();
+      const d = document.createElement('div');
+      d.className = 'gx-is-fly';
+      d.setAttribute('aria-hidden', 'true');
+      const x0 = k.left + k.width / 2 - 6, y0 = k.top + k.height / 2 - 6, x1 = h.left + 18, y1 = h.top + 16;
+      d.style.left = x0 + 'px'; d.style.top = y0 + 'px';
+      document.body.appendChild(d);
+      const a = d.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${(x1 - x0) * 0.5}px,${Math.min(y0, y1) - y0 - 40}px) scale(1.15)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(${x1 - x0}px,${y1 - y0}px) scale(.6)`, opacity: .2 }], { duration: 520, easing: 'cubic-bezier(.4,0,.2,1)' });
+      a.onfinish = () => { d.remove(); yak(); };
+      a.oncancel = () => { d.remove(); yak(); };
+    } catch (e) {}
+  }
+  function dtIslerSet(id, job) {
+    if (!dtIslerOn() || !id || !job) return;
+    if (_dtIslerGizli.has(String(id))) { if (_dtIslerGizli.get(String(id)) === job.state) return; _dtIslerGizli.delete(String(id)); }
+    const eski = _dtIsler.get(String(id));
+    const j = Object.assign({}, eski || {}, job);
+    if (!eski) j.at = Date.now();
+    if (eski && (job.n !== eski.n || job.state !== eski.state)) { delete j.tk0; delete j.kk0; }   // a new phase: a new pace
+    if (eski && eski.tk0 !== undefined && job.n === eski.n && job.state === eski.state) { j.tk0 = eski.tk0; j.kk0 = eski.kk0; }
+    _dtIsler.set(String(id), j);
+    if (!eski) { _dtIslerKapali = false; }
+    dtIslerCiz();
+    if (!eski) dtIslerUcur(String(id));
+    if (eski && eski.state !== j.state && (j.state === 'done' || j.state === 'error')) {   // the screen reader hears the end
+      try { const sr = document.querySelector('#gx-isler .gx-is-sr'); if (sr) sr.textContent = (j.title || 'Job') + (j.sub ? ' ' + j.sub : '') + ': ' + (j.state === 'done' ? (j.line || 'ready') : (j.msg || 'failed')); } catch (e) {}
+    }
+  }
+  function dtIslerSil(id) { if (_dtIsler.delete(String(id))) dtIslerCiz(); }
+  // GX-SIRALI jobs of one row → cards (called on every repaint of that row's pills)
+  function dtIslerSirali(id) {
+    if (!dtIslerOn()) return;
+    DT_SIRALI_FMT.forEach(b => {
+      const key = 'sirali:' + dtSiraliKey(id, b), s = _dtSirali.get(dtSiraliKey(id, b));
+      if (!s) { dtIslerSil(key); return; }
+      const pdf = b === 'pdf';
+      const title = pdf ? 'Ordered PDF' : s.zip ? 'Numbered files' : 'Save to folder';
+      const sub = s.klasor || s.etiket || '';
+      const retry = s.raw ? () => dtSiraliStart(s.raw, b) : null;
+      if (s.st === 'working') {
+        const line = s.queued ? 'Waiting for other files to finish'
+          : !s.n ? 'Reading the record files'
+          : s.yaz ? 'Saving ' + s.k + ' of ' + s.n + ' files'
+          : (pdf ? 'Making the PDF: ' : 'Packing: ') + s.k + ' of ' + s.n + ' files';
+        dtIslerSet(key, { title, sub, state: s.queued ? 'queued' : 'working', k: s.k, n: s.n, line, onRetry: retry, href: '', msg: '' });
+      } else if (s.st === 'done' && s.url) {
+        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: 'Ready' + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '') + '. Link works for 15 min.', href: s.url, hrefLabel: s.zip ? 'Download' : 'Open PDF', onRetry: retry, msg: '' });
+      } else if (s.st === 'done') {
+        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: 'Saved ' + s.saved + ' file' + (s.saved === 1 ? '' : 's') + ' into ' + (s.klasor || 'the folder') + (s.skippedCount ? ', ' + s.skippedCount + ' skipped' : ''), href: '', onRetry: retry, msg: '' });
+      } else {
+        dtIslerSet(key, { title, sub, state: 'error', line: '', msg: s.msg || 'Something went wrong.', href: '', onRetry: retry });
+      }
+    });
+  }
+  // the time left moves even when no new file finished
+  setInterval(() => { try { if (Array.from(_dtIsler.values()).some(j => j.state === 'working')) dtIslerCiz(); } catch (e) {} }, 2000);
+  try { window.__gxIsler = { set: dtIslerSet, remove: dtIslerSil, list: () => Array.from(_dtIsler.entries()).map(([id, j]) => ({ id, title: j.title, state: j.state, k: j.k, n: j.n })) }; } catch (e) {}
+  /* GX-ISLER-END */
 
   /* GX-GEZGIN-BEGIN (12.11) */
   // GX-GEZGIN (12.11.2026, Saltuk: "tablomuzdan klasör ikonu ile en baştaki evraklarıma erişmek istiyorum; sistem onları zaten
@@ -5332,7 +5595,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (act === 'back') { const was = g.prev; g.prev = null; dtGezDropBlob(g); dtGezRender(was !== null ? 'f' + was : ''); return; }
     if (act === 'preview' && i >= 0) { dtGezPreview(g, i); return; }
     if (act === 'download' && i >= 0) { dtGezDownload(g, i); return; }
-    if (act === 'job') { event.preventDefault(); try { dtSiraliStart(g.raw, el.getAttribute('data-bicim')); } catch (e) {} }   // synchronous up to the folder dialog (needs the click)
+    if (act === 'job') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, el.getAttribute('data-bicim')); } catch (e) {} }   // synchronous up to the folder dialog (needs the click)
   }
   function dtGezKey(event) {
     if (event.key !== 'Escape') return;
