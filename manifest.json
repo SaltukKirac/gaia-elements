@@ -1,8 +1,8 @@
 {
   "repo": "SaltukKirac/gaia-elements",
   "channel": "evrak-klasor",
-  "rev": 65,
-  "updated": "2026-11-13T14:57:32Z",
+  "rev": 66,
+  "updated": "2026-11-13T15:00:33Z",
   "elements": {
     "aithia-pricing": {
       "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -53,12 +53,12 @@
       "updated": "2026-09-24T20:35:50Z"
     },
     "table": {
-      "commit": "eec306b0e2ddbffcb07aed9942630894b11933b4",
+      "commit": "38ac675a41e8d662fbc6a4f2cff47cbf496bac68",
       "path": "el/table.html",
-      "blob": "c6035aa78e744c5b745afdca639861cd30f07afd",
-      "bytes": 795823,
+      "blob": "c5dd5084483d4606801548ac115a07cb19d4229f",
+      "bytes": 796073,
       "title": "Dynamic table (tablev2) - app page",
-      "updated": "2026-11-13T14:57:32Z"
+      "updated": "2026-11-13T15:00:33Z"
     },
     "template-page": {
       "commit": "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
