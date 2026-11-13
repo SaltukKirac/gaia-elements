@@ -12977,6 +12977,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try { return Array.from((e.dataTransfer && e.dataTransfer.types) || []).indexOf('Files') >= 0; } catch (_) { return false; }
   }
   function attachBulkFolders() {
+    // BULK-ACTS (13.11): the form remembers this table's actions under this key, so the folder card can offer them before
+    // Bubble sends the form its data (15-23 s after the page opens)
+    window.__dtBulkKey = () => (state.columns || []).filter(c => c && !c.__uiOnly && c.id).map(c => String(c.id)).sort().join('|');
     if (!els.wrapper || !els.foldersButton || !els.foldersInput || els.wrapper.__dtBulkBound) return;
     els.wrapper.__dtBulkBound = true;
     dtBulkSync();
