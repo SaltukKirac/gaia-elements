@@ -5874,6 +5874,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // (form EVRAK-BIRAK, t.auto). İlerleme BroadcastChannel ile döner: gezginde "New" altında dosyalar (dönen işaret / tik), Activity
   // panelinde "Adding 3 files · 2 of 3" → "Added 3 files". Yalnız ekleme; silme yok. Kart dosya numarasından başka bir şey göstermez.
   // Kapatma: window.__gxNoKlasorEkle = true. Yardımcı sekme yerine bu sekmede eski yol: window.__gxKlasorAyniSekme = true.
+  // Deneme (kaydetmez): window.__gxKlasorKuru = true; yükleme biter, kayıt adımında durur, dosyalar kayda girmez.
   const DT_EKLE_PARAM = 'gxadd';
   const DT_EKLE_TIK_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>';
   const DT_EKLE_HATA_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>';
@@ -5918,7 +5919,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const m = ev && ev.data;
       if (!m || typeof m !== 'object' || j.chan !== ch) return;
       j.last = Date.now();
-      if (m.t === 'ready' && !j.sent) { j.sent = true; ch.postMessage({ t: 'go', rid: j.rid, files: j.files, etiket: j.etiket }); return; }
+      if (m.t === 'ready' && !j.sent) { j.sent = true; ch.postMessage({ t: 'go', rid: j.rid, files: j.files, etiket: j.etiket, kuru: window.__gxKlasorKuru === true }); return; }
       if (m.t === 'prog') {
         if (m.st === 'saving') { j.st = 'saving'; j.kayit = true; j.k = Math.max(j.k, Number(m.k) || 0); }
         else if (m.st === 'upload') { j.st = 'up'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || 0)); }
@@ -6066,7 +6067,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       D.chan.onmessage = (ev) => {
         const m = ev && ev.data;
         if (!m || m.t !== 'go' || D.got) return;
-        D.got = { rid: String(m.rid || ''), files: Array.from(m.files || []), etiket: String(m.etiket || ''), at: Date.now() };
+        D.got = { rid: String(m.rid || ''), files: Array.from(m.files || []), etiket: String(m.etiket || ''), kuru: m.kuru === true, at: Date.now() };
         D.adim = 'open';
         console.log('[EKLE] helper tab got files', { files: D.got.files.length });
       };
@@ -6096,7 +6097,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === D.got.rid) : -1;
       if (si < 0) { if (now - D.got.at > 30000) son({ t: 'error', msg: 'This file is not in the table any more.' }); return; }
       D.teslim = true; D.acAt = now;
-      window.__gxKlasorTeslim = { id: D.got.rid, files: D.got.files, at: now, kart: '', etiket: D.got.etiket, auto: true, rapor: (o) => { try { window.__dtEkleIsci.rapor(o); } catch (e) {} } };
+      window.__gxKlasorTeslim = { id: D.got.rid, files: D.got.files, at: now, kart: '', etiket: D.got.etiket, auto: true, kuru: D.got.kuru, rapor: (o) => { try { window.__dtEkleIsci.rapor(o); } catch (e) {} } };
       try { prioritizeSelection(si); start(); } catch (e) { console.warn('[EKLE] open', e); }
       return;
     }

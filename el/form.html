@@ -14926,6 +14926,7 @@
               if (dz.prog > 0) hareket = Math.max(hareket, Number(BDF.__upProgressAt || 0));
               const tamam = !busy && yeni.length >= n;
               const kismi = !busy && yeni.length > 0 && now - hareket > 30000;
+              if ((tamam || kismi) && t.kuru) { bitir({ st: "error", msg: `Test run: ${yeni.length} of ${n} uploaded, not saved.` }); return; }
               if (tamam || kismi) {
                 kayitAt = now;
                 if (kismi) t.not = `${yeni.length} of ${n} files uploaded.`;
