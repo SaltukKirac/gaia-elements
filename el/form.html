@@ -5279,6 +5279,96 @@
         } catch (_) { }
       }
 
+      // BULK-OWN (13.11): sıranın kendi dosyaları. 13.11 Saltuk denemesi: 132 dosyalı klasörün yüklemesi sürerken klasör
+      // "olmadı" sayıldı, sıra New ile baştan denedi ama Dropzone'daki yüklemeler sürdü; adresleri yeni forma düştü.
+      // Sıra bunları kaynağı bilinmeyen dosya ve "kaydedilmemiş değişiklik" sanıp 3 dk bekledi, sonra durdu. Artık bir
+      // denemeden vazgeçilince yüklemesi iptal edilir; formda kalan sıranın kendi dosyaları (bu koşudaki bir klasörün
+      // dosya adı) temizlenir ve sıra sürer. Kaynağı bilinmeyen dosyaya eskisi gibi dokunulmaz.
+      function bdf_bulkNameKey(n) {
+        let x = String(n || "");
+        try { x = decodeURIComponent(x); } catch (_) { }
+        return x.toLocaleLowerCase("tr-TR").replace(/[^a-z0-9ğüşıöç]/g, "");
+      }
+
+      function bdf_bulkHeldUrls(key) {
+        return (Array.isArray(state.fileBuffers[key]) ? state.fileBuffers[key] : [])
+          .map((f) => String((f && f.url) || "").split("?")[0]).filter(Boolean);
+      }
+
+      // Formdaki adreslerin hepsi bu koşunun dosyası mı (kaydedilmiş bir kaydın adresi ya da bir klasörün dosya adı)?
+      function bdf_bulkHeldIsOwn(key) {
+        const G = BDF_BULK;
+        const held = bdf_bulkHeldUrls(key);
+        if (!held.length) return false;
+        if (!G.ownNames) {
+          G.ownNames = new Set();
+          (G.jobs || []).forEach((j) => (j.files || []).forEach((f) => { const n = bdf_bulkNameKey(f && f.name); if (n) G.ownNames.add(n); }));
+        }
+        return held.every((u) => (G.usedUrls && G.usedUrls[u]) || G.ownNames.has(bdf_bulkNameKey(String(u).split("/").pop())));
+      }
+
+      // Alanın Dropzone'unda sıranın verdiği ve hâlâ sırada / yüklenmekte olan dosyaları iptal eder (yalnız bu koşunun
+      // dosya nesneleri; kişinin elle verdiği dosyaya dokunulmaz). Kaç dosya iptal edildi.
+      function bdf_bulkCancelUploads(fieldKey) {
+        const G = BDF_BULK;
+        let n = 0;
+        try {
+          if (!G.ownFiles) { G.ownFiles = new Set(); (G.jobs || []).forEach((j) => (j.files || []).forEach((f) => G.ownFiles.add(f))); }
+          // Bütün Dropzone örnekleri taranır (form kayda geçince yükleyici alanın kutusundan çıkabilir); yalnız bu koşunun
+          // dosya nesnelerine dokunulur.
+          const seen = new Set();
+          const list = [];
+          const root = document.getElementById("bdf-root") || document;
+          Array.from(root.querySelectorAll(".bubble-uploader-host")).forEach((host) => { const dz = bdf_findDropzoneInstance(host); if (dz && !seen.has(dz)) { seen.add(dz); list.push(dz); } });
+          Array.from(document.querySelectorAll(".dropzone")).forEach((el) => { const dz = el && el.dropzone; if (dz && !seen.has(dz)) { seen.add(dz); list.push(dz); } });
+          list.forEach((dz) => {
+            (dz.files || []).slice().forEach((f) => {
+              if (!f || !G.ownFiles.has(f)) return;
+              if (f.status === "added" || f.status === "queued" || f.status === "uploading") {
+                n += 1;
+                try { dz.removeFile(f); } catch (_) { try { const k = dz.files.indexOf(f); if (k >= 0) dz.files.splice(k, 1); } catch (_) { } }
+              }
+            });
+          });
+        } catch (_) { }
+        if (n) console.warn("[BULK] cancelled uploads of an abandoned try", { field: fieldKey, files: n });
+        return n;
+      }
+
+      // Formda kalan sıranın kendi dosyalarını temizler (yükleme iptal + alan sıfır + değişiklik izi silinir).
+      function bdf_bulkDropOwnFiles(key, job, now) {
+        bdf_bulkCancelUploads(key);
+        const held = bdf_bulkHeldUrls(key).length;
+        console.warn("[BULK] clearing files of this run left in the form", { folder: job ? job.name : "", field: key, files: held });
+        try { if (typeof window.bdf_resetUploaderByField === "function") window.bdf_resetUploaderByField(key); else state.fileBuffers[key] = []; } catch (_) { }
+        bdf_bulkForgetFieldChange(key);
+        if (job) { job.hfClearKey = key; job.hfClearAt = now || Date.now(); job.readySince = 0; }
+      }
+
+      // Taslak gibi görünen değişiklik sıranın kendisinden mi? Kişi sıra başladıktan sonra forma dokunmadıysa, sıra en az
+      // bir klasörü yüklemeye başladıysa ve değişen her alan bir dosya alanıysa (boş ya da yalnız bu koşunun dosyaları)
+      // evet: temizlenir, sıra durmaz. Kişinin sıradan önceki taslağı (ilk klasör) eskisi gibi durdurur.
+      function bdf_bulkOwnDraft() {
+        const G = BDF_BULK;
+        if (Number(G.userFormAt || 0) > Number(G.startedAt || 0)) return false;
+        if (!G.jobs || !G.jobs.some((j, k) => k < G.i || j.fed !== undefined || j.feedSeq)) return false;
+        let keys = [];
+        try { keys = Array.from(changedFieldKeys || []); } catch (_) { keys = []; }
+        if (!keys.length) return true;
+        return keys.every((k) => {
+          const f = (state.config?.fields || []).find((x) => x && x.key === k);
+          if (!f || !bdf_isUploadLikeFieldType(f.type)) return false;
+          return !bdf_bulkHeldUrls(k).length || bdf_bulkHeldIsOwn(k);
+        });
+      }
+
+      function bdf_bulkClearOwnDraft(job, now) {
+        let keys = [];
+        try { keys = Array.from(changedFieldKeys || []); } catch (_) { keys = []; }
+        keys.forEach((k) => bdf_bulkDropOwnFiles(k, job, now));
+        try { isFormDirty = computeDirtyState(); } catch (_) { }
+      }
+
       // Bu klasörün beslemesinden sonra Dropzone'da hata veren dosyalar (Bubble başarılıları Dropzone'dan siler, hatalılar
       // kalır). Yalnız bu klasörün dosya nesneleri sayılır (job.files içinde olan). remove(): Dropzone'dan çıkarır.
       function bdf_bulkDzErrorFiles(job) {
@@ -5557,7 +5647,7 @@
           case "open": return job.yield ? "Waiting for you to close the open record" : "Opening a new record";
           case "upload": return job.linkHold ? "Files uploaded, linking the record to your table"
             : job.syncWait ? "Files uploaded, waiting for the form"
-            : `Uploading ${Math.min(job.up || 0, job.expect || 0)} of ${job.expect || 0} files${Number(job.quietMs || 0) > 20000 ? ", waiting for the connection" : ""}`;
+            : `Uploading ${Math.min(Math.max(job.up || 0, job.sent || 0), job.expect || 0)} of ${job.expect || 0} files${Number(job.quietMs || 0) > 20000 ? ", waiting for the connection" : ""}`;
           case "save": case "saving": return "Saving";
           case "done": return job.note ? `Created. ${job.note}` : "Created";
           case "skip": return `Skipped. ${job.note || ""}`.trim();
@@ -5874,6 +5964,9 @@
         G.pausedAt = 0;
         G.failStreak = 0;
         G.trace = [];
+        G.alerts = [];
+        G.ownNames = null;
+        G.ownFiles = null;
         G.progSig = "";
         bdf_bulkTrackActivity();
         bdf_bulkWorkerOn();
@@ -5889,6 +5982,7 @@
 
       function bdf_bulkStop(message) {
         const G = BDF_BULK;
+        try { const cj = G.jobs[G.i]; if (cj && cj.st === "upload" && cj.field) bdf_bulkCancelUploads(cj.field); } catch (_) { }
         G.jobs.forEach((j, i) => { if (i >= G.i && j.st !== "done" && j.st !== "saving") { j.st = "fail"; j.note = j.note || "Stopped."; } });
         G.running = false;
         G.paused = false;
@@ -5908,6 +6002,7 @@
       // Klasör oluşmadı: neden listeye yazılır, sıra sonrakine geçer. Üst üste BDF_BULK_FAIL_STREAK hata olursa durur.
       function bdf_bulkFailJob(job, note, now) {
         const G = BDF_BULK;
+        if (job && job.field && (job.st === "upload" || job.st === "save")) bdf_bulkCancelUploads(job.field);
         job.st = "fail";
         job.syncWait = false;
         job.note = job.alertMsg && String(note || "").indexOf(job.alertMsg) < 0 ? `${note} Uploader said: ${job.alertMsg}` : note;
@@ -6061,6 +6156,7 @@
             // Formda kaydedilmemiş taslak varken New basılmaz: New taslağı sessizce siler (Bubble yeniden çizer).
             let draftNow = false;
             try { draftNow = bdf_bulkFormVisible() && (isFormDirty || (changedFieldKeys && changedFieldKeys.size > 0)); } catch (_) { draftNow = false; }
+            if (draftNow && bdf_bulkOwnDraft()) { bdf_bulkClearOwnDraft(job, now); draftNow = false; }
             if (draftNow) { bdf_bulkPause("The open record has unsaved changes. Save or close it, then press Resume."); return; }
             job.opens = 1;
             G.lastOpenAt = now;
@@ -6132,6 +6228,8 @@
           } else if (why === "draft" && job.hfClearKey && now - Number(job.hfClearAt || 0) < 5000 * bdf_bulkSlow(now)) {
             // Temizlediğimiz alanın değişiklik izi taslak sayılmaz (kişinin yazdığı bir şey değil).
             bdf_bulkForgetFieldChange(job.hfClearKey);
+          } else if (why === "draft" && bdf_bulkOwnDraft()) {
+            bdf_bulkClearOwnDraft(job, now);
           } else if (why === "draft") {
             if (now - job.openAt > 8000) bdf_bulkPause("The open record has unsaved changes. Save or close it, then press Resume.");
           } else if (why === "has-files" || why === "uploading" || why === "saving" || why === "loading") {
@@ -6140,14 +6238,20 @@
             // dokunulmaz.
             if (why === "has-files") {
               const t = bdf_bulkTarget();
-              const held = t ? (Array.isArray(state.fileBuffers[t.key]) ? state.fileBuffers[t.key] : []).map((f) => String((f && f.url) || "").split("?")[0]) : [];
-              if (t && held.length && held.every((u) => u && G.usedUrls && G.usedUrls[u]) && typeof window.bdf_resetUploaderByField === "function") {
-                console.warn("[BULK] clearing files of an already saved record from the new form", { folder: job.name, files: held.length });
-                try { window.bdf_resetUploaderByField(t.key); } catch (_) { }
-                job.hfClearKey = t.key;
-                job.hfClearAt = now;
-                bdf_bulkForgetFieldChange(t.key);
-                job.readySince = 0;
+              if (t && bdf_bulkHeldIsOwn(t.key) && Number(job.ownDrops || 0) < 4) {
+                // Sıranın kendi dosyaları (kaydedilmiş kaydın ya da vazgeçilen denemenin geç gelen adresleri): temizlenir.
+                // Vazgeçilen denemenin dosyalarıysa New bir kez daha basılır: Bubble'ın yükleyicisini de sıfırlasın.
+                const saved = bdf_bulkHeldUrls(t.key).every((u) => G.usedUrls && G.usedUrls[u]);
+                job.ownDrops = Number(job.ownDrops || 0) + 1;
+                bdf_bulkDropOwnFiles(t.key, job, now);
+                if (!saved && !job.ownRenew) {
+                  job.ownRenew = true;
+                  job.opens = Number(job.opens || 0) + 1;
+                  G.lastOpenAt = now;
+                  G.selfAt = now;
+                  G.stepAt = now;
+                  if (!bdf_bulkOpenNewRecord()) { bdf_bulkFailJob(job, "The new record form did not open.", now); }
+                }
                 return;
               }
             }
@@ -6195,10 +6299,12 @@
             const userTookIt = Boolean(G.bg && Number(G.userAt || 0) > Number(G.selfAt || 0));
             if (!job.retried || userTookIt) {
               if (!userTookIt) job.retried = true;
+              bdf_bulkCancelUploads(job.field);
               job.st = "open";
               job.openAt = now;
               job.opens = 0;
               job.up = 0;
+              job.sent = 0;
               G.lastOpenAt = 0;
               console.warn("[BULK] form closed while uploading, retrying", { folder: job.name });
               bdf_bulkRender();
@@ -6211,9 +6317,10 @@
             .map((f) => String((f && f.url) || "").split("?")[0]).filter(Boolean);
           const reused = urls.some((u) => G.usedUrls && G.usedUrls[u]);
           if (count > job.expect || reused || bdf_bulkForeignUrl(job, urls)) {
-            job.st = "fail";
-            job.note = "Files from another folder showed up in the form.";
-            bdf_bulkStop("Stopped so records do not mix files.");
+            // Kayıt gitmedi: klasör atlanır (dosyalar karışmasın), form temizlenir, sıra sürer.
+            bdf_bulkCancelUploads(job.field);
+            if (bdf_bulkHeldIsOwn(job.field)) bdf_bulkDropOwnFiles(job.field, null, now);
+            bdf_bulkFailJob(job, "Files from another folder showed up in the form. Skipped so records do not mix files.", now);
             return;
           }
           if (count !== job.up) { job.up = count; job.lastMove = now; }
@@ -6226,6 +6333,8 @@
           dzs.err = Math.max(0, dzs.err - dzBase.err);
           const dzSig = `${dzs.total}|${dzs.ok}|${dzs.err}`;
           if (dzSig !== job.dzSig) { job.dzSig = dzSig; job.lastMove = now; }
+          // Kartta gösterilen: yükleyicinin bitirdiği dosya sayısı (Bubble adresleri forma çoğu zaman en sonda toplu verir).
+          job.sent = Math.min(Number(job.expect || 0), Math.max(count, dzs.ok));
           // Gizli sekmede Chrome sayfayı (Bubble dahil) yavaşlatır: bekleme süreleri 3 katına çıkar ama işler; hata
           // gizli sekmede de verilir ve sıra sonraki klasöre geçer (kişi dönünce takılı bir sıra bulmasın).
           const slow = bdf_bulkSlow(now);
@@ -6251,10 +6360,12 @@
             // ikinci kopyayı koyar. Bu durumda ve alan doluyken baştan denenmez.
             if (!job.feedRetried && failWhy !== "full" && failWhy !== "sync") {
               job.feedRetried = true;
+              bdf_bulkCancelUploads(job.field);
               job.st = "open";
               job.openAt = now;
               job.opens = 0;
               job.up = 0;
+              job.sent = 0;
               job.readySince = 0;
               job.syncWait = false;
               job.fed = undefined;
@@ -6359,7 +6470,7 @@
           try {
             const d = bdf_bulkDzStats(job.field);
             const exp = Math.max(1, Number(job.expect || 1));
-            job.frac = Math.max(Number(job.frac || 0), 0.05 + 0.9 * Math.min(1, (Number(job.up || 0) + Number(d.prog || 0)) / exp));
+            job.frac = Math.max(Number(job.frac || 0), 0.05 + 0.9 * Math.min(1, (Math.max(Number(job.up || 0), Number(job.sent || 0)) + Number(d.prog || 0)) / exp));
             job.quietMs = now - Math.max(Number(job.lastMove || 0), Number(BDF.__upProgressAt || 0));
           } catch (_) { }
         } else if (job.st === "open") job.frac = Math.max(Number(job.frac || 0), 0.02);
@@ -6426,7 +6537,7 @@
         const finished = jobs.filter((j) => j.st === "done" || j.st === "skip" || j.st === "fail").length;
         const curJob = jobs[G.i];
         const pr = bdf_bulkProgress();
-        const files = curJob && curJob.st === "upload" && curJob.expect ? `, ${Math.min(curJob.up || 0, curJob.expect)} of ${curJob.expect} files` : "";
+        const files = curJob && curJob.st === "upload" && curJob.expect ? `, ${Math.min(Math.max(curJob.up || 0, curJob.sent || 0), curJob.expect)} of ${curJob.expect} files` : "";
         return G.paused ? "Paused" : (curJob && curJob.yield ? "Waiting for you"
           : `Folder ${Math.min(finished + 1, total)} of ${total}${files}${pr.eta ? `. ${pr.eta}` : ""}`);
       }
@@ -6443,7 +6554,7 @@
       function bdf_bulkProgressSig() {
         const p = bdf_bulkProgress();
         const c = p.cur;
-        return `${p.pct}|${p.eta}|${c ? c.st : ""}|${c ? (c.up || 0) : 0}|${c && c.quietMs > 20000 ? 1 : 0}`;
+        return `${p.pct}|${p.eta}|${c ? c.st : ""}|${c ? (c.up || 0) : 0}|${c ? (c.sent || 0) : 0}|${c && c.quietMs > 20000 ? 1 : 0}`;
       }
 
       // BULK-BG: formda görünen kayıt değişti mi, değiştiyse kişinin tıklamasıyla mı? Sıranın New / kaydet adımından
