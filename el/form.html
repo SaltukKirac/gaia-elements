@@ -5881,7 +5881,8 @@
         let status = "";
         if (G.view === "done") {
           head = created === total ? `${created} record${created === 1 ? "" : "s"} created` : `${created} of ${total} records created`;
-          status = created === total ? "They will show in the table in a moment." : "Folders that were not created are listed with the reason.";
+          status = G.stopUser ? "You are now signed in as another user, so the rest was not added. Sign back in, then add them again."
+            : (created === total ? "They will show in the table in a moment." : "Folders that were not created are listed with the reason.");
         } else {
           head = `Creating records, ${Math.min(finished + 1, total)} of ${total}`;
           status = G.paused ? (G.pauseMsg || "Paused.") : (cur ? `${cur.name}: ${bdf_bulkJobLabel(cur)}` : "");
@@ -5889,7 +5890,7 @@
         const prog = bdf_bulkProgress();
         const pct = G.view === "done" ? 100 : prog.pct;
         const failedN = jobs.filter((j) => j.st === "fail").length;
-        const retryN = jobs.filter((j) => j.st === "fail" && !j.unsure).length;
+        const retryN = G.stopUser ? 0 : jobs.filter((j) => j.st === "fail" && !j.unsure).length;
         const meta = G.view === "done" ? "" : bdf_bulkMetaLine();
         card.innerHTML = `
           <div class="gxb-h">${bdf_bulkEsc(head)}</div>
@@ -5964,6 +5965,13 @@
         return event.returnValue;
       }
 
+      // BULK-USER (13.11): sayfanın kullanıcısı (adres yolundaki Bubble kimliği, /app/<ad>-<id>). 13.11 gerçek denemede tarayıcı
+      // oturumu sıra sürerken başka kullanıcıya geçti (editörde "Run as"); yükleme sekmesi sürdü ve 2 kayıt o kullanıcının hesabına
+      // düştü. Kullanıcı değişirse sıra hemen durur; yükleme sekmesi de başka kullanıcıyla açıldıysa klasörleri almaz.
+      function bdf_bulkUserKey() {
+        try { const m = String(location.pathname || "").match(/(\d{10,}x\d{6,})(?!.*\d{10,}x\d{6,})/); return m ? m[1] : ""; } catch (_) { return ""; }
+      }
+
       // ---- BULK-TAB ----
       // Bu sekme yükleme sekmesi mi (?gxbulk=<id>)? Bubble adresi değiştirse de sekme oturumunda kalır.
       function bdf_bulkTabId() {
@@ -5979,7 +5987,7 @@
         const keep = ["name", "st", "note", "up", "sent", "expect", "linkHold", "syncWait", "actHold", "yield", "quietMs", "unsure"];
         return {
           view: G.view, i: G.i, running: Boolean(G.running), paused: Boolean(G.paused), pm: G.pauseMsg || "",
-          pill: G.running ? bdf_bulkPillLine() : "", pct: bdf_bulkProgress().pct, action: G.action ? G.action.name : "",
+          pill: G.running ? bdf_bulkPillLine() : "", pct: bdf_bulkProgress().pct, action: G.action ? G.action.name : "", stopUser: Boolean(G.stopUser),
           jobs: (G.jobs || []).map((j) => { const o = {}; keep.forEach((k) => { if (j[k] !== undefined) o[k] = j[k]; }); return o; })
         };
       }
@@ -5996,6 +6004,10 @@
             if (!m || typeof m !== "object") return;
             if (m.t === "go" && !G.tabGot && !G.running) {
               const mine = bdf_bulkTableKey();
+              if (m.user && bdf_bulkUserKey() && m.user !== bdf_bulkUserKey()) {
+                G.tabChan.postMessage({ t: "refused", why: "user" });
+                return;
+              }
               if (m.tkey && mine && m.tkey !== mine) {
                 G.tabChan.postMessage({ t: "refused", why: "table" });
                 return;
@@ -6072,7 +6084,7 @@
         const R = G.remote = {
           id, w, chan, state: "opening", at: Date.now(), last: Date.now(), sent: false,
           groups: groups.map((g) => ({ name: g.name, files: g.files, truncated: g.truncated })),
-          action: act ? { id: act.id, name: act.name } : null, tkey: bdf_bulkTableKey(), snap: null
+          action: act ? { id: act.id, name: act.name } : null, tkey: bdf_bulkTableKey(), user: bdf_bulkUserKey(), snap: null
         };
         chan.onmessage = (ev) => {
           const m = ev && ev.data;
@@ -6080,12 +6092,13 @@
           R.last = Date.now();
           if (m.t === "ready" && !R.sent) {
             R.sent = true;
-            chan.postMessage({ t: "go", groups: R.groups, action: R.action, tkey: R.tkey });
+            chan.postMessage({ t: "go", groups: R.groups, action: R.action, tkey: R.tkey, user: R.user });
           } else if (m.t === "accepted") {
             R.state = "run";
             bdf_bulkRender();
           } else if (m.t === "refused") {
             R.state = "refused";
+            R.why = m.why || "";
             try { R.w.close(); } catch (_) { }
             bdf_bulkRender();
           } else if (m.t === "prog") {
@@ -6178,15 +6191,16 @@
         let foot = '<button type="button" class="is-primary" data-a="close">Close</button>';
         if (R.state === "done") {
           head = created === jobs.length ? `${created} record${created === 1 ? "" : "s"} created` : `${created} of ${jobs.length} records created`;
-          status = created === jobs.length ? "They will show in the table in a moment. The upload tab closed itself." : "Folders that were not created are listed with the reason.";
-          const retryN = jobs.filter((j) => j.st === "fail" && !j.unsure).length;
+          status = snap.stopUser ? "The upload tab was signed in as another user, so the rest was not added. Sign back in, then add them again."
+            : (created === jobs.length ? "They will show in the table in a moment. The upload tab closed itself." : "Folders that were not created are listed with the reason.");
+          const retryN = snap.stopUser ? 0 : jobs.filter((j) => j.st === "fail" && !j.unsure).length;
           if (retryN) foot = `<button type="button" data-a="retry">Try ${retryN} again</button>${foot}`;
         } else if (R.state === "closed") {
           head = created ? `${created} of ${jobs.length} records created` : "The upload tab was closed";
           status = "The upload tab was closed before it finished. Check the table, then add the rest again.";
         } else if (R.state === "noready" || R.state === "refused") {
           head = "The upload tab could not start";
-          status = R.state === "refused" ? "The new tab opened a different table." : "The new tab did not open this table in time.";
+          status = R.state === "refused" ? (R.why === "user" ? "The new tab is signed in as another user. Nothing was added there." : "The new tab opened a different table.") : "The new tab did not open this table in time.";
           foot = `<button type="button" data-a="cancelr">Cancel</button><button type="button" class="is-primary" data-a="here">Add them in this tab</button>`;
         }
         card.innerHTML = `
@@ -6246,6 +6260,8 @@
         G.pausedAt = 0;
         G.failStreak = 0;
         G.trace = [];
+        G.userKey = bdf_bulkUserKey();
+        G.stopUser = false;
         G.alerts = [];
         G.ownNames = null;
         G.ownFiles = null;
@@ -6418,6 +6434,13 @@
             // Form açılmaz (13.11 Saltuk: klasöre basınca form açılmasın); veri Bubble'dan kendiliğinden gelir.
             if (bdf_bulkActionList().length || bdf_bulkFormHasConfig() || waited >= BDF_BULK_ACTS_WAIT_MS) bdf_bulkRender();
           } catch (_) { }
+        }
+        if (G.running && G.userKey && bdf_bulkUserKey() && bdf_bulkUserKey() !== G.userKey) {
+          console.warn("[BULK] the signed-in user changed, stopping", { from: G.userKey, to: bdf_bulkUserKey() });
+          G.stopUser = true;
+          G.jobs.forEach((j, k) => { if (k >= G.i && j.st !== "done" && j.st !== "saving") j.note = "Not added: you are now signed in as another user."; });
+          bdf_bulkStop("You are now signed in as another user. Stopped so no records go to that account.");
+          return;
         }
         if (!G.running || G.paused) return;
         const job = G.jobs[G.i];
