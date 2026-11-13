@@ -1737,6 +1737,28 @@
   #gx-isler { right: 8px; left: 8px; bottom: 8px; width: auto; max-width: none; }
 }
 
+/* EVRAK-BIRAK (13.11): the helper tab (?gxadd=) shows one calm card over its page; it closes by itself */
+#gx-ekle-veil {
+  position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(248, 250, 252, .94); font: 400 14px/1.45 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: #0f172a;
+}
+#gx-ekle-veil *, #gx-ekle-veil *::before, #gx-ekle-veil *::after { box-sizing: border-box; }
+#gx-ekle-veil .gx-ev-card {
+  width: min(420px, 100%); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 24px; text-align: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 24px 48px -20px rgba(15, 23, 42, .25);
+}
+#gx-ekle-veil .gx-ev-t { font-size: 16px; font-weight: 600; }
+#gx-ekle-veil .gx-ev-l { color: #475569; font-variant-numeric: tabular-nums; }
+#gx-ekle-veil .gx-ev-n { color: #475569; font-size: 12px; }
+#gx-ekle-veil .gx-ev-spin { width: 24px; height: 24px; border: 2px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: dt-gez-spin 800ms linear infinite; }
+#gx-ekle-veil.is-ok .gx-ev-spin { animation: none; border-color: #16a34a; }
+#gx-ekle-veil.is-err .gx-ev-spin { animation: none; border-color: #dc2626; }
+#gx-ekle-veil.is-err .gx-ev-l { color: #dc2626; }
+#gx-ekle-veil .gx-ev-bar { width: 100%; height: 4px; margin: 4px 0; border-radius: 999px; background: #eef2f7; overflow: hidden; }
+#gx-ekle-veil .gx-ev-bar > i { display: block; height: 100%; width: 0; background: #6366f1; border-radius: inherit; transition: width 300ms ease; }
+#gx-ekle-veil.is-ok .gx-ev-bar > i { background: #16a34a; }
+@media (prefers-reduced-motion: reduce) { #gx-ekle-veil .gx-ev-spin { animation: none; } #gx-ekle-veil .gx-ev-bar > i { transition: none; } }
+
 /* GX-SIRALI (12.11): ordered evrak, "PDF" / "Klasör" next to "Fill" (same pill as GX-FILL); four states: idle, working, done, error */
 #dynamic-table-wrapper .dt-sirali {
   display: inline-flex;
@@ -2168,6 +2190,141 @@
   color: var(--gx-ink-2, #475569);
   font-size: 11px;
 }
+/* EVRAK-BIRAK (13.11): the drop area on top of the list, the confirm strip, the "New" files, the row band */
+#dynamic-table-wrapper .dt-gez.is-drag {
+  outline: 2px solid var(--gx-primary, #6366f1);
+  outline-offset: -2px;
+}
+#dynamic-table-wrapper .dt-gez-top {
+  flex: 0 0 auto;
+}
+#dynamic-table-wrapper .dt-gez-drop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 20px 4px;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--gx-line, #e2e8f0);
+  border-radius: var(--gx-r-md, 10px);
+  background: var(--gx-bg, #f8fafc);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+#dynamic-table-wrapper .dt-gez.is-drag .dt-gez-drop {
+  border-style: solid;
+  border-color: var(--gx-primary, #6366f1);
+  background: #eef2ff;
+}
+#dynamic-table-wrapper .dt-gez-drop-ico {
+  flex: 0 0 auto;
+  color: var(--gx-primary, #6366f1);
+}
+#dynamic-table-wrapper .dt-gez-drop-t {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+#dynamic-table-wrapper .dt-gez-drop-t strong {
+  font-weight: 600;
+}
+#dynamic-table-wrapper .dt-gez-drop-t span {
+  color: var(--gx-ink-2, #475569);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-gez-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 20px 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--gx-primary, #6366f1);
+  border-radius: var(--gx-r-md, 10px);
+  background: #eef2ff;
+}
+#dynamic-table-wrapper .dt-gez-ask-t {
+  font-weight: 600;
+}
+#dynamic-table-wrapper .dt-gez-ask-l {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--gx-ink-2, #475569);
+}
+#dynamic-table-wrapper .dt-gez-ask-l li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#dynamic-table-wrapper .dt-gez-ask-b {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#dynamic-table-wrapper .dt-gez-ask-n {
+  color: var(--gx-ink-2, #475569);
+  font-size: 11px;
+}
+#dynamic-table-wrapper .dt-gez-new {
+  margin-top: 4px;
+}
+#dynamic-table-wrapper .dt-gez-new-h {
+  padding: 8px 20px 2px;
+  color: var(--gx-ink-2, #475569);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+#dynamic-table-wrapper .dt-gez-nitem {
+  background: #fafaff;
+}
+#dynamic-table-wrapper .dt-gez-nname {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#dynamic-table-wrapper .dt-gez-nst {
+  flex: 0 0 auto;
+  color: var(--gx-ink-2, #475569);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-gez-nitem.is-ok .dt-gez-ico,
+#dynamic-table-wrapper .dt-gez-nitem.is-ok .dt-gez-nst {
+  color: var(--gx-ok, #16a34a);
+}
+#dynamic-table-wrapper .dt-gez-nitem.is-up .dt-gez-ico {
+  color: var(--gx-primary, #6366f1);
+}
+#dynamic-table-wrapper .dt-gez-nitem.is-err .dt-gez-ico,
+#dynamic-table-wrapper .dt-gez-nitem.is-err .dt-gez-nst {
+  color: var(--gx-err, #dc2626);
+}
+#dynamic-table-wrapper .dt-gez-spin.is-sm {
+  width: 16px;
+  height: 16px;
+}
+#dynamic-table-wrapper .dt-row-drop {
+  position: fixed;
+  z-index: 201;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 2px solid var(--gx-primary, #6366f1);
+  border-radius: 6px;
+  background: rgba(238, 242, 255, .92);
+  color: var(--gx-primary-deep, #4f46e5);
+  font: 600 13px/1 var(--gx-font, Inter, system-ui, sans-serif);
+  pointer-events: none;
+}
+#dynamic-table-wrapper .dt-row-drop[hidden] {
+  display: none;
+}
+#dynamic-table-wrapper.dt-row-over #dt-folders-drop {
+  display: none !important;
+}
 @media (max-width: 600px) {
   #dynamic-table-wrapper .dt-gez {
     top: 0;
@@ -2179,6 +2336,10 @@
     border-radius: 0;
   }
   #dynamic-table-wrapper .dt-gez-head { padding: 12px 8px 4px 16px; }
+  #dynamic-table-wrapper .dt-gez-drop,
+  #dynamic-table-wrapper .dt-gez-ask { margin-left: 16px; margin-right: 16px; }
+  #dynamic-table-wrapper .dt-gez-drop { flex-wrap: wrap; }
+  #dynamic-table-wrapper .dt-gez-new-h { padding-left: 16px; }
   #dynamic-table-wrapper .dt-gez-acts,
   #dynamic-table-wrapper .dt-gez-crumb,
   #dynamic-table-wrapper .dt-gez-pbar,
@@ -5443,9 +5604,21 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       + '<div class="dt-gez-body" aria-live="polite"></div>'
       + '<div class="dt-gez-foot">Only you can open these files. Links work for 15 minutes.</div></div>';
     root.addEventListener('click', dtGezClick);
-    // EVRAK-KLASOR: panele bırakılan dosyalar kaydın evrak klasörüne (klasör bırakma desteklenmez: tek tek dosyalar)
-    root.addEventListener('dragover', (e) => { if (_dtGez && !window.__gxNoKlasorEkle && e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
-    root.addEventListener('drop', (e) => { if (!_dtGez || window.__gxNoKlasorEkle || !e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return; e.preventDefault(); dtIslerKaynak(root.querySelector('.dt-gez')); dtGezEkle(_dtGez, e.dataTransfer.files); });
+    // EVRAK-KLASOR / EVRAK-BIRAK: panele bırakılan dosyalar onay şeridine gelir, onaylanınca kaydın evrak klasörüne gider (klasör
+    // bırakma desteklenmez: tek tek dosyalar). Panel sürüklerken vurgulanır; olay tablonun klasör bırakmasına (BULK-FOLDERS) geçmez.
+    let gezDragT = 0;
+    const gezDrag = (on) => { const p = root.querySelector('.dt-gez'); if (p) p.classList.toggle('is-drag', on); };
+    root.addEventListener('dragover', (e) => {
+      if (!_dtGez || window.__gxNoKlasorEkle || !e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+      e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy';
+      gezDrag(true); clearTimeout(gezDragT); gezDragT = setTimeout(() => gezDrag(false), 400);
+    });
+    root.addEventListener('dragenter', (e) => { if (_dtGez && e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.stopPropagation(); });
+    root.addEventListener('drop', (e) => {
+      if (!_dtGez || window.__gxNoKlasorEkle || !e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+      e.preventDefault(); e.stopPropagation(); gezDrag(false);
+      dtEkleSor(_dtGez, e.dataTransfer.files);
+    });
     root.addEventListener('keydown', dtGezKey);
     els.wrapper.appendChild(root);
     return root;
@@ -5462,7 +5635,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (g) { g.dead = true; dtGezDropBlob(g); }
       g = { id: id, raw: raw, st: 'loading', files: [], klasor: '', exp: 0, folder: null, prev: null, prevSt: '', blobUrl: '', msg: '', k: 0, n: 0, queued: false, job: '', durumUrl: '', directFails: 0, directOff: false, fails: 0, t0: 0, dead: false, expired: false, busy: {} };
       _dtGez = g;
-    } else { g.raw = raw; g.folder = null; g.prev = null; dtGezDropBlob(g); }
+    } else { g.raw = raw; g.folder = null; g.prev = null; g.ask = null; dtGezDropBlob(g); }
     _dtGezOpen = true;
     root.hidden = false;
     try { if (state.hot && !state.hot.isDestroyed) state.hot.unlisten(); } catch (e) {}   // arrow keys stay in the panel
@@ -5518,6 +5691,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         g.klasor = String(d.klasor || '');
         g.exp = Date.now() + Math.max(30, Math.min(900, Number(d.expires_in_s) || 900)) * 1000;
         g.st = g.files.length ? 'ready' : 'empty';
+        dtEkleListeyeGirdi(g);
         dtGezRender();
         return;
       }
@@ -5550,8 +5724,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const box = root.querySelector('.dt-gez-acts');
     if (!box) return;
     const had = box.contains(document.activeElement) && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-bicim') : '';
-    box.innerHTML = dtGezActHtml(g.id, 'klasor') + dtGezActHtml(g.id, 'pdf')
-      + (window.__gxNoKlasorEkle ? '' : '<button class="dt-gez-act" type="button" data-gez-act="add" title="Add new documents to this file. Only the new ones are read and the claim is completed.">Add files</button>');   // EVRAK-KLASOR
+    box.innerHTML = dtGezActHtml(g.id, 'klasor') + dtGezActHtml(g.id, 'pdf');   // EVRAK-BIRAK: "Add files" is the drop area in the list now
     if (had) { const f = box.querySelector('[data-bicim="' + had + '"]'); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} }
   }
   function dtGezFileRow(g, i) {
@@ -5562,11 +5735,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       + `<button class="dt-gez-btn" type="button" data-gez-act="download" data-i="${i}"${busy ? ' aria-busy="true" disabled' : ''}>${busy ? 'Downloading...' : 'Download'}</button></span></li>`;
   }
   function dtGezBodyHtml(g) {
+    if (g.prev !== null && g.st === 'ready' && g.files[g.prev]) return dtGezBodyHtml0(g);
+    return dtEkleUstHtml(g) + dtGezBodyHtml0(g);
+  }
+  function dtGezBodyHtml0(g) {
     if (g.st === 'loading') {
       const t = g.queued ? 'Waiting for other documents to finish...' : g.n ? 'Putting the documents in office order: ' + g.k + ' of ' + g.n : 'Reading the record files...';
       return `<div class="dt-gez-state" role="status"><span class="dt-gez-spin" aria-hidden="true"></span>${escapeHtml(t)}</div>`;
     }
-    if (g.st === 'empty') return '<div class="dt-gez-state"><strong>This record has no documents yet.</strong><span>Add them in the Evraklar field of the record.</span></div>';
+    if (g.st === 'empty') return '<div class="dt-gez-state"><strong>This record has no documents yet.</strong><span>' + (window.__gxNoKlasorEkle ? 'Add them in the Evraklar field of the record.' : 'Drop them above to add them.') + '</span></div>';
     if (g.st === 'error') return `<div class="dt-gez-state is-err" role="alert"><strong>${escapeHtml(g.msg)}</strong><button class="dt-gez-btn is-primary" type="button" data-gez-act="reload">Try again</button></div>`;
     const warn = g.expired || Date.now() > g.exp ? '<div class="dt-gez-warn" role="alert">These links have expired. <button class="dt-gez-btn" type="button" data-gez-act="reload">Refresh list</button></div>' : '';
     if (g.prev !== null && g.files[g.prev]) {
@@ -5671,7 +5848,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!g) return;
     const inp = document.createElement('input');
     inp.type = 'file'; inp.multiple = true; inp.style.display = 'none';
-    inp.addEventListener('change', () => { try { if (inp.files && inp.files.length) { dtIslerKaynak(btn); dtGezEkle(g, inp.files); } } finally { inp.remove(); } });
+    inp.addEventListener('change', () => { try { if (inp.files && inp.files.length) dtEkleSor(g, inp.files); } finally { inp.remove(); } });
     (document.body || document.documentElement).appendChild(inp);
     inp.click();
   }
@@ -5690,6 +5867,292 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (t && t.kart === kart) { window.__gxKlasorTeslim = null; dtIslerSet(kart, { title: 'Add to folder', sub: etiket, state: 'error', msg: 'The file did not open. Open it and drop the files into Document folder.' }); }
     }, 120000);
   }
+  // === EVRAK-BIRAK (13.11.2026, Saltuk: "evrak ekleme kısmı belirsiz, daha güzel bir deneyim sunalım, add files butonu değil") ===
+  // Belgeler gezginin üstündeki bırakma alanına (ya da tablodaki satırın üstüne) bırakılır, kısa bir onay şeridi dosya adlarını ve
+  // dosya numarasını gösterir ("Add 3 files"). Onaydan sonra kişinin ekranına dokunulmaz: iş, kendini kapatan bir yardımcı sekmede
+  // (?gxadd=, BULK-TAB'ın yolu) yürür: o sekmenin tablosu kaydı açar, formu dosyaları Document folder'a verir, yükleme bitince kaydeder
+  // (form EVRAK-BIRAK, t.auto). İlerleme BroadcastChannel ile döner: gezginde "New" altında dosyalar (dönen işaret / tik), Activity
+  // panelinde "Adding 3 files · 2 of 3" → "Added 3 files". Yalnız ekleme; silme yok. Kart dosya numarasından başka bir şey göstermez.
+  // Kapatma: window.__gxNoKlasorEkle = true. Yardımcı sekme yerine bu sekmede eski yol: window.__gxKlasorAyniSekme = true.
+  const DT_EKLE_PARAM = 'gxadd';
+  const DT_EKLE_TIK_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>';
+  const DT_EKLE_HATA_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>';
+  const DT_EKLE_YUKLE_SVG = '<svg class="dt-gez-drop-ico" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>';
+  const _dtEkle = new Map();   // iş id → { id, rid, etiket, files, n, k, st: 'opening'|'up'|'saving'|'done'|'error', msg, not, at, ... }
+  let _dtEkleSaat = null;
+  function dtEkleAd(n) { return n + ' file' + (n === 1 ? '' : 's'); }
+  // onay şeridi: bırakılan / seçilen dosyalar önce burada durur (yanlış kayda bırakmayı önler)
+  function dtEkleSor(g, files) {
+    const l = Array.from(files || []).filter(f => f && typeof f.name === 'string' && f.size !== undefined);
+    if (!g || !l.length || window.__gxNoKlasorEkle) return;
+    g.ask = { files: l };
+    g.prev = null; g.folder = null; dtGezDropBlob(g);
+    dtGezRender('ask-ok');
+  }
+  function dtEkleBaslat(g) {
+    if (!g || !g.ask || !g.ask.files.length) return;
+    const files = g.ask.files;
+    g.ask = null;
+    if (window.__gxKlasorAyniSekme === true || typeof BroadcastChannel !== 'function') { dtGezEkle(g, files); return; }
+    const j = { id: 'ek' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), rid: g.id, etiket: dtIslerEtiket(g.raw), files, n: files.length, k: 0, st: 'opening', at: Date.now(), deneme: 0 };
+    _dtEkle.set(j.id, j);
+    dtEkleCalistir(j);
+    dtGezRender();
+  }
+  function dtEkleCalistir(j) {
+    try { if (j.chan) j.chan.close(); } catch (e) {}
+    Object.assign(j, { st: 'opening', k: 0, msg: '', not: '', t0: Date.now(), last: Date.now(), sent: false, chan: null, w: null, kayit: false });
+    j.deneme += 1;
+    const kanal = j.id + 'x' + j.deneme;
+    let url = '';
+    try { const u = new URL(location.href); u.searchParams.set(DT_EKLE_PARAM, kanal); u.searchParams.delete('start'); u.searchParams.delete('gxbulk'); url = u.toString(); } catch (e) { url = ''; }
+    let w = null;
+    try { w = url ? window.open(url, '_blank') : null; } catch (e) { w = null; }
+    if (!w) {
+      j.st = 'error'; j.msg = 'Your browser blocked the helper tab. Allow pop-ups for this site, then press Try again.';
+      dtEkleCiz(j); return;
+    }
+    j.w = w;
+    const ch = j.chan = new BroadcastChannel('gx-add-' + kanal);
+    ch.onmessage = (ev) => {
+      const m = ev && ev.data;
+      if (!m || typeof m !== 'object' || j.chan !== ch) return;
+      j.last = Date.now();
+      if (m.t === 'ready' && !j.sent) { j.sent = true; ch.postMessage({ t: 'go', rid: j.rid, files: j.files, etiket: j.etiket }); return; }
+      if (m.t === 'prog') {
+        if (m.st === 'saving') { j.st = 'saving'; j.kayit = true; j.k = Math.max(j.k, Number(m.k) || 0); }
+        else if (m.st === 'upload') { j.st = 'up'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || 0)); }
+        else return;
+      } else if (m.t === 'done') {
+        j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || j.n)); j.not = String(m.not || ''); j.doneAt = Date.now();
+        try { ch.close(); } catch (e) {} j.chan = null;
+      } else if (m.t === 'error') {
+        j.st = 'error'; j.msg = String(m.msg || 'The files could not be added.'); j.kayit = j.kayit || Boolean(m.kayit);
+        try { ch.close(); } catch (e) {} j.chan = null;
+      } else return;
+      dtEkleCiz(j);
+    };
+    dtEkleCiz(j);
+    if (!_dtEkleSaat) _dtEkleSaat = setInterval(dtEkleNabiz, 1500);
+  }
+  // yardımcı sekme açılmadı / kapandı / sustu mu?
+  function dtEkleNabiz() {
+    const now = Date.now();
+    let calisan = 0;
+    _dtEkle.forEach(j => {
+      if (j.st !== 'opening' && j.st !== 'up' && j.st !== 'saving') return;
+      let kapali = false;
+      try { kapali = Boolean(j.w && j.w.closed); } catch (e) { kapali = false; }
+      let msg = '';
+      if (kapali) msg = j.kayit ? 'The helper tab closed while saving. Check the documents before you add them again.' : 'The helper tab closed before it finished. Try again.';
+      else if (j.st === 'opening' && !j.sent && now - j.t0 > 120000) msg = 'The helper tab did not open the table. Try again.';
+      else if (now - j.last > 90000) msg = j.kayit ? 'The helper tab stopped answering while saving. Check the documents before you add them again.' : 'The helper tab stopped answering. Try again.';
+      if (msg) {
+        j.st = 'error'; j.msg = msg;
+        try { if (j.chan) j.chan.close(); } catch (e) {} j.chan = null;
+        try { if (!kapali && j.w) j.w.close(); } catch (e) {}
+        dtEkleCiz(j); return;
+      }
+      calisan += 1;
+    });
+    if (!calisan && _dtEkleSaat) { clearInterval(_dtEkleSaat); _dtEkleSaat = null; }
+  }
+  // Activity kartı + gezginin "New" bölümü
+  function dtEkleCiz(j) {
+    const kime = j.etiket ? 'to ' + j.etiket : '';
+    let kart;
+    if (j.st === 'opening') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: 0, n: 0, line: 'Opening the file in a helper tab' };
+    else if (j.st === 'up') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.k, n: j.n, line: j.k + ' of ' + j.n + ' uploaded' };
+    else if (j.st === 'saving') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.n, n: j.n, line: 'Saving to the file' };
+    else if (j.st === 'done') kart = { title: 'Added ' + dtEkleAd(j.k), sub: kime, state: 'done', k: j.k, n: j.n, line: [j.k < j.n ? (j.n - j.k) + ' could not be added.' : '', 'Only the new ones are read for the claim.', j.not].filter(Boolean).join(' ') };
+    else kart = { title: 'Files not added', sub: kime, state: 'error', msg: j.msg };
+    kart.onRetry = j.st === 'error' && !j.kayit ? () => dtEkleCalistir(j) : null;
+    kart.href = '';
+    dtIslerSet('ekle:' + j.id, kart);
+    dtEkleGezBoya(j.rid);
+  }
+  function dtEkleListe(rid) { return Array.from(_dtEkle.values()).filter(j => j.rid === rid).sort((a, b) => a.at - b.at); }
+  // liste yeniden okununca, ondan önce biten eklemeler listenin içinde: "New"den düşer
+  function dtEkleListeyeGirdi(g) {
+    _dtEkle.forEach((j, id) => { if (j.rid === g.id && j.st === 'done' && !j.not && j.doneAt && j.doneAt < g.t0) _dtEkle.delete(id); });
+  }
+  function dtEkleYeniHtml(rid) {
+    const l = dtEkleListe(rid);
+    if (!l.length) return '';
+    const satir = [];
+    l.forEach(j => j.files.forEach((f, i) => {
+      let ico, st, cls = '';
+      if (j.st === 'done') { if (i < j.k) { ico = DT_EKLE_TIK_SVG; st = 'Added'; cls = ' is-ok'; } else { ico = DT_EKLE_HATA_SVG; st = 'Not added'; cls = ' is-err'; } }
+      else if (j.st === 'error') { ico = DT_EKLE_HATA_SVG; st = j.kayit ? 'Check' : 'Not added'; cls = ' is-err'; }
+      else if (j.st === 'saving') { ico = '<span class="dt-gez-spin is-sm" aria-hidden="true"></span>'; st = 'Saving'; }
+      else if (j.st === 'up' && i < j.k) { ico = DT_EKLE_TIK_SVG; st = 'Uploaded'; cls = ' is-up'; }
+      else { ico = '<span class="dt-gez-spin is-sm" aria-hidden="true"></span>'; st = j.st === 'opening' ? 'Waiting' : 'Uploading'; }
+      satir.push(`<li class="dt-gez-item dt-gez-nitem${cls}"><span class="dt-gez-ico">${ico}</span><span class="dt-gez-nname">${escapeHtml(f.name)}</span><span class="dt-gez-nst">${escapeHtml(st)}</span></li>`);
+    }));
+    return `<div class="dt-gez-new" aria-live="polite"><div class="dt-gez-new-h">New</div><ul class="dt-gez-list">${satir.join('')}</ul></div>`;
+  }
+  function dtEkleUstHtml(g) {
+    if (window.__gxNoKlasorEkle) return '';
+    let ust;
+    if (g.ask && g.ask.files.length) {
+      const l = g.ask.files, n = l.length, gos = l.slice(0, 4);
+      const kime = dtIslerEtiket(g.raw);
+      ust = `<div class="dt-gez-ask" role="group" aria-labelledby="dt-gez-ask-t"><div class="dt-gez-ask-t" id="dt-gez-ask-t">Add ${escapeHtml(dtEkleAd(n))} to ${kime ? escapeHtml(kime) : 'this file'}?</div>`
+        + '<ul class="dt-gez-ask-l">' + gos.map(f => `<li>${escapeHtml(f.name)}</li>`).join('') + (n > gos.length ? `<li class="is-more">and ${n - gos.length} more</li>` : '') + '</ul>'
+        + `<div class="dt-gez-ask-b"><button class="dt-gez-btn is-primary" type="button" data-gez-act="ask-ok">Add ${escapeHtml(dtEkleAd(n))}</button><button class="dt-gez-btn" type="button" data-gez-act="ask-no">Cancel</button></div>`
+        + '<div class="dt-gez-ask-n">A helper tab opens and closes by itself. Only the new files are read for the claim.</div></div>';
+    } else {
+      const mob = isMobileViewport();
+      ust = `<div class="dt-gez-drop">${DT_EKLE_YUKLE_SVG}<div class="dt-gez-drop-t"><strong>${mob ? 'Add documents' : 'Drop documents here'}</strong><span>They go into this file's folder.</span></div>`
+        + `<button class="dt-gez-btn" type="button" data-gez-act="pick">${mob ? 'Choose files' : 'or choose files'}</button></div>`;
+    }
+    return '<div class="dt-gez-top">' + ust + dtEkleYeniHtml(g.id) + '</div>';
+  }
+  // yalnız "New" bölümü tazelenir (liste ve odak yerinde kalır)
+  function dtEkleGezBoya(rid) {
+    const root = dtGezRoot(), g = _dtGez;
+    if (!root || !g || !_dtGezOpen || g.id !== rid || g.prev !== null) return;
+    const top = root.querySelector('.dt-gez-top');
+    if (!top) { dtGezRender(); return; }
+    const eski = top.querySelector('.dt-gez-new'), html = dtEkleYeniHtml(rid);
+    if (eski) { if (html) eski.outerHTML = html; else eski.remove(); }
+    else if (html) top.insertAdjacentHTML('beforeend', html);
+  }
+  // --- yardımcı sekme (?gxadd=<kanal>): tablo yüklenince "hazırım" der, dosyaları alır, kaydı açar, formun raporunu geri yollar, kapanır
+  function dtEkleTabId() {
+    try {
+      const id = new URL(location.href).searchParams.get(DT_EKLE_PARAM);
+      if (id && /^[a-z0-9]{6,60}$/i.test(id)) { sessionStorage.setItem('gx_add_tab', id); return id; }
+      return String(sessionStorage.getItem('gx_add_tab') || '');
+    } catch (e) { return ''; }
+  }
+  function dtEkleIsciPerde(D) {
+    try {
+      let v = document.getElementById('gx-ekle-veil');
+      if (!v) {
+        v = document.createElement('div');
+        v.id = 'gx-ekle-veil';
+        v.setAttribute('role', 'status'); v.setAttribute('aria-live', 'polite');
+        v.innerHTML = '<div class="gx-ev-card"><span class="gx-ev-spin" aria-hidden="true"></span><strong class="gx-ev-t"></strong><span class="gx-ev-l"></span><div class="gx-ev-bar"><i></i></div><span class="gx-ev-n">This helper tab closes by itself. You can go back to your table.</span></div>';
+        document.body.appendChild(v);
+      }
+      const n = D.got ? D.got.files.length : 0;
+      const t = !D.got ? 'Getting ready to add your files' : D.bitti === 'done' ? 'Added ' + dtEkleAd(D.k || n) : D.bitti ? 'Files not added' : 'Adding ' + dtEkleAd(n) + (D.got.etiket ? ' to ' + D.got.etiket : '');
+      const l = D.bitti === 'done' ? 'Closing this tab' : D.bitti ? (D.hata || '') : !D.got ? 'Opening the table' : D.adim === 'upload' ? (D.k || 0) + ' of ' + n + ' uploaded' : D.adim === 'saving' ? 'Saving to the file' : 'Opening the file';
+      v.querySelector('.gx-ev-t').textContent = t;
+      v.querySelector('.gx-ev-l').textContent = l;
+      v.querySelector('.gx-ev-bar>i').style.width = (D.bitti === 'done' ? 100 : n ? Math.round(100 * (D.adim === 'saving' ? n : (D.k || 0)) / n) : 0) + '%';
+      v.classList.toggle('is-err', Boolean(D.bitti && D.bitti !== 'done'));
+      v.classList.toggle('is-ok', D.bitti === 'done');
+    } catch (e) {}
+  }
+  function dtEkleIsciTick() {
+    const id = dtEkleTabId();
+    if (!id || typeof BroadcastChannel !== 'function') return;
+    const D = window.__dtEkleIsci || (window.__dtEkleIsci = { id, chan: null, got: null, at: Date.now(), adim: '', k: 0 });
+    window.__gxKlasorTab = true;
+    const post = (o) => { try { D.chan.postMessage(o); } catch (e) {} };
+    const son = (m) => {
+      if (D.bitti) return;
+      post(m);
+      D.bitti = m.t === 'done' ? 'done' : 'error';
+      D.hata = m.msg || '';
+      D.kapat = Date.now() + (m.t === 'done' ? 2500 : 5000);
+      try { sessionStorage.removeItem('gx_add_tab'); } catch (e) {}
+      console.log('[EKLE] helper tab finished', m.t, m.msg || '');
+    };
+    if (!D.chan) {
+      D.chan = new BroadcastChannel('gx-add-' + id);
+      D.chan.onmessage = (ev) => {
+        const m = ev && ev.data;
+        if (!m || m.t !== 'go' || D.got) return;
+        D.got = { rid: String(m.rid || ''), files: Array.from(m.files || []), etiket: String(m.etiket || ''), at: Date.now() };
+        D.adim = 'open';
+        console.log('[EKLE] helper tab got files', { files: D.got.files.length });
+      };
+      D.rapor = (o) => {
+        if (!o || D.bitti) return;
+        if (o.st === 'upload') { D.adim = 'upload'; D.k = Number(o.k) || 0; post({ t: 'prog', st: 'upload', k: D.k, n: D.got ? D.got.files.length : 0 }); }
+        else if (o.st === 'saving') { D.adim = 'saving'; D.k = Number(o.k) || D.k; post({ t: 'prog', st: 'saving', k: D.k }); }
+        else if (o.st === 'done') { D.k = Number(o.k) || D.k; son({ t: 'done', k: D.k, not: o.not || '' }); }
+        else if (o.st === 'error') son({ t: 'error', msg: o.msg || 'The files could not be added.', kayit: D.adim === 'saving' });
+        dtEkleIsciPerde(D);
+      };
+    }
+    const now = Date.now();
+    dtEkleIsciPerde(D);
+    if (D.bitti) {
+      if (now >= D.kapat && !D.kapandi) { D.kapandi = true; try { window.close(); } catch (e) {} }
+      return;
+    }
+    if (!D.got) {
+      const hazir = Number(window.__gxKlasorForm || 0) >= 2 && Array.isArray(state.rawRows) && state.rawRows.length > 0;
+      if (hazir && now - Number(D.readyAt || 0) > 1500) { D.readyAt = now; post({ t: 'ready' }); }
+      if (now - D.at > 180000) son({ t: 'error', msg: 'The helper tab could not start.' });
+      return;
+    }
+    if (now - Number(D.hbAt || 0) > 2000) { D.hbAt = now; post({ t: 'prog', st: D.adim, k: D.k || 0, n: D.got.files.length }); }
+    if (!D.teslim) {
+      const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === D.got.rid) : -1;
+      if (si < 0) { if (now - D.got.at > 30000) son({ t: 'error', msg: 'This file is not in the table any more.' }); return; }
+      D.teslim = true; D.acAt = now;
+      window.__gxKlasorTeslim = { id: D.got.rid, files: D.got.files, at: now, kart: '', etiket: D.got.etiket, auto: true, rapor: (o) => { try { window.__dtEkleIsci.rapor(o); } catch (e) {} } };
+      try { prioritizeSelection(si); start(); } catch (e) { console.warn('[EKLE] open', e); }
+      return;
+    }
+    if (D.adim === 'open' && now - D.acAt > 150000) son({ t: 'error', msg: 'The file did not open in the helper tab. Try again.' });
+  }
+  if (dtEkleTabId()) {
+    window.__dtEkleIsciTick = dtEkleIsciTick;   // Bubble bu betiği yeniden koşarsa son kopya çalışır
+    if (!window.__dtEkleIsciSaat) window.__dtEkleIsciSaat = setInterval(() => { try { if (window.__dtEkleIsciTick) window.__dtEkleIsciTick(); } catch (e) { console.warn('[EKLE]', e); } }, 1000);
+  }
+  // --- tablodaki satırın üstüne bırakma: satır "Drop to add to <dosya no>" diye yanar, bırakınca o kaydın gezgini onay şeridiyle açılır
+  function dtSatirBirakVar() { return !window.__gxNoKlasorEkle && !window.__gxNoGezgin && !isMobileViewport(); }
+  function dtSatirBirakAttach() {
+    if (!els.wrapper || els.wrapper.__dtSatirBirak) return;
+    els.wrapper.__dtSatirBirak = true;
+    let band = null, satir = null, t = 0;
+    const kapat = () => { satir = null; if (band) band.hidden = true; els.wrapper.classList.remove('dt-row-over'); };
+    const hucre = (e) => {
+      if (!e.target || !e.target.closest || e.target.closest('.dt-gez-root')) return null;
+      const el = e.target.closest('.handsontable td, .handsontable th');
+      if (!el) return null;
+      const raw = dtGezRowOf(el);
+      return raw && rowIdOf(raw) ? { raw, tr: el.closest('tr') } : null;
+    };
+    els.wrapper.addEventListener('dragover', (e) => {
+      if (!dtBulkHasFiles(e) || !dtSatirBirakVar()) return;
+      const h = hucre(e);
+      clearTimeout(t); t = setTimeout(kapat, 400);
+      if (!h || !h.tr) { kapat(); return; }
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = 'copy'; } catch (_) {}
+      satir = h.raw;
+      if (!band) { band = document.createElement('div'); band.className = 'dt-row-drop'; band.setAttribute('aria-hidden', 'true'); els.wrapper.appendChild(band); }
+      const r = h.tr.getBoundingClientRect(), w = els.wrapper.getBoundingClientRect();
+      band.style.top = r.top + 'px'; band.style.height = Math.max(28, r.height) + 'px';
+      band.style.left = w.left + 'px'; band.style.width = w.width + 'px';
+      const kime = dtIslerEtiket(h.raw);
+      const txt = 'Drop to add to ' + (kime || 'this file');
+      if (band.textContent !== txt) band.textContent = txt;
+      band.hidden = false;
+      els.wrapper.classList.add('dt-row-over');
+    }, true);
+    els.wrapper.addEventListener('drop', (e) => {
+      const raw = satir;
+      clearTimeout(t); kapat();
+      if (!raw || !dtBulkHasFiles(e) || !dtSatirBirakVar() || !e.dataTransfer) return;
+      // bırakılan şeylerde klasör varsa tablonun klasör bırakması (her klasör bir yeni kayıt) karar verir
+      let klasor = false;
+      try { Array.from(e.dataTransfer.items || []).forEach(it => { if (it && it.kind === 'file' && typeof it.webkitGetAsEntry === 'function') { const en = it.webkitGetAsEntry(); if (en && en.isDirectory) klasor = true; } }); } catch (_) {}
+      if (klasor) return;
+      const files = Array.from(e.dataTransfer.files || []);
+      if (!files.length) return;
+      e.preventDefault(); e.stopPropagation();
+      dtGezOpenFor(raw, null);
+      if (_dtGez && _dtGez.id === rowIdOf(raw)) dtEkleSor(_dtGez, files);
+    }, true);
+  }
   function dtGezClick(event) {
     const el = event.target && event.target.closest ? event.target.closest('[data-gez-act]') : null;
     const g = _dtGez;
@@ -5702,7 +6165,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (act === 'back') { const was = g.prev; g.prev = null; dtGezDropBlob(g); dtGezRender(was !== null ? 'f' + was : ''); return; }
     if (act === 'preview' && i >= 0) { dtGezPreview(g, i); return; }
     if (act === 'download' && i >= 0) { dtGezDownload(g, i); return; }
-    if (act === 'add') { event.preventDefault(); dtGezEkleSec(g, el); return; }   // EVRAK-KLASOR
+    if (act === 'add' || act === 'pick') { event.preventDefault(); dtGezEkleSec(g, el); return; }   // EVRAK-KLASOR / EVRAK-BIRAK
+    if (act === 'ask-ok') { event.preventDefault(); dtIslerKaynak(el); dtEkleBaslat(g); return; }
+    if (act === 'ask-no') { event.preventDefault(); g.ask = null; dtGezRender('pick'); return; }
     if (act === 'job') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, el.getAttribute('data-bicim')); } catch (e) {} }   // synchronous up to the folder dialog (needs the click)
   }
   function dtGezKey(event) {
@@ -5710,6 +6175,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     event.preventDefault(); event.stopPropagation();
     const g = _dtGez;
     if (g && g.prev !== null) { const was = g.prev; g.prev = null; dtGezDropBlob(g); dtGezRender('f' + was); return; }
+    if (g && g.ask) { g.ask = null; dtGezRender('pick'); return; }   // EVRAK-BIRAK: Esc cancels the confirm strip first
     dtGezClose();
   }
   // the row of a row-header icon
@@ -13088,6 +13554,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     // BULK-ACTS (13.11): the form remembers this table's actions under this key, so the folder card can offer them before
     // Bubble sends the form its data (15-23 s after the page opens)
     window.__dtBulkKey = () => (state.columns || []).filter(c => c && !c.__uiOnly && c.id).map(c => String(c.id)).sort().join('|');
+    try { dtSatirBirakAttach(); } catch (_) {}   // EVRAK-BIRAK: files dropped on a row go to that record's folder
     if (!els.wrapper || !els.foldersButton || !els.foldersInput || els.wrapper.__dtBulkBound) return;
     els.wrapper.__dtBulkBound = true;
     dtBulkSync();
