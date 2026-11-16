@@ -1,8 +1,8 @@
 {
   "repo": "SaltukKirac/gaia-elements",
-  "channel": "main",
-  "rev": 58,
-  "updated": "2026-11-16T12:27:22Z",
+  "channel": "onceden",
+  "rev": 59,
+  "updated": "2026-11-16T15:05:04Z",
   "elements": {
     "aithia-pricing": {
       "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -21,12 +21,12 @@
       "updated": "2026-10-27T16:50:45Z"
     },
     "form": {
-      "commit": "05e1f0fa4f465d426f76169860623dbdd1f4acc7",
+      "commit": "9e44ebcbe4b716d6f5b7d303f5bb2e1419ffe453",
       "path": "el/form.html",
-      "blob": "e5b84bc0b99aa29062048177dec037a81a4085d2",
-      "bytes": 1012865,
+      "blob": "8025d379d1ed15dfea8210eca606d49b1b381470",
+      "bytes": 1019724,
       "title": "Dynamic form - app page",
-      "updated": "2026-11-16T12:27:22Z"
+      "updated": "2026-11-16T15:05:04Z"
     },
     "onboarding": {
       "commit": "f39ee569c4627b019ecd98938b52097296c54535",
@@ -53,12 +53,12 @@
       "updated": "2026-09-24T20:35:50Z"
     },
     "table": {
-      "commit": "05e1f0fa4f465d426f76169860623dbdd1f4acc7",
+      "commit": "9e44ebcbe4b716d6f5b7d303f5bb2e1419ffe453",
       "path": "el/table.html",
-      "blob": "40d5eb79562d4faa744f1d4d783b5d9fde8ad884",
-      "bytes": 874655,
+      "blob": "e05485fab081a7a3249e9724d69a2f98e41ee3ae",
+      "bytes": 886564,
       "title": "Dynamic table (tablev2) - app page",
-      "updated": "2026-11-16T12:27:22Z"
+      "updated": "2026-11-16T15:05:04Z"
     },
     "template-page": {
       "commit": "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
