@@ -14895,6 +14895,41 @@
       // sekmesi, ?gxadd=) form kişiye hiçbir şey sormaz: dosyaları verir, yükleme bitince Done ile kaydeder (elle düzenlemenin kayıt yolu),
       // kaydın Bubble verisinde yeni adresleri görünce t.rapor({ st: 'done' }) der. İlerleme t.rapor ile tabloya döner.
       window.__gxKlasorForm = 2;   // tablo: bu form otomatik devri biliyor
+      // EKLE-GIZLI (16.11 Saltuk: "formun arkada görünmesi de hoşuma gitmedi; ek evrak eklerken sadece ekranda ekleniyor olursa formu
+      // görmeme gerek yok"): sayfa içi eklemede kaydın yan paneli (Bubble'ın sabit FloatingGroup'u) görünmez olur ama yerinde ve çalışır
+      // kalır (yükleyici bağlı, Edit tıklanabilir); iş bitince Bubble'ın kendi kapatma simgesiyle kapanır, sonra görünürlük geri gelir.
+      // Hata olursa hemen görünür olur (kişi formdaki durumu görebilsin).
+      let bdfEkleGizliStil = false;
+      function bdf_eklePanelGizle(on) {
+        try {
+          if (!on) { document.querySelectorAll(".gx-ekle-gizli").forEach((x) => x.classList.remove("gx-ekle-gizli")); return true; }
+          if (!bdfEkleGizliStil) {
+            bdfEkleGizliStil = true;
+            const st = document.createElement("style");
+            st.textContent = ".gx-ekle-gizli{visibility:hidden!important;pointer-events:none!important}";
+            (document.head || document.documentElement).appendChild(st);
+          }
+          const el = bdf_bulkPanelEl();
+          if (el && !el.classList.contains("gx-ekle-gizli")) el.classList.add("gx-ekle-gizli");
+          return Boolean(el);
+        } catch (_) { return false; }
+      }
+      window.__gxPanelGizle = bdf_eklePanelGizle;
+      // Bubble'ın yan panel kapatma simgesi: panelin doğrudan çocuğu, üst şeritte, en soldaki tıklanabilir simge
+      function bdf_eklePanelKapat() {
+        try {
+          const el = bdf_bulkPanelEl();
+          if (!el) return false;
+          const pr = el.getBoundingClientRect();
+          const aday = Array.from(el.children).filter((c) => c.matches && c.matches(".bubble-element.Icon.clickable-element"))
+            .map((c) => ({ c, r: c.getBoundingClientRect() }))
+            .filter((x) => x.r.width > 0 && x.r.top - pr.top < 64 && x.r.left - pr.left < pr.width / 2)
+            .sort((a, b) => a.r.left - b.r.left)[0];
+          if (!aday) return false;
+          aday.c.click();
+          return true;
+        } catch (_) { return false; }
+      }
       // EKLE-SAYFA (16.11): tablo ek evrakı kişinin kendi sekmesinde ekler; açık formda kaydedilmemiş değişiklik varsa başka kaydı açmaz
       window.__gxFormKirli = () => {
         try {
@@ -14942,12 +14977,16 @@
           if (bitti) return; bitti = true; clearInterval(iv); bdfKlasorOtoKey = ""; rapor(o);
           // EKLE-SAYFA: kişinin kendi sekmesinde eklendiyse kayıt kaydedildikten sonra düzenleme kapanır (yan panel kaydın özetini gösterir)
           if (o && o.st === "done" && t.sayfa) {
-            setTimeout(() => { try { if (isEditPanelOpen && !isFormSaving && readCurrentUniqueId() === t.id) setInlineEditPanelOpen(false); } catch (_) { } }, 400);
-          }
+            setTimeout(() => {
+              try { if (isEditPanelOpen && !isFormSaving && readCurrentUniqueId() === t.id) setInlineEditPanelOpen(false); } catch (_) { }
+              setTimeout(() => { const kapandi = bdf_eklePanelKapat(); setTimeout(() => bdf_eklePanelGizle(false), kapandi ? 1500 : 0); }, 500);   // EKLE-GIZLI
+            }, 400);
+          } else if (t.sayfa) bdf_eklePanelGizle(false);
         };
         const iv = setInterval(() => {
           try {
             const now = Date.now();
+            if (t.sayfa) bdf_eklePanelGizle(true);   // EKLE-GIZLI
             // yükleme sürerken yükleyici sayfadan koptuysa (form başka görünüme geçti) adresler forma dönmez: beklemeden söylenir
             const fd = bdfBulkFeeders[key];
             if (!kayitAt && !(fd && fd.el && fd.el.isConnected)) {
@@ -15025,6 +15064,7 @@
         try {
           const t = window.__gxKlasorTeslim;
           if (!t || !t.id || !Array.isArray(t.files) || !t.files.length) return;
+          if (t.sayfa) bdf_eklePanelGizle(true);   // EKLE-GIZLI: kayıt açılırken de görünmez
           if (Date.now() - (Number(t.at) || 0) > (t.auto ? 180000 : 120000)) { window.__gxKlasorTeslim = null; return; }
           if (!bdfKlasorTeslimZaman) bdfKlasorTeslimZaman = setTimeout(() => { bdfKlasorTeslimZaman = 0; bdf_klasorTeslimAl(); }, 800);
           if (readCurrentUniqueId() !== t.id) return;

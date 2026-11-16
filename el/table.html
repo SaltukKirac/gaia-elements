@@ -6040,8 +6040,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtEkleSayfaAktif(haric) {
     return Array.from(_dtEkle.values()).find(x => x !== haric && x.sayfa && (x.st === 'opening' || x.st === 'up' || x.st === 'saving')) || null;
   }
+  // EKLE-GIZLI (16.11 Saltuk: "formun arkada görünmesi de hoşuma gitmedi"): kaydın yan paneli iş boyunca görünmez (form window.__gxPanelGizle)
+  function dtEklePanel(on) { try { if (typeof window.__gxPanelGizle === 'function') window.__gxPanelGizle(on); } catch (e) {} }
   function dtEkleSayfaHata(j, msg) {
     j.st = 'error'; j.msg = msg;
+    dtEklePanel(false);
     try { const t = window.__gxKlasorTeslim; if (t && t.is === j.id) window.__gxKlasorTeslim = null; } catch (e) {}
     dtEkleCiz(j); dtEklePerde(j);
   }
@@ -6059,6 +6062,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     window.__gxKlasorTeslim = { id: j.rid, files: j.files, at: Date.now(), kart: '', etiket: j.etiket, auto: true, sayfa: true, is: j.id,
       kuru: window.__gxKlasorKuru === true, rapor: (o) => dtEkleSayfaRapor(j, o) };
     try { if (typeof dtGezClose === 'function') dtGezClose(); } catch (e) {}
+    dtEklePanel(true);   // EKLE-GIZLI: kayıt arkada açılır ama görünmez; yalnız önde pencere
     dtEkleIsciAc(si);
     dtEkleCiz(j); dtEklePerde(j);
     if (!_dtEkleSaat) _dtEkleSaat = setInterval(dtEkleNabiz, 1500);
@@ -6069,7 +6073,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     j.last = Date.now();
     if (o.st === 'upload') { if (j.st !== 'saving') { j.st = 'up'; j.k = Math.max(0, Math.min(j.n, Number(o.k) || 0)); } }
     else if (o.st === 'saving') { j.st = 'saving'; j.kayit = true; j.k = Math.max(j.k, Math.min(j.n, Number(o.k) || 0)); }
-    else if (o.st === 'done') { j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(o.k) || j.n)); j.not = String(o.not || ''); j.doneAt = Date.now(); }
+    else if (o.st === 'done') {
+      j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(o.k) || j.n)); j.not = String(o.not || ''); j.doneAt = Date.now();
+      setTimeout(() => { if (!dtEkleSayfaAktif(null)) dtEklePanel(false); }, 4000);
+    }
     else if (o.st === 'error') { j.kayit = j.kayit || j.st === 'saving'; dtEkleSayfaHata(j, String(o.msg || 'The files could not be added.')); return; }
     else return;
     dtEkleCiz(j); dtEklePerde(j);
