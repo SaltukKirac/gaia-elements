@@ -14682,10 +14682,195 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtBulkHasFiles(e) {
     try { return Array.from((e.dataTransfer && e.dataTransfer.types) || []).indexOf('Files') >= 0; } catch (_) { return false; }
   }
+  // === TOPLU-ONCEDEN (16.11.2026, Saltuk: "kullanıcılar tüm dosyaları tek bir klasörde tutuyorsa daha önce eklenmiş olanları ayıran,
+  // önden hiç yüklemeyen bir sistem gerekir") ===
+  // The folder card (form BULK-FOLDERS) asks the table which of the chosen folders are records already (window.__dtBulkOnceden),
+  // BEFORE anything is uploaded. Bubble keeps the name a file had on the computer inside its address (…/fileupload/f…/IMG_1234.jpg),
+  // so a folder is a record when the record holds its files under the same names:
+  //  · names that tell cases apart count (a run of 3+ digits: camera / WhatsApp / scanner names); generic names every case has
+  //    ("Poliçe.pdf", "Ruhsat.jpg") alone never make a match (with the folder's plate in the record, 2+ shared names do);
+  //  · a plate in the folder name must be in the record (a folder "34 ABC 123" never matches a record of another car);
+  //  · or it is the record's own folder (KAYIT-KLASOR: this person's, this browser; the same folder on disk when the browser can tell).
+  // Rows in memory first; a big table (window mode) is asked on the server (one search per folder: its plate, else one distinctive
+  // file name). The card leaves those folders unticked ("In the table") and offers only the files the record does not have ("Add 3 new
+  // files to it"); they go in through the EKLE path (front card, one record after another). Nothing is ever deleted or replaced.
+  // Off: window.__gxNoOnceden = true (the card works as before).
+  const DT_ONCEDEN_MS = 15000;            // the whole check at most (the card then shows the folders as before)
+  const DT_ONCEDEN_SUNUCU_MAX = 40;       // server searches per check at most
+  // a file name as compared: no folder, decoded, lower case, Turkish letters folded, letters and digits only
+  // ("HASAR FOTO (1).JPG" == "hasar_foto_1.jpg", "POLİÇE.pdf" == "police.pdf"; never the Turkish dotless ı for an I: IMG == img)
+  const DT_ONCEDEN_TR = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u' };
+  function dtOncedenAd(s) {
+    let n = String(s == null ? '' : s).split(/[?#]/)[0];
+    n = n.slice(n.lastIndexOf('/') + 1);
+    if (/%[0-9a-f]{2}/i.test(n)) { try { n = decodeURIComponent(n); } catch (e) {} }
+    try { n = n.normalize('NFC'); } catch (e) {}
+    return n.replace(/İ/g, 'i').toLowerCase().replace(/[çğıöşü]/g, c => DT_ONCEDEN_TR[c]).replace(/[^0-9a-z]+/g, '');
+  }
+  // a name that tells one case from another by itself (a run of 3+ digits: IMG_1234, IMG-20261012-WA0012, 20261012_101530, scan 0042)
+  function dtOncedenAyirt(a) { return a.length >= 7 && /\d{3,}/.test(a); }
+  // the plate in a folder name ("AXA260014 - 34 ABC 123 - 12345" → "34ABC123"), '' when none
+  function dtOncedenPlaka(ad) {
+    const m = String(ad || '').toLocaleUpperCase('tr-TR').match(/(?:^|[^0-9A-ZÇĞİÖŞÜ])(0[1-9]|[1-7][0-9]|8[01])\s*-?\s*([A-ZÇĞİÖŞÜ]{1,3})\s*-?\s*(\d{2,4})(?![0-9])/);
+    return m ? m[1] + m[2] + m[3] : '';
+  }
+  // every file address of a row (the file columns, and an "Evraklar" field the screen does not show)
+  function dtOncedenUrls(raw) {
+    const out = [];
+    if (!raw || typeof raw !== 'object') return out;
+    const dosya = new Set((state.columns || []).filter(c => c && DT_FILE_TYPES[c.type]).map(c => String(c.id)));
+    for (const k in raw) {
+      if (k === '__sourceIndex' || !(dosya.has(k) || dtNormKey(k) === 'evraklar')) continue;
+      let v = raw[k];
+      if (typeof v === 'string') { const t = v.trim(); if (t.charAt(0) === '[') { try { v = JSON.parse(t); } catch (e) {} } }
+      gxSplitUrls(v).forEach(u => out.push(u));
+    }
+    return out;
+  }
+  // the row's text without spaces, upper case (the plate check)
+  function dtOncedenMetin(raw) {
+    const p = [];
+    try { for (const k in raw) { const v = raw[k]; if (k !== '__sourceIndex' && v != null && typeof v !== 'object') p.push(String(v)); } } catch (e) {}
+    return p.join('|').toLocaleUpperCase('tr-TR').replace(/[\s-]+/g, '');
+  }
+  // one row as a candidate: { id, raw, adlar: Set, metin, bende } (bende: on this page, so the EKLE path can open it)
+  function dtOncedenAday(raw, bende) {
+    const adlar = new Set(dtOncedenUrls(raw).map(dtOncedenAd).filter(Boolean));
+    return { id: rowIdOf(raw), raw, adlar, metin: dtOncedenMetin(raw), bende: !!bende };
+  }
+  // folder g against the candidates → { r, ayni, yeni: [File], neden } | null
+  //   ayni: its files the record has; yeni: the ones it does not (only those would be added)
+  function dtOncedenEsle(g, adaylar) {
+    const files = Array.isArray(g && g.files) ? g.files : [];
+    const ad = files.map(f => dtOncedenAd(f && f.name));
+    const set = new Set(ad.filter(Boolean));
+    if (!set.size) return null;
+    const pl = dtOncedenPlaka(g.name);
+    let best = null;
+    adaylar.forEach(r => {
+      if (!r || !r.adlar.size) return;
+      if (pl && r.metin.indexOf(pl) < 0) return;   // the folder names a plate this record does not have
+      let k = 0, kd = 0;
+      set.forEach(a => { if (r.adlar.has(a)) { k += 1; if (dtOncedenAyirt(a)) kd += 1; } });
+      if (!k) return;
+      const oran = k * 2 >= Math.min(set.size, r.adlar.size);
+      const yeter = (kd >= 2 && (oran || kd >= 3)) || (kd >= 1 && pl) || (pl && k >= 2 && oran) || (set.size === 1 && kd === 1);
+      if (!yeter) return;
+      if (!best || kd > best.kd || (kd === best.kd && k > best.k)) best = { r, k, kd };
+    });
+    if (!best) return null;
+    const yeni = files.filter((f, i) => ad[i] && !best.r.adlar.has(ad[i]));
+    return { r: best.r, ayni: files.length - yeni.length, yeni, neden: 'dosya' };
+  }
+  // KAYIT-KLASOR: the record whose own folder this is (same name; the same folder on disk when the chosen parent folder is known)
+  async function dtOncedenKlasor(g, adaylar) {
+    try {
+      if (!dtKkOn() || !_dtKk.size) return null;
+      dtKkKullanici();
+      const ad = String(g.name || '').trim().toLocaleLowerCase('tr-TR');
+      if (!ad) return null;
+      const ust = _dtKkUst.length ? _dtKkUst[_dtKkUst.length - 1] : null;
+      let alt = null;
+      if (ust && ust.h && Date.now() - (Number(ust.at) || 0) < 10 * 60000) { try { alt = await ust.h.getDirectoryHandle(g.name); } catch (e) { alt = null; } }
+      for (const [id, bag] of _dtKk) {
+        if (!bag || String(bag.ad || '').trim().toLocaleLowerCase('tr-TR') !== ad) continue;
+        let ayni = null;
+        if (alt && bag.h && typeof bag.h.isSameEntry === 'function') { try { ayni = await bag.h.isSameEntry(alt); } catch (e) { ayni = null; } }
+        if (ayni === false) continue;   // another folder with the same name
+        const r = adaylar.find(x => x.id === id) || null;
+        const pl = dtOncedenPlaka(g.name);
+        if (ayni !== true && !(r && pl && r.metin.indexOf(pl) >= 0)) continue;   // a name alone is not enough
+        const files = Array.isArray(g.files) ? g.files : [];
+        // Gaia renamed (Organize) or wrote (Klasör) files in this folder: their names are not the record's upload names, so which ones
+        // are new is not known here → nothing is offered to add (the record's Klasör / a drop on its row adds them)
+        const duzenli = Boolean(bag.duzen || (bag.geri && Array.isArray(bag.geri.tasindi) && bag.geri.tasindi.length) || Number(bag.n) > 0);
+        const yeni = r && !duzenli ? files.filter(f => !r.adlar.has(dtOncedenAd(f && f.name))) : [];
+        return { r: r || { id, raw: null, adlar: new Set(), metin: '', bende: false }, ayni: files.length - yeni.length, yeni, neden: 'klasor', duzenli };
+      }
+    } catch (e) {}
+    return null;
+  }
+  // a big table: candidates for folder g from the server (its plate, else its most distinctive plain file name)
+  async function dtOncedenSunucu(g, bitis) {
+    if (!aynaWindowed() || Date.now() > bitis) return [];
+    const scr = aynaScreenOf(AYNA.cfg);
+    if (!scr || !scr.any) return [];
+    let text = dtOncedenPlaka(g.name);
+    if (!text) {
+      const l = (g.files || []).map(f => String((f && f.name) || '')).filter(n => /^[A-Za-z0-9._-]{7,80}$/.test(n) && dtOncedenAyirt(dtOncedenAd(n)));
+      l.sort((a, b) => b.length - a.length);
+      text = l.length ? l[0].toLowerCase() : '';
+    }
+    if (!text) return [];
+    const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    const t = setTimeout(() => { try { if (ctrl) ctrl.abort(); } catch (e) {} }, Math.max(1000, bitis - Date.now()));
+    try {
+      const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, fresh: false, shape: 'columnar', query: { text: text, limit: 8, offset: 0 } }, ctrl);
+      if (!r || !r.ok || !aynaIsPage(r.data)) return [];
+      return aynaRowsOf(r.data);
+    } catch (e) { return []; } finally { clearTimeout(t); }
+  }
+  // groups: [{ name, files }] → [{ kayit, etiket, ayni, yeni: [File], neden, ekler: bool, duzenli } | null] in the same order
+  async function dtOncedenBul(groups) {
+    const list = Array.isArray(groups) ? groups : [];
+    const out = list.map(() => null);
+    if (window.__gxNoOnceden === true || !list.length) return out;
+    const bitis = Date.now() + DT_ONCEDEN_MS;
+    const rows = (Array.isArray(state.rawRows) ? state.rawRows : []).filter(r => r && typeof r === 'object');
+    const adaylar = rows.map(r => dtOncedenAday(r, true)).filter(r => r.adlar.size || r.id);
+    const sonuc = (i, m) => {
+      if (!m) return;
+      const raw = m.r.raw;
+      out[i] = { kayit: m.r.id || '', etiket: raw ? (dtIslerEtiket(raw) || dtOncedenPlakaOf(raw)) : '', ayni: m.ayni, yeni: m.yeni, neden: m.neden,
+        ekler: Boolean(m.r.bende && m.r.id && m.yeni.length && !m.duzenli && !raw.__gxPend), duzenli: Boolean(m.duzenli) };
+    };
+    for (let i = 0; i < list.length; i++) {
+      if (Date.now() > bitis) break;
+      const g = list[i];
+      sonuc(i, dtOncedenEsle(g, adaylar) || await dtOncedenKlasor(g, adaylar));
+    }
+    // window mode: the rest on the server, four at a time
+    if (aynaWindowed()) {
+      const kalan = list.map((g, i) => i).filter(i => !out[i]).slice(0, DT_ONCEDEN_SUNUCU_MAX);
+      let next = 0;
+      await Promise.all(Array.from({ length: Math.min(4, kalan.length) }, async () => {
+        while (next < kalan.length && Date.now() < bitis) {
+          const i = kalan[next++];
+          const bulunan = await dtOncedenSunucu(list[i], bitis);
+          if (!bulunan.length) continue;
+          const yerel = new Map(adaylar.map(r => [r.id, r]));
+          const ad = bulunan.map(raw => yerel.get(rowIdOf(raw)) || dtOncedenAday(raw, false));
+          sonuc(i, dtOncedenEsle(list[i], ad));
+        }
+      }));
+    }
+    try { console.log('[ONCEDEN] checked', { folders: list.length, inTable: out.filter(Boolean).length, windowed: aynaWindowed(), ms: DT_ONCEDEN_MS - Math.max(0, bitis - Date.now()) }); } catch (e) {}
+    return out;
+  }
+  function dtOncedenPlakaOf(raw) {
+    try { for (const k in (raw || {})) { if (dtNormKey(k) === 'plaka') { const v = String(raw[k] == null ? '' : raw[k]).trim(); if (v) return v.slice(0, 20); } } } catch (e) {}
+    return '';
+  }
+  // the card's "Add N new files to it": one EKLE job per record (front card, one after another)
+  function dtOncedenEkle(list) {
+    let n = 0;
+    (Array.isArray(list) ? list : []).forEach(x => {
+      const files = Array.from((x && x.files) || []).filter(f => f && typeof f.name === 'string');
+      const raw = x && x.kayit && Array.isArray(state.rawRows) ? state.rawRows.find(r => rowIdOf(r) === x.kayit) : null;
+      if (!raw || !files.length || window.__gxNoKlasorEkle) return;
+      dtEkleBaslat({ id: x.kayit, raw: raw, ask: { files: files } });
+      n += 1;
+    });
+    return n;
+  }
+
   function attachBulkFolders() {
     // BULK-ACTS (13.11): the form remembers this table's actions under this key, so the folder card can offer them before
     // Bubble sends the form its data (15-23 s after the page opens)
     window.__dtBulkKey = () => (state.columns || []).filter(c => c && !c.__uiOnly && c.id).map(c => String(c.id)).sort().join('|');
+    // TOPLU-ONCEDEN (16.11): which chosen folders are records already, and adding only their new files
+    window.__dtBulkOnceden = (groups) => dtOncedenBul(groups);
+    window.__dtBulkEkle = (list) => dtOncedenEkle(list);
     try { dtSatirBirakAttach(); } catch (_) {}   // EVRAK-BIRAK: files dropped on a row go to that record's folder
     if (!els.wrapper || !els.foldersButton || !els.foldersInput || els.wrapper.__dtBulkBound) return;
     els.wrapper.__dtBulkBound = true;

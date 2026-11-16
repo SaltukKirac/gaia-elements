@@ -5744,6 +5744,10 @@
 #gx-bulk-card .gxb-s.is-ok{color:#047857}
 #gx-bulk-card .gxb-s.is-err{color:#b91c1c}
 #gx-bulk-card .gxb-note{padding:8px 16px 0;color:#475569;font-size:12px}
+#gx-bulk-card li.is-var{flex-wrap:wrap}
+#gx-bulk-card li .gxb-var{flex:1 0 100%;display:flex;align-items:center;gap:8px;padding:2px 0 0 26px;color:#475569;font-size:12px;min-height:32px}
+#gx-bulk-card li .gxb-var label{flex:0 1 auto;font-size:13px;color:#0f172a}
+#gx-bulk-card .gxb-chk{padding:0 16px 8px;color:#475569}
 #gx-bulk-card .gxb-meta{padding:0 16px 8px;color:#475569;font-size:12px}
 #gx-bulk-card .gxb-act{display:flex;flex-direction:column;gap:4px;padding:0 16px 12px;color:#475569;font-size:12px;font-weight:500}
 #gx-bulk-card .gxb-act .gxb-wait{min-height:44px;display:flex;align-items:center;padding:0 12px;border:1px dashed #e2e8f0;border-radius:10px;color:#475569;font-size:14px}
@@ -5821,11 +5825,19 @@
           const want = offer.action;
           const act = want ? (acts.find((o) => o.id === want.id) || acts.find((o) => o.name === want.name) || null) : null;
           if (act) offer.action = { id: act.id, name: act.name };
-          if (!offer.marked) {
+          // TOPLU-ONCEDEN: tablo "bu klasör zaten kayıt mı" denetimini bitirene dek hiçbir klasör işaretlenmez, Start kapalı.
+          if (!offer.marked && !offer.checking) {
             offer.marked = true;
-            offer.groups.forEach((g) => { g.pick = !done.has(bdf_bulkLedgerKey(g)) && g.files.length > 0; g.before = done.has(bdf_bulkLedgerKey(g)); });
+            offer.groups.forEach((g) => {
+              const ledger = done.has(bdf_bulkLedgerKey(g));
+              g.before = ledger || Boolean(g.var);
+              g.pick = !g.before && g.files.length > 0;
+              g.ekle = Boolean(g.var && g.var.ekler && g.var.yeni && g.var.yeni.length);
+            });
           }
-          const picked = offer.groups.filter((g) => g.pick).length;
+          const picked = offer.checking ? 0 : offer.groups.filter((g) => g.pick).length;
+          const ekleN = offer.checking ? 0 : offer.groups.filter((g) => bdf_bulkEkleOlur(g) && g.ekle).length;
+          const varN = offer.groups.filter((g) => g.var).length;
           // BULK-ACTS: form verisi henüz gelmediyse (sayfa yeni açıldı) aksiyonlar beklenir; kişi seçemeden başlatmasın.
           const actsWait = !acts.length && !bdf_bulkFormHasConfig() && Date.now() - Number(offer.openedAt || 0) < BDF_BULK_ACTS_WAIT_MS;
           const actsLate = !acts.length && !bdf_bulkFormHasConfig() && !actsWait;
@@ -5833,11 +5845,13 @@
           const notes = [];
           if (offer.loose) notes.push(`${offer.loose} file${offer.loose === 1 ? "" : "s"} outside a folder will be left out.`);
           if (offer.more) notes.push(`Only the first ${BDF_BULK_MAX_FOLDERS} folders are listed. Add the rest in a second round.`);
-          if (offer.groups.some((g) => g.before)) notes.push("Folders already created from this tab are unticked.");
+          if (varN) notes.push("Folders already in the table are left out, so nothing is uploaded twice. Tick one to make a new record anyway.");
+          else if (offer.groups.some((g) => g.before)) notes.push("Folders already created from this tab are unticked.");
           if (offer.groups.some((g) => g.truncated)) notes.push(`A folder has more than ${BDF_FOLDER_MAX_SCAN} files. Only the first ${BDF_FOLDER_MAX_SCAN} are read.`);
           card.innerHTML = `
             <div class="gxb-h">One record per folder</div>
-            <div class="gxb-p">${offer.groups.length} folder${offer.groups.length === 1 ? "" : "s"} found. Each ticked folder becomes a new record with its files. ${act ? `Each record then runs ${bdf_bulkEsc(act.name)}.` : "Records are only saved, no action starts."}</div>
+            <div class="gxb-p">${offer.groups.length} folder${offer.groups.length === 1 ? "" : "s"} found${varN ? `, ${varN} already in the table` : ""}. Each ticked folder becomes a new record with its files. ${act ? `Each record then runs ${bdf_bulkEsc(act.name)}.` : "Records are only saved, no action starts."}</div>
+            ${offer.checking ? '<div class="gxb-chk" role="status" aria-live="polite">Checking which folders are already in the table...</div>' : ""}
             ${actsWait ? `<div class="gxb-act" role="status" aria-live="polite"><span>Action for each record</span><span class="gxb-wait">Getting the actions for this table...</span></div>` : ""}
             ${actsLate ? `<div class="gxb-act" role="status"><span>The actions did not load. Records will only be saved.</span><button type="button" data-a="loadacts">Try again</button></div>` : ""}
             ${acts.length ? `<label class="gxb-act"><span>Action for each record</span><select data-a="act">
@@ -5845,21 +5859,28 @@
               ${acts.map((o) => `<option value="${bdf_bulkEsc(o.id)}" ${act && o.id === act.id ? "selected" : ""}>${bdf_bulkEsc(o.name)}</option>`).join("")}
             </select></label>` : ""}
             <ul>${offer.groups.map((g, i) => `
-              <li><label><input type="checkbox" data-i="${i}" ${g.pick ? "checked" : ""} ${g.files.length ? "" : "disabled"}>
+              <li class="${g.var ? "is-var" : ""}"><label><input type="checkbox" data-i="${i}" ${g.pick ? "checked" : ""} ${g.files.length && !offer.checking ? "" : "disabled"}>
                 <span class="gxb-n" title="${bdf_bulkEsc(g.name)}">${bdf_bulkEsc(g.name)}</span></label>
-                <span class="gxb-s">${g.files.length ? `${g.files.length} file${g.files.length === 1 ? "" : "s"}` : "No files"}${g.before ? ", added earlier" : ""}</span></li>`).join("")}</ul>
+                <span class="gxb-s">${g.files.length ? `${g.files.length} file${g.files.length === 1 ? "" : "s"}` : "No files"}${g.before && !g.var ? ", added earlier" : ""}</span>
+                ${g.var ? bdf_bulkVarHtml(g, i) : ""}</li>`).join("")}</ul>
             ${notes.map((n) => `<div class="gxb-note">${bdf_bulkEsc(n)}</div>`).join("")}
             <div class="gxb-f">
               ${offer.allHere ? '<button type="button" data-a="here">Add all to this record</button>' : ""}
               ${offer.whole ? `<button type="button" data-a="whole">One record for ${bdf_bulkEsc(offer.whole.name)}</button>` : ""}
               <button type="button" data-a="cancel">Cancel</button>
-              <button type="button" class="is-primary" data-a="start" ${picked && !actsWait ? "" : "disabled"} ${actsWait ? 'aria-busy="true"' : ""}>${actsWait ? "Getting actions..." : (picked ? `Create ${picked} record${picked === 1 ? "" : "s"}` : "Tick a folder")}</button>
+              <button type="button" class="is-primary" data-a="start" ${(picked && !actsWait) || (!picked && ekleN) ? "" : "disabled"} ${actsWait || offer.checking ? 'aria-busy="true"' : ""}>${offer.checking ? "Checking..." : bdf_bulkStartText(picked, ekleN, actsWait)}</button>
             </div>`;
           card.querySelectorAll("input[data-i]").forEach((cb) => cb.addEventListener("change", () => {
             const g = offer.groups[Number(cb.dataset.i)];
             if (g) g.pick = cb.checked;
             bdf_bulkRender();
             try { const again = card.querySelector(`input[data-i="${cb.dataset.i}"]`); if (again) again.focus(); } catch (_) { }
+          }));
+          card.querySelectorAll("input[data-e]").forEach((cb) => cb.addEventListener("change", () => {
+            const g = offer.groups[Number(cb.dataset.e)];
+            if (g) g.ekle = cb.checked;
+            bdf_bulkRender();
+            try { const again = card.querySelector(`input[data-e="${cb.dataset.e}"]`); if (again) again.focus(); } catch (_) { }
           }));
           const sel = card.querySelector('select[data-a="act"]');
           if (sel) sel.addEventListener("change", () => {
@@ -5875,7 +5896,7 @@
             bdf_bulkRender();
           });
           card.querySelector('[data-a="cancel"]').addEventListener("click", () => { G.offer = null; G.view = ""; bdf_bulkRender(); });
-          card.querySelector('[data-a="start"]').addEventListener("click", () => bdf_bulkStartInTab(offer.groups.filter((g) => g.pick)));
+          card.querySelector('[data-a="start"]').addEventListener("click", () => bdf_bulkGo(offer));
           const here = card.querySelector('[data-a="here"]');
           if (here) here.addEventListener("click", () => { const fn = offer.allHere; G.offer = null; G.view = ""; bdf_bulkRender(); try { fn(); } catch (_) { } });
           const whole = card.querySelector('[data-a="whole"]');
@@ -5979,8 +6000,86 @@
           openedAt: Date.now()
         };
         G.view = "confirm";
+        bdf_bulkOncedenSor(G.offer);
         bdf_bulkRender();
         return true;
+      }
+
+      // TOPLU-ONCEDEN (16.11.2026, Saltuk: "kullanıcılar tüm dosyaları tek bir klasörde tutuyorsa daha önce eklenmiş olanları ayıran,
+      // önden hiç yüklemeyen bir sistem gerekir"): kart açılınca tablo (window.__dtBulkOnceden, tablo TOPLU-ONCEDEN) hangi klasörlerin
+      // zaten kayıt olduğunu söyler: dosya adları kaydın evraklarında (Bubble dosyanın bilgisayardaki adını adreste tutar), klasördeki
+      // plaka kayıtta, ya da kaydın kendi klasörü (KAYIT-KLASOR). O klasörler işaretsiz gelir ("In the table"), hiçbir dosyası yüklenmez;
+      // kayıtta olmayan dosyaları varsa "Add N new files to it" yalnız onları o kayda ekler (tablonun EKLE yolu: önde pencere, sırayla).
+      // Denetim en çok BDF_BULK_ONCEDEN_MS sürer; yanıt gelmezse kart eskisi gibi çalışır. Kapatma: window.__gxNoOnceden = true.
+      const BDF_BULK_ONCEDEN_MS = 17000;
+      function bdf_bulkOncedenSor(offer) {
+        if (!offer || window.__gxNoOnceden === true || typeof window.__dtBulkOnceden !== "function") return;
+        const G = BDF_BULK;
+        offer.checking = true;
+        let bitti = false;
+        const son = (r) => {
+          if (bitti) return;
+          bitti = true;
+          offer.checking = false;
+          if (Array.isArray(r)) offer.groups.forEach((g, i) => { const v = r[i]; g.var = v && typeof v === "object" ? v : null; });
+          offer.marked = false;
+          if (G.offer === offer && G.view === "confirm") bdf_bulkRender();
+        };
+        setTimeout(() => son(null), BDF_BULK_ONCEDEN_MS);
+        try {
+          Promise.resolve(window.__dtBulkOnceden(offer.groups.map((g) => ({ name: g.name, files: g.files }))))
+            .then(son, (e) => { console.warn("[BULK] folder check", e); son(null); });
+        } catch (e) { console.warn("[BULK] folder check", e); son(null); }
+      }
+      // tablodaki kayda yalnız yeni dosyaları eklemek bu sayfada olur mu
+      function bdf_bulkEkleOlur(g) {
+        return Boolean(g && g.var && g.var.ekler && !g.pick && Array.isArray(g.var.yeni) && g.var.yeni.length && typeof window.__dtBulkEkle === "function");
+      }
+      // tabloda olan klasörün ikinci satırı
+      function bdf_bulkVarHtml(g, i) {
+        const v = g.var || {};
+        const yeni = Array.isArray(v.yeni) ? v.yeni.length : 0;
+        const kim = `In the table${v.etiket ? ` (${bdf_bulkEsc(v.etiket)})` : ""}`;
+        const dosya = (n) => `${n} new file${n === 1 ? "" : "s"}`;
+        if (g.pick) return `<div class="gxb-var">${kim}. A new record will be made anyway.</div>`;
+        if (bdf_bulkEkleOlur(g)) return `<div class="gxb-var"><label><input type="checkbox" data-e="${i}" ${g.ekle ? "checked" : ""}> ${kim}. Add the ${dosya(yeni)} to it</label></div>`;
+        if (yeni && v.duzenli) return `<div class="gxb-var">${kim}. Gaia keeps this folder in order: drop the new files on the record to add them.</div>`;
+        if (yeni) return `<div class="gxb-var">${kim}, ${dosya(yeni)}. Open the record to add them.</div>`;
+        return `<div class="gxb-var">${kim}. Nothing new in it.</div>`;
+      }
+      function bdf_bulkStartText(picked, ekleN, actsWait) {
+        const kayit = (n) => `${n} record${n === 1 ? "" : "s"}`;
+        if (picked && actsWait) return "Getting actions...";
+        if (picked && ekleN) return `Create ${kayit(picked)}, add files to ${ekleN}`;
+        if (picked) return `Create ${kayit(picked)}`;
+        if (ekleN) return `Add new files to ${kayit(ekleN)}`;
+        return "Tick a folder";
+      }
+      // Start: yeni klasörler yükleme sekmesine, tablodakilerin yeni dosyaları bu sayfada sırayla kendi kayıtlarına
+      function bdf_bulkGo(offer) {
+        const G = BDF_BULK;
+        if (!offer || offer.checking) return;
+        const yeni = offer.groups.filter((g) => g.pick);
+        const ekle = offer.groups.filter((g) => bdf_bulkEkleOlur(g) && g.ekle).map((g) => ({ kayit: g.var.kayit, files: g.var.yeni.slice() }));
+        if (!yeni.length && !ekle.length) return;
+        if (yeni.length) bdf_bulkStartInTab(yeni);
+        else { G.offer = null; G.view = ""; bdf_bulkRender(); }
+        if (!ekle.length) return;
+        // yükleme sekmesi açılamadı, sıra bu sekmenin formunu kullanıyor: eklemeler sıra bitince
+        if (G.running && !G.tabId) { G.ekleSonra = ekle; return; }
+        bdf_bulkEkleCalistir(ekle);
+      }
+      function bdf_bulkEkleCalistir(list) {
+        let n = 0;
+        try { n = Number(window.__dtBulkEkle(list)) || 0; } catch (e) { console.warn("[BULK] add to records", e); n = 0; }
+        if (n < list.length) bdf_bulkNotice(`${list.length - n} record${list.length - n === 1 ? "" : "s"} could not get the new files here. Open the record and drop the files on it.`, "err");
+        console.log("[BULK] new files to records", { records: list.length, started: n });
+      }
+      function bdf_bulkEkleSonra() {
+        const G = BDF_BULK;
+        const l = G.ekleSonra;
+        G.ekleSonra = null;
+        if (Array.isArray(l) && l.length) setTimeout(() => bdf_bulkEkleCalistir(l), 1500);
       }
 
       function bdf_bulkBeforeUnload(event) {
@@ -6402,6 +6501,7 @@
         G.parkAfter = false;
         bdf_bulkSetPark(false);
         console.log("[BULK] stop", { message, created: G.jobs.filter((j) => j.st === "done").length });
+        G.ekleSonra = null;   // durduruldu: bekleyen eklemeler de başlamaz
         bdf_bulkSaveRun();
         bdf_bulkRender();
       }
@@ -6506,6 +6606,7 @@
           try { window.removeEventListener("beforeunload", bdf_bulkBeforeUnload); } catch (_) { }
           bdf_bulkParkAfterFinish();
           bdf_bulkSaveRun();
+          bdf_bulkEkleSonra();
           console.log("[BULK] finished", G.jobs.map((j) => `${j.name}: ${j.st}${j.note ? " (" + j.note + ")" : ""}`));
         }
         bdf_bulkRender();
