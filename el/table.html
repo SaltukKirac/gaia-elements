@@ -5722,8 +5722,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let buf = null;
     try { buf = await r.arrayBuffer(); } catch (e) { throw Object.assign(new Error('download failed'), { gx: 'download failed' }); }
     const oz = await dtKkOzet(buf);
-    for (const y of c.yerel) {
-      if (!serbest(y) || y.boy !== buf.byteLength || !dtKkUzantiUyar(y.ad, hedef.ad)) continue;
+    // the file under its own name first: the same photo uploaded twice must not swap names with its twin
+    const hy = hedef.yol.toLowerCase();
+    const sira = c.yerel.filter(y => y.boy === buf.byteLength && dtKkUzantiUyar(y.ad, hedef.ad))
+      .sort((a, b) => (b.yol.toLowerCase() === hy ? 1 : 0) - (a.yol.toLowerCase() === hy ? 1 : 0));
+    for (const y of sira) {
+      if (!serbest(y)) continue;
       if (!y.oz) { try { y.oz = await dtKkOzet(await y.f.arrayBuffer()); } catch (e) { y.oz = '-'; } }
       if (oz && y.oz === oz && serbest(y)) return al(y);
     }
@@ -5749,7 +5753,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }));
     if (!canli()) return { iptal: true };
     // in place: the office order name, or its " (2)" form while a file of the person's own holds that name (it would only come back)
-    const kalan = new Set(yerel.filter(y => !c.alinan.has(y)).map(y => y.yol.toLowerCase()));
+    const kalan = new Set(yerel.filter(y => !c.alinan.has(y)).map(y => y.yol.toLowerCase()));   // files that stay as they are
+    sonuc.forEach(x => { if (x.tur === 'var' && x.y.yol.toLowerCase() === x.hedef.yol.toLowerCase()) kalan.add(x.y.yol.toLowerCase()); });
     const yerinde = (x) => {
       const a = x.y.yol.toLowerCase(), h = x.hedef.yol.toLowerCase();
       if (a === h) return true;
