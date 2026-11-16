@@ -5123,10 +5123,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtSiraliLbl(b) { return b === 'pdf' ? 'PDF' : 'Klasör'; }
   function dtSiraliTip(b, id) {
     if (b === 'pdf') return 'Ordered PDF: all documents in office order, ready to print';
-    const bag = id && dtSiraliCanFolder() && dtKkOn() ? _dtKk.get(id) : null;   // KAYIT-KLASOR: this record knows its folder
+    const bag = id && dtSiraliCanFolder() ? dtKkAl(id) : null;   // KAYIT-KLASOR: this record knows its folder
     if (bag) return (bag.kaynak === 'birak' && !bag.duzen)
       ? 'Klasör: put the files of your folder ' + (bag.ad || '') + ' in office order. Gaia shows what it found first; nothing is deleted'
       : 'Klasör: add only the new files to your folder ' + (bag.ad || '') + ' (the ones already there are not downloaded again)';
+    const baska = id && dtSiraliCanFolder() && dtKkOn() ? dtKkBaskalari(id) : [];
+    if (baska.length) return 'Klasör: the folder for this file is on ' + dtKkKimMetni(baska) + (baska.length === 1 ? '\'s computer' : '\'s computers') + '. Ask them to update it, or download a copy here';
     return dtSiraliCanFolder() ? 'Klasör: pick a place, the files are saved there in office order (01, 02, ...)'
       : 'Klasör: this browser cannot save into a folder, so the same numbered files come as one download';
   }
@@ -5166,9 +5168,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtSiraliOne(id, bicim) {
     const key = dtSiraliKey(id, bicim);
     let s = _dtSirali.get(key);
-    if (s && (s.st === 'done' || s.st === 'ask') && Date.now() > s.exp) { _dtSirali.delete(key); s = null; }   // the link has expired: back to idle
+    if (s && (s.st === 'done' || s.st === 'ask' || s.st === 'sec' || s.st === 'istendi') && Date.now() > s.exp) { _dtSirali.delete(key); s = null; }   // the link has expired: back to idle
     const lbl = dtSiraliLbl(bicim);
     if (!s) return [`<button class="dt-row-sirali" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(dtSiraliTip(bicim, id))}" title="${escapeHtml(dtSiraliTip(bicim, id))}">${escapeHtml(lbl)}</button>`, ''];
+    if (s.st === 'sec' || s.st === 'istiyor' || s.st === 'istendi') {   // KAYIT-KLASOR: the folder is with a colleague
+      const tip = s.st === 'istendi' ? 'Asked ' + dtKkKimMetni(s.kimler) + ' to update the folder. Press to ask again.' : (s.msg ? s.msg + ' ' : '') + dtKkSecMetni(s);
+      const ad1 = (s.kimler[0] && s.kimler[0].ad) ? String(s.kimler[0].ad).split(' ')[0] : '';
+      const txt = s.st === 'istiyor' ? 'Asking' : s.st === 'istendi' ? 'Asked' : 'Ask ' + (s.kimler.length === 1 && ad1 ? ad1 : 'them');
+      return [`<button class="dt-row-sirali${s.st === 'istendi' ? ' is-done' : s.st === 'istiyor' ? ' is-busy' : ' is-ask'}" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(txt)}</button>`,
+        '<button class="dt-sirali-geri" type="button" data-kk="burada" title="Download a copy of the files to this computer">Download here</button>'];
+    }
     if (s.st === 'ask') {   // KAYIT-KLASOR: the person's own folder is renamed only after this press
       const tip = dtKkSorMetni(s);
       return [`<button class="dt-row-sirali is-ask" type="button" data-bicim="${bicim}" aria-label="${escapeHtml(tip)}" title="${escapeHtml(tip)}">Organize</button>`,
@@ -5236,12 +5245,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const key = dtSiraliKey(id, bicim), cur = _dtSirali.get(key);
     if (cur && cur.st === 'working') return;   // double press: the job already runs
     if (cur && cur.st === 'done' && cur.url && Date.now() < cur.exp) { window.open(cur.url, '_blank', 'noopener'); return; }
+    if (bicim === 'klasor' && cur && (cur.st === 'sec' || cur.st === 'istendi') && kip !== 'burada' && kip !== 'oto') { dtKkIste(id); return; }   // KAYIT-KLASOR: "Ask <name>"
+    if (cur && cur.st === 'istiyor') return;
     const onay = Boolean(cur && cur.st === 'ask' && kip !== 'oto');   // "Organize" pressed: the person agreed to rename in their folder
     let dir = null, zip = false, kk = null;
     if (bicim === 'klasor') {
       if (_dtSiraliPicking) return;
-      const bag = dtSiraliCanFolder() && dtKkOn() ? _dtKk.get(id) : null;
+      const bag = dtSiraliCanFolder() ? dtKkAl(id) : null;
       if (kip === 'oto' && !bag) return;
+      if (!bag && kip !== 'burada' && dtKkPaylas() && dtKkSecDurumu(raw, bicim)) return;   // the folder is with a colleague: ask or download here
       if (bag) {
         // KAYIT-KLASOR: the record's own folder; no place is asked. Asks for write access once (a small prompt) when needed.
         _dtSiraliPicking = true;
@@ -5406,6 +5418,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     s.st = 'done'; s.exp = Date.now() + 15 * 60000;
     dtSiraliPaint(id);
+    try { dtKkTalepKapat(id); } catch (e) {}   // KAYIT-KLASOR: a colleague's "update your folder" request is done
     if (!dtIslerOn()) showWakeToast(dtKkOzetMetni(s) + '.', 'success');
     setTimeout(() => { if (_dtSirali.get(key) === s) { _dtSirali.delete(key); dtSiraliPaint(id); } }, 15 * 60000);
   }
@@ -5425,6 +5438,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (geri) {
         event.stopPropagation(); event.preventDefault();
         const box = geri.closest('.dt-sirali'), gid = box && box.getAttribute('data-gx-sirali');
+        if (geri.getAttribute('data-kk') === 'burada') { try { const raw = dtSiraliRowOf(geri); if (raw) { dtIslerKaynak(geri); dtSiraliStart(raw, 'klasor', 'burada'); } } catch (e) {} return; }   // synchronous up to the folder dialog
         if (gid) { dtIslerKaynak(geri); dtKkGeriAl(gid); }
         return;
       }
@@ -5455,8 +5469,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   //     while Gaia may already write there), write ONLY what is missing into that folder: "2 new files added, 10 already there".
   //     Files added from the document browser go into the folder straight from the computer (no download). A record without a folder
   //     keeps the old way (the remembered parent place + "<Plaka> - <Hasar Dosya No>") and remembers that sub folder from then on.
+  //  4) (16.11, Saltuk: "farklı kullanıcılar farklı klasörlerle ... klasör şu kullanıcıda, ona güncelleme talebi aktivite olarak mı gitsin
+  //     yoksa bu bilgisayara mı indirelim") The folders are kept per Gaia user (two people on one Chrome each have their own). The server
+  //     (op kayit_klasor) knows only WHO keeps a folder for a record (ids, never a folder name or a path). "Klasör" on a record whose
+  //     folder is with a colleague asks: "Ask <name>" (an update request that shows in their Activity panel) or "Download here". The
+  //     keeper's table shows the request; their folder updates (only the missing files) with one press, or by itself when Gaia may
+  //     already write there, and the request is closed. A server without the op: everything works as on one computer.
   // Off: window.__gxNoKayitKlasor = true (no record folders, no organize; Klasör still writes only the missing files).
   // Off for the "Folders" dialog only (the browser's own folder chooser as before): window.__gxNoKkSec = true.
+  // Off for the colleague part only (no server calls): window.__gxNoKkPaylas = true.
   const DT_KK_TARA_MAX = 3000;                 // files read from one folder at most
   const DT_KK_UST_MS = 24 * 3600000;           // a dropped folder waits this long for its record
   const DT_KK_OZET_ALT = 64 * 1024;            // below this a same-size file is checked by its bytes too
@@ -5466,6 +5487,32 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   let _dtKkUst = [];                           // dropped / chosen folders waiting for their records: { key, h, ad, at }
   let _dtKkBagla = [];                         // saved folders waiting for their row: { key, ad, urls, at }
   let _dtKkYuklendi = false, _dtKkBaglaniyor = false, _dtKkSecYok = false;
+  let _dtKkUid = null;                         // the Gaia user the maps above belong to
+  const DT_KK_DURUM_MS = 3 * 60000;            // colleagues' folders / requests are read again this often
+  const _dtKkTutan = new Map();                // record id → [{ u, ad, ben }] (colleagues who keep a folder for it), from the server
+  const _dtKkSunucuda = new Map();             // record id → when this browser last told the server it keeps the folder
+  let _dtKkTalepler = [];                      // open requests to me: [{ id, kayit, kimden, ad, at }]
+  const _dtKkTalepGor = new Set();             // request ids already shown / run here
+  let _dtKkMe = '', _dtKkDurumAt = 0, _dtKkDurumIs = null, _dtKkSunucuYok = false;
+  // the signed-in Gaia user (the page address carries the user's id; the folder-queue BULK-USER reads it the same way)
+  function dtKkUidOku() {
+    try { const m = String(location.pathname || '').match(/(\d{10,}x\d{6,})(?!.*\d{10,}x\d{6,})/); return m ? m[1] : ''; } catch (e) { return ''; }
+  }
+  function dtKkAnahtar(id) { return 'kayit:' + (_dtKkUid ? _dtKkUid + ':' : '') + id; }
+  // another person signed in on this page (Run as, a shared computer): forget the maps and read this person's folders
+  function dtKkKullanici() {
+    const u = dtKkUidOku();
+    if (_dtKkUid === null) { _dtKkUid = u; return true; }
+    if (u === _dtKkUid) return true;
+    _dtKkUid = u;
+    _dtKk.clear(); _dtKkOto.clear(); _dtKkTutan.clear(); _dtKkSunucuda.clear(); _dtKkTalepGor.clear();
+    _dtKkUst = []; _dtKkBagla = []; _dtKkTalepler = []; _dtKkMe = ''; _dtKkDurumAt = 0;
+    _dtKkYuklendi = false;
+    dtKkYukle();
+    return false;
+  }
+  // the folder of a record for the person signed in now
+  function dtKkAl(id) { if (!dtKkOn()) return null; dtKkKullanici(); return _dtKk.get(id) || null; }
   function dtKkOn() {
     try { return !window.__gxNoKayitKlasor && !window.__gxNoIndir && typeof window.showDirectoryPicker === 'function' && window.isSecureContext !== false; } catch (e) { return false; }
   }
@@ -5479,25 +5526,42 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   function dtKkYaz(k, v) { return dtSiraliYerDb('readwrite', st => (v == null ? st.delete(k) : st.put(v, k))); }
   function dtKkKaydet(id, bag) {
+    dtKkKullanici();
     _dtKk.set(id, bag);
     dtKkSaatKur();
-    return dtKkYaz('kayit:' + id, { h: bag.h, ad: bag.ad || '', kaynak: bag.kaynak || 'yer', duzen: Boolean(bag.duzen), n: Number(bag.n) || 0, geri: bag.geri || null, at: bag.at || Date.now() });
+    dtKkSunucuyaSoyle(id);
+    return dtKkYaz(dtKkAnahtar(id), { h: bag.h, ad: bag.ad || '', kaynak: bag.kaynak || 'yer', duzen: Boolean(bag.duzen), n: Number(bag.n) || 0, geri: bag.geri || null, at: bag.at || Date.now() });
   }
-  function dtKkUnut(id) { _dtKk.delete(id); _dtKkOto.delete(id); dtKkYaz('kayit:' + id, null); }
+  function dtKkUnut(id) {
+    _dtKk.delete(id); _dtKkOto.delete(id); dtKkYaz(dtKkAnahtar(id), null);
+    if (_dtKkSunucuda.has(id)) { _dtKkSunucuda.delete(id); dtKkSunucu('birak', { id: id }); }
+  }
   async function dtKkYukle() {
     if (_dtKkYuklendi || !dtKkOn()) return;
     _dtKkYuklendi = true;
+    dtKkKullanici();
+    const uid = _dtKkUid;
     const l = await dtKkHepsi();
-    if (!Array.isArray(l)) return;
+    if (!Array.isArray(l) || uid !== _dtKkUid) return;
     const now = Date.now();
     l.forEach(({ k, v }) => {
       if (!v || typeof v !== 'object') return;
-      if (k.indexOf('kayit:') === 0) { const id = k.slice(6); if (v.h && v.h.kind === 'directory' && !_dtKk.has(id)) _dtKk.set(id, v); return; }
+      if (k.indexOf('kayit:') === 0) {
+        // kayit:<user>:<record>; an entry from before (kayit:<record>, no user) goes to the first person who opens the table here
+        const p = k.slice(6).split(':'), id = p.length > 1 ? p[1] : p[0], sahip = p.length > 1 ? p[0] : null;
+        if (!v.h || v.h.kind !== 'directory') return;
+        if (sahip === null && uid) { if (!_dtKk.has(id)) { _dtKk.set(id, v); dtKkYaz(dtKkAnahtar(id), v); } dtKkYaz(k, null); return; }
+        if ((sahip || '') === (uid || '') && !_dtKk.has(id)) _dtKk.set(id, v);
+        return;
+      }
+      if ((v.u || '') !== (uid || '')) return;   // another person's waiting folder
       const eski = now - (Number(v.at) || 0) > DT_KK_UST_MS;
       if (k.indexOf('ust:') === 0) { if (eski || !v.h) dtKkYaz(k, null); else if (!_dtKkUst.some(u => u.key === k)) _dtKkUst.push({ key: k, h: v.h, ad: v.ad, at: v.at }); }
       else if (k.indexOf('bagla:') === 0) { if (eski || !Array.isArray(v.urls)) dtKkYaz(k, null); else if (!_dtKkBagla.some(b => b.key === k)) _dtKkBagla.push({ key: k, ad: v.ad, urls: v.urls, at: v.at }); }
     });
-    if (_dtKk.size || _dtKkBagla.length) dtKkSaatKur();
+    dtKkSaatKur();
+    let say = 0;
+    _dtKk.forEach((v, id) => { if (say++ < 100) dtKkSunucuyaSoyle(id); });   // folders kept before the server knew: said once per load
     _dtKk.forEach((v, id) => { try { dtSiraliPaint(id); } catch (e) {} });
   }
   // write access to a folder: asked (small browser prompt) only when iste is true, i.e. inside the person's press
@@ -5516,7 +5580,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const at = Date.now(), key = 'ust:' + at.toString(36) + Math.random().toString(36).slice(2, 5);
     _dtKkUst = _dtKkUst.filter(u => at - (Number(u.at) || 0) <= DT_KK_UST_MS).slice(-39);
     _dtKkUst.push({ key, h, ad: h.name, at });
-    dtKkYaz(key, { h, ad: h.name, at });
+    dtKkKullanici();
+    dtKkYaz(key, { h, ad: h.name, at, u: _dtKkUid || '' });
   }
   // a drop on the table: the handles must be asked for while the drop event runs (they stay valid after it)
   function dtKkBirakAl(dt) {
@@ -5564,10 +5629,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtKkKayitGeldi(m) {
     const ad = String((m && m.ad) || '').slice(0, 200);
     const urls = Array.isArray(m && m.urls) ? m.urls.map(String).filter(Boolean).slice(0, 500) : [];
-    if (!ad || !urls.length || !dtKkOn() || !_dtKkUst.length) return;   // no folder handle in this browser for it
+    if (!ad || !urls.length || !dtKkOn() || !dtKkKullanici() || !_dtKkUst.length) return;   // no folder handle of this person here
     const at = Date.now(), key = 'bagla:' + at.toString(36) + Math.random().toString(36).slice(2, 5);
     _dtKkBagla.push({ key, ad, urls, at });
-    dtKkYaz(key, { ad, urls, at });
+    dtKkYaz(key, { ad, urls, at, u: _dtKkUid || '' });
     dtKkSaatKur();
     dtKkBaglaKontrol();
   }
@@ -5612,6 +5677,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         bitir();
         if (_dtKk.has(id)) continue;
         const h = await dtKkUstBul(b.ad);
+        if (!dtKkKullanici()) return;   // the person changed while the folder was looked up
         if (!h) { try { log('[KAYIT-KLASOR] no folder handle for the saved folder of ' + id); } catch (e) {} continue; }
         await dtKkKaydet(id, { h, ad: h.name || b.ad, kaynak: 'birak', duzen: false, n: 0, geri: null, at: Date.now() });
         try { log('[KAYIT-KLASOR] record ' + id + ' remembers its folder'); } catch (e) {}
@@ -5637,10 +5703,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       dtKkIzin(bag.h, false).then(ok => { if (!ok) return; _dtSirali.delete(dtSiraliKey(id, 'klasor')); dtSiraliStart(raw, 'klasor', 'oto'); });
     });
   }
-  function dtKkTik() { dtKkBaglaKontrol(); dtKkOtoKontrol(); }
+  function dtKkTik() { if (!dtKkOn()) return; dtKkKullanici(); dtKkBaglaKontrol(); dtKkOtoKontrol(); dtKkDurumOku(false); }
   function dtKkSaatKur() {
     try {
       window.__dtKkTik = dtKkTik;   // Bubble runs this script again on a re-render: the newest copy ticks
+      window.__gxKkDurum = () => ({ uid: _dtKkUid, klasor: _dtKk.size, tutan: _dtKkTutan.size, talep: _dtKkTalepler.length, sunucuYok: _dtKkSunucuYok });   // a look from the console (counts only)
       if (!window.__dtKkSaat) window.__dtKkSaat = setInterval(() => { try { if (window.__dtKkTik) window.__dtKkTik(); } catch (e) {} }, 4000);
     } catch (e) {}
   }
@@ -5850,7 +5917,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try { const p = String(yol).split('/'), ad = p.pop(); let d = root; for (const x of p) d = await d.getDirectoryHandle(x); return await d.getFileHandle(ad); } catch (e) { return null; }
   }
   async function dtKkGeriAl(id) {
-    const bag = _dtKk.get(id), key = dtSiraliKey(id, 'klasor'), s = _dtSirali.get(key);
+    const bag = dtKkAl(id), key = dtSiraliKey(id, 'klasor'), s = _dtSirali.get(key);
     const g = bag && bag.geri, ad = dtSiraliAd(bag && bag.ad) || 'your folder';
     const kart = 'kk-geri:' + id, sub = (s && s.etiket) || '';
     const soyle = (st, line) => { if (dtIslerOn()) dtIslerSet(kart, { title: 'Undo', sub, state: st, line, msg: st === 'error' ? line : '', href: '' }); else showWakeToast(line, st === 'error' ? 'error' : 'success'); };
@@ -5883,7 +5950,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // --- 3) files added from the document browser go into the record's folder straight from the computer (only the ones not there)
   async function dtKkEkYaz(id, files, iste) {
-    const bag = dtKkOn() ? _dtKk.get(id) : null;
+    const bag = dtKkAl(id);
     const l = Array.from(files || []).filter(f => f && typeof f.name === 'string');
     if (!bag || !l.length) return null;
     if (!(await dtKkIzin(bag.h, Boolean(iste)))) return { izin: false, ad: bag.ad };
@@ -5913,7 +5980,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return { izin: true, yeni, vardi, hata, ad: bag.ad };
   }
   function dtKkEkSonra(j) {
-    if (!j || !j.rid || !dtKkOn() || !_dtKk.has(j.rid) || window.__gxKlasorKuru === true) return;
+    if (!j || !j.rid || !dtKkAl(j.rid) || window.__gxKlasorKuru === true) return;
     const kart = 'kk-ek:' + j.id, sub = j.etiket ? 'to ' + j.etiket : '';
     const bitti = (r) => {
       if (!r) return;
@@ -5927,6 +5994,104 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       else showWakeToast(line + '.', 'success');
     };
     dtKkEkYaz(j.rid, j.files, false).then(bitti, () => {});
+  }
+  // --- 4) colleagues: who keeps a record's folder (server op kayit_klasor; ids only) and "update your folder" requests
+  function dtKkPaylas() { return dtKkOn() && !window.__gxNoKkPaylas && !_dtKkSunucuYok; }
+  // one call; a server without the op turns the colleague part off for this page (everything else works as on one computer)
+  async function dtKkSunucu(islem, veri) {
+    if (!dtKkPaylas()) return null;
+    let r = null;
+    try { r = await aynaBridge('kayit_klasor', Object.assign({ islem: islem }, veri || {}), null, { timeoutMs: 15000 }); } catch (e) { r = null; }
+    if (r && !r.ok && (r.kod === 'yok' || /unknown op|not available/i.test(String(r.message || r.error || '')))) { _dtKkSunucuYok = true; try { log('[KAYIT-KLASOR] server has no record folders yet'); } catch (e) {} }
+    return r && r.ok ? (r.data || {}) : null;
+  }
+  // this person keeps a folder for the record: the server is told (at most every 6 h per record)
+  function dtKkSunucuyaSoyle(id) {
+    if (!dtKkPaylas() || !id) return;
+    const t = _dtKkSunucuda.get(id);
+    if (t && Date.now() - t < 6 * 3600000) return;
+    _dtKkSunucuda.set(id, Date.now());
+    dtKkSunucu('kaydet', { id: id }).then(d => { if (!d) _dtKkSunucuda.delete(id); });
+  }
+  // the colleagues' folders of the rows on screen + the requests to me; every DT_KK_DURUM_MS (zorla: now)
+  function dtKkDurumOku(zorla) {
+    if (!dtKkPaylas() || _dtKkDurumIs || !Array.isArray(state.rawRows)) return _dtKkDurumIs;
+    if (!zorla && Date.now() - _dtKkDurumAt < DT_KK_DURUM_MS) return null;
+    _dtKkDurumAt = Date.now();
+    const uid = _dtKkUid;
+    const ids = [];
+    for (const r of state.rawRows) { if (ids.length >= 300) break; try { const id = rowIdOf(r); if (id && !r.__gxPend && dtSiraliOn(r)) ids.push(id); } catch (e) {} }
+    const is = _dtKkDurumIs = dtKkSunucu('durum', { ids: ids }).then(d => {
+      if (!d || uid !== _dtKkUid) return null;
+      _dtKkMe = String(d.me || '');
+      _dtKkTutan.clear();
+      const k = d.kayitlar && typeof d.kayitlar === 'object' ? d.kayitlar : {};
+      Object.keys(k).forEach(id => { const l = Array.isArray(k[id]) ? k[id] : []; _dtKkTutan.set(id, l.map(x => ({ u: String(x.u || ''), ad: String(x.ad || '').slice(0, 80), ben: Boolean(x.ben) }))); });
+      _dtKkTalepler = (Array.isArray(d.talepler) ? d.talepler : []).map(t => ({ id: String(t.id || ''), kayit: String(t.kayit || ''), kimden: String(t.kimden || ''), ad: String(t.ad || '').slice(0, 80), at: Number(t.at) || 0 })).filter(t => t.id && t.kayit);
+      ids.forEach(id => { try { dtSiraliPaint(id); } catch (e) {} });
+      dtKkTalepCiz();
+      return d;
+    }, () => null).finally(() => { if (_dtKkDurumIs === is) _dtKkDurumIs = null; });
+    return is;
+  }
+  // colleagues (not me) who keep a folder for the record, as known from the last read
+  function dtKkBaskalari(id) { return (_dtKkTutan.get(id) || []).filter(x => !x.ben && x.u !== _dtKkMe); }
+  function dtKkKimMetni(l) {
+    const adlar = l.map(x => x.ad).filter(Boolean);
+    if (!adlar.length) return l.length === 1 ? 'a colleague' : l.length + ' colleagues';
+    return adlar.length <= 2 ? adlar.join(' and ') : adlar.slice(0, 2).join(', ') + ' and ' + (adlar.length - 2) + ' more';
+  }
+  // "Klasör" on a record whose folder is with a colleague: the choice instead of the place dialog (no await before it: the click stays)
+  function dtKkSecDurumu(raw, bicim) {
+    const id = rowIdOf(raw), l = dtKkBaskalari(id);
+    if (!l.length) return false;
+    const s = { raw: raw, etiket: dtIslerEtiket(raw), st: 'sec', bicim: bicim, kimler: l, k: 0, n: 0, skipped: [], skippedCount: 0, klasor: '', msg: '', exp: Date.now() + 10 * 60000 };
+    _dtSirali.set(dtSiraliKey(id, bicim), s);
+    dtSiraliPaint(id);
+    return true;
+  }
+  function dtKkSecMetni(s) {
+    return 'The folder for this file is on ' + dtKkKimMetni(s.kimler) + (s.kimler.length === 1 ? '\'s computer' : '\'s computers') + '. Ask them to update it (they see it in Activity), or download a copy to this computer.';
+  }
+  // "Ask <name>": one request to every colleague who keeps the folder
+  async function dtKkIste(id) {
+    const key = dtSiraliKey(id, 'klasor'), s = _dtSirali.get(key);
+    if (!s || (s.st !== 'sec' && s.st !== 'istendi')) return;
+    s.st = 'istiyor'; dtSiraliPaint(id);
+    const d = await dtKkSunucu('talep', { id: id });
+    if (_dtSirali.get(key) !== s) return;
+    if (!d) { s.st = 'sec'; s.msg = 'The request could not be sent. Try again, or download here.'; dtSiraliPaint(id); if (!dtIslerOn()) showWakeToast(s.msg, 'error'); return; }
+    const kime = Array.isArray(d.kime) && d.kime.length ? d.kime.map(x => ({ u: String(x.u || ''), ad: String(x.ad || '') })) : s.kimler;
+    s.st = 'istendi'; s.kimler = kime; s.msg = ''; s.exp = Date.now() + 10 * 60000;
+    dtSiraliPaint(id);
+    if (!dtIslerOn()) showWakeToast('Asked ' + dtKkKimMetni(kime) + ' to update the folder.', 'success');
+  }
+  // requests to me: one card each for a record whose folder is HERE and whose row is on screen; Gaia may already write there →
+  // updated by itself (only the missing files), else "Update folder" (the press gives the permission)
+  function dtKkTalepCiz() {
+    if (!dtKkOn()) return;
+    const satir = (id) => (state.rawRows || []).find(r => rowIdOf(r) === id);
+    _dtKkTalepler.forEach(t => {
+      if (_dtKkTalepGor.has(t.id)) return;
+      const bag = _dtKk.get(t.kayit), raw = satir(t.kayit);
+      if (!bag || !raw) return;   // the folder is on another computer of mine, or the row is not in this table
+      _dtKkTalepGor.add(t.id);
+      const kart = 'kk-talep:' + t.id, etiket = dtIslerEtiket(raw), kim = t.ad || 'A colleague';
+      const calistir = () => { const cur = _dtSirali.get(dtSiraliKey(t.kayit, 'klasor')); if (cur && cur.st === 'working') return; _dtSirali.delete(dtSiraliKey(t.kayit, 'klasor')); dtSiraliStart(raw, 'klasor'); dtIslerSil(kart); };
+      dtKkIzin(bag.h, false).then(ok => {
+        if (ok && bag.duzen) { _dtSirali.delete(dtSiraliKey(t.kayit, 'klasor')); dtSiraliStart(raw, 'klasor', 'oto'); return; }
+        if (dtIslerOn()) dtIslerSet(kart, { title: 'Update your folder', sub: etiket, state: 'done', line: kim + ' asked you to add the new documents to your folder ' + (dtSiraliAd(bag.ad) || '') + '.', anaLabel: 'Update folder', onAna: calistir, altLabel: '', onAlt: null, href: '', msg: '' });
+        else showWakeToast(kim + ' asked you to update your folder. Press Klasör on the file.', 'success');
+      });
+    });
+  }
+  // the folder of a record is up to date here: its open requests are done
+  function dtKkTalepKapat(id) {
+    const l = _dtKkTalepler.filter(t => t.kayit === id);
+    if (!l.length) return;
+    _dtKkTalepler = _dtKkTalepler.filter(t => t.kayit !== id);
+    l.forEach(t => dtIslerSil('kk-talep:' + t.id));
+    dtKkSunucu('kapat', { talepler: l.map(t => t.id) });
   }
   try { if (dtKkOn()) { dtKkYukle(); dtKkKanal(); } } catch (e) {}
   /* KAYIT-KLASOR-END */
@@ -5998,6 +6163,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const act = b.getAttribute('data-is-act');
       if (act === 'hide') { _dtIslerGizli.set(id, j.state); _dtIsler.delete(id); dtIslerCiz(); }
       else if (act === 'alt' && typeof j.onAlt === 'function') { try { j.onAlt(); } catch (e) {} j.altLabel = ''; j.onAlt = null; dtIslerCiz(); }
+      else if (act === 'ana' && typeof j.onAna === 'function') { dtIslerKaynak(b); const f = j.onAna; j.anaLabel = ''; j.onAna = null; try { f(); } catch (e) {} dtIslerCiz(); }
       else if (act === 'retry' && typeof j.onRetry === 'function') { dtIslerKaynak(b); try { j.onRetry(); } catch (e) {} }
     });
     document.body.appendChild(r);
@@ -6018,6 +6184,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let act = '';
     if (st === 'done' && j.href) act = `<a class="gx-is-btn is-primary" href="${escapeHtml(j.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(j.hrefLabel || 'Open')}</a>`;
     if (st === 'error' && typeof j.onRetry === 'function') act = '<button class="gx-is-btn" type="button" data-is-act="retry">Try again</button>';
+    if (st === 'done' && j.anaLabel && typeof j.onAna === 'function') act += `<button class="gx-is-btn is-primary" type="button" data-is-act="ana">${escapeHtml(j.anaLabel)}</button>`;   // KAYIT-KLASOR
     if (st === 'done' && j.altLabel && typeof j.onAlt === 'function') act += `<button class="gx-is-btn" type="button" data-is-act="alt">${escapeHtml(j.altLabel)}</button>`;
     const x = st === 'done' || st === 'error' ? '<button class="gx-is-x" type="button" data-is-act="hide" aria-label="Hide">&times;</button>' : '';
     return `<div class="gx-is-card is-${st}" role="listitem" data-is-id="${escapeHtml(id)}" aria-busy="${st === 'working' || st === 'queued' ? 'true' : 'false'}">`
@@ -6100,8 +6267,17 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const title = pdf ? 'Ordered PDF' : s.zip ? 'Numbered files' : duzenle || s.st === 'ask' ? 'Organize folder' : 'Save to folder';
       const sub = s.klasor || s.etiket || '';
       const retry = s.raw ? () => dtSiraliStart(s.raw, b) : null;
-      if (s.st === 'ask') {
-        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: dtKkSorMetni(s), href: '', msg: '', onRetry: null, altLabel: 'Organize', onAlt: () => dtSiraliStart(s.raw, b) });
+      const burada = () => dtSiraliStart(s.raw, b, 'burada');
+      if (s.st === 'sec') {   // KAYIT-KLASOR: the folder is with a colleague
+        const ad1 = (s.kimler[0] && s.kimler[0].ad) ? String(s.kimler[0].ad).split(' ')[0] : '';
+        dtIslerSet(key, { title: 'Folder on another computer', sub: s.etiket || '', state: 'done', k: 0, n: 0, line: (s.msg ? s.msg + ' ' : '') + dtKkSecMetni(s), href: '', msg: '', onRetry: null,
+          anaLabel: 'Ask ' + (s.kimler.length === 1 && ad1 ? ad1 : 'them'), onAna: () => dtKkIste(id), altLabel: 'Download here', onAlt: burada });
+      } else if (s.st === 'istiyor') {
+        dtIslerSet(key, { title: 'Folder on another computer', sub: s.etiket || '', state: 'working', k: 0, n: 0, line: 'Sending the request', href: '', msg: '', onRetry: null, anaLabel: '', onAna: null });
+      } else if (s.st === 'istendi') {
+        dtIslerSet(key, { title: 'Update asked', sub: s.etiket || '', state: 'done', k: 0, n: 0, line: 'Asked ' + dtKkKimMetni(s.kimler) + '. Their folder gets the new documents when they open Gaia.', href: '', msg: '', onRetry: null, anaLabel: '', onAna: null, altLabel: 'Download here too', onAlt: burada });
+      } else if (s.st === 'ask') {
+        dtIslerSet(key, { title, sub, state: 'done', k: s.n, n: s.n, line: dtKkSorMetni(s), href: '', msg: '', onRetry: null, altLabel: 'Organize', onAlt: () => dtSiraliStart(s.raw, b), anaLabel: '', onAna: null });
       } else if (s.st === 'working') {
         const line = s.queued ? 'Waiting for other files to finish'
           : !s.n ? 'Reading the record files'
@@ -6316,6 +6492,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     if (s.st === 'done' && s.url) return `<a class="${cls} is-done" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" title="Link works for 15 minutes">${s.zip ? 'Download files' : 'Open PDF'}</a>`;
     if (s.st === 'ask') return `<button class="${cls}" type="button" data-gez-act="job" data-bicim="${bicim}" title="${escapeHtml(dtKkSorMetni(s))}">Organize folder</button>`;   // KAYIT-KLASOR
+    if (s.st === 'sec' || s.st === 'istiyor' || s.st === 'istendi') {   // KAYIT-KLASOR: the folder is with a colleague
+      const ad1 = (s.kimler[0] && s.kimler[0].ad) ? String(s.kimler[0].ad).split(' ')[0] : '';
+      const t = s.st === 'istendi' ? 'Asked' : s.st === 'istiyor' ? 'Asking...' : 'Ask ' + (s.kimler.length === 1 && ad1 ? ad1 : 'them') + ' to update';
+      return `<button class="${cls}${s.st === 'istendi' ? ' is-done' : ''}" type="button" data-gez-act="job" data-bicim="${bicim}" title="${escapeHtml(dtKkSecMetni(s))}">${escapeHtml(t)}</button>`
+        + '<button class="dt-gez-act" type="button" data-gez-act="kk-burada" title="Download a copy of the files to this computer">Download here</button>';
+    }
     if (s.st === 'done') return `<button class="${cls} is-done" type="button" data-gez-act="job" data-bicim="${bicim}" title="${escapeHtml(dtKkOzetMetni(s) + '. Press to update the folder.')}">Saved ${escapeHtml(dtGezCount(s.yeni || s.saved))}</button>`
       + (s.geri ? '<button class="dt-gez-act" type="button" data-gez-act="kk-geri" title="Put the old file names back (new files Gaia added stay)">Undo</button>' : '');
     return `<button class="${cls} is-err" type="button" data-gez-act="job" data-bicim="${bicim}" title="${escapeHtml(String(s.msg || 'Something went wrong.') + ' Press to try again.')}">Try again: ${escapeHtml(base)}</button>`;
@@ -6795,6 +6977,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (act === 'add' || act === 'pick') { event.preventDefault(); dtGezEkleSec(g, el); return; }   // EVRAK-KLASOR / EVRAK-BIRAK
     if (act === 'ask-ok') { event.preventDefault(); dtIslerKaynak(el); dtEkleBaslat(g); return; }
     if (act === 'kk-geri') { event.preventDefault(); dtIslerKaynak(el); dtKkGeriAl(g.id); return; }   // KAYIT-KLASOR
+    if (act === 'kk-burada') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, 'klasor', 'burada'); } catch (e) {} return; }   // synchronous up to the folder dialog
     if (act === 'ask-no') { event.preventDefault(); g.ask = null; dtGezRender('pick'); return; }
     if (act === 'job') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, el.getAttribute('data-bicim')); } catch (e) {} }   // synchronous up to the folder dialog (needs the click)
   }
