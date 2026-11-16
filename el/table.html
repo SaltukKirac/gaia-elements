@@ -1758,6 +1758,37 @@
 #gx-ekle-veil .gx-ev-bar > i { display: block; height: 100%; width: 0; background: #6366f1; border-radius: inherit; transition: width 300ms ease; }
 #gx-ekle-veil.is-ok .gx-ev-bar > i { background: #16a34a; }
 @media (prefers-reduced-motion: reduce) { #gx-ekle-veil .gx-ev-spin { animation: none; } #gx-ekle-veil .gx-ev-bar > i { transition: none; } }
+/* EKLE-SAYFA (16.11): the same card in front of the person's own page while the files go into the open file behind it (no new tab) */
+#gx-ekle-on {
+  position: fixed; inset: 0; z-index: 2147483000; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(15, 23, 42, .32); font: 400 14px/1.45 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: #0f172a;
+}
+#gx-ekle-on[hidden] { display: none; }
+#gx-ekle-on *, #gx-ekle-on *::before, #gx-ekle-on *::after { box-sizing: border-box; }
+#gx-ekle-on .gx-ev-card {
+  width: min(420px, 100%); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 24px; text-align: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 24px 48px -20px rgba(15, 23, 42, .35); outline: none;
+}
+#gx-ekle-on .gx-ev-t { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+#gx-ekle-on .gx-ev-l { color: #475569; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#gx-ekle-on .gx-ev-n { color: #475569; font-size: 12px; }
+#gx-ekle-on .gx-ev-spin { width: 24px; height: 24px; border: 2px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: dt-gez-spin 800ms linear infinite; }
+#gx-ekle-on .gx-ev-ok { display: none; color: #16a34a; }
+#gx-ekle-on .gx-ev-err { display: none; color: #dc2626; }
+#gx-ekle-on.is-ok .gx-ev-spin, #gx-ekle-on.is-err .gx-ev-spin { display: none; }
+#gx-ekle-on.is-ok .gx-ev-ok, #gx-ekle-on.is-err .gx-ev-err { display: block; }
+#gx-ekle-on.is-err .gx-ev-l { color: #b91c1c; }
+#gx-ekle-on .gx-ev-bar { width: 100%; height: 4px; margin: 4px 0; border-radius: 999px; background: #eef2f7; overflow: hidden; }
+#gx-ekle-on .gx-ev-bar > i { display: block; height: 100%; width: 0; background: #6366f1; border-radius: inherit; transition: width 300ms ease; }
+#gx-ekle-on.is-ok .gx-ev-bar > i { background: #16a34a; }
+#gx-ekle-on.is-err .gx-ev-bar { display: none; }
+#gx-ekle-on .gx-ev-b { display: none; gap: 8px; margin-top: 6px; }
+#gx-ekle-on.is-err .gx-ev-b { display: flex; }
+#gx-ekle-on .gx-ev-b button { min-height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #0f172a; font: 500 14px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+#gx-ekle-on .gx-ev-b button[hidden] { display: none; }
+#gx-ekle-on .gx-ev-b button.is-primary { background: #6366f1; border-color: #6366f1; color: #fff; }
+#gx-ekle-on .gx-ev-b button:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { #gx-ekle-on .gx-ev-spin { animation: none; } #gx-ekle-on .gx-ev-bar > i { transition: none; } }
 
 /* GX-SIRALI (12.11): ordered evrak, "PDF" / "Klasör" next to "Fill" (same pill as GX-FILL); four states: idle, working, done, error */
 #dynamic-table-wrapper .dt-sirali {
@@ -5931,8 +5962,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!g || !g.ask || !g.ask.files.length) return;
     const files = g.ask.files;
     g.ask = null;
-    if (window.__gxKlasorAyniSekme === true || typeof BroadcastChannel !== 'function') { dtGezEkle(g, files); return; }
-    const j = { id: 'ek' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), rid: g.id, etiket: dtIslerEtiket(g.raw), files, n: files.length, k: 0, st: 'opening', at: Date.now(), deneme: 0 };
+    if (window.__gxKlasorAyniSekme === true) { dtGezEkle(g, files); return; }
+    // EKLE-SAYFA (16.11): bu sekmede, önde pencereyle; eski yardımcı sekme yalnız window.__gxKlasorYardimciSekme = true ile
+    const sayfa = !(window.__gxKlasorYardimciSekme === true && typeof BroadcastChannel === 'function');
+    const j = { id: 'ek' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), rid: g.id, etiket: dtIslerEtiket(g.raw), files, n: files.length, k: 0, st: 'opening', at: Date.now(), deneme: 0, sayfa };
     _dtEkle.set(j.id, j);
     dtEkleCalistir(j);
     dtGezRender();
@@ -5941,6 +5974,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try { if (j.chan) j.chan.close(); } catch (e) {}
     Object.assign(j, { st: 'opening', k: 0, msg: '', not: '', t0: Date.now(), last: Date.now(), sent: false, chan: null, w: null, kayit: false });
     j.deneme += 1;
+    if (j.sayfa) { dtEkleSayfaCalistir(j); return; }
     const kanal = j.id + 'x' + j.deneme;
     let url = '';
     try { const u = new URL(location.href); u.searchParams.set(DT_EKLE_PARAM, kanal); u.searchParams.delete('start'); u.searchParams.delete('gxbulk'); url = u.toString(); } catch (e) { url = ''; }
@@ -5979,6 +6013,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let calisan = 0;
     _dtEkle.forEach(j => {
       if (j.st !== 'opening' && j.st !== 'up' && j.st !== 'saving') return;
+      if (j.sayfa) { if (dtEkleSayfaNabiz(j, now)) calisan += 1; return; }
       let kapali = false;
       try { kapali = Boolean(j.w && j.w.closed); } catch (e) { kapali = false; }
       let msg = '';
@@ -5995,11 +6030,125 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     });
     if (!calisan && _dtEkleSaat) { clearInterval(_dtEkleSaat); _dtEkleSaat = null; }
   }
+  // === EKLE-SAYFA (16.11.2026, Saltuk: "eklerken yeni sekme açılması canımı sıktı; bir ekran ön tarafta gelip formun bozulmaması ve
+  // yüklenmesi daha iyi; yeni sekmede yalnız klasör klasör çoklu ekleme açılmalı") ===
+  // Ek evrak artık kişinin kendi sekmesinde eklenir: önde bir pencere (#gx-ekle-on) ilerlemeyi gösterir ve sayfayı tutar; arkasında kayıt
+  // yan panelde açılır, form dosyaları Document folder'a verir, yükleme bitince kaydeder ve düzenlemeyi kapatır (form t.auto + t.sayfa;
+  // yardımcı sekmenin yolu). Açık formda kaydedilmemiş değişiklik varsa başka kayıt açılmaz (form window.__gxFormKirli): önce kaydetmesi
+  // söylenir. Aynı anda bir ekleme yürür, ötekiler sırada bekler. Toplu klasör yükleme (BULK-TAB) yine yeni sekmede.
+  // Eski yardımcı sekme: window.__gxKlasorYardimciSekme = true.
+  function dtEkleSayfaAktif(haric) {
+    return Array.from(_dtEkle.values()).find(x => x !== haric && x.sayfa && (x.st === 'opening' || x.st === 'up' || x.st === 'saving')) || null;
+  }
+  function dtEkleSayfaHata(j, msg) {
+    j.st = 'error'; j.msg = msg;
+    try { const t = window.__gxKlasorTeslim; if (t && t.is === j.id) window.__gxKlasorTeslim = null; } catch (e) {}
+    dtEkleCiz(j); dtEklePerde(j);
+  }
+  function dtEkleSayfaCalistir(j) {
+    if (dtEkleSayfaAktif(j)) { j.st = 'queued'; dtEkleCiz(j); return; }
+    let kirli = false;
+    try { kirli = typeof window.__gxFormKirli === 'function' && Boolean(window.__gxFormKirli()); } catch (e) { kirli = false; }
+    if (kirli) { dtEkleSayfaHata(j, 'The open file has changes that are not saved. Save it first, then press Try again.'); return; }
+    let hazir = false;
+    try { hazir = Number(window.__gxKlasorForm || 0) >= 2 && typeof window.bubble_fn_start === 'function'; } catch (e) { hazir = false; }
+    if (!hazir) { dtEkleSayfaHata(j, 'The form is not ready yet. Wait a moment, then press Try again.'); return; }
+    const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === j.rid) : -1;
+    if (si < 0) { dtEkleSayfaHata(j, 'This file is not in the table any more.'); return; }
+    j.sent = true; j.acAt = Date.now(); j.acDeneme = 1;
+    window.__gxKlasorTeslim = { id: j.rid, files: j.files, at: Date.now(), kart: '', etiket: j.etiket, auto: true, sayfa: true, is: j.id,
+      kuru: window.__gxKlasorKuru === true, rapor: (o) => dtEkleSayfaRapor(j, o) };
+    try { if (typeof dtGezClose === 'function') dtGezClose(); } catch (e) {}
+    dtEkleIsciAc(si);
+    dtEkleCiz(j); dtEklePerde(j);
+    if (!_dtEkleSaat) _dtEkleSaat = setInterval(dtEkleNabiz, 1500);
+  }
+  // formun raporu (form bdf_klasorOtoIzle → t.rapor)
+  function dtEkleSayfaRapor(j, o) {
+    if (!o || j.st === 'done' || j.st === 'error' || j.st === 'queued') return;
+    j.last = Date.now();
+    if (o.st === 'upload') { if (j.st !== 'saving') { j.st = 'up'; j.k = Math.max(0, Math.min(j.n, Number(o.k) || 0)); } }
+    else if (o.st === 'saving') { j.st = 'saving'; j.kayit = true; j.k = Math.max(j.k, Math.min(j.n, Number(o.k) || 0)); }
+    else if (o.st === 'done') { j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(o.k) || j.n)); j.not = String(o.not || ''); j.doneAt = Date.now(); }
+    else if (o.st === 'error') { j.kayit = j.kayit || j.st === 'saving'; dtEkleSayfaHata(j, String(o.msg || 'The files could not be added.')); return; }
+    else return;
+    dtEkleCiz(j); dtEklePerde(j);
+  }
+  // sıradaki ekleme: önde pencere kapanınca (bitti ya da kişi kapattı) başlar
+  function dtEkleSiradaki() {
+    if (dtEkleSayfaAktif(null)) return;
+    const s = Array.from(_dtEkle.values()).filter(x => x.sayfa && x.st === 'queued').sort((a, b) => a.at - b.at)[0];
+    if (s) dtEkleCalistir(s);
+  }
+  // kayıt açılmadıysa 15 sn arayla yeniden açılır (en çok 3 kez); form susarsa hata. Çalışıyorsa true.
+  function dtEkleSayfaNabiz(j, now) {
+    const t = window.__gxKlasorTeslim;
+    const bekliyor = Boolean(t && t.is === j.id && !t.editIstendi);
+    if (j.st === 'opening' && bekliyor && now - j.acAt > 15000 && j.acDeneme < 3) {
+      const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === j.rid) : -1;
+      if (si >= 0) { j.acDeneme += 1; j.acAt = now; t.at = now; dtEkleIsciAc(si); return true; }
+    }
+    let msg = '';
+    if (j.st === 'opening' && now - j.t0 > 150000) msg = 'The file did not open. Try again.';
+    else if (j.st !== 'opening' && now - j.last > 150000) msg = j.kayit ? "Saving did not finish. Check the file's documents before you add them again." : 'The upload stopped. Try again.';
+    if (msg) { dtEkleSayfaHata(j, msg); return false; }
+    return true;
+  }
+  function dtEklePerdeKapat(v) {
+    v.hidden = true; v.__is = null;
+    setTimeout(dtEkleSiradaki, 0);
+  }
+  // önde pencere: bir iş sürerken sayfayı tutar; bitince kısa "Added" ve kapanır; hatada Try again / Close
+  function dtEklePerde(j) {
+    try {
+      let v = document.getElementById('gx-ekle-on');
+      if (!v) {
+        v = document.createElement('div');
+        v.id = 'gx-ekle-on';
+        v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-labelledby', 'gx-ekle-on-t');
+        v.innerHTML = '<div class="gx-ev-card" tabindex="-1"><span class="gx-ev-spin" aria-hidden="true"></span><span class="gx-ev-ok" aria-hidden="true">' + DT_EKLE_TIK_SVG + '</span>'
+          + '<span class="gx-ev-err" aria-hidden="true">' + DT_EKLE_HATA_SVG + '</span><strong class="gx-ev-t" id="gx-ekle-on-t"></strong>'
+          + '<span class="gx-ev-l" aria-live="polite"></span><div class="gx-ev-bar"><i></i></div><span class="gx-ev-n"></span>'
+          + '<div class="gx-ev-b"><button type="button" class="is-primary" data-ev="retry">Try again</button><button type="button" data-ev="close">Close</button></div></div>';
+        v.addEventListener('click', (e) => {
+          const b = e.target && e.target.closest ? e.target.closest('[data-ev]') : null;
+          const cur = v.__is;
+          if (!b || !cur) return;
+          if (b.getAttribute('data-ev') === 'retry' && cur.st === 'error' && !cur.kayit) { dtEkleCalistir(cur); return; }
+          if (b.getAttribute('data-ev') === 'close') dtEklePerdeKapat(v);
+        });
+        v.addEventListener('keydown', (e) => { if (e.key === 'Escape' && v.__is && (v.__is.st === 'error' || v.__is.st === 'done')) dtEklePerdeKapat(v); });
+        (document.body || document.documentElement).appendChild(v);
+      }
+      if (!j) return;
+      const ilk = v.hidden || !v.__is;
+      v.__is = j;
+      clearTimeout(v.__kapat);
+      const sira = Array.from(_dtEkle.values()).filter(x => x.sayfa && x.st === 'queued').length;
+      const kime = j.etiket ? ' to ' + j.etiket : '';
+      const t = j.st === 'done' ? 'Added ' + dtEkleAd(j.k) + kime : j.st === 'error' ? 'Files not added' : 'Adding ' + dtEkleAd(j.n) + kime;
+      const l = j.st === 'done' ? (j.k < j.n ? (j.n - j.k) + ' could not be added. ' : '') + 'Only the new ones are read for the claim.'
+        : j.st === 'error' ? (j.msg || '') : j.st === 'up' ? j.k + ' of ' + j.n + ' uploaded' : j.st === 'saving' ? 'Saving to the file' : 'Opening the file';
+      v.querySelector('.gx-ev-t').textContent = t;
+      v.querySelector('.gx-ev-l').textContent = l;
+      v.querySelector('.gx-ev-n').textContent = j.st === 'error' ? '' : (sira ? sira + ' more waiting. ' : '') + (j.st === 'done' ? '' : 'Please stay on this page until it finishes.');
+      v.querySelector('.gx-ev-bar>i').style.width = (j.st === 'done' ? 100 : j.n ? Math.round(100 * (j.st === 'saving' ? j.n : (j.k || 0)) / j.n) : 0) + '%';
+      v.classList.toggle('is-err', j.st === 'error');
+      v.classList.toggle('is-ok', j.st === 'done');
+      const rb = v.querySelector('[data-ev="retry"]');
+      if (rb) rb.hidden = !(j.st === 'error' && !j.kayit);
+      v.hidden = false;
+      if (j.st === 'error') { try { (rb && !rb.hidden ? rb : v.querySelector('[data-ev="close"]')).focus(); } catch (e) {} }
+      else if (ilk) { try { v.querySelector('.gx-ev-card').focus(); } catch (e) {} }
+      if (j.st === 'done') v.__kapat = setTimeout(() => { if (v.__is === j) dtEklePerdeKapat(v); }, 1800);
+    } catch (e) { console.warn("[EKLE] card", e); }
+  }
   // Activity kartı + gezginin "New" bölümü
   function dtEkleCiz(j) {
     const kime = j.etiket ? 'to ' + j.etiket : '';
     let kart;
-    if (j.st === 'opening') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: 0, n: 0, line: 'Opening the file in a helper tab' };
+    if (j.st === 'queued') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: 0, n: 0, line: 'Waits for the files before' };
+    else if (j.st === 'opening') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: 0, n: 0, line: j.sayfa ? 'Opening the file' : 'Opening the file in a helper tab' };
     else if (j.st === 'up') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.k, n: j.n, line: j.k + ' of ' + j.n + ' uploaded' };
     else if (j.st === 'saving') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.n, n: j.n, line: 'Saving to the file' };
     else if (j.st === 'done') kart = { title: 'Added ' + dtEkleAd(j.k), sub: kime, state: 'done', k: j.k, n: j.n, line: [j.k < j.n ? (j.n - j.k) + ' could not be added.' : '', 'Only the new ones are read for the claim.', j.not].filter(Boolean).join(' ') };
@@ -6039,7 +6188,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       ust = `<div class="dt-gez-ask" role="group" aria-labelledby="dt-gez-ask-t"><div class="dt-gez-ask-t" id="dt-gez-ask-t">Add ${escapeHtml(dtEkleAd(n))} to ${kime ? escapeHtml(kime) : 'this file'}?</div>`
         + '<ul class="dt-gez-ask-l">' + gos.map(f => `<li>${escapeHtml(f.name)}</li>`).join('') + (n > gos.length ? `<li class="is-more">and ${n - gos.length} more</li>` : '') + '</ul>'
         + `<div class="dt-gez-ask-b"><button class="dt-gez-btn is-primary" type="button" data-gez-act="ask-ok">Add ${escapeHtml(dtEkleAd(n))}</button><button class="dt-gez-btn" type="button" data-gez-act="ask-no">Cancel</button></div>`
-        + '<div class="dt-gez-ask-n">A helper tab opens and closes by itself. Only the new files are read for the claim.</div></div>';
+        + '<div class="dt-gez-ask-n">' + (window.__gxKlasorYardimciSekme === true ? 'A helper tab opens and closes by itself.' : 'They upload here, you stay on this page.') + ' Only the new files are read for the claim.</div></div>';
     } else {
       const mob = isMobileViewport();
       ust = `<div class="dt-gez-drop">${DT_EKLE_YUKLE_SVG}<div class="dt-gez-drop-t"><strong>${mob ? 'Add documents' : 'Drop documents here'}</strong><span>They go into this file's folder.</span></div>`

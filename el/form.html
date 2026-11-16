@@ -14895,6 +14895,15 @@
       // sekmesi, ?gxadd=) form kişiye hiçbir şey sormaz: dosyaları verir, yükleme bitince Done ile kaydeder (elle düzenlemenin kayıt yolu),
       // kaydın Bubble verisinde yeni adresleri görünce t.rapor({ st: 'done' }) der. İlerleme t.rapor ile tabloya döner.
       window.__gxKlasorForm = 2;   // tablo: bu form otomatik devri biliyor
+      // EKLE-SAYFA (16.11): tablo ek evrakı kişinin kendi sekmesinde ekler; açık formda kaydedilmemiş değişiklik varsa başka kaydı açmaz
+      window.__gxFormKirli = () => {
+        try {
+          if (isFormSaving) return true;
+          if (window.__gxBulk && window.__gxBulk.running) return true;
+          if (!(isEditPanelOpen || IS_EDITING_MODE)) return false;
+          return Boolean(isFormDirty || changedFieldKeys.size > 0);
+        } catch (_) { return false; }
+      };
       // yardımcı sekme: form verisi (alanlar) Bubble'dan sayfa açıldıktan ~15-23 sn sonra gelir; ondan önce açılan kayıt boş "Create" kalıyor (13.11 deneme)
       window.__gxKlasorFormHazir = () => { try { return Boolean(state.config && Array.isArray(state.config.fields) && state.config.fields.length); } catch (_) { return false; } };
       let bdfKlasorTeslimZaman = 0;
@@ -14923,12 +14932,19 @@
         } catch (_) { return false; }
       }
       function bdf_klasorOtoIzle(t, field, n, onceki, dzBase) {
-        const rapor = (o) => { try { if (typeof t.rapor === "function") t.rapor(o); } catch (_) { } };
+        let sonRaporAt = 0;   // EKLE-SAYFA: rapor en geç 5 sn'de bir (tablo formun sustuğunu buradan anlar)
+        const rapor = (o) => { sonRaporAt = Date.now(); try { if (typeof t.rapor === "function") t.rapor(o); } catch (_) { } };
         const key = field.key;
         const adresler = () => (Array.isArray(state.fileBuffers[key]) ? state.fileBuffers[key] : [])
           .map((f) => String((f && f.url) || "")).filter((u) => u && !onceki.has(u.split("?")[0]));
         let sonK = -1, hareket = Date.now(), kayitAt = 0, kayitOk = 0, yeni = [], bitti = false, kopukAt = 0;
-        const bitir = (o) => { if (bitti) return; bitti = true; clearInterval(iv); bdfKlasorOtoKey = ""; rapor(o); };
+        const bitir = (o) => {
+          if (bitti) return; bitti = true; clearInterval(iv); bdfKlasorOtoKey = ""; rapor(o);
+          // EKLE-SAYFA: kişinin kendi sekmesinde eklendiyse kayıt kaydedildikten sonra düzenleme kapanır (yan panel kaydın özetini gösterir)
+          if (o && o.st === "done" && t.sayfa) {
+            setTimeout(() => { try { if (isEditPanelOpen && !isFormSaving && readCurrentUniqueId() === t.id) setInlineEditPanelOpen(false); } catch (_) { } }, 400);
+          }
+        };
         const iv = setInterval(() => {
           try {
             const now = Date.now();
@@ -14945,6 +14961,7 @@
               const dz = bdf_bulkDzStats(key);
               const k = Math.min(n, Math.max(yeni.length, Math.max(0, dz.ok - dzBase.ok)));
               if (k !== sonK) { sonK = k; hareket = now; rapor({ st: "upload", k, n }); }
+              else if (now - sonRaporAt > 5000) rapor({ st: "upload", k, n });
               if (dz.prog > 0) hareket = Math.max(hareket, Number(BDF.__upProgressAt || 0));
               const tamam = !busy && yeni.length >= n;
               const kismi = !busy && yeni.length > 0 && now - hareket > 30000;
@@ -14962,6 +14979,7 @@
               return;
             }
             if (Number(BDF.__sonKayitOk || 0) >= kayitAt && !kayitOk) kayitOk = now;
+            if (now - sonRaporAt > 5000) rapor({ st: "saving", k: yeni.length, n });
             if (bdf_klasorKayittaMi(yeni)) { bitir({ st: "done", k: yeni.length, n, not: t.not || "" }); return; }
             // kayıt Bubble'a verildi ama kaydın verisinde yeni adres görünmedi: başarı denmez (13.11 deneme: "Added" dendi, kayıt değişmemişti)
             if (kayitOk && now - kayitOk > 60000) { bitir({ st: "error", msg: "Gaia did not confirm the save. Check the file's documents before you add them again." }); return; }
