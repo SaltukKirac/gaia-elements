@@ -4886,6 +4886,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // after every document is in it marks the page <html data-gaia-bridge-tam>; the request then carries tamBekle and the extension sends
   // gaiaBridgeEvrakIlerleme {alinan, toplam} while it downloads (shown on the button).
   function dtBridgeTamOk() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridgeTam); } catch (e) { return false; } }
+  /* GX-FILL-ARKA (13.11, Saltuk: "evrak yükleme genelde ilk yapılan işlem değil, önce kapak falan dolduruyorlar; önce eklentiye geçip
+     arkadan eklemeye devam etmesi daha sağlıklı"): an extension that marks <html data-gaia-bridge-arka> answers as soon as the case is in
+     it and keeps downloading the documents in the background (4 at a time, ones it already has are skipped); its upload window and upload
+     steps wait for them. The request then carries arkaPlan instead of tamBekle, and the dialog shows the live count. */
+  function dtBridgeArkaOk() { try { return !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.gaiaBridgeArka); } catch (e) { return false; } }
   function dtFillEvrakTam(res) {
     const ev = res && res.gaia && res.gaia.evrak;
     if (!ev || !Number(ev.toplam)) return true;
@@ -4910,10 +4915,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         resolve(d);
       };
       window.addEventListener(ev + 'Result', onResult);
-      timer = setTimeout(() => { window.removeEventListener(ev + 'Result', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, dtBridgeTamOk() ? 300000 : 60000);   // GX-FILL-TAM: up to 4 min of documents in the extension, then the answer
+      timer = setTimeout(() => { window.removeEventListener(ev + 'Result', onResult); resolve({ requestId: requestId, ok: false, error: 'The Gaia Bridge extension did not answer. Reload the page and try again.' }); }, (dtBridgeTamOk() && !dtBridgeArkaOk()) ? 300000 : 60000);   // GX-FILL-TAM: up to 4 min of documents in the extension, then the answer (GX-FILL-ARKA: no wait)
       const detail = src && src.kayit ? { requestId: requestId, kayit: src.kayit } : { requestId: requestId, paket: src && src.paket };
       if (degistir) detail.degistir = true;
-      if (dtBridgeTamOk()) detail.tamBekle = true;
+      if (dtBridgeArkaOk()) detail.arkaPlan = true;   // GX-FILL-ARKA
+      else if (dtBridgeTamOk()) detail.tamBekle = true;
       window.dispatchEvent(new CustomEvent(ev, { detail: JSON.stringify(detail) }));
     });
   }
@@ -4950,7 +4956,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (!yes) return;
         res = await dtFillSend(p, true);
       }
-      if (res && res.ok && dtFillEvrakTam(res)) dtFillDoneModal(res);   // GX-FILL-OK (02.11, Ömer): a dialog the expert closes with Tamam, not a passing toast; GX-FILL-TAM: only when every document is in the extension
+      if (res && res.ok && dtBridgeArkaOk() && res.gaia && res.gaia.evrak && res.gaia.evrak.suruyor) dtFillDoneModal(res, true);   // GX-FILL-ARKA: the case is in, documents follow
+      else if (res && res.ok && dtFillEvrakTam(res)) dtFillDoneModal(res);   // GX-FILL-OK (02.11, Ömer): a dialog the expert closes with Tamam, not a passing toast; GX-FILL-TAM: only when every document is in the extension
       else if (res && res.ok) dtFillEvrakEksik(res);
       else if (dtFillNeedsRegister(res)) dtOfferRegister(res);   // GX-CIHAZ: the package is not for this browser yet
       else showWakeToast((res && res.error) ? String(res.error) : 'The extension could not take this claim.', 'error');
@@ -4985,7 +4992,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
      The extension answered ok (the case is prepared in it). The dialog closes only with its button (no backdrop click, no
      Escape), so the step is not missed; the extension's own popup makes "▶ Write for real" pulse until it is pressed.
      Turkish on purpose (Ömer's wording for the office). The documents note the extension returns stays as a second line. */
-  function dtFillDoneModal(res) {
+  function dtFillDoneModal(res, arka) {
     const body = '<p class="dt-fill-ok-main"></p><p class="dt-fill-ok-note"></p>';
     const modal = openWakeModal('Eklentiye yüklendi', body, [
       { label: 'Tamam', primary: true, onClick: () => closeWakeModal() }
@@ -4994,7 +5001,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try {
       const m = modal.querySelector('.dt-fill-ok-main'); if (m) m.textContent = 'Dosyanız yüklenmiştir. Lütfen Write for real\'e tıklayınız.';
       const n = modal.querySelector('.dt-fill-ok-note');
-      if (n) { if (res && res.gaiaNotu) n.textContent = String(res.gaiaNotu).trim(); else n.remove(); }
+      if (n && arka) dtFillArkaIzle(res, n);   // GX-FILL-ARKA
+      else if (n) { if (res && res.gaiaNotu) n.textContent = String(res.gaiaNotu).trim(); else n.remove(); }
       const bd = modal.parentElement;
       if (bd) {   // only Tamam closes it (capture runs before the shared backdrop / Escape handlers)
         bd.addEventListener('click', e => { if (e.target === bd) e.stopImmediatePropagation(); }, true);
@@ -5002,6 +5010,34 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
       const ok = modal.querySelector('.dt-wake-primary'); if (ok) setTimeout(() => { try { ok.focus(); } catch (e) {} }, 0);
     } catch (e) {}
+  }
+  // GX-FILL-ARKA: the dialog's second line counts the documents still coming into the extension; when the last one is in it says so (and a
+  // short toast says it if the dialog was already closed). Listens at most 10 min.
+  function dtFillArkaIzle(res, note) {
+    const ev = (res && res.gaia && res.gaia.evrak) || {};
+    const yaz = (a, t) => {
+      if (!note || !note.isConnected) return;
+      note.textContent = a >= t ? t + '/' + t + ' evrak eklentide ✓'
+        : 'Evrak arka planda eklentiye aktarılıyor: ' + a + '/' + t + '. Kapak ve öbür sayfaları doldurmaya başlayabilirsiniz; evrak yükleme sırası gelince hazır olur.';
+    };
+    yaz(Number(ev.alinan) || 0, Number(ev.toplam) || 0);
+    let bitti = false, saat = null;
+    const kapat = () => { bitti = true; window.removeEventListener('gaiaBridgeEvrakIlerleme', on); clearTimeout(saat); };
+    const on = e => {
+      if (bitti) return;
+      let d = null; try { d = typeof e.detail === 'string' ? JSON.parse(e.detail) : (e.detail || {}); } catch (x) { d = null; }
+      const a = Number(d && d.alinan) || 0, t = Number(d && d.toplam) || 0;
+      if (!t) return;
+      if (d.bitti && a < t) {   // the download ended without every document: say so, the expert presses Fill again (the ones in are not re-downloaded)
+        const m = a + '/' + t + ' evrak eklentide; ' + (t - a) + ' evrak alınamadı. Fill düğmesine yeniden basın.';
+        if (note.isConnected) note.textContent = m; else showWakeToast(m, 'error');
+        kapat(); return;
+      }
+      yaz(a, t);
+      if (a >= t) { if (!note.isConnected) showWakeToast(t + '/' + t + ' evrak eklentide.', 'success'); kapat(); }
+    };
+    window.addEventListener('gaiaBridgeEvrakIlerleme', on);
+    saat = setTimeout(kapat, 600000);
   }
   /* GX-FILL-END */
 
