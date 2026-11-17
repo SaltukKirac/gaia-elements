@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "saltuk-dil",
-    "rev":  60,
-    "updated":  "2026-11-17T15:00:53Z",
+    "rev":  61,
+    "updated":  "2026-11-17T15:02:29Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -29,12 +29,12 @@
                                   "updated":  "2026-11-16T12:27:22Z"
                               },
                      "lang-tr":  {
-                                     "commit":  "ec91ee30314822ff8c27b843e101efb1061a539a",
+                                     "commit":  "6211c89ad2637231f8857e05efee914464d132a6",
                                      "path":  "el/lang-tr.html",
-                                     "blob":  "934e3530ba6d25ff52f7bade793613faf90d0f78",
-                                     "bytes":  26436,
+                                     "blob":  "36701bd59ed07b924e2929030b6f3b0dd939f6f4",
+                                     "bytes":  26437,
                                      "title":  "Turkish UI layer - app page (auto, no Bubble stub)",
-                                     "updated":  "2026-11-17T15:00:53Z"
+                                     "updated":  "2026-11-17T15:02:29Z"
                                  },
                      "onboarding":  {
                                         "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
