@@ -47,12 +47,19 @@
       location.replace(base + (base.indexOf('?') >= 0 ? '&' : '?') + 'lang=' + v + (h[1] ? '#' + h[1] : ''));
     }
   }
+  function barOk(g) {
+    var r = g.getBoundingClientRect(), vh = W.innerHeight || 0, vw = W.innerWidth || 0;
+    return r.left <= 1 && r.top <= 1 && r.width >= 200 && r.width <= Math.max(360, vw) && r.height >= vh * 0.8;
+  }
   function findBar() {
+    // once akis kredisi kartinin menusu (telefonda menu tam ekran, kart ustte)
+    var c = D.querySelector('.fcw-unit');
+    for (var p = c; p && p !== D.body; p = p.parentElement) {
+      if (p.classList && p.classList.contains('FloatingGroup')) return p;   // menu kapaliysa dugme onunla gizlenir
+    }
     var gs = D.querySelectorAll('.FloatingGroup');
-    var vh = W.innerHeight || 0;
     for (var i = 0; i < gs.length; i++) {
-      var r = gs[i].getBoundingClientRect();
-      if (r.left <= 1 && r.top <= 1 && r.width >= 200 && r.width <= 360 && r.height >= vh * 0.8) return gs[i];
+      if (gs[i].getBoundingClientRect().width <= 360 && barOk(gs[i])) return gs[i];
     }
     return null;
   }
@@ -63,6 +70,7 @@
       st.textContent =
         '#gx-lang-sw{position:absolute;top:20px;right:14px;z-index:60;display:inline-flex;gap:2px;padding:2px;margin:0;' +
         'border:1px solid #e2e8f0;border-radius:999px;background:#fff;font:600 11px/1 Inter,"Segoe UI",sans-serif;letter-spacing:.02em}' +
+        '#gx-lang-sw.gx-narrow{flex-direction:column;top:18px;right:8px}' +
         '#gx-lang-sw.gx-fixed{position:fixed;top:auto;right:auto;left:12px;bottom:12px;z-index:2147483000;box-shadow:0 1px 3px rgba(15,23,42,.14)}' +
         '#gx-lang-sw button{all:unset;box-sizing:border-box;cursor:pointer;min-width:30px;height:24px;padding:0 8px;border-radius:999px;' +
         'text-align:center;line-height:24px;color:#475569;font:inherit}' +
@@ -97,6 +105,10 @@
     var host = bar || D.body;
     if (sw.parentNode !== host) host.appendChild(sw);
     if (bar) sw.classList.remove('gx-fixed'); else sw.classList.add('gx-fixed');
+    var bw = bar ? bar.getBoundingClientRect().width : 0;
+    if (bw === 0) return;   // menu gizli: sinifi degistirme
+    var narrow = bw > 360;   // telefon: menu tam ekran, kartin sagi dar
+    if (narrow) sw.classList.add('gx-narrow'); else sw.classList.remove('gx-narrow');
   }
   api.placeSwitch = placeSwitch;
   try { placeSwitch(); } catch (e) { /* ignore */ }
