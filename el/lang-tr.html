@@ -3,6 +3,7 @@
      Yalniz arayuz yazilari cevrilir (tam eslesen metin + placeholder / title / aria-label). Musteri verisi CEVRILMEZ:
      tablo (baslik + satirlar), Board kartlari, alan cipleri, form alanlari (#dynamicForm), yazilabilir alanlar, translate="no" / .notranslate / [data-gx-notr].
      Elementlerin kodu degismez; metni ceviri katmani DOM'da degistirir, yeniden cizilen metni MutationObserver yakalar.
+     Kullanici dili sol menunun ust sag kosesindeki TR / EN dugmesiyle degistirir (tarayicida kalir).
      Kapatma: ?lang=en (o tarayicida kalici), ya da manifestten lang-tr'yi kaldir. Hata ayiklama: window.__gxTr -->
 <script>
 (function (W, D) {
@@ -28,7 +29,79 @@
   }
 
   var choice = pick();
-  var api = W.__gxTr = { v: 1, lang: choice.lang, why: choice.why, done: 0, misses: null };
+  var api = W.__gxTr = { v: 2, lang: choice.lang, why: choice.why, done: 0, misses: null };
+
+  // ---- TR / EN dugmesi (17.11): kullanici adres yazmadan dil secer. Sol menunun ust sag kosesi;
+  // menu yoksa (telefon, kapali menu) sol alt kosede sabit. Secim tarayicida kalir, sayfa yenilenir.
+  function setLang(v) {
+    if (v === api.lang) return;
+    var saved = false;
+    try { localStorage.setItem('gx_lang', v); saved = localStorage.getItem('gx_lang') === v; } catch (e) { saved = false; }
+    var href = location.href;
+    if (saved) {
+      var u = href.replace(/([?&])lang=(?:tr|en)(&|(?=#|$))/i, function (m, a, c) { return c ? a : ''; });
+      if (u !== href) { location.replace(u); return; }
+      location.reload();
+    } else {
+      var h = href.split('#'), base = h[0].replace(/([?&])lang=(?:tr|en)(&|$)/i, function (m, a, c) { return c ? a : ''; });
+      location.replace(base + (base.indexOf('?') >= 0 ? '&' : '?') + 'lang=' + v + (h[1] ? '#' + h[1] : ''));
+    }
+  }
+  function findBar() {
+    var gs = D.querySelectorAll('.FloatingGroup');
+    var vh = W.innerHeight || 0;
+    for (var i = 0; i < gs.length; i++) {
+      var r = gs[i].getBoundingClientRect();
+      if (r.left <= 1 && r.top <= 1 && r.width >= 200 && r.width <= 360 && r.height >= vh * 0.8) return gs[i];
+    }
+    return null;
+  }
+  function buildSwitch() {
+    if (!D.getElementById('gx-lang-sw-css')) {
+      var st = D.createElement('style');
+      st.id = 'gx-lang-sw-css';
+      st.textContent =
+        '#gx-lang-sw{position:absolute;top:20px;right:14px;z-index:6;display:inline-flex;gap:2px;padding:2px;margin:0;' +
+        'border:1px solid #e2e8f0;border-radius:999px;background:#fff;font:600 11px/1 Inter,"Segoe UI",sans-serif;letter-spacing:.02em}' +
+        '#gx-lang-sw.gx-fixed{position:fixed;top:auto;right:auto;left:12px;bottom:12px;z-index:2147483000;box-shadow:0 1px 3px rgba(15,23,42,.14)}' +
+        '#gx-lang-sw button{all:unset;box-sizing:border-box;cursor:pointer;min-width:30px;height:24px;padding:0 8px;border-radius:999px;' +
+        'text-align:center;line-height:24px;color:#475569;font:inherit}' +
+        '#gx-lang-sw button[aria-pressed="true"]{background:#6366f1;color:#fff;cursor:default}' +
+        '#gx-lang-sw button:not([aria-pressed="true"]):hover{background:#eef2ff;color:#0f172a}' +
+        '#gx-lang-sw button:focus-visible{outline:2px solid #6366f1;outline-offset:1px}';
+      (D.head || D.documentElement).appendChild(st);
+    }
+    var sw = D.createElement('div');
+    sw.id = 'gx-lang-sw';
+    sw.setAttribute('role', 'group');
+    sw.setAttribute('aria-label', 'Dil / Language');
+    sw.setAttribute('translate', 'no');
+    sw.setAttribute('data-gx-notr', '1');
+    [['tr', 'TR', 'Türkçe'], ['en', 'EN', 'English']].forEach(function (o) {
+      var b = D.createElement('button');
+      b.type = 'button';
+      b.textContent = o[1];
+      b.title = o[2];
+      b.setAttribute('aria-label', o[2]);
+      b.setAttribute('aria-pressed', api.lang === o[0] ? 'true' : 'false');
+      b.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); setLang(o[0]); });
+      sw.appendChild(b);
+    });
+    return sw;
+  }
+  var sw = null;
+  function placeSwitch() {
+    if (!D.body) return;
+    if (!sw) sw = buildSwitch();
+    var bar = findBar();
+    var host = bar || D.body;
+    if (sw.parentNode !== host) host.appendChild(sw);
+    if (bar) sw.classList.remove('gx-fixed'); else sw.classList.add('gx-fixed');
+  }
+  api.placeSwitch = placeSwitch;
+  try { placeSwitch(); } catch (e) { /* ignore */ }
+  setInterval(function () { try { placeSwitch(); } catch (e) { /* ignore */ } }, 1500);   // Bubble menuyu yeniden cizebilir
+
   if (choice.lang !== 'tr') return;
 
   // ---- sozluk: tam eslesen (bosluklari sadelestirilmis) metin -> Turkce
