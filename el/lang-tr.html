@@ -469,7 +469,7 @@
   }
   function queue(n) {
     pend.push(n);
-    if (!sched) { sched = true; (W.requestAnimationFrame || setTimeout)(flush, 16); }
+    if (!sched) { sched = true; setTimeout(flush, 30); }   // rAF arka plan sekmesinde hic calismaz
   }
 
   function start() {
