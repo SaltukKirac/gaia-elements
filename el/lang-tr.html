@@ -1,0 +1,508 @@
+<!-- GAIA - LANG-TR (17.11.2026): /app arayuzu Turkiye'den girilince Turkce.
+     Karar: ?lang=tr|en (sekmede ve tarayicida hatirlanir) > tarayici dili tr > saat dilimi Europe/Istanbul > Ingilizce.
+     Yalniz arayuz yazilari cevrilir (tam eslesen metin + placeholder / title / aria-label). Musteri verisi CEVRILMEZ:
+     tablo (baslik + satirlar), Board kartlari, alan cipleri, form alanlari (#dynamicForm), yazilabilir alanlar, translate="no" / .notranslate / [data-gx-notr].
+     Elementlerin kodu degismez; metni ceviri katmani DOM'da degistirir, yeniden cizilen metni MutationObserver yakalar.
+     Kapatma: ?lang=en (o tarayicida kalici), ya da manifestten lang-tr'yi kaldir. Hata ayiklama: window.__gxTr -->
+<script>
+(function (W, D) {
+  'use strict';
+  if (W.__gxTr) return;
+
+  function pick() {
+    var q = null;
+    try { q = /[?&]lang=(tr|en)(?:&|#|$)/i.exec(location.search || ''); } catch (e) { q = null; }
+    if (q) {
+      var v = q[1].toLowerCase();
+      try { localStorage.setItem('gx_lang', v); } catch (e) { /* storage blocked */ }
+      return { lang: v, why: 'url' };
+    }
+    try { var s = localStorage.getItem('gx_lang'); if (s === 'tr' || s === 'en') return { lang: s, why: 'saved' }; } catch (e) { /* blocked */ }
+    var first = '';
+    try { first = String((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase(); } catch (e) { first = ''; }
+    if (first.indexOf('tr') === 0) return { lang: 'tr', why: 'browser' };
+    var tz = '';
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { tz = ''; }
+    if (tz === 'Europe/Istanbul' || tz === 'Asia/Istanbul') return { lang: 'tr', why: 'timezone' };
+    return { lang: 'en', why: 'default' };
+  }
+
+  var choice = pick();
+  var api = W.__gxTr = { v: 1, lang: choice.lang, why: choice.why, done: 0, misses: null };
+  if (choice.lang !== 'tr') return;
+
+  // ---- sozluk: tam eslesen (bosluklari sadelestirilmis) metin -> Turkce
+  var T = {
+    // Bubble kabuk / yan menu / akis kredisi
+    'My Workspace': 'Çalışma Alanım',
+    'Add Table': 'Tablo Ekle',
+    'Browse AI templates': 'AI şablonlarına göz at',
+    'Ready-to-use assistants · no code': 'Hazır asistanlar · kod gerekmez',
+    'Flows': 'Akış',
+    'Renews': 'Yenilenme',
+    'used': 'kullanıldı',
+    'Settings': 'Ayarlar',
+    'Log out': 'Çıkış yap',
+    'Logout': 'Çıkış yap',
+    'Sign out': 'Çıkış yap',
+    'Billing': 'Faturalandırma',
+    'Upgrade': 'Yükselt',
+    'Help': 'Yardım',
+    'Search': 'Ara',
+    'Search...': 'Ara...',
+    'Workspaces': 'Çalışma alanları',
+    'Choose workspace': 'Çalışma alanı seç',
+    'Notifications': 'Bildirimler',
+    'Invite': 'Davet et',
+    'Rename': 'Yeniden adlandır',
+    'Duplicate': 'Çoğalt',
+    'Delete': 'Sil',
+    'Remove': 'Kaldır',
+    'Share': 'Paylaş',
+    'More': 'Daha fazla',
+    'Refresh': 'Yenile',
+    'Done': 'Tamam',
+    'OK': 'Tamam',
+    'Ok': 'Tamam',
+    'Yes': 'Evet',
+    'No': 'Hayır',
+    'Confirm': 'Onayla',
+    'Continue': 'Devam',
+    'Retry': 'Yeniden dene',
+    'Try again': 'Yeniden dene',
+    'Upload': 'Yükle',
+    'Download': 'İndir',
+    'Copy': 'Kopyala',
+    'Copied': 'Kopyalandı',
+    'Copied!': 'Kopyalandı!',
+    'Saved': 'Kaydedildi',
+    'Show more': 'Daha fazla göster',
+    'Show less': 'Daha az göster',
+    'View all': 'Tümünü gör',
+    'See all': 'Tümünü gör',
+    'Learn more': 'Daha fazla bilgi',
+    'Get started': 'Başlayın',
+
+    // Architect kabugu
+    'Write': 'Yaz',
+    'Templates': 'Şablonlar',
+    'Connections': 'Bağlantılar',
+    "Hi — I'm your AI Architect.": 'Merhaba, ben AI Architect’iniz.',
+    'Or start with one of these:': 'Ya da bunlardan biriyle başlayın:',
+    'Email triage': 'E-posta ayıklama',
+    'CV screening': 'CV eleme',
+    'Support tickets': 'Destek talepleri',
+    'Meeting notes': 'Toplantı notları',
+    'Lead scoring': 'Potansiyel müşteri puanlama',
+    'Bulk collect': 'Toplu toplama',
+    'Drop your documents here': 'Belgelerinizi buraya bırakın',
+    'Drag your documents in, or use the clip. I will build the automation around them and run it once.': 'Belgelerinizi sürükleyin ya da ataşı kullanın. Otomasyonu onların etrafında kurup bir kez çalıştırırım.',
+    'AI Assistant': 'AI Asistan',
+    'Ready': 'Hazır',
+    'Your message to AI': 'AI’ye mesajınız',
+    'Saving…': 'Kaydediliyor…',
+    'Saving...': 'Kaydediliyor...',
+    'Loading…': 'Yükleniyor…',
+    'Loading...': 'Yükleniyor...',
+    'Loading': 'Yükleniyor',
+
+    // Sablon kutuphanesi (kart metinleri translate="no", cevrilmez)
+    'All Sectors': 'Tüm sektörler',
+    'All Integrations': 'Tüm entegrasyonlar',
+    'Full library': 'Tüm kütüphane',
+    'Flagship': 'Öne çıkan',
+    'Popular': 'Popüler',
+    '3 steps': '3 adım',
+    'Preview on your own data': 'Kendi verinizle önizleyin',
+    'Start setup': 'Kuruluma başla',
+    'See what it does': 'Ne yaptığını gör',
+    'Customize →': 'Özelleştir →',
+    'Customize': 'Özelleştir',
+    'Quick Start': 'Hızlı başlangıç',
+    'Easy': 'Kolay',
+    'Previous': 'Önceki',
+    'Next': 'Sonraki',
+
+    // Baglantilar / entegrasyonlar
+    '🛠 Select Your Tools': '🛠 Araçlarınızı seçin',
+    'Apply ✓': 'Uygula ✓',
+    'No tools selected yet': 'Henüz araç seçilmedi',
+    'Integrations': 'Entegrasyonlar',
+    'integrations': 'entegrasyonlar',
+    '⚡ My Active Triggers': '⚡ Etkin tetikleyicilerim',
+    'Searching for active triggers...': 'Etkin tetikleyiciler aranıyor...',
+    'OpenAI Native Tools': 'OpenAI yerleşik araçları',
+    'Native': 'Yerleşik',
+    '○ Not connected': '○ Bağlı değil',
+    'Connected': 'Bağlı',
+    'Not connected': 'Bağlı değil',
+    'Connect': 'Bağla',
+    'Load More': 'Daha fazla yükle',
+    'Back': 'Geri',
+    'Something not working? Reconnect and allow every permission.': 'Bir şey çalışmıyor mu? Yeniden bağlanın ve bütün izinleri verin.',
+    'Reconnect': 'Yeniden bağlan',
+    'Disconnect': 'Bağlantıyı kes',
+    'Actions': 'Eylemler',
+    'Wake-Ups': 'Uyandırmalar',
+    'Connection Required': 'Bağlantı gerekli',
+    'You need to connect your account to use this agent.': 'Bu ajanı kullanmak için hesabınızı bağlamanız gerekiyor.',
+    'Connect Account': 'Hesabı bağla',
+    'Open in New Tab': 'Yeni sekmede aç',
+    'Checking connection...': 'Bağlantı kontrol ediliyor...',
+    'Continue without this app': 'Bu uygulama olmadan devam et',
+    'Creating your assistant': 'Asistanınız oluşturuluyor',
+    'This usually takes a few seconds.': 'Bu genellikle birkaç saniye sürer.',
+    'Assistant created': 'Asistan oluşturuldu',
+    'Add your first record': 'İlk kaydınızı ekleyin',
+    'Open your workspace': 'Çalışma alanınızı açın',
+
+    // Ajan yapilandirma (Architect + Prompt Builder)
+    'Agent Configuration': 'Ajan yapılandırması',
+    '+ Add': '+ Ekle',
+    '🌐 Extension': '🌐 Eklenti',
+    'How this agent gets woken up: by events, on a timer, or by hand from the table.': 'Bu ajan nasıl uyanır: olaylarla, zamanlayıcıyla ya da tablodan elle.',
+    'Start when added to task list': 'Görev listesine eklenince başlat',
+    'Agent runs automatically when a new task arrives': 'Yeni görev gelince ajan kendiliğinden çalışır',
+    'Event wake-ups': 'Olayla uyandırma',
+    'Enter Trigger ID or Webhook URL:': 'Tetikleyici kimliği ya da Webhook adresi girin:',
+    '✓ Add': '✓ Ekle',
+    'AI Edit': 'AI düzenleme',
+    'Fields': 'Alanlar',
+    'Tools': 'Araçlar',
+    'Effort': 'Efor',
+    'Knowledge': 'Bilgi',
+    'Added to system upon approval.': 'Onaylanınca sisteme eklenir.',
+    'No fields yet.': 'Henüz alan yok.',
+    'in the prompt or click': 'yazın ya da',
+    'to add one.': 'tıklayın.',
+    'Tools the agent can use.': 'Ajanın kullanabileceği araçlar.',
+    'Require tool use': 'Araç kullanımını zorunlu kıl',
+    'The agent MUST call one of the tools above; it cannot reply with text-only. Applies only to the tools listed in this section.': 'Ajan yukarıdaki araçlardan birini ÇAĞIRMAK zorundadır; yalnız metinle cevap veremez. Yalnız bu bölümdeki araçlar için geçerlidir.',
+    'As thinking depth increases, processing time and cost also increase.': 'Düşünme derinliği arttıkça işlem süresi ve maliyet de artar.',
+    '⚡ Low — Fast Solution': '⚡ Düşük: hızlı çözüm',
+    '⚖️ Medium — Default': '⚖️ Orta: varsayılan',
+    '🧠 High — In-depth': '🧠 Yüksek: derinlemesine',
+    '⚡ Low:': '⚡ Düşük:',
+    '⚖️ Medium:': '⚖️ Orta:',
+    '🧠 High:': '🧠 Yüksek:',
+    'Ideal for simple queries and quick responses.': 'Basit sorgular ve hızlı cevaplar için ideal.',
+    'Recommended for standard automation tasks.': 'Standart otomasyon işleri için önerilir.',
+    'Use for complex multi-step analyses.': 'Çok adımlı karmaşık analizler için kullanın.',
+    'Model (chosen by the Architect)': 'Model (Architect seçer)',
+    'Platform default': 'Platform varsayılanı',
+    'Task Instructions': 'Görev talimatları',
+    "to add a variable, or tell the assistant on the left what you'd like to do.": 'tuşuna basın ya da soldaki asistana ne yapmak istediğinizi söyleyin.',
+    'AI Suggested Changes': 'AI’nin önerdiği değişiklikler',
+    'Reject': 'Reddet',
+    'Accept All': 'Tümünü kabul et',
+    '✓ Accept All': '✓ Tümünü kabul et',
+    'Test Agent': 'Ajanı test et',
+    'Test mode': 'Test kipi',
+    'Run Test': 'Testi çalıştır',
+    'Try with sample data': 'Örnek veriyle dene',
+    'Assign': 'Ata',
+    '✓ Assign': '✓ Ata',
+    'Routing': 'Yönlendirme',
+    'Routings': 'Yönlendirmeler',
+    'Approve and Launch Agent 🚀': 'Onayla ve ajanı başlat 🚀',
+    'Launch Agent 🚀': 'Ajanı başlat 🚀',
+    'Setup': 'Kurulum',
+    'Instructions': 'Talimatlar',
+    'Review AI Changes': 'AI değişikliklerini incele',
+    '＋ Added': '＋ Eklendi',
+    '－ Removed': '－ Kaldırıldı',
+    'You have unreviewed AI changes. Choose': 'İncelenmemiş AI değişiklikleri var. Saklamak için',
+    'You have unreviewed AI changes.': 'İncelenmemiş AI değişiklikleri var.',
+    'to keep them or': 'seçin ya da',
+    'Discard': 'Vazgeç',
+    'to drop them, then continue.': 'ile bırakın, sonra devam edin.',
+    'Assign to Task': 'Göreve ata',
+    'Assigned People': 'Atanan kişiler',
+    '+ Add User': '+ Kullanıcı ekle',
+    '📋 Existing Routings': '📋 Mevcut yönlendirmeler',
+    '+ New Routing': '+ Yeni yönlendirme',
+    'Task List': 'Görev listesi',
+    '+ Create New Task List': '+ Yeni görev listesi oluştur',
+    '🤖 Task Note (required)': '🤖 Görev notu (zorunlu)',
+    'Should the process wait until this task is complete?': 'Süreç bu görev bitene kadar beklesin mi?',
+    'Yes — Process waits': 'Evet: süreç bekler',
+    "Other stages won't start until completion.": 'Görev bitmeden diğer aşamalar başlamaz.',
+    'No — Independent task': 'Hayır: bağımsız görev',
+    'Process continues; task runs in parallel.': 'Süreç devam eder; görev paralel çalışır.',
+    'People Assignment': 'Kişi ataması',
+    '— optional (default: only you)': '(isteğe bağlı; varsayılan: yalnız siz)',
+    'Routing Name': 'Yönlendirme adı',
+    '✓ Create and Add to Prompt': '✓ Oluştur ve komut metnine ekle',
+    'Flow Prompt Builder': 'Akış komut düzenleyici',
+    'to add a custom field or action': 'özel alan ya da eylem eklemek için',
+    'Native Tools': 'Yerleşik araçlar',
+    'Image Generation': 'Görsel üretme',
+    'Web Search': 'Web araması',
+    'Code Interpreter': 'Kod yorumlayıcı',
+    'File Search': 'Dosya araması',
+    'Reasoning': 'Muhakeme',
+    'Save': 'Kaydet',
+    'Test Prompt': 'Komutu test et',
+    '🔧 Apps': '🔧 Uygulamalar',
+    '📋 Fields': '📋 Alanlar',
+    'Apps yükleniyor...': 'Uygulamalar yükleniyor...',
+    'Drop files here to upload (or click)': 'Yüklemek için dosyaları buraya bırakın (ya da tıklayın)',
+
+    // Tablo arac cubugu ve menuleri (satirlar / hucreler CEVRILMEZ)
+    'Sort by due date': 'Son tarihe göre sırala',
+    'Import': 'İçe aktar',
+    'Export': 'Dışa aktar',
+    'Add field': 'Alan ekle',
+    'Manage fields': 'Alanları yönet',
+    'Set up Assistant': 'Asistanı kur',
+    'New': 'Yeni',
+    'No fields defined yet': 'Henüz alan tanımlanmadı',
+    'Add your first field to start building your table.': 'Tablonuzu kurmaya başlamak için ilk alanınızı ekleyin.',
+    'Drop folders here': 'Klasörleri buraya bırakın',
+    'Each folder becomes one new record': 'Her klasör yeni bir kayıt olur',
+    'New record': 'Yeni kayıt',
+    'Select Due Date Fields': 'Son tarih alanlarını seçin',
+    'Pick the date fields used for due-date sorting.': 'Son tarihe göre sıralamada kullanılacak tarih alanlarını seçin.',
+    'Cancel': 'İptal',
+    'Apply': 'Uygula',
+    'Field menu': 'Alan menüsü',
+    'Insert left': 'Sola ekle',
+    'Insert right': 'Sağa ekle',
+    'Filter': 'Filtrele',
+    'Sort': 'Sırala',
+    'Sort ascending': 'Artan sırala',
+    'Sort descending': 'Azalan sırala',
+    'Filter by value:': 'Değere göre filtrele:',
+    'Select all': 'Tümünü seç',
+    'Clear': 'Temizle',
+    'Conditions': 'Koşullar',
+    'Filter by condition:': 'Koşula göre filtrele:',
+    'None': 'Yok',
+    'Is empty': 'Boş',
+    'Is not empty': 'Boş değil',
+    'Is equal to': 'Eşittir',
+    'Is not equal to': 'Eşit değildir',
+    'Begins with': 'İle başlar',
+    'Ends with': 'İle biter',
+    'Contains': 'İçerir',
+    'Does not contain': 'İçermez',
+    'And': 'Ve',
+    'Or': 'Veya',
+    'Search records': 'Kayıtlarda ara',
+    'Search records...': 'Kayıtlarda ara...',
+    'Hide field': 'Alanı gizle',
+    'Show all': 'Tümünü göster',
+    'Save all to a folder': 'Hepsini bir klasöre kaydet',
+
+    // Form alt cubugu (alan etiketleri #dynamicForm icinde, cevrilmez)
+    'Select action': 'Eylem seç',
+    'Create without action': 'Eylemsiz oluştur',
+    'Edit': 'Düzenle',
+    'No actions yet': 'Henüz eylem yok',
+    'Create': 'Oluştur',
+    'Submit': 'Gönder',
+    'Close': 'Kapat',
+    'Save only': 'Yalnız kaydet'
+  };
+
+  // Sektor adlari YALNIZ sayili filtre etiketinde cevrilir ("Sales (83)"): tek basina musteri alan adi olabilir.
+  var SECT = {
+    'Email': 'E-posta',
+    'Product': 'Ürün',
+    'Sales': 'Satış',
+    'Finance': 'Finans',
+    'Customer Service': 'Müşteri hizmetleri',
+    'Technology': 'Teknoloji',
+    'General': 'Genel',
+    'Recruiting': 'İşe alım',
+    'Marketing': 'Pazarlama',
+    'E-commerce': 'E-ticaret',
+    'Operations': 'Operasyon',
+    'Real Estate': 'Gayrimenkul',
+    'Legal': 'Hukuk',
+    'Human Resources': 'İnsan kaynakları',
+    'Productivity': 'Verimlilik',
+    'Healthcare': 'Sağlık',
+    'Education': 'Eğitim',
+    'Consulting': 'Danışmanlık',
+    'Manufacturing': 'Üretim',
+    'Startup': 'Girişim',
+    'Accounting': 'Muhasebe',
+    'Construction': 'İnşaat',
+    'Government': 'Kamu',
+    'Nonprofit': 'Kâr amacı gütmeyen',
+    'Agency': 'Ajans',
+    'Aviation': 'Havacılık',
+    'Communication': 'İletişim',
+    'Compliance': 'Uyum',
+    'HR': 'İK',
+    'IT Support': 'BT destek',
+    'Logistics': 'Lojistik',
+    'Media & Entertainment': 'Medya ve eğlence',
+    'Procurement': 'Satın alma'
+  };
+
+  // Parcali cumleler (klavye cipinin iki yani): kelime yalniz ayni ebeveynde isaret metni varsa cevrilir.
+  var CTX = {
+    'Type': [['in the prompt or click', 'yazın ya da'], 'Yeni alan için komut metnine'],
+    'Press': [['to add a variable', 'tuşuna basın'], 'Değişken eklemek için'],
+    'Choose': [['unreviewed AI changes', 'İncelenmemiş AI'], 'Saklamak için']
+  };
+
+  // Ay adlari (akis kredisi yenilenme tarihi: "Dec 17, 2026 4:19 pm")
+  var MON = { jan: 'Oca', feb: 'Şub', mar: 'Mar', apr: 'Nis', may: 'May', jun: 'Haz', jul: 'Tem', aug: 'Ağu', sep: 'Eyl', oct: 'Eki', nov: 'Kas', dec: 'Ara' };
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  var RX = [
+    // "of 100" (akis kredisi)
+    [/^of ([\d.,]+)$/, function (m) { return '/ ' + m[1]; }],
+    // "Sales (83)" -> "Satış (83)": temel ad sozlukteyse
+    [/^(.+?) \((\d+)\)$/, function (m) { var b = T[m[1]] || SECT[m[1]]; return b ? b + ' (' + m[2] + ')' : null; }],
+    // "50 / 0 integrations loaded"
+    [/^(\d+) \/ (\d+) integrations loaded$/, function (m) { return m[1] + ' / ' + m[2] + ' entegrasyon yüklendi'; }],
+    // "Dec 17, 2026 4:19 pm" / "Dec 17, 2026"
+    [/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d{1,2}), (\d{4})(?: (\d{1,2}):(\d{2}) ?(am|pm))?$/i, function (m) {
+      var s = m[2] + ' ' + MON[m[1].slice(0, 3).toLowerCase()] + ' ' + m[3];
+      if (m[4]) {
+        var h = parseInt(m[4], 10) % 12;
+        if (m[6].toLowerCase() === 'pm') h += 12;
+        s += ' ' + pad(h) + ':' + m[5];
+      }
+      return s;
+    }]
+  ];
+
+  function tr(raw, ctxEl) {
+    var t = raw.replace(/\s+/g, ' ').trim();
+    if (!t || t.length > 200) return null;
+    if (Object.prototype.hasOwnProperty.call(T, t)) return T[t];
+    if (ctxEl && Object.prototype.hasOwnProperty.call(CTX, t)) {
+      var c = CTX[t];
+      for (var e = ctxEl, up = 0; e && e.nodeType === 1 && up < 3; e = e.parentNode, up++) {
+        var all = e.textContent || '';
+        for (var k = 0; k < c[0].length; k++) { if (all.indexOf(c[0][k]) >= 0) return c[1]; }
+      }
+      return null;
+    }
+    for (var i = 0; i < RX.length; i++) {
+      var m = RX[i][0].exec(t);
+      if (m) { var out = RX[i][1](m); if (out) return out; }
+    }
+    return null;
+  }
+
+  // Cevrilmeyen alanlar: musteri verisi, kod, yazilabilir yerler, "Ingilizce kalsin" isaretleri
+  var SKIP_TAG = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, INPUT: 1, SELECT: 1, OPTION: 1, CODE: 1, PRE: 1, TABLE: 1, svg: 1, SVG: 1, TEMPLATE: 1 };
+  var SKIP_SEL = '#dynamicForm, #jsonInputsSection, #debugPanels, [contenteditable=""], [contenteditable="true"], [translate="no"], .notranslate, [data-gx-notr], ' +
+    '[class^="wsb-board"], [class*=" wsb-board"], .tk-lbl, [data-field]';
+  var skipCache = typeof WeakMap === 'function' ? new WeakMap() : null;
+  function skipped(el) {
+    if (!el || el.nodeType !== 1) return true;
+    if (skipCache && skipCache.has(el)) return skipCache.get(el);
+    var r = false;
+    for (var p = el; p && p.nodeType === 1; p = p.parentNode) {
+      if (SKIP_TAG[p.tagName]) { r = true; break; }
+    }
+    if (!r) { try { r = !!el.closest(SKIP_SEL); } catch (e) { r = false; } }
+    if (skipCache) skipCache.set(el, r);
+    return r;
+  }
+
+  function doText(n) {
+    var v = n.nodeValue;
+    if (!v || v.length > 200 || !/[A-Za-z]/.test(v)) return;
+    var p = n.parentNode;
+    if (!p) return;
+    var out = tr(v, p);
+    if (out === null) return;
+    if (skipped(p)) return;
+    var lead = /^\s*/.exec(v)[0], tail = /\s*$/.exec(v)[0];
+    var nv = lead + out + tail;
+    if (nv !== v) { n.nodeValue = nv; api.done++; }
+  }
+
+  var ATTRS = ['placeholder', 'title', 'aria-label'];
+  function doAttrs(el) {
+    for (var i = 0; i < ATTRS.length; i++) {
+      var a = el.getAttribute(ATTRS[i]);
+      if (!a || !/[A-Za-z]/.test(a)) continue;
+      var out = tr(a);
+      if (out !== null && out !== a) {
+        if (skipped(el) && !(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) continue;
+        if (el.closest && el.closest(SKIP_SEL + ', table')) continue;
+        el.setAttribute(ATTRS[i], out);
+        api.done++;
+      }
+    }
+  }
+
+  function walk(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { doText(root); return; }
+    if (root.nodeType !== 1 && root.nodeType !== 11) return;
+    if (root.nodeType === 1) {
+      if (SKIP_TAG[root.tagName] && root.tagName !== 'INPUT' && root.tagName !== 'TEXTAREA') return;
+      doAttrs(root);
+    }
+    var w = D.createTreeWalker(root, 1 | 4, {
+      acceptNode: function (n) {
+        if (n.nodeType === 1 && SKIP_TAG[n.tagName] && n.tagName !== 'INPUT' && n.tagName !== 'TEXTAREA') return 2; // REJECT alt agac
+        return 1;
+      }
+    });
+    var n;
+    while ((n = w.nextNode())) {
+      if (n.nodeType === 3) doText(n); else doAttrs(n);
+    }
+  }
+
+  var pend = [], sched = false;
+  function flush() {
+    sched = false;
+    var list = pend; pend = [];
+    if (skipCache) skipCache = new WeakMap();   // DOM tasindi: atlama kararlarini tazele
+    for (var i = 0; i < list.length; i++) {
+      var n = list[i];
+      if (n.isConnected === false) continue;
+      try { walk(n); } catch (e) { /* tek dugum hatasi digerlerini durdurmasin */ }
+    }
+  }
+  function queue(n) {
+    pend.push(n);
+    if (!sched) { sched = true; (W.requestAnimationFrame || setTimeout)(flush, 16); }
+  }
+
+  function start() {
+    try { D.documentElement.setAttribute('lang', 'tr'); } catch (e) { /* ignore */ }
+    queue(D.body);
+    var mo = new MutationObserver(function (recs) {
+      for (var i = 0; i < recs.length; i++) {
+        var r = recs[i];
+        if (r.type === 'childList') {
+          for (var j = 0; j < r.addedNodes.length; j++) queue(r.addedNodes[j]);
+        } else if (r.type === 'characterData') {
+          queue(r.target);
+        } else if (r.type === 'attributes') {
+          if (r.target.nodeType === 1) { try { doAttrs(r.target); } catch (e) { /* ignore */ } }
+        }
+      }
+    });
+    mo.observe(D.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+    api.observer = mo;
+    // Sozlukte olmayan Ingilizce metinleri gormek icin: __gxTr.misses()
+    api.misses = function () {
+      var out = {}, w = D.createTreeWalker(D.body, 4), n;
+      while ((n = w.nextNode())) {
+        var t = n.nodeValue.replace(/\s+/g, ' ').trim();
+        if (!t || t.length > 120 || !/[A-Za-z]{3}/.test(t) || /[çğıöşüÇĞİÖŞÜ]/.test(t)) continue;
+        var p = n.parentNode;
+        if (!p || skipped(p) || !p.getClientRects().length) continue;
+        out[t] = 1;
+      }
+      return Object.keys(out);
+    };
+  }
+
+  if (D.body) start(); else D.addEventListener('DOMContentLoaded', start);
+})(window, document);
+</script>
