@@ -2591,6 +2591,21 @@
   }
 }
 
+/* MOBIL-ODAK (18.11): dokunmatikte "aç" düğmesi parmak boyu (26 → 34 px), yazı alanları 16 px: iOS Safari 16 px'ten küçük
+   alana odaklanınca sayfayı büyütüp öyle bırakıyordu (arama kutusu 13 px idi). Fareli ekran değişmez. */
+@media (hover: none) and (pointer: coarse) {
+  #dynamic-table-wrapper .handsontable th .dt-row-open.dt-rh-open {
+    width: 34px;
+    height: 34px;
+  }
+  #dynamic-table-wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  #dynamic-table-wrapper select,
+  #dynamic-table-wrapper textarea,
+  .dt-gez-kural-not {
+    font-size: 16px !important;
+  }
+}
+
 #dynamic-table-wrapper .dt-img-thumb { display: none; }
 
 #dynamic-table-wrapper .dt-check {
