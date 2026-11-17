@@ -283,6 +283,7 @@
     }).catch(function (e) {
       api.errors.push({ name: name, error: String(e && e.message || e), at: new Date().toISOString() });
       log('error', name + ' could not be loaded', e);
+      if (ph.hasAttribute('data-gx-auto')) { if (ph.parentNode) ph.parentNode.removeChild(ph); return; }   // kendiliginden kurulan: sessiz
       if (isConnected(ph)) {
         ph.setAttribute('data-gx-state', 'error');
         ph.hidden = false;
@@ -335,7 +336,35 @@
     timer = setTimeout(function () { log('warn', 'external script slow (>' + EXT_TIMEOUT_MS / 1000 + ' s), continuing: ' + s.src); go(); }, EXT_TIMEOUT_MS);
   }
 
+  // LANG-TR (17.11.2026): Bubble'da yer tutucusu OLMAYAN, sayfa yoluna gore kendiliginden kurulan elementler (stub yapistirmak
+  // gerekmez). Yalniz kanalin manifestinde varsa kurulur; yoksa sessizce hicbir sey yapmaz (manifestten silmek = kapatmak).
+  var AUTO = [{ name: 'lang-tr', path: /^\/(version-test\/)?app(\/|$)/ }];
+  var autoDone = {};
+  function autoMount() {
+    var want = [], i;
+    for (i = 0; i < AUTO.length; i++) {
+      try { if (!autoDone[AUTO[i].name] && AUTO[i].path.test(location.pathname || '')) want.push(AUTO[i]); } catch (e) { /* no location */ }
+    }
+    if (!want.length) return;
+    getManifest().then(function (m) {
+      for (var j = 0; j < want.length; j++) {
+        var a = want[j];
+        if (autoDone[a.name] || !Object.prototype.hasOwnProperty.call(m.elements, a.name)) continue;
+        autoDone[a.name] = true;
+        if (D.querySelector('[data-gx-el="' + a.name + '"]') || api.mounted[a.name]) continue;
+        var ph = D.createElement('div');
+        ph.setAttribute('data-gx-el', a.name);
+        ph.hidden = true;
+        ph.setAttribute('data-gx-auto', '1');
+        D.body.appendChild(ph);
+        mount(ph);
+      }
+    }).catch(function () { /* manifest error is logged by the element mounts */ });
+  }
+  api.auto = autoMount;
+
   installShims();
   scan();
   setTimeout(scan, 400);
+  if (D.body) autoMount(); else D.addEventListener('DOMContentLoaded', autoMount);
 })(window, document);
