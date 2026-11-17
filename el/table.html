@@ -8036,11 +8036,27 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) { return col.width; }
   }
 
+  // MOBIL-SABIT (18.11, Saltuk: "ilk alan uzunsa sticky olduğu için hiç kaydıramıyorum"): karar Bubble'ın tek tip 150 px'iyle
+  // veriliyordu, oysa TIDY-WIDTH ilk kolonu 320 px'e kadar çiziyor → 430 px telefonda sabit bölge 364 px, kaydıracak 66 px.
+  // Şimdi karar çizilen genişlikle verilir; dar ekranda (< 640 px) sabit ilk kolon, satır başlığıyla birlikte ekranın en çok
+  // %45'i olur (metin "…" ile kısalır, kayıt kimliği görünür kalır, ekranın yarıdan fazlası kaydırılır). Geniş ekran aynı.
+  const DT_NARROW_W = 640, DT_FROZEN_SHARE = 0.45, DT_FROZEN_MIN = 96;
+  function dtContainerW() { return Math.floor(els.container?.clientWidth || 0); }
+  function dtNarrowView() { const cw = dtContainerW(); return cw > 0 && cw < DT_NARROW_W; }
+  function dtFrozenCap() { return Math.max(DT_FROZEN_MIN, Math.floor(dtContainerW() * DT_FROZEN_SHARE) - dtGezRhW()); }
+  // modifyColWidth (HOT ayarı): dar ekranda sabitlenmiş ilk kolonu tavana indirir; kullanıcının sürüklediği genişlik de dahil
+  function dtModifyColWidth(w, col) {
+    if (col !== 0 || !(w > 0) || !dtNarrowView()) return w;
+    let fixed = 0; try { fixed = this.getSettings().fixedColumnsStart || 0; } catch (e) {}
+    return fixed > 0 ? Math.min(w, dtFrozenCap()) : w;
+  }
+
   function getFrozenColumnCount(visibleColumns) {
     const first = visibleColumns && visibleColumns[0];
     if (!first || first.__uiOnly || visibleColumns.length < 3) return 0;
-    const width = state.columnWidths[first.id] || first.width || 150;
-    const avail = Math.floor(els.container?.clientWidth || 0) - 44;
+    let width = state.columnWidths[first.id] || dtAutoWidth(first) || first.width || 150;
+    if (dtNarrowView()) width = Math.min(width, dtFrozenCap());
+    const avail = dtContainerW() - dtGezRhW();
     if (avail <= 0) return 1;
     return width <= avail * 0.5 ? 1 : 0;
   }
@@ -8052,7 +8068,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // Sabit bölge genişliği (satır başlığı + sabit kolonlar), holder içerik koordinatında
   function getFrozenWidth() {
     const hot = state.hot;
-    let w = 44;
+    let w = dtGezRhW();
     try {
       const n = hot ? (hot.getSettings().fixedColumnsStart || 0) : 0;
       for (let i = 0; i < n; i += 1) w += hot.getColWidth(i) || 0;
@@ -8302,6 +8318,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       rowHeaderWidth: dtGezRhW(),   // GX-GEZGIN: 68 on a claim table (folder icon + number)
       // Yatay kaydırmada satırın kimliği (ilk alan: plaka, ad …) görünür kalsın
       fixedColumnsStart: getFrozenColumnCount(visibleColumns),
+      modifyColWidth: dtModifyColWidth,   // MOBIL-SABIT
       height: getAdaptiveTableHeight(),
       width: '100%',
       manualColumnResize: true,
@@ -11666,6 +11683,93 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     applySearch(els.search && els.search.value ? els.search.value.trim() : '');
     attachSearchListener();
     attachResizeListener();
+    attachTouchScroll();
+  }
+
+  // MOBIL-KAYDIR (18.11): dokunmatikte iki sorun vardı. (1) Sabit ilk kolon (HOT'un sol kopyası) parmağı yutuyordu: üstünden
+  // ne yana ne aşağı kaydırılıyordu; ilk alan geniş olunca ekranın çoğu "ölü" kalıyordu. (2) Kaydırmaya başlayan dokunuş HOT'ta
+  // hücre seçiyordu ("1 selected" + çöp kutusu çubuğu açılıyordu). Şimdi hücreye dokunuş HOT'a gitmez (yakalama evresi);
+  // kaydırma tarayıcının (gövde) ya da bizim (sabit kolon, ataletli) işimiz, parmak kıpırdamadan kalkınca tarayıcının ürettiği
+  // fare tıklaması hücreyi eskisi gibi seçer. Başlıklar, düğmeler, bağlantılar, açık editör ve fare / kalem dokunulmaz.
+  function attachTouchScroll() {
+    const c = els.container;
+    if (!c || c.__dtTouchScroll) return;
+    c.__dtTouchScroll = true;
+    const SKIP = 'th, button, a, input, textarea, select, label, [contenteditable="true"], .handsontableInputHolder, .dt-no-touch-scroll';
+    let t = null, coast = 0;
+    const stopCoast = () => { if (coast) { cancelAnimationFrame(coast); coast = 0; } };
+    c.addEventListener('touchstart', e => {
+      stopCoast();
+      t = null;
+      if (e.touches.length !== 1 || window.__gxNoTouchScroll) return;
+      const target = e.target;
+      if (!target || !target.closest || target.closest(SKIP)) return;
+      const td = target.closest('td');
+      const pane = td && td.closest('.ht_master, .ht_clone_inline_start, .ht_clone_left');
+      if (!pane) return;
+      const holder = getMasterHolder();
+      if (!holder) return;
+      const p = e.touches[0];
+      t = { td, t0: e.timeStamp, x: p.clientX, y: p.clientY, lx: p.clientX, ly: p.clientY, lt: e.timeStamp, vx: 0, vy: 0,
+            left: holder.scrollLeft, top: holder.scrollTop, holder, frozen: !pane.classList.contains('ht_master'), axis: null };
+      e.stopPropagation();   // HOT seçimi touchstart'ta yapar; dokunuş dokunuşken seçmesin
+    }, { capture: true, passive: true });
+    c.addEventListener('touchmove', e => {
+      if (!t || e.touches.length !== 1) return;
+      const p = e.touches[0];
+      const dx = p.clientX - t.x, dy = p.clientY - t.y;
+      if (!t.axis) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        t.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      }
+      e.stopPropagation();
+      if (!t.frozen) return;   // gövde: tarayıcının kendi kaydırması
+      const dt = Math.max(1, e.timeStamp - t.lt);
+      t.vx = 0.8 * ((t.lx - p.clientX) / dt) + 0.2 * t.vx;
+      t.vy = 0.8 * ((t.ly - p.clientY) / dt) + 0.2 * t.vy;
+      t.lx = p.clientX; t.ly = p.clientY; t.lt = e.timeStamp;
+      if (t.axis === 'x') t.holder.scrollLeft = t.left - dx; else t.holder.scrollTop = t.top - dy;
+      if (e.cancelable) e.preventDefault();
+    }, { capture: true, passive: false });
+    const end = e => {
+      if (!t) return;
+      const s = t; t = null;
+      e.stopPropagation();
+      if (!s.axis && e.type === 'touchend' && e.timeStamp - s.t0 < 700) { touchTap(s.td); return; }
+      if (!s.frozen || !s.axis || e.type === 'touchcancel') return;
+      // atalet: parmak hızıyla başlar, kare başına azalır
+      let v = s.axis === 'x' ? s.vx : s.vy;
+      if (e.timeStamp - s.lt > 120) v = 0;   // parmak durup kalktı: atalet yok
+      if (Math.abs(v) < 0.15) return;
+      let last = performance.now();
+      const step = now => {
+        const dt = Math.min(40, now - last); last = now;
+        if (s.axis === 'x') s.holder.scrollLeft += v * dt; else s.holder.scrollTop += v * dt;
+        v *= Math.pow(0.995, dt);
+        coast = Math.abs(v) > 0.03 ? requestAnimationFrame(step) : 0;
+      };
+      coast = requestAnimationFrame(step);
+    };
+    // Kıpırdamayan dokunuş = HOT'un eski dokunmatik davranışı: hücreyi seçer; zaten seçili tek hücreye dokunuş editörü açar
+    const touchTap = td => {
+      const hot = state.hot;
+      if (!hot || !td || !td.isConnected) return;
+      let co = null; try { co = hot.getCoords(td); } catch (e) {}
+      if (!co || co.row < 0 || co.col < 0) return;
+      let same = false;
+      try {
+        const sel = hot.getSelected() || [];
+        same = sel.length === 1 && sel[0][0] === co.row && sel[0][1] === co.col && sel[0][2] === co.row && sel[0][3] === co.col;
+      } catch (e) {}
+      if (!same) { hot.selectCell(co.row, co.col); return; }
+      try {
+        if (hot.getCellMeta(co.row, co.col).readOnly) return;
+        const ed = hot.getActiveEditor();
+        if (ed && !ed.isOpened()) ed.beginEditing();
+      } catch (e) {}
+    };
+    c.addEventListener('touchend', end, { capture: true, passive: true });
+    c.addEventListener('touchcancel', end, { capture: true, passive: true });
   }
 
   function refreshTable(data) {
