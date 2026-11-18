@@ -504,7 +504,8 @@
     return r;
   }
 
-  // Titreme bekcisi: kodu metni hep Ingilizceye geri yazan oge 10 sn icinde 4. kez cevrilirse birakilir (Ingilizce kalir).
+  // Titreme bekcisi: kodu metni hep Ingilizceye geri yazan oge 3 sn icinde 10'dan cok kez cevrilirse birakilir (Ingilizce kalir).
+  var gen = 0;
   var loopSeen = typeof WeakMap === 'function' ? new WeakMap() : null;
   var loopStop = typeof WeakSet === 'function' ? new WeakSet() : null;
   api.loops = 0; api.loopList = [];
@@ -512,9 +513,10 @@
     if (!loopSeen || !el) return false;
     if (loopStop.has(el)) return true;
     var now = Date.now(), s = loopSeen.get(el);
-    if (!s || now - s.t > 10000) { loopSeen.set(el, { t: now, n: 1 }); return false; }
-    s.n++;
-    if (s.n > 3) {
+    if (!s || now - s.t > 3000) { loopSeen.set(el, { t: now, n: 1, g: gen }); return false; }
+    if (s.g === gen) return false;   // ayni geciste ayni ogenin ikinci metni: bir sayilir
+    s.g = gen; s.n++;
+    if (s.n > 10) {   // yukleme sirasindaki birkac yeniden cizim degil, gercek titreme (3 sn'de 10+)
       loopStop.add(el); api.loops++;
       var tag = '';
       try { tag = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.') : '') + ' "' + String(el.textContent || '').trim().slice(0, 40) + '"'; } catch (e) { tag = '?'; }
@@ -580,6 +582,7 @@
   var pend = [], sched = false;
   function flush() {
     sched = false;
+    gen++;
     var list = pend; pend = [];
     if (skipCache) skipCache = new WeakMap();   // DOM tasindi: atlama kararlarini tazele
     for (var i = 0; i < list.length; i++) {
@@ -597,6 +600,7 @@
     try { D.documentElement.setAttribute('lang', 'tr'); } catch (e) { /* ignore */ }
     queue(D.body);
     var mo = new MutationObserver(function (recs) {
+      gen++;   // ozellik yolu (doAttrs) flush beklemez: her gozlemci turu ayri gecis
       for (var i = 0; i < recs.length; i++) {
         var r = recs[i];
         if (r.type === 'childList') {
