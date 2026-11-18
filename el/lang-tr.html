@@ -507,7 +507,7 @@
   // Titreme bekcisi: kodu metni hep Ingilizceye geri yazan oge 10 sn icinde 4. kez cevrilirse birakilir (Ingilizce kalir).
   var loopSeen = typeof WeakMap === 'function' ? new WeakMap() : null;
   var loopStop = typeof WeakSet === 'function' ? new WeakSet() : null;
-  api.loops = 0;
+  api.loops = 0; api.loopList = [];
   function looping(el) {
     if (!loopSeen || !el) return false;
     if (loopStop.has(el)) return true;
@@ -516,7 +516,10 @@
     s.n++;
     if (s.n > 3) {
       loopStop.add(el); api.loops++;
-      try { console.warn('[LANG-TR] text keeps being reset, left in English:', el); } catch (e) { /* ignore */ }
+      var tag = '';
+      try { tag = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.') : '') + ' "' + String(el.textContent || '').trim().slice(0, 40) + '"'; } catch (e) { tag = '?'; }
+      if (api.loopList.length < 50) api.loopList.push(tag);
+      try { console.warn('[LANG-TR] text keeps being reset, left in English: ' + tag); } catch (e) { /* ignore */ }
       return true;
     }
     return false;
