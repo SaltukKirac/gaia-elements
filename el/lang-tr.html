@@ -488,7 +488,9 @@
   // Cevrilmeyen alanlar: musteri verisi, kod, yazilabilir yerler, "Ingilizce kalsin" isaretleri
   var SKIP_TAG = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, INPUT: 1, SELECT: 1, OPTION: 1, CODE: 1, PRE: 1, TABLE: 1, svg: 1, SVG: 1, TEMPLATE: 1 };
   var SKIP_SEL = '#dynamicForm, #jsonInputsSection, #debugPanels, [contenteditable=""], [contenteditable="true"], [translate="no"], .notranslate, [data-gx-notr], ' +
-    '[class^="wsb-board"], [class*=" wsb-board"], .tk-lbl, [data-field]';
+    '[class^="wsb-board"], [class*=" wsb-board"], .tk-lbl, [data-field], ' +
+    // form kodu metni karsilastirir / surekli yeniden yazar (18.11 titreme; KLASOR akisi "Edit" metniyle dugmeyi bulur)
+    '#toggleInlineEdit';
   var skipCache = typeof WeakMap === 'function' ? new WeakMap() : null;
   function skipped(el) {
     if (!el || el.nodeType !== 1) return true;
@@ -502,6 +504,24 @@
     return r;
   }
 
+  // Titreme bekcisi: kodu metni hep Ingilizceye geri yazan oge 10 sn icinde 4. kez cevrilirse birakilir (Ingilizce kalir).
+  var loopSeen = typeof WeakMap === 'function' ? new WeakMap() : null;
+  var loopStop = typeof WeakSet === 'function' ? new WeakSet() : null;
+  api.loops = 0;
+  function looping(el) {
+    if (!loopSeen || !el) return false;
+    if (loopStop.has(el)) return true;
+    var now = Date.now(), s = loopSeen.get(el);
+    if (!s || now - s.t > 10000) { loopSeen.set(el, { t: now, n: 1 }); return false; }
+    s.n++;
+    if (s.n > 3) {
+      loopStop.add(el); api.loops++;
+      try { console.warn('[LANG-TR] text keeps being reset, left in English:', el); } catch (e) { /* ignore */ }
+      return true;
+    }
+    return false;
+  }
+
   function doText(n) {
     var v = n.nodeValue;
     if (!v || v.length > 200 || !/[A-Za-z]/.test(v)) return;
@@ -512,7 +532,10 @@
     if (skipped(p)) return;
     var lead = /^\s*/.exec(v)[0], tail = /\s*$/.exec(v)[0];
     var nv = lead + out + tail;
-    if (nv !== v) { n.nodeValue = nv; api.done++; }
+    if (nv !== v) {
+      if (looping(p)) return;
+      n.nodeValue = nv; api.done++;
+    }
   }
 
   var ATTRS = ['placeholder', 'title', 'aria-label'];
@@ -524,6 +547,7 @@
       if (out !== null && out !== a) {
         if (skipped(el) && !(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) continue;
         if (el.closest && el.closest(SKIP_SEL + ', table')) continue;
+        if (looping(el)) continue;
         el.setAttribute(ATTRS[i], out);
         api.done++;
       }
