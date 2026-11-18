@@ -1912,6 +1912,228 @@
   outline: 2px solid var(--gx-ring, rgba(99, 102, 241, .45));
   outline-offset: 1px;
 }
+/* KAYIT-NOT (18.11): notes icon in every row header + the notes drawer (reuses the GX-GEZGIN dialog: .dt-gez / -head / -x / -btn) */
+#dynamic-table-wrapper .handsontable th .dt-rh-not {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 26px;
+  margin: 0 4px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gx-ink-3, #94a3b8);
+  cursor: pointer;
+  vertical-align: middle;
+}
+#dynamic-table-wrapper .handsontable th .dt-rh-not.has-n {
+  color: var(--gx-primary, #6366f1);
+}
+#dynamic-table-wrapper .handsontable th .dt-rh-not:hover {
+  background: var(--dt-highlight, #eef2ff);
+  color: var(--gx-primary, #6366f1);
+}
+#dynamic-table-wrapper .handsontable th .dt-rh-not:focus-visible {
+  outline: 2px solid var(--gx-ring, rgba(99, 102, 241, .45));
+  outline-offset: 1px;
+}
+#dynamic-table-wrapper .handsontable th .dt-rh-not-n {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--gx-primary, #6366f1);
+  color: #fff;
+  font: 600 9px/13px var(--gx-font, Inter, system-ui, sans-serif);
+  text-align: center;
+}
+#dynamic-table-wrapper .handsontable th .dt-rh-not.is-wait .dt-rh-not-n {
+  background: #f59e0b;
+}
+#dynamic-table-wrapper .dt-gez.dt-not {
+  width: min(560px, 94vw);
+  height: min(640px, 88vh);
+}
+#dynamic-table-wrapper .dt-not-yaz {
+  padding: 4px 20px 12px;
+  border-bottom: 1px solid var(--gx-line-soft, #eef2f7);
+}
+#dynamic-table-wrapper .dt-not-metin {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  max-height: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--gx-line, #e2e8f0);
+  border-radius: var(--gx-r-md, 10px);
+  background: #fff;
+  color: var(--gx-ink, #0f172a);
+  font: 14px/1.45 var(--gx-font, Inter, system-ui, sans-serif);
+  resize: vertical;
+}
+#dynamic-table-wrapper .dt-not-metin:focus {
+  outline: 2px solid var(--gx-ring, rgba(99, 102, 241, .45));
+  outline-offset: 0;
+  border-color: var(--gx-primary, #6366f1);
+}
+#dynamic-table-wrapper .dt-not-yaz-alt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+#dynamic-table-wrapper .dt-not-ipucu {
+  color: var(--gx-ink-2, #475569);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-not-gonder {
+  min-height: 36px;
+  padding: 0 16px;
+}
+#dynamic-table-wrapper .dt-not-hata {
+  margin-top: 6px;
+  color: var(--gx-err, #dc2626);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-not-hata[hidden] {
+  display: none;
+}
+#dynamic-table-wrapper .dt-not-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 8px 20px 16px;
+}
+#dynamic-table-wrapper .dt-not-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+#dynamic-table-wrapper .dt-not-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gx-line-soft, #eef2f7);
+}
+#dynamic-table-wrapper .dt-not-item:last-child {
+  border-bottom: 0;
+}
+#dynamic-table-wrapper .dt-not-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--gx-ink-2, #475569);
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-not-durum {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gx-bg, #f8fafc);
+  color: var(--gx-ink-2, #475569);
+  font-size: 11px;
+  font-weight: 500;
+}
+#dynamic-table-wrapper .dt-not-durum.is-wait {
+  background: #fef3c7;
+  color: #92400e;
+}
+#dynamic-table-wrapper .dt-not-durum.is-ok {
+  background: #eef2ff;
+  color: #3730a3;
+}
+#dynamic-table-wrapper .dt-not-durum.is-err {
+  background: #fef2f2;
+  color: var(--gx-err, #dc2626);
+}
+#dynamic-table-wrapper .dt-not-text {
+  margin-top: 4px;
+  color: var(--gx-ink, #0f172a);
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#dynamic-table-wrapper .dt-not-ai {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--gx-primary, #6366f1);
+  background: var(--gx-bg, #f8fafc);
+  color: var(--gx-ink, #0f172a);
+  font-size: 13px;
+}
+#dynamic-table-wrapper .dt-not-ai.is-err {
+  border-left-color: var(--gx-err, #dc2626);
+}
+#dynamic-table-wrapper .dt-not-alanlar {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 12px;
+}
+#dynamic-table-wrapper .dt-not-alanlar li {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+}
+#dynamic-table-wrapper .dt-not-alan {
+  flex: 0 0 auto;
+  color: var(--gx-ink-2, #475569);
+}
+#dynamic-table-wrapper .dt-not-alan::after {
+  content: ":";
+}
+#dynamic-table-wrapper .dt-not-deger {
+  min-width: 0;
+  color: var(--gx-ink, #0f172a);
+  overflow-wrap: anywhere;
+}
+#dynamic-table-wrapper .dt-not-bos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 32px 8px;
+  color: var(--gx-ink-2, #475569);
+  text-align: center;
+}
+#dynamic-table-wrapper .dt-not-bos strong {
+  color: var(--gx-ink, #0f172a);
+  font-size: 14px;
+}
+#dynamic-table-wrapper .dt-not-bos.is-err {
+  color: var(--gx-err, #dc2626);
+}
+#dynamic-table-wrapper .dt-not-uyari {
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  border-radius: var(--gx-r-md, 10px);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  #dynamic-table-wrapper .dt-gez.dt-not {
+    width: 100vw;
+    height: 92vh;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    border-radius: var(--gx-r-lg, 16px) var(--gx-r-lg, 16px) 0 0;
+  }
+  #dynamic-table-wrapper .dt-not-yaz-alt {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #dynamic-table-wrapper .dt-not-gonder {
+    min-height: 44px;
+  }
+}
 #dynamic-table-wrapper .dt-gez-root[hidden] {
   display: none !important;
 }
@@ -6434,7 +6656,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   let _dtGezOpen = false;   // the panel is on screen
   let _dtGezOpener = null;  // the icon that opened it (focus goes back there)
   function dtGezOnTable() { try { return !window.__gxNoGezgin && dtSiraliExtraW() > 0; } catch (e) { return false; } }
-  function dtGezRhW() { return dtGezOnTable() ? DT_GEZ_RH_W : 44; }
+  function dtGezRhW() { return (dtGezOnTable() ? DT_GEZ_RH_W : 44) + dtNotW(); }   // KAYIT-NOT: + the notes icon
+  function dtNotW() { return dtNotOn() ? 26 : 0; }
   function dtGezIconHtml(raw) {
     if (window.__gxNoGezgin || !dtSiraliOn(raw)) return '';
     return `<button class="dt-rh-gez" type="button" aria-label="Browse documents" title="Browse documents">${DT_GEZ_FOLDER_SVG}</button>`;
@@ -6443,8 +6666,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtGezWiden() {
     try {
       if (!dtGezOnTable()) return;
-      if (els.wrapper) els.wrapper.classList.add('dt-gez-on');
-      if (state.hot && !state.hot.isDestroyed && state.hot.getSettings().rowHeaderWidth !== DT_GEZ_RH_W) state.hot.updateSettings({ rowHeaderWidth: DT_GEZ_RH_W });
+      if (els.wrapper) { els.wrapper.classList.add('dt-gez-on'); els.wrapper.style.setProperty('--dt-row-header-width', dtGezRhW() + 'px'); }
+      if (state.hot && !state.hot.isDestroyed && state.hot.getSettings().rowHeaderWidth !== dtGezRhW()) state.hot.updateSettings({ rowHeaderWidth: dtGezRhW() });
     } catch (e) {}
   }
   // "03 - Tutanak 02.pdf" → "Tutanak" (number, extension and repeat counter off)
@@ -7341,6 +7564,212 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }, true);
   }
   /* GX-GEZGIN-END */
+  /* KAYIT-NOT-BEGIN (18.11) */
+  // KAYIT-NOT (18.11.2026, Saltuk: "her row'a aynı klasör kısmı gibi notlar kısmı olmalı ... şimdilik hepsi ai notu olsun, ordan birşey
+  // yazılınca bir mini model öğe ile yapılması gereken düzenleme vb işlemleri yapsın"): a notes icon in the row header of every row with
+  // an id opens the record's notes. A note goes to the server (bridge op kayit_not); the Octo Brain 'not' arm reads it with a small
+  // model and edits the record itself (next meeting date, status, contact, phone...). The drawer shows each note, its state (waiting,
+  // reading, done, could not apply), the AI's one line summary and the fields it changed; while a note waits the list refreshes every
+  // 5 s and the row reloads when the AI wrote something. Row badges: the note count of the loaded rows (one 'sayilar' call per load).
+  // Four states: loading, empty, error (+ Try again), ready. Off: window.__gxNoNotlar = true.
+  const DT_NOT_W = 26;
+  const DT_NOT_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.25c0-.69.56-1.25 1.25-1.25h8.5c.69 0 1.25.56 1.25 1.25v6.5c0 .69-.56 1.25-1.25 1.25H7l-3 2.5V11h-.25c-.69 0-1.25-.56-1.25-1.25z"/><path d="M5.25 5.5h5.5M5.25 7.75h3.5" stroke-linecap="round"/></svg>';
+  const _dtNotSay = new Map();   // record id → { n, b }
+  let _dtNot = null;             // { id, raw, st: 'loading'|'ready'|'error', notlar, msg, gonder: '', busy, poll, t0, dead, yazildi: Set }
+  let _dtNotOpener = null;
+  let _dtNotSayT = 0, _dtNotSayKey = '';
+  function dtNotOn() { return !window.__gxNoNotlar; }
+  function dtNotIconHtml(raw) {
+    if (!dtNotOn()) return '';
+    const id = rowIdOf(raw);
+    if (!id) return '';
+    const s = _dtNotSay.get(id), n = s ? s.n : 0;
+    const lab = n ? (n + ' note' + (n === 1 ? '' : 's')) : 'Notes';
+    return `<button class="dt-rh-not${n ? ' has-n' : ''}${s && s.b ? ' is-wait' : ''}" type="button" aria-label="${lab}" title="${lab}">${DT_NOT_SVG}${n ? `<span class="dt-rh-not-n">${n > 99 ? '99+' : n}</span>` : ''}</button>`;
+  }
+  function dtNotTitle(raw) {
+    try {
+      const c = (state._mountedCols || []).find(x => x && !x.__uiOnly);
+      const v = c ? (raw[c.id] ?? raw[c.name] ?? raw[c.header] ?? raw[c.title]) : '';
+      return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 120);
+    } catch (e) { return ''; }
+  }
+  // one count call per loaded row set (first 300 rows of the current view)
+  function dtNotSayYenile(force) {
+    if (!dtNotOn()) return;
+    clearTimeout(_dtNotSayT);
+    _dtNotSayT = setTimeout(async () => {
+      try {
+        const ids = [];
+        for (const dr of (state.displayRows || [])) { const id = rowIdOf(state.rawRows[dr.__sourceIndex]); if (id) ids.push(id); if (ids.length >= 300) break; }
+        const key = ids.join(',');
+        if (!ids.length || (!force && key === _dtNotSayKey)) return;
+        _dtNotSayKey = key;
+        const r = await aynaBridge('kayit_not', { islem: 'sayilar', ids: ids }, null, { timeoutMs: 20000 });
+        if (!r || !r.ok || !r.data || !r.data.sayilar) return;
+        ids.forEach(id => _dtNotSay.delete(id));
+        Object.keys(r.data.sayilar).forEach(id => _dtNotSay.set(id, r.data.sayilar[id]));
+        if (state.hot && !state.hot.isDestroyed) state.hot.render();
+      } catch (e) {}
+    }, force ? 50 : 900);
+  }
+  function dtNotRoot() {
+    let root = els.wrapper ? els.wrapper.querySelector('.dt-not-root') : null;
+    if (root || !els.wrapper) return root;
+    root = document.createElement('div');
+    root.className = 'dt-gez-root dt-not-root';
+    root.hidden = true;
+    root.innerHTML = '<div class="dt-gez-backdrop" data-not-act="close"></div>'
+      + '<div class="dt-gez dt-not" role="dialog" aria-modal="true" aria-labelledby="dt-not-title" aria-describedby="dt-not-sub">'
+      + '<div class="dt-gez-head"><div class="dt-gez-head-txt"><div class="dt-gez-title" id="dt-not-title">Notes</div><div class="dt-gez-sub" id="dt-not-sub"></div></div>'
+      + `<button class="dt-gez-x" type="button" data-not-act="close" aria-label="Close" title="Close">${DT_GEZ_CLOSE_SVG}</button></div>`
+      + '<div class="dt-not-yaz"><textarea class="dt-not-metin" rows="3" maxlength="4000" aria-label="New note" placeholder="What happened? A call, a meeting date, a new number..."></textarea>'
+      + '<div class="dt-not-yaz-alt"><span class="dt-not-ipucu">Gaia\'s AI reads each note and updates this record.</span>'
+      + '<button class="dt-gez-btn is-primary dt-not-gonder" type="button" data-not-act="ekle">Add note</button></div>'
+      + '<div class="dt-not-hata" role="alert" hidden></div></div>'
+      + '<div class="dt-gez-body dt-not-body" aria-live="polite"></div></div>';
+    root.addEventListener('click', dtNotClick);
+    root.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); dtNotClose(); return; }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target && e.target.classList && e.target.classList.contains('dt-not-metin')) { e.preventDefault(); dtNotEkle(); }
+    });
+    root.addEventListener('input', (e) => { const t = e.target; if (t && t.classList && t.classList.contains('dt-not-metin') && _dtNot) _dtNot.gonder = t.value; });
+    els.wrapper.appendChild(root);
+    return root;
+  }
+  function dtNotOpenFor(raw, opener) {
+    const id = rowIdOf(raw);
+    if (!id || !dtNotOn()) return;
+    const root = dtNotRoot();
+    if (!root) return;
+    _dtNotOpener = opener || null;
+    if (_dtNot && _dtNot.id !== id) { _dtNot.dead = true; clearTimeout(_dtNot.poll); }
+    if (!_dtNot || _dtNot.id !== id || _dtNot.dead) _dtNot = { id: id, raw: raw, st: 'loading', notlar: [], msg: '', gonder: '', busy: false, poll: 0, t0: 0, dead: false, yazildi: new Set() };
+    _dtNot.raw = raw;
+    root.hidden = false;
+    try { if (state.hot && !state.hot.isDestroyed) state.hot.unlisten(); } catch (e) {}
+    const ta = root.querySelector('.dt-not-metin'); if (ta) ta.value = _dtNot.gonder || '';
+    dtNotRender();
+    try { (ta || root.querySelector('.dt-gez-x')).focus({ preventScroll: true }); } catch (e) {}
+    dtNotLoad(_dtNot);
+  }
+  function dtNotClose() {
+    const root = dtNotRoot();
+    if (_dtNot) clearTimeout(_dtNot.poll);
+    if (root) root.hidden = true;
+    const o = _dtNotOpener; _dtNotOpener = null;
+    try { if (o && o.isConnected) o.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function dtNotBekliyor(x) { return x && (x.durum === 'bekliyor' || x.durum === 'isleniyor'); }
+  async function dtNotLoad(g, sessiz) {
+    if (!sessiz) { g.st = g.notlar.length ? g.st : 'loading'; g.msg = ''; dtNotRender(); }
+    const r = await aynaBridge('kayit_not', { islem: 'liste', id: g.id }, null, { timeoutMs: 25000 });
+    if (g.dead) return;
+    if (!r || !r.ok || !r.data || !Array.isArray(r.data.notlar)) {
+      if (sessiz && g.st === 'ready') { dtNotPoll(g); return; }
+      g.st = 'error';
+      g.msg = (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : (r && r.error === 'server' && r.message) ? String(r.message)
+        : (r && r.error === 'timeout') ? 'Gaia did not answer in time. Try again.' : 'Could not load the notes. Try again.';
+      dtNotRender(); return;
+    }
+    // a note the AI just finished with field changes → reload the row once
+    let degisti = false;
+    r.data.notlar.forEach(x => { if (x.durum === 'bitti' && x.sonuc && x.sonuc.alanlar && Object.keys(x.sonuc.alanlar).length && !g.yazildi.has(x.id)) { if (g.notlar.some(y => y.id === x.id && dtNotBekliyor(y))) degisti = true; g.yazildi.add(x.id); } });
+    g.notlar = r.data.notlar; g.st = 'ready'; g.msg = '';
+    const n = g.notlar.length, b = g.notlar.filter(dtNotBekliyor).length;
+    _dtNotSay.set(g.id, { n: n, b: b });
+    try { if (state.hot && !state.hot.isDestroyed) state.hot.render(); } catch (e) {}
+    dtNotRender();
+    if (degisti) { try { dtLiveTouch([g.id], 0); setTimeout(() => { try { aynaReloadPatched(true); } catch (e) {} }, 1500); } catch (e) {} }
+    dtNotPoll(g);
+  }
+  function dtNotPoll(g) {
+    clearTimeout(g.poll);
+    if (g.dead || !g.notlar.some(dtNotBekliyor)) return;
+    if (!g.t0) g.t0 = Date.now();
+    if (Date.now() - g.t0 > 5 * 60000) return;   // a note still waiting after 5 min: the list says so, no more polling
+    g.poll = setTimeout(() => { const root = dtNotRoot(); if (!g.dead && root && !root.hidden) dtNotLoad(g, true); }, 5000);
+  }
+  async function dtNotEkle() {
+    const g = _dtNot, root = dtNotRoot();
+    if (!g || !root || g.busy) return;
+    const ta = root.querySelector('.dt-not-metin'), hata = root.querySelector('.dt-not-hata');
+    const metin = String((ta && ta.value) || '').trim();
+    if (!metin) { if (hata) { hata.textContent = 'Write a note first.'; hata.hidden = false; } try { ta.focus(); } catch (e) {} return; }
+    g.busy = true; dtNotRender();
+    const r = await aynaBridge('kayit_not', { islem: 'ekle', id: g.id, metin: metin }, null, { timeoutMs: 25000 });
+    g.busy = false;
+    if (g.dead) return;
+    if (!r || !r.ok || !r.data || !r.data.not) {
+      if (hata) { hata.textContent = (r && r.error === 'server' && r.message) ? String(r.message) : (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : 'The note was not saved. Try again.'; hata.hidden = false; }
+      dtNotRender(); return;
+    }
+    g.gonder = ''; if (ta) ta.value = '';
+    if (hata) hata.hidden = true;
+    g.notlar = [r.data.not].concat(g.notlar.filter(x => x.id !== r.data.not.id));
+    g.st = 'ready'; g.t0 = Date.now();
+    _dtNotSay.set(g.id, { n: g.notlar.length, b: g.notlar.filter(dtNotBekliyor).length });
+    try { if (state.hot && !state.hot.isDestroyed) state.hot.render(); } catch (e) {}
+    dtNotRender();
+    dtNotPoll(g);
+  }
+  function dtNotClick(event) {
+    const b = event.target && event.target.closest ? event.target.closest('[data-not-act]') : null;
+    if (!b) return;
+    const a = b.getAttribute('data-not-act');
+    if (a === 'close') { dtNotClose(); return; }
+    if (a === 'ekle') { dtNotEkle(); return; }
+    if (a === 'retry' && _dtNot) { dtNotLoad(_dtNot); return; }
+  }
+  function dtNotZaman(ms) {
+    try {
+      const d = new Date(Number(ms)); if (isNaN(d)) return '';
+      const bugun = new Date(); const ayni = d.toDateString() === bugun.toDateString();
+      return ayni ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return ''; }
+  }
+  function dtNotDurumHtml(x) {
+    const s = x.sonuc || {};
+    if (x.durum === 'bekliyor') return '<span class="dt-not-durum is-wait">Waiting for AI</span>';
+    if (x.durum === 'isleniyor') return '<span class="dt-not-durum is-wait">AI is reading</span>';
+    if (x.durum === 'hata') return '<span class="dt-not-durum is-err">AI could not apply it</span>';
+    return (s.alanlar && Object.keys(s.alanlar).length) ? '<span class="dt-not-durum is-ok">Record updated</span>' : '<span class="dt-not-durum">Nothing to change</span>';
+  }
+  function dtNotItemHtml(x) {
+    const s = x.sonuc || {};
+    const kim = x.ben ? 'You' : (x.ad || 'A colleague');
+    const alanlar = s.alanlar && typeof s.alanlar === 'object' ? Object.keys(s.alanlar) : [];
+    let sonuc = '';
+    if (x.durum === 'bitti' && s.aktivite) sonuc += `<div class="dt-not-ai">${escapeHtml(s.aktivite)}</div>`;
+    if (x.durum === 'hata') sonuc += `<div class="dt-not-ai is-err">${escapeHtml(s.hata || 'The AI could not apply this note.')}</div>`;
+    if (x.durum === 'bitti' && alanlar.length) sonuc += '<ul class="dt-not-alanlar">' + alanlar.slice(0, 12).map(k => `<li><span class="dt-not-alan">${escapeHtml(k)}</span><span class="dt-not-deger">${escapeHtml(String(s.alanlar[k]).slice(0, 160))}</span></li>`).join('') + '</ul>';
+    return `<li class="dt-not-item"><div class="dt-not-meta"><span>${escapeHtml(kim)} · ${escapeHtml(dtNotZaman(x.at))}</span>${dtNotDurumHtml(x)}</div>`
+      + `<div class="dt-not-text">${escapeHtml(x.metin)}</div>${sonuc}</li>`;
+  }
+  function dtNotRender() {
+    const g = _dtNot, root = dtNotRoot();
+    if (!g || !root) return;
+    const sub = root.querySelector('.dt-gez-sub'), body = root.querySelector('.dt-not-body'), btn = root.querySelector('.dt-not-gonder');
+    const t = dtNotTitle(g.raw);
+    sub.textContent = t || 'This record';
+    if (btn) { btn.disabled = !!g.busy; btn.textContent = g.busy ? 'Adding...' : 'Add note'; btn.setAttribute('aria-busy', g.busy ? 'true' : 'false'); }
+    if (g.st === 'loading') { body.innerHTML = '<div class="dt-not-bos">Loading notes...</div>'; return; }
+    if (g.st === 'error') { body.innerHTML = `<div class="dt-not-bos is-err">${escapeHtml(g.msg)}<div><button class="dt-gez-btn" type="button" data-not-act="retry">Try again</button></div></div>`; return; }
+    if (!g.notlar.length) { body.innerHTML = '<div class="dt-not-bos"><strong>No notes yet</strong><span>Write what happened. The AI sets dates, status and contacts on this record for you.</span></div>'; return; }
+    const uzun = g.t0 && Date.now() - g.t0 > 5 * 60000 && g.notlar.some(dtNotBekliyor);
+    body.innerHTML = (uzun ? '<div class="dt-not-uyari">The AI is slow right now. Your note is saved and will be read.</div>' : '')
+      + '<ul class="dt-not-list">' + g.notlar.map(dtNotItemHtml).join('') + '</ul>';
+  }
+  function dtNotAttach(container) {
+    container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-rh-not') : null; if (b) event.stopPropagation(); }, true);
+    container.addEventListener('click', event => {
+      const el = event.target && event.target.closest ? event.target.closest('.dt-rh-not') : null;
+      if (!el) return;
+      event.stopPropagation(); event.preventDefault();
+      try { const raw = dtGezRowOf(el); if (raw) dtNotOpenFor(raw, el); } catch (e) {}
+    }, true);
+  }
+  /* KAYIT-NOT-END */
 
   function normalizeRow(row, index) {
     if (row && typeof row === 'object' && !Array.isArray(row)) {
@@ -7691,6 +8120,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-row-fill') : null; if (b) event.stopPropagation(); }, true);
     dtSiraliAttach(els.container);   // GX-SIRALI: PDF / Klasör pills (the press does not select or open the row)
     dtGezAttach(els.container);      // GX-GEZGIN: the folder icon at the start of a row opens the document browser
+    dtNotAttach(els.container);      // KAYIT-NOT: the notes icon opens the record's notes
     // TIDY-STAGE: "Retry" on a Failed claim cell
     els.container.addEventListener('mousedown', event => { const b = event.target && event.target.closest ? event.target.closest('.dt-claim-retry') : null; if (b) event.stopPropagation(); }, true);
     els.container.addEventListener('click', event => {
@@ -8274,7 +8704,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const holderBefore = els.container.querySelector('.ht_master .wtHolder');
     const scrollBefore = holderBefore ? { top: holderBefore.scrollTop, left: holderBefore.scrollLeft } : null;
 
-    try { if (els.wrapper) els.wrapper.classList.toggle('dt-gez-on', dtGezRhW() > 44); } catch (e) {}   // GX-GEZGIN: wider row header
+    try { if (els.wrapper) { els.wrapper.classList.toggle('dt-gez-on', dtGezOnTable()); els.wrapper.style.setProperty('--dt-row-header-width', dtGezRhW() + 'px'); } } catch (e) {}   // GX-GEZGIN + KAYIT-NOT: wider row header
+    dtNotSayYenile();   // KAYIT-NOT: note counts of the loaded rows (one call, debounced)
     const settings = {
       data: state.displayRows,
       columns: visibleColumns.map(col => {
@@ -8321,7 +8752,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const dispRow = state.displayRows[physIdx >= 0 ? physIdx : index];
         let gez = '';   // GX-GEZGIN: the record's documents, first thing on the row
         try { gez = (dispRow && dtGezOnTable()) ? dtGezIconHtml(state.rawRows[dispRow.__sourceIndex]) : ''; } catch (e) { gez = ''; }
-        const head = `${gez}<span class="dt-rh-num">${index + 1}</span>${ROW_HEADER_OPEN_HTML}`;
+        let not = '';   // KAYIT-NOT: the record's notes
+        try { not = dispRow ? dtNotIconHtml(state.rawRows[dispRow.__sourceIndex]) : ''; } catch (e) { not = ''; }
+        const head = `${gez}${not}<span class="dt-rh-num">${index + 1}</span>${ROW_HEADER_OPEN_HTML}`;
         if (!state.dueDateSort.active || state.dueDateSort.fields.length === 0) {
           return head;
         }
@@ -9332,7 +9765,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!inner && g && typeof g === 'object' && (g.rows || g.data || g.status || g.job || g.state)) inner = g;   // GX-SIRALI: the plugin hands back the server's data object itself ({job, durum_url} / {state, ...})
       // (16.11 canlı deneme) evrak_duzen ({not, surum, ozet, ...}) and kayit_klasor ({me, kayitlar} / {kayit} / {kapandi}) come back the
       // same way; without these keys their answer read as "Unexpected bridge answer" and the box said "Could not reach Gaia"
-      if (!inner && g && typeof g === 'object' && (Array.isArray(g.ozet) || g.me !== undefined || g.kayit !== undefined || g.kapandi !== undefined)) inner = g;
+      if (!inner && g && typeof g === 'object' && (Array.isArray(g.ozet) || g.me !== undefined || g.kayit !== undefined || g.kapandi !== undefined || g.sayilar !== undefined || g.notlar !== undefined)) inner = g;   // + KAYIT-NOT
       if (g && String(g.error_message || '').trim()) return { error: 'server', message: String(g.error_message) };
       if (!inner || typeof inner !== 'object') return { error: 'shape', message: 'Unexpected bridge answer.' };
       if (String(inner.status || '').toUpperCase() === 'ERROR') return { error: 'server', message: inner.message || 'Mirror error', kod: inner.kod || '' };
