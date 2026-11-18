@@ -490,7 +490,9 @@
   var SKIP_SEL = '#dynamicForm, #jsonInputsSection, #debugPanels, [contenteditable=""], [contenteditable="true"], [translate="no"], .notranslate, [data-gx-notr], ' +
     '[class^="wsb-board"], [class*=" wsb-board"], .tk-lbl, [data-field], ' +
     // form kodu metni karsilastirir / surekli yeniden yazar (18.11 titreme; KLASOR akisi "Edit" metniyle dugmeyi bulur)
-    '#toggleInlineEdit';
+    '#toggleInlineEdit, ' +
+    // prompt builder sekme adini degisince hemen geri yazar (Apps / Fields)
+    '.palette-fs-tab';
   var skipCache = typeof WeakMap === 'function' ? new WeakMap() : null;
   function skipped(el) {
     if (!el || el.nodeType !== 1) return true;
