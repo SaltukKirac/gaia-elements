@@ -3423,6 +3423,19 @@
 #dynamic-table-wrapper .dt-filter-chip-text { overflow: hidden; text-overflow: ellipsis; }
 #dynamic-table-wrapper .dt-filter-chip-x { font-weight: 500; opacity: .8; padding-left: 6px; border-left: 1px solid rgba(99, 102, 241, .3); }
 @media (max-width: 767px) { #dynamic-table-wrapper .dt-filter-chip { max-width: 170px; height: 32px; } }
+/* GX-ARAMA-FILTRE (19.11): search + filter together → the chip is filled, and a line above the grid says so */
+#dynamic-table-wrapper .dt-filter-chip.is-loud { background: var(--gx-primary, #6366f1); border-color: var(--gx-primary, #6366f1); color: #fff; }
+#dynamic-table-wrapper .dt-filter-chip.is-loud:hover { background: var(--gx-primary-deep, #4f46e5); }
+#dynamic-table-wrapper .dt-filter-chip.is-loud .dt-filter-chip-x { opacity: 1; border-left-color: rgba(255, 255, 255, .45); }
+@keyframes dt-chip-pulse { 0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, .55); } 100% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); } }
+#dynamic-table-wrapper .dt-filter-chip.is-pulse { animation: dt-chip-pulse 900ms ease-out 2; }
+@media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .dt-filter-chip.is-pulse { animation: none; } }
+#dynamic-table-wrapper #dt-search-hint {
+  margin: 8px 0; padding: 10px 14px; border-radius: var(--gx-r-md, 10px); background: #eef2ff;
+  border: 1px solid rgba(99, 102, 241, .35); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-family: inherit;
+}
+#dynamic-table-wrapper #dt-search-hint.is-none { border-color: var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper #dt-search-hint .dt-search-hint-btn { flex-shrink: 0; }
 
 /* ── First-run banner (updateFirstRunBanner ile dinamik eklenir) ─────────── */
 #dynamic-table-wrapper #dt-first-run-banner {
@@ -5411,12 +5424,72 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!el.__gxBound) { el.__gxBound = true; el.addEventListener('click', e => { e.preventDefault(); dtClearAllFilters(); }); }
     let names = [];
     try { names = dtActiveFilterNames(); } catch (e) { names = []; }
-    if (!names.length) { el.hidden = true; return; }
+    if (!names.length) { el.hidden = true; el.classList.remove('is-loud', 'is-pulse'); return; }
     const txt = el.querySelector('.dt-filter-chip-text');
     if (txt) txt.textContent = names.length === 1 ? 'Filtered: ' + names[0] : 'Filtered: ' + names.length + ' fields';
     el.title = 'Filters on: ' + names.join(', ') + '. Click to clear.';
     el.setAttribute('aria-label', 'Filters on: ' + names.join(', ') + '. Clear filters');
     el.hidden = false;
+    // GX-ARAMA-FILTRE: a search typed while a filter is on makes the chip loud (the search only looks inside it)
+    const loud = !!(els.search && els.search.value.trim());
+    if (loud && !el.classList.contains('is-loud')) { el.classList.remove('is-pulse'); void el.offsetWidth; el.classList.add('is-pulse'); }
+    el.classList.toggle('is-loud', loud);
+  }
+  // ── GX-ARAMA-FILTRE (19.11, Saltuk): a search came back empty and nothing said a filter was still on. The filter is
+  // never dropped by a search; it is made obvious instead: while a search and a filter are both on, a line above the
+  // grid says the search looks only inside the filter (and how many matches the filter hides, when the grid knows);
+  // an empty answer says "No matches" (never "No records yet") with one click to search everything.
+  function dtSearchHintModel(o) {
+    // o: { term, names, visible (-1 unknown), hidden (-1 unknown), loading }
+    const term = String(o.term || '').trim(), names = o.names || [];
+    if (!term && !names.length) return null;
+    const none = !o.loading && o.visible === 0;
+    if (!none && !(term && names.length)) return null;
+    const what = names.length === 1 ? names[0] : names.length + ' fields';
+    const q = term.length > 40 ? term.slice(0, 40) + '...' : term;
+    const more = o.hidden > 0 ? o.hidden + ' more match' + (o.hidden === 1 ? '' : 'es') + ' hidden by the filter on ' + what + '.' : '';
+    if (!names.length) return { title: 'No matches for "' + q + '"', desc: 'Try another word.', action: 'search', label: 'Clear search' };
+    if (none && !term) return { title: 'No rows match the filter', desc: 'The filter on ' + what + ' hides every row.', action: 'filters', label: 'Clear filters' };
+    return {
+      title: none ? 'No matches with filters on' : 'Searching filtered rows only',
+      desc: more || ('The filter on ' + what + ' still applies' + (none ? ' and may hide matches.' : '.')),
+      action: 'filters', label: 'Search all records'
+    };
+  }
+  function dtSearchHintSync() {
+    try {
+      let h = document.getElementById('dt-search-hint');
+      const c = els.container;
+      const term = els.search ? els.search.value.trim() : '';
+      let names = []; try { names = dtActiveFilterNames(); } catch (e) { names = []; }
+      const hold = typeof aynaEmptyHold === 'function' ? aynaEmptyHold() : '';
+      const shown = !!(c && c.parentNode && c.style.display !== 'none' && state._dtDataLoaded && hold !== 'error');
+      let visible = -1, hidden = -1;
+      const rows = Array.isArray(state.displayRows) ? state.displayRows.length : 0;
+      const windowed = typeof aynaWindowed === 'function' && aynaWindowed();
+      if (!windowed && state.hot && !state.hot.isDestroyed && typeof state.hot.countRows === 'function') {
+        visible = state.hot.countRows(); hidden = Math.max(0, rows - visible);
+      } else visible = rows;
+      if (!rows) { visible = 0; hidden = -1; }   // nothing to show at all (the grid may still hold the last mount)
+      const m = shown ? dtSearchHintModel({ term, names, visible, hidden, loading: hold === 'loading' || !!state._mounting }) : null;
+      if (!m) { if (h) h.remove(); return; }
+      const html = '<div class="dt-first-run-body"><div class="dt-first-run-title"></div><div class="dt-first-run-desc"></div></div>' +
+        '<button type="button" class="dt-action-btn dt-action-btn-primary dt-search-hint-btn"></button>';
+      if (!h) {
+        h = document.createElement('div'); h.id = 'dt-search-hint'; h.setAttribute('role', 'status');
+        h.innerHTML = html; c.parentNode.insertBefore(h, c);
+        h.querySelector('.dt-search-hint-btn').addEventListener('click', e => {
+          e.preventDefault();
+          if (h.dataset.action === 'search') { closeSearch(true); dtSearchHintSync(); } else dtClearAllFilters();
+        });
+      }
+      h.dataset.action = m.action;
+      h.classList.toggle('is-none', /^No /.test(m.title));
+      const t = h.querySelector('.dt-first-run-title'), d = h.querySelector('.dt-first-run-desc'), b = h.querySelector('.dt-search-hint-btn');
+      if (t.textContent !== m.title) t.textContent = m.title;
+      if (d.textContent !== m.desc) d.textContent = m.desc;
+      if (b.textContent !== m.label) b.textContent = m.label;
+    } catch (e) {}
   }
   function dtClearAllFilters() {
     if (!Object.keys(state.filterConfigs || {}).length) { dtFilterChipSync(); return; }
@@ -5440,6 +5513,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     closeFieldConfigModal(); // eski satırların örnekleriyle taslak açık kalmasın
     try { hideFilterPanel(); } catch (e) {}
     dtFilterChipSync();
+    dtSearchHintSync();
     if (announce && had) showWakeToast('New view, filters cleared', 'info');
   }
   function dtRenderClaimWait(td, st, row) {
@@ -9106,6 +9180,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     syncHotSelectionFromState();
     dtXlRestoreSel();   // GX-EXCEL: after a cell edit the selected cells stay cells (not whole records)
     dtFilterChipSync();   // GX-FILTRE-SUREC
+    dtSearchHintSync();   // GX-ARAMA-FILTRE
 
     updateFooter();
     attachDoubleClickListener();
@@ -9279,6 +9354,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (rb) rb.addEventListener('click', function () { aynaRetry(); });
         return;
       }
+      // GX-ARAMA-FILTRE: an empty answer to a search or a filter is "No matches" (dtSearchHintSync), never "No records yet"
+      let narrowed = false;
+      try { narrowed = !!(els.search && els.search.value.trim()) || dtActiveFilterNames().length > 0; } catch (e) { narrowed = false; }
+      if (narrowed) { if (b) b.remove(); dtSearchHintSync(); return; }
       const w = state.wake || {};
       const canAsk = !!(w.show && w.hasAgent && !w.waking && !(w.manualWake && w.manualWake.enabled === false));
       let mode = '';
@@ -9668,6 +9747,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     // T7: 150 ms debounce; the box is read when the timer fires (Escape / clear paths still apply at once)
     let searchTimer = null;
     els.search.addEventListener('input', () => {
+      dtFilterChipSync();   // GX-ARAMA-FILTRE: the filter chip turns loud as soon as a search is typed
       if (searchTimer) clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
         searchTimer = null;
@@ -15403,6 +15483,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
       syncHotSelectionFromState();
       saveViewCarry();
+      if (!state._mounting) dtSearchHintSync();   // GX-ARAMA-FILTRE: the count of rows the filter hides changed
     } catch (err) {
       console.warn('Filter apply failed', err);
       if (typeof showWakeToast === 'function') showWakeToast('Filter could not be applied', 'error');
