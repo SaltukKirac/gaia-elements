@@ -217,65 +217,13 @@
       var b = mod.querySelector('.module-close-mobile');
       if (b) b.click();
     }
-    // (4) MOBIL-SHEETS 2 (19.11 aksam, Saltuk: "eski menuden calisti, normal hali calismadi"): telefonda (<450) Bubble'in
-    //     tablo tiklama akisi menuyu kapatir (acik = false); kapali menudeki satira yapilan tiklamayi Bubble yok sayar.
-    //     Klasik menude kisi once menuyu acip sonra satira dokundugu icin calisiyordu. Octo cubugunun vekil tiklamasi
-    //     (ya da herhangi bir tik) kapali menudeki satira gelirse: tik durdurulur, menu Bubble'in kendi durumuyla acilir
-    //     (cubuk kipinde gorunmez kalir), satir hazir olunca ayni tablonun satirina tik yeniden verilir.
-    function sideState(name) {
-      var sm = D.getElementById('sideMenu');
-      var bd = sm && sm.bubble_data, inst = bd && bd.bubble_instance, st = inst && inst._states;
-      var s = st && st[name];
-      return (s && typeof s.set === 'function' && typeof s.dangerously_peek === 'function') ? s : null;
-    }
-    function rowName(r) { var n = r && r.querySelector('.baUfaIl'); return n ? String(n.textContent || '').trim() : ''; }
-    function rowShown(r) {
-      if (!r || !r.isConnected) return false;
-      for (var x = r; x && x !== D.body; x = x.parentElement) { if (W.getComputedStyle(x).display === 'none') return false; }
-      var b = r.getBoundingClientRect();
-      return b.width > 0 && b.height > 0;
-    }
-    function sameRow(r, name, idx) {
-      if (rowShown(r)) return r;
-      var rows = D.querySelectorAll(ROW), hit = null, n = 0;
-      for (var i = 0; i < rows.length; i++) {
-        if (rowName(rows[i]) !== name) continue;
-        if (n === idx) { hit = rows[i]; break; }
-        n++;
-      }
-      return hit;
-    }
-    var replaying = false;
-    D.addEventListener('click', function (e) {
-      if (replaying || W.__gxNoMobilSheets || W.__gxNoMobilSheetsOpen) return;
-      if ((W.innerWidth || 0) > 899) return;
-      var row = e.target && e.target.closest ? e.target.closest(ROW) : null;
-      if (!row) return;
-      var ak = sideState('custom.a__k_');
-      if (!ak || ak.dangerously_peek() !== false) return;   // menu acik (ya da hic kapanmadi): Bubble kendisi isler
-      var name = rowName(row);
-      if (!name) return;
-      // ayni adli tablolar olabilir (Hasar Dosya x3): kacinci oldugu da tutulur
-      var rows = D.querySelectorAll(ROW), idx = 0;
-      for (var i = 0; i < rows.length && rows[i] !== row; i++) { if (rowName(rows[i]) === name) idx++; }
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      api.sheetReopen = (api.sheetReopen || 0) + 1;
-      ak.set(true);
-      var t0 = Date.now();
-      (function go() {
-        try { width(); } catch (er) { /* ignore */ }
-        var r = sameRow(row, name, idx);
-        if (!r && Date.now() - t0 < 2500) { setTimeout(go, 80); return; }
-        r = r || row;
-        replaying = true;
-        try { r.click(); } catch (er) { /* ignore */ } finally { replaying = false; }
-      })();
-    }, true);
-    // Octo cubugu tablo degisimini 4 sn bekleyip 'Could not open' der; telefonda Bubble'in arama + cizimi daha uzun surebilir.
+    // (4) MOBIL-SHEETS 2 (19.11 aksam, Saltuk: "eski menuden calisti, normal hali calismadi"): octo cubugu tablo secince
+    //     Bubble'in secili isaretinin (Shape A) yeni satira gecmesini T.zoomWait (4 sn) bekler, gelmezse 'Could not open'
+    //     + Classic menu der. Olcum (390 px, kisinin hesabi, onde): isaret 4,9 sn'de geciyor, tablo 6,7 sn'de; telefonda
+    //     daha uzun. Gecis arkadan tamamlansa da cubuk vazgecmis oluyordu. Telefonda bekleme 12 sn.
     function octoWait() {
       var wb = W.octo && W.octo._wsbar, T = wb && wb.T;
-      if (T && typeof T.zoomWait === 'number' && T.zoomWait < 9000) T.zoomWait = 9000;
+      if (T && typeof T.zoomWait === 'number' && T.zoomWait < 12000) T.zoomWait = 12000;
     }
     function tick() {
       if (W.__gxNoMobilSheets) return;
