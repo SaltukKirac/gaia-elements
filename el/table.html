@@ -3409,6 +3409,20 @@
 #dynamic-table-wrapper .handsontable td.dt-xl-flash { animation: dt-xl-flash 700ms ease-out 1; }
 @media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .handsontable td.dt-xl-flash { animation: none; } }
 @media (max-width: 767px) { #dynamic-table-wrapper .dt-xl-stats { display: none !important; } }
+/* ── GX-FILTRE-SUREC (19.11): an active filter is visible on the toolbar and clears in one click ─────────────── */
+#dynamic-table-wrapper .dt-filter-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; margin: 0; padding: 0 10px; box-sizing: border-box;
+  border: 1px solid rgba(99, 102, 241, .38); border-radius: 999px; background: rgba(99, 102, 241, .09);
+  color: var(--gx-primary-deep, #4f46e5); font: inherit; font-size: 12px; font-weight: 600; line-height: 1;
+  white-space: nowrap; max-width: 280px; cursor: pointer;
+}
+#dynamic-table-wrapper .dt-filter-chip[hidden] { display: none !important; }
+#dynamic-table-wrapper .dt-filter-chip:hover { background: rgba(99, 102, 241, .16); }
+#dynamic-table-wrapper .dt-filter-chip:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 2px; }
+#dynamic-table-wrapper .dt-filter-chip svg { width: 12px; height: 12px; flex: none; }
+#dynamic-table-wrapper .dt-filter-chip-text { overflow: hidden; text-overflow: ellipsis; }
+#dynamic-table-wrapper .dt-filter-chip-x { font-weight: 500; opacity: .8; padding-left: 6px; border-left: 1px solid rgba(99, 102, 241, .3); }
+@media (max-width: 767px) { #dynamic-table-wrapper .dt-filter-chip { max-width: 170px; height: 32px; } }
 
 /* ── First-run banner (updateFirstRunBanner ile dinamik eklenir) ─────────── */
 #dynamic-table-wrapper #dt-first-run-banner {
@@ -3475,6 +3489,7 @@
           </div>
         </div>
         <div class="dt-toolbar-right">
+          <button id="dt-filter-chip" class="dt-filter-chip" type="button" hidden><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 2h10l-4 5v3l-2-1V7z" fill="currentColor"/></svg><span class="dt-filter-chip-text"></span><span class="dt-filter-chip-x" aria-hidden="true">Clear</span></button>
           <span id="dt-xl-stats" class="dt-xl-stats dt-hidden" aria-live="polite"></span>
           <span id="dt-selection-count" class="dt-selection-count dt-hidden" aria-live="polite"></span>
           <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" data-tip="Delete selected"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
@@ -3699,13 +3714,13 @@
     let inter = 0; B.forEach(x => { if (A.has(x)) inter += 1; });
     return inter / (A.size + B.size - inter);
   }
+  // GX-FILTRE-SUREC (19.11): the screen is read the way the mirror reads it (config, then #bubble-options, then the
+  // plugin globals). Before, only the config was read: a page whose process (Surec) came from #bubble-options always
+  // looked like the same screen, so a filter set in one process stayed on in the next one.
   function viewKeyOf(config, data) {
-    let ag = config && config.agent;
-    if (typeof ag === 'string') { try { ag = JSON.parse(ag); } catch (e) { ag = null; } }
-    if (!ag || typeof ag !== 'object') ag = {};
-    const pick = (a, b) => String((a !== undefined && a !== null && String(a).trim() !== '') ? a : (b || '')).trim();
+    const scr = aynaScreenOf(config || {});
     return {
-      screen: { list: pick(config.list_id, ag.list_id), stage: pick(config.stage_id, ag.stage_id) },
+      screen: { list: scr.list, stage: scr.stage, key: scr.any ? scr.key : '' },
       cols: sanitizeColumns(config.columns).map(c => c.id),
       rows: (Array.isArray(data) ? data : []).map(rowIdOf).filter(Boolean)
     };
@@ -3718,9 +3733,11 @@
     const layoutNew = (listKnown && ps.list !== ns.list) ||
       (!(listKnown && ps.list === ns.list) && idJaccard(prev.cols, next.cols) < 0.5);
     const stageChanged = !!(ps.stage && ns.stage && ps.stage !== ns.stage);
+    // GX-FILTRE-SUREC: another process / list / screen is another view (also "all records" → one process)
+    const screenChanged = !(typeof window !== 'undefined' && window.__gxKeepFilters) && !!(ps.key && ns.key && ps.key !== ns.key);
     let disjoint = false;
     if (prev.rows.length && next.rows.length) { const P = new Set(prev.rows); disjoint = !next.rows.some(id => P.has(id)); }
-    return { layoutNew, dataNew: layoutNew || stageChanged || disjoint };
+    return { layoutNew, dataNew: layoutNew || stageChanged || screenChanged || disjoint };
   }
   // Boş veri kimlik taşımaz → önceki kayıt id kümesi korunur (iki adımlı render'da sahne değişimi kaçmasın)
   function carryRowIds(prev, next) { return (prev && !next.rows.length) ? Object.assign({}, next, { rows: prev.rows }) : next; }
@@ -5379,6 +5396,51 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (nums) html += ' · Sum <b>' + f(sum) + '</b> · Average <b>' + f(sum / nums) + '</b>';
     el.innerHTML = html;
     el.classList.remove('dt-hidden');
+  }
+  // ── GX-FILTRE-SUREC (19.11, Saltuk): entering a process showed rows filtered by a filter set earlier, and nothing but
+  // a small header badge said so. Another process / list now starts unfiltered (classifyView, aynaRescreen), and while
+  // any column filter is on the toolbar shows "Filtered: <field>  Clear". Old behaviour: window.__gxKeepFilters = true.
+  function dtActiveFilterNames() {
+    const cols = state._mountedCols || [];
+    return Object.keys(state.filterConfigs || {}).filter(k => isFilterActive(Number(k)))
+      .map(k => { const c = cols[Number(k)]; return c && !c.__uiOnly ? String(c.header || c.id || '').trim() : ''; }).filter(Boolean);
+  }
+  function dtFilterChipSync() {
+    const el = document.getElementById('dt-filter-chip');
+    if (!el) return;
+    if (!el.__gxBound) { el.__gxBound = true; el.addEventListener('click', e => { e.preventDefault(); dtClearAllFilters(); }); }
+    let names = [];
+    try { names = dtActiveFilterNames(); } catch (e) { names = []; }
+    if (!names.length) { el.hidden = true; return; }
+    const txt = el.querySelector('.dt-filter-chip-text');
+    if (txt) txt.textContent = names.length === 1 ? 'Filtered: ' + names[0] : 'Filtered: ' + names.length + ' fields';
+    el.title = 'Filters on: ' + names.join(', ') + '. Click to clear.';
+    el.setAttribute('aria-label', 'Filters on: ' + names.join(', ') + '. Clear filters');
+    el.hidden = false;
+  }
+  function dtClearAllFilters() {
+    if (!Object.keys(state.filterConfigs || {}).length) { dtFilterChipSync(); return; }
+    state.filterConfigs = {};
+    try { hideFilterPanel(); } catch (e) {}
+    applyAllColumnFilters();
+    try { if (state.hot && !state.hot.isDestroyed) state.hot.render(); } catch (e) {}   // the header badges (window mode skips the render)
+    showWakeToast('Filters cleared', 'info');
+  }
+  // a new view: filters, search, held selection and the grid's sort / scroll start over. announce → a short note when
+  // a filter or a search was really on (the person sees why the rows changed)
+  function dtResetDataView(announce) {
+    let had = false;
+    try { had = dtActiveFilterNames().length > 0 || !!(els.search && els.search.value.trim()); } catch (e) { had = false; }
+    state.filterConfigs = {};
+    state._carrySelectionIds = [];
+    state._resetHotView = true;
+    if (els.search) els.search.value = '';
+    closeSearch(false);
+    closeColumnMenu();
+    closeFieldConfigModal(); // eski satırların örnekleriyle taslak açık kalmasın
+    try { hideFilterPanel(); } catch (e) {}
+    dtFilterChipSync();
+    if (announce && had) showWakeToast('New view, filters cleared', 'info');
   }
   function dtRenderClaimWait(td, st, row) {
     const b = document.createElement('span');
@@ -9043,6 +9105,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     // Seçim: taşınan kayıtlar yeniden vurgulanır, görünmeyenler düşer; değiştiyse yayınlanır
     syncHotSelectionFromState();
     dtXlRestoreSel();   // GX-EXCEL: after a cell edit the selected cells stay cells (not whole records)
+    dtFilterChipSync();   // GX-FILTRE-SUREC
 
     updateFooter();
     attachDoubleClickListener();
@@ -9810,6 +9873,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!AYNA.cfg || !aynaAlive()) return;
       const scr = aynaScreenOf(AYNA.cfg);
       if (!scr.any || scr.key === AYNA.screenKey) return;
+      // GX-FILTRE-SUREC: the page moved to another process without a new table config → the old filters go with it
+      // (only when a screen was showing; a screen id that lands late is the same view)
+      if (AYNA.screenKey && !window.__gxKeepFilters) dtResetDataView(true);
+      if (state._viewKey) state._viewKey = Object.assign({}, state._viewKey, { screen: { list: scr.list, stage: scr.stage, key: scr.key } });
       aynaLoad(AYNA.cfg, AYNA.cfg.columns);
     } catch (e) {}
   }
@@ -12395,15 +12462,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       closeDueDatePanel();
       closeFieldConfigModal();
     }
-    if (v.dataNew) {
-      state.filterConfigs = {};
-      state._carrySelectionIds = [];
-      state._resetHotView = true;
-      if (els.search) els.search.value = '';
-      closeSearch(false);
-      closeColumnMenu();
-      closeFieldConfigModal(); // aşama değişimi (aynı düzen): eski satırların örnekleriyle taslak açık kalmasın
-    }
+    if (v.dataNew) dtResetDataView(!!verdict);   // aşama değişimi (aynı düzen): filtre / arama / seçim sıfır
     const saved = savedViewOf(config);
     if (saved && saved.key !== state._lastAppliedSavedKey && (v.layoutNew || !state._layoutTouched)) {
       if (saved.columnOrder) state.columnOrder = saved.columnOrder;
@@ -15207,6 +15266,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   function applyAllColumnFilters() {
     dtPeopleSoon();   // GX-PEOPLE (07.10): the bar's pressed state follows the column filters
+    dtFilterChipSync();   // GX-FILTRE-SUREC: the toolbar says a filter is on
     if (!state.hot || typeof state.hot.getPlugin !== 'function') return;
     const filterPlugin = state.hot.getPlugin('filters');
     if (!filterPlugin) return;
