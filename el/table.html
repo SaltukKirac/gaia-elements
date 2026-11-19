@@ -4765,7 +4765,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!row) return '';
       const id = rowIdOf(row);
       if (row.__gxDelFail || (id && _dtDelFail.has(id))) return 'delfailed';   // GX-PEND-SIL: the background delete failed
-      if (id && dtPaket.has(id)) return '';
+      if (id && dtPaket.has(id)) return dtEkDurum(row);   // EK-SAYIM: a ready claim that new documents are completing
       let claim = '';
       for (const k in row) { if (k !== '__sourceIndex' && dtNormKey(k) === 'claim') { claim = String(row[k] == null ? '' : row[k]).trim(); break; } }
       if (claim) return '';
@@ -4797,6 +4797,83 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) {}
     return null;
   }
+  /* EK-SAYIM (19.11.2026, Saltuk: "ek evrak eklendiği zaman müşteri claimin tekrar hazırlanmaya başlamasını anlamamış, elle doldurmuş; tabloda
+     claim tamamlanıyor şeklinde bir ifade ve geri sayım gerekiyor"). A ready claim whose record got new documents shows "Completing" with
+     the clock instead of "Ready ✓" until the claim line (nod-gaia-hat ek turu) writes the new package. Seen when:
+       - the record's documents (Evraklar + Ek Evrak) hold files the claim package (octo1, its 'evraklar' list) does not, and none of the
+         package's files is gone: the line's own rule for an incremental turn (Klasor-Farki), so every viewer sees it;
+       - the line writes 'Claim Aşaması' = "Ek evrak okunuyor (n)" (it is reading them);
+       - this browser has just added files to the record (EVRAK-BIRAK), until the package changes: the mirror can be 2 min behind.
+     "Ek evrak işlenemedi (2/2)" (the line gave up) shows "Not completed". Off: window.__gxNoEkSayim = true. */
+  // what the add card says when the files are in (the claim column counts down)
+  const DT_EK_TAMAM_NOT = 'The claim is being completed now, about 5 min. Watch the Claim column, no need to fill it by hand.';
+  const _dtPaketEvrak = new Map();   // id → { p: package, keys: Set of file keys | null }
+  const _dtEkleSon = new Map();      // id → { at, p: the package when this browser added files, n }
+  function dtEvrakAnahtar(u) { return String(u || '').split('?')[0].split('/').filter(Boolean).slice(-2).join('/'); }
+  function dtPaketEvraklari(id) {
+    const p = dtPaket.get(id);
+    if (!p || p.slice(0, 6) !== 'octo1.') return null;   // octo2 is sealed for the extension: not readable here
+    const c = _dtPaketEvrak.get(id);
+    if (c && c.p === p) return c.keys;
+    let keys = null;
+    try {
+      let b = p.slice(6).replace(/-/g, '+').replace(/_/g, '/'); b += '='.repeat((4 - b.length % 4) % 4);
+      const bin = atob(b), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      const o = JSON.parse(new TextDecoder().decode(u8));
+      if (o && Array.isArray(o.evraklar)) keys = new Set(o.evraklar.map(e => dtEvrakAnahtar(e && e.url)).filter(Boolean));
+    } catch (e) { keys = null; }
+    _dtPaketEvrak.delete(id); _dtPaketEvrak.set(id, { p, keys });
+    if (_dtPaketEvrak.size > 500) _dtPaketEvrak.delete(_dtPaketEvrak.keys().next().value);
+    return keys;
+  }
+  function dtRowEvrakUrls(row) {
+    const out = [];
+    try {
+      for (const k in row) {
+        const nk = dtNormKey(k);
+        if (nk !== 'evraklar' && nk !== 'ekevrak') continue;
+        let v = row[k];
+        if (typeof v === 'string') { const t = v.trim(); if (t.charAt(0) === '[') { try { v = JSON.parse(t); } catch (e) {} } else v = t ? t.split(/\s*,\s*(?=https?:|\/\/)/) : []; }
+        if (Array.isArray(v)) v.forEach(x => { if (typeof x === 'string' && x.trim()) out.push(x.trim()); });
+      }
+    } catch (e) {}
+    return out;
+  }
+  // new documents the claim package does not have yet (0 when one of its files is gone: the line then builds the claim again)
+  function dtEkYeni(row) {
+    const keys = dtPaketEvraklari(rowIdOf(row));
+    if (!keys || !keys.size) return 0;
+    const now = new Set(dtRowEvrakUrls(row).map(dtEvrakAnahtar).filter(Boolean));
+    if (!now.size) return 0;
+    for (const k of keys) if (!now.has(k)) return 0;
+    let n = 0; now.forEach(k => { if (!keys.has(k)) n++; });
+    return n;
+  }
+  function dtEkSayi(row) {
+    try { const n = dtEkYeni(row); if (n) return n; const s = _dtEkleSon.get(rowIdOf(row)); return s ? s.n : 1; } catch (e) { return 1; }
+  }
+  function dtEkDurum(row) {
+    if (window.__gxNoEkSayim) return '';
+    try {
+      const id = rowIdOf(row);
+      const asama = dtAsamaOf(row);
+      if (/^Ek evrak işlenemedi\s*\(2\s*\/\s*2\)/i.test(asama)) return 'ekfail';
+      if (/^Ek evrak okunuyor/i.test(asama)) return 'completing';
+      if (dtEkYeni(row)) return 'completing';
+      const s = id ? _dtEkleSon.get(id) : null;
+      if (s && dtNow() - s.at < 20 * 60000 && (dtPaket.get(id) || '') === s.p) return 'completing';
+    } catch (e) {}
+    return '';
+  }
+  // EVRAK-BIRAK → EK-SAYIM: this browser added files to a record (the clock starts now, the row says Completing at once)
+  function dtEkleSonYaz(id, n) {
+    if (!id) return;
+    const at = dtNow();
+    _dtEkleSon.set(id, { at, p: dtPaket.get(id) || '', n: Number(n) || 1 });
+    _dtWaitStart.delete(id + '|completing'); _dtWaitStart.set(id + '|completing', at);
+    try { if (state.hot) state.hot.render(); } catch (e) {}
+  }
   function dtWaitStart(row, st) {
     const id = rowIdOf(row) || (row && row._created) || '';
     const mod = Number(row && row._gxDurumMod) || aynaLiveTime(row && row._modified);
@@ -4807,12 +4884,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return at;
   }
   function dtClaimTimeText(row, st) {
-    if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued')) return '';
+    if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued' && st !== 'completing')) return '';
     const at = dtWaitStart(row, st);
     const min = at ? Math.max(0, Math.floor((dtNow() - at) / 60000)) : null;   // CANLI-VERI: a browser clock 28 s fast said "1 min" 28 s early
     if (st === 'queued') return min === null ? '' : (min < 1 ? '<1 min' : min + ' min');
     const n = dtEvrakCount(row);
-    const est = (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
+    // EK-SAYIM: the line waits 3 min for the upload to settle, then reads only the new documents (13.11 / 16.11: 2-3 min)
+    const est = st === 'completing' ? Math.max(5, Math.round(5 + 0.15 * dtEkSayi(row)))
+      : (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
     if (min === null || min < 1) return est ? '~' + est + ' min' : '';
     if (est && min < est) return min + ' / ~' + est + ' min';
     return min + ' min in';
@@ -4830,6 +4909,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const m = String(t || '').trim(); let x;
     if (!m) return '';
     if ((x = /^İndiriliyor\s+(\d+)/i.exec(m))) return 'Downloading ' + x[1];
+    if ((x = /^Ek evrak okunuyor\s*\((\d+)\)/i.exec(m))) return 'reading ' + x[1] + ' new';   // EK-SAYIM
     if ((x = /^Okunuyor\s+(\d+)\s*\/\s*(\d+)/i.exec(m))) return 'Reading ' + x[1] + '/' + x[2];
     if (/^Yazılıyor/i.test(m)) return 'Writing claim';
     if (/^Kontrol/i.test(m)) return 'Checking';
@@ -4877,6 +4957,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
   }
   function dtRenderClaimWait(td, st, row) {
+    if (st === 'completing' || st === 'ekfail') { dtRenderEkSayim(td, st, row); return; }   // EK-SAYIM
     const b = document.createElement('span');
     b.className = 'dt-claim-wait dt-claim-wait--' + st + (st === 'delfailed' ? ' dt-claim-wait--failed' : '');
     if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
@@ -4909,12 +4990,30 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     td.appendChild(b);
   }
+  // EK-SAYIM: "Completing 2 / ~5 min" (spinner) while new documents go into a ready claim; "Not completed" when the line gave up
+  function dtRenderEkSayim(td, st, row) {
+    const b = document.createElement('span');
+    b.className = 'dt-claim-wait dt-claim-wait--' + st + (st === 'completing' ? ' dt-claim-wait--preparing' : ' dt-claim-wait--failed');
+    if (st === 'ekfail') {
+      b.appendChild(document.createTextNode('Not completed'));
+      td.title = 'The new documents could not be added to the claim. The claim is from the earlier documents. Open the record and check the new ones.';
+      td.appendChild(b);
+      return;
+    }
+    const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp);
+    let time = ''; try { time = dtClaimTimeText(row, 'completing'); } catch (e) { time = ''; }
+    b.appendChild(document.createTextNode('Completing' + (time ? ' ' + time : '…')));
+    b.setAttribute('aria-label', 'Completing the claim with new documents' + (time ? ', ' + time : ''));
+    const n = dtEkSayi(row), en = window.__gxNoStage ? '' : dtAsamaEn(dtAsamaOf(row));
+    td.title = 'Completing the claim with ' + n + ' new document' + (n === 1 ? '' : 's') + (en ? ' (' + en + ')' : '') + '. Only the new ones are read; the claim keeps what it has. No need to fill it by hand: it says Ready ✓ again when done.';
+    td.appendChild(b);
+  }
   // TIDY-CLAIMTIME: the clock moves without a data change; a visible Preparing / Queued cell is redrawn every 30 s (one timer per page)
   window.__gxClaimTimeTick = function () {
     try {
       if (window.__gxNoClaimTime || !state.hot || document.visibilityState === 'hidden') return;
       const c = els && els.container;
-      if (c && c.querySelector('.dt-claim-wait--preparing, .dt-claim-wait--queued')) state.hot.render();
+      if (c && c.querySelector('.dt-claim-wait--preparing, .dt-claim-wait--queued, .dt-claim-wait--completing')) state.hot.render();
     } catch (e) {}
   };
   if (!window.__gxClaimTimeTimer) window.__gxClaimTimeTimer = setInterval(() => { try { const f = window.__gxClaimTimeTick; if (f) f(); } catch (e) {} }, 30000);
@@ -6826,6 +6925,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         else return;
       } else if (m.t === 'done') {
         j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || j.n)); j.not = String(m.not || ''); j.doneAt = Date.now();
+        dtEkleSonYaz(j.rid, j.k);   // EK-SAYIM
         try { ch.close(); } catch (e) {} j.chan = null;
         try { dtKkEkSonra(j); } catch (e) {}   // KAYIT-KLASOR: the same files into the record's folder on this computer
       } else if (m.t === 'error') {
@@ -6905,6 +7005,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     else if (o.st === 'saving') { j.st = 'saving'; j.kayit = true; j.k = Math.max(j.k, Math.min(j.n, Number(o.k) || 0)); }
     else if (o.st === 'done') {
       j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(o.k) || j.n)); j.not = String(o.not || ''); j.doneAt = Date.now();
+      dtEkleSonYaz(j.rid, j.k);   // EK-SAYIM
       setTimeout(() => { if (!dtEkleSayfaAktif(null)) dtEklePanel(false); }, 4000);
     }
     else if (o.st === 'error') { j.kayit = j.kayit || j.st === 'saving'; dtEkleSayfaHata(j, String(o.msg || 'The files could not be added.')); return; }
@@ -6964,7 +7065,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const sira = Array.from(_dtEkle.values()).filter(x => x.sayfa && x.st === 'queued').length;
       const kime = j.etiket ? ' to ' + j.etiket : '';
       const t = j.st === 'done' ? 'Added ' + dtEkleAd(j.k) + kime : j.st === 'error' ? 'Files not added' : 'Adding ' + dtEkleAd(j.n) + kime;
-      const l = j.st === 'done' ? (j.k < j.n ? (j.n - j.k) + ' could not be added. ' : '') + 'Only the new ones are read for the claim.'
+      const l = j.st === 'done' ? (j.k < j.n ? (j.n - j.k) + ' could not be added. ' : '') + DT_EK_TAMAM_NOT
         : j.st === 'error' ? (j.msg || '') : j.st === 'up' ? j.k + ' of ' + j.n + ' uploaded' : j.st === 'saving' ? 'Saving to the file' : 'Opening the file';
       v.querySelector('.gx-ev-t').textContent = t;
       v.querySelector('.gx-ev-l').textContent = l;
@@ -6988,7 +7089,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     else if (j.st === 'opening') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: 0, n: 0, line: j.sayfa ? 'Opening the file' : 'Opening the file in a helper tab' };
     else if (j.st === 'up') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.k, n: j.n, line: j.k + ' of ' + j.n + ' uploaded' };
     else if (j.st === 'saving') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.n, n: j.n, line: 'Saving to the file' };
-    else if (j.st === 'done') kart = { title: 'Added ' + dtEkleAd(j.k), sub: kime, state: 'done', k: j.k, n: j.n, line: [j.k < j.n ? (j.n - j.k) + ' could not be added.' : '', 'Only the new ones are read for the claim.', j.not].filter(Boolean).join(' ') };
+    else if (j.st === 'done') kart = { title: 'Added ' + dtEkleAd(j.k), sub: kime, state: 'done', k: j.k, n: j.n, line: [j.k < j.n ? (j.n - j.k) + ' could not be added.' : '', DT_EK_TAMAM_NOT, j.not].filter(Boolean).join(' ') };
     else kart = { title: 'Files not added', sub: kime, state: 'error', msg: j.msg, line: '' };
     if (kart.state !== 'error') kart.msg = '';   // the card keeps earlier fields: the error shows its own sentence, not the last line
     kart.onRetry = j.st === 'error' && !j.kayit ? () => dtEkleCalistir(j) : null;
@@ -7480,6 +7581,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st) dtRenderClaimWait(td, st, raw); } catch (e) {}
         }
         return;
+      }
+      // EK-SAYIM: a ready claim (Ready ✓) that new documents are completing
+      if (value === DT_PAKET_BADGE && dtNormKey(c.id || '') === 'claim') {
+        try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st === 'completing' || st === 'ekfail') { dtRenderClaimWait(td, st, raw); return; } } catch (e) {}
       }
 
       if (kind === 'number') { dtAppendText(td, typeof value === 'number' ? dtNumberText(c, value) : dtRawText(value)); return; }
@@ -10063,7 +10168,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const r = rows[i];
       if (!r || r.__gxPend || !r._id) continue;
       const st = dtClaimWaitState(r);
-      if (st === 'preparing' || st === 'queued') ids.push(String(r._id));
+      if (st === 'preparing' || st === 'queued' || st === 'completing') ids.push(String(r._id));   // EK-SAYIM: its stage
     }
     if (!window.__gxNoStage) {   // TIDY-STAGE: a Failed row once (its reason), again when the row changed
       for (let i = 0; i < rows.length && ids.length < DT_DIRECT_MAX; i++) {
