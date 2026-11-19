@@ -10393,6 +10393,60 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
     } catch (e) { log('[GX-PEND] ' + ((e && e.message) || e)); }
   }
+  /* GX-FORM-EDIT (19.11, Saltuk: "formdan düzenlediğim zaman autosave ile database'e gidiyor ama tablo güncellenmiyor"). An
+     edit in the form reached the table only when the mirror pulled it from Bubble on its own (seconds to minutes): GX-PEND
+     handled new records only and nothing told the mirror to read the edited record. Now the form's save of an existing record
+     (output3 = its unique id) shows in the row at once (the values the form handed Bubble, through the GX-DIRECT overlay, the
+     mirror's row wins as soon as it is as new) and the mirror reads that record from Bubble 2.5 s later (CANLI-VERI touch), so
+     the other viewers get it too. Only what the form really sent (its changed / emptied field lists); files are left to the mirror.
+     Off: window.__gxNoFormEdit = true. */
+  const DT_FORM_EDIT_TTL_MS = 120000;
+  function dtEditFromSubmit(payload) {
+    try {
+      if (window.__gxNoFormEdit || window.__gxNoDirect || !payload || typeof payload !== 'object') return 0;
+      const id = String(payload.output3 || '').trim();
+      if (!id || !/^\d{6,}x\d{6,}$/.test(id)) return 0;
+      dtLiveTouch([id], 2500);   // CANLI-VERI: the mirror reads the record after Bubble's workflow wrote it
+      // what the form sent Bubble: outputlist1 = the changed fields' '"Key": value' lines (non-empty), outputlist3 = the
+      // fields it emptied; an older form without them → the full snapshot's non-empty values
+      let obj = null, cleared = [];
+      if (Array.isArray(payload.outputlist1)) {
+        obj = {};
+        payload.outputlist1.forEach(l => { try { const p = JSON.parse('{' + String(l) + '}'); Object.keys(p).forEach(k => { obj[k] = p[k]; }); } catch (e) {} });
+        if (Array.isArray(payload.outputlist3)) cleared = payload.outputlist3.map(String);
+      } else {
+        obj = payload.output_full_obj;
+        if ((!obj || typeof obj !== 'object') && typeof payload.output_full_json === 'string') { try { obj = JSON.parse(payload.output_full_json); } catch (e) { obj = null; } }
+      }
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj) || !AYNA.cfg || !aynaAlive() || !Array.isArray(AYNA.painted)) return 0;
+      const row = AYNA.painted.find(r => r && String(r._id || '') === id);
+      if (!row) return 0;   // not on this page of the table: the mirror brings it
+      const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
+      const want = new Map(cols.map(c => [dtNormKey(c), c]));
+      const fields = {};
+      let n = 0;
+      cleared.forEach(k => { const col = want.get(dtNormKey(k)); if (col && !(k in obj) && row[col] != null && row[col] !== '' && typeof row[col] !== 'object') { fields[col] = ''; n++; } });
+      Object.keys(obj).forEach(k => {
+        if (k.charAt(0) === '_') return;
+        const col = want.get(dtNormKey(k)); if (!col) return;
+        let v = obj[k];
+        if (v === null || v === undefined || v === '') return;
+        if (Array.isArray(v)) { if (!v.length || !v.every(x => typeof x === 'string' || typeof x === 'number')) return; v = v.map(String); }
+        else if (typeof v === 'object') return;
+        else if (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean') return;
+        if (dtUploadIds(v).size) return;   // a file address: the mirror's row brings the file cell
+        const cur = row[col];
+        if (JSON.stringify(cur) === JSON.stringify(v) || (cur != null && typeof cur !== 'object' && String(cur) === String(v))) return;
+        fields[col] = v; n++;
+      });
+      if (!n) return 0;
+      const now = dtNow(), prev = _dtDirect.get(id);
+      _dtDirect.set(id, { mod: now, exp: now + DT_FORM_EDIT_TTL_MS, fields: Object.assign({}, prev && prev.fields, fields) });
+      aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
+      log('[GX-FORM-EDIT] ' + n + ' field(s) of the edited record shown before the mirror has them');
+      return n;
+    } catch (e) { log('[GX-FORM-EDIT] ' + ((e && e.message) || e)); return 0; }
+  }
   /* GX-PEND-SIL (30.10, Ömer): "kaydediliyorda ise belki kullanıcı yanlış bir şey yaptı, hemen silmek istiyor; onu göz önünden
      kaldır, arka plandan silinebildiği zaman silinsin, silinemezse failed olarak geri dönsün tabloya". A GX-PEND row (no _id yet)
      used to send Bubble an empty list ("Records have no id field") and stay. Now Delete on it opens the same Bubble dialog; the
@@ -10638,6 +10692,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const o = id ? _dtDirect.get(id) : null;
       if (!o) return r;
       if (aynaLiveTime(r._modified) >= o.mod) { _dtDirect.delete(id); return r; }   // the mirror caught up: its row wins
+      if (o.exp && dtNow() > o.exp) { _dtDirect.delete(id); return r; }   // GX-FORM-EDIT: a save Bubble never confirmed stops showing
       changed = true;
       return Object.assign({}, r, o.fields, { _gxDurumMod: o.mod });   // TIDY-CLAIMTIME: Bubble's own change time
     });
@@ -11532,7 +11587,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       try {
         const f = window.bubble_fn_submit;
         if (typeof f !== 'function' || f.__gxSave) return;
-        const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first
+        const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); dtEditFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first; GX-FORM-EDIT: an edit too
         w.__gxSave = true; w.__gxRaw = f;
         window.bubble_fn_submit = w;
       } catch (e) {}
