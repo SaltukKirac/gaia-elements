@@ -217,12 +217,73 @@
       var b = mod.querySelector('.module-close-mobile');
       if (b) b.click();
     }
+    // (4) MOBIL-SHEETS 2 (19.11 aksam, Saltuk: "eski menuden calisti, normal hali calismadi"): telefonda (<450) Bubble'in
+    //     tablo tiklama akisi menuyu kapatir (acik = false); kapali menudeki satira yapilan tiklamayi Bubble yok sayar.
+    //     Klasik menude kisi once menuyu acip sonra satira dokundugu icin calisiyordu. Octo cubugunun vekil tiklamasi
+    //     (ya da herhangi bir tik) kapali menudeki satira gelirse: tik durdurulur, menu Bubble'in kendi durumuyla acilir
+    //     (cubuk kipinde gorunmez kalir), satir hazir olunca ayni tablonun satirina tik yeniden verilir.
+    function sideState(name) {
+      var sm = D.getElementById('sideMenu');
+      var bd = sm && sm.bubble_data, inst = bd && bd.bubble_instance, st = inst && inst._states;
+      var s = st && st[name];
+      return (s && typeof s.set === 'function' && typeof s.dangerously_peek === 'function') ? s : null;
+    }
+    function rowName(r) { var n = r && r.querySelector('.baUfaIl'); return n ? String(n.textContent || '').trim() : ''; }
+    function rowShown(r) {
+      if (!r || !r.isConnected) return false;
+      for (var x = r; x && x !== D.body; x = x.parentElement) { if (W.getComputedStyle(x).display === 'none') return false; }
+      var b = r.getBoundingClientRect();
+      return b.width > 0 && b.height > 0;
+    }
+    function sameRow(r, name, idx) {
+      if (rowShown(r)) return r;
+      var rows = D.querySelectorAll(ROW), hit = null, n = 0;
+      for (var i = 0; i < rows.length; i++) {
+        if (rowName(rows[i]) !== name) continue;
+        if (n === idx) { hit = rows[i]; break; }
+        n++;
+      }
+      return hit;
+    }
+    var replaying = false;
+    D.addEventListener('click', function (e) {
+      if (replaying || W.__gxNoMobilSheets || W.__gxNoMobilSheetsOpen) return;
+      if ((W.innerWidth || 0) > 899) return;
+      var row = e.target && e.target.closest ? e.target.closest(ROW) : null;
+      if (!row) return;
+      var ak = sideState('custom.a__k_');
+      if (!ak || ak.dangerously_peek() !== false) return;   // menu acik (ya da hic kapanmadi): Bubble kendisi isler
+      var name = rowName(row);
+      if (!name) return;
+      // ayni adli tablolar olabilir (Hasar Dosya x3): kacinci oldugu da tutulur
+      var rows = D.querySelectorAll(ROW), idx = 0;
+      for (var i = 0; i < rows.length && rows[i] !== row; i++) { if (rowName(rows[i]) === name) idx++; }
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      api.sheetReopen = (api.sheetReopen || 0) + 1;
+      ak.set(true);
+      var t0 = Date.now();
+      (function go() {
+        try { width(); } catch (er) { /* ignore */ }
+        var r = sameRow(row, name, idx);
+        if (!r && Date.now() - t0 < 2500) { setTimeout(go, 80); return; }
+        r = r || row;
+        replaying = true;
+        try { r.click(); } catch (er) { /* ignore */ } finally { replaying = false; }
+      })();
+    }, true);
+    // Octo cubugu tablo degisimini 4 sn bekleyip 'Could not open' der; telefonda Bubble'in arama + cizimi daha uzun surebilir.
+    function octoWait() {
+      var wb = W.octo && W.octo._wsbar, T = wb && wb.T;
+      if (T && typeof T.zoomWait === 'number' && T.zoomWait < 9000) T.zoomWait = 9000;
+    }
     function tick() {
       if (W.__gxNoMobilSheets) return;
       if ((W.innerWidth || 0) > 899) return;
       try { width(); } catch (e) { /* ignore */ }
       try { marks(); } catch (e) { /* ignore */ }
       try { closeTemplates(); } catch (e) { /* ignore */ }
+      try { octoWait(); } catch (e) { /* ignore */ }
     }
     tick();
     setInterval(tick, 400);
@@ -603,7 +664,11 @@
   // Cevrilmeyen alanlar: musteri verisi, kod, yazilabilir yerler, "Ingilizce kalsin" isaretleri
   var SKIP_TAG = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, INPUT: 1, SELECT: 1, OPTION: 1, CODE: 1, PRE: 1, TABLE: 1, svg: 1, SVG: 1, TEMPLATE: 1 };
   var SKIP_SEL = '#dynamicForm, #jsonInputsSection, #debugPanels, [contenteditable=""], [contenteditable="true"], [translate="no"], .notranslate, [data-gx-notr], ' +
-    '[class^="wsb-board"], [class*=" wsb-board"], .tk-lbl, [data-field]';
+    '[class^="wsb-board"], [class*=" wsb-board"], .tk-lbl, [data-field], ' +
+    // form kodu metni karsilastirir / surekli yeniden yazar (18.11 titreme; KLASOR akisi "Edit" metniyle dugmeyi bulur)
+    '#toggleInlineEdit, ' +
+    // prompt builder sekme adini degisince hemen geri yazar (Apps / Fields)
+    '.palette-fs-tab';
   var skipCache = typeof WeakMap === 'function' ? new WeakMap() : null;
   function skipped(el) {
     if (!el || el.nodeType !== 1) return true;
@@ -617,6 +682,29 @@
     return r;
   }
 
+  // Titreme bekcisi: kodu metni hep Ingilizceye geri yazan oge 3 sn icinde 10'dan cok kez cevrilirse birakilir (Ingilizce kalir).
+  var gen = 0;
+  var loopSeen = typeof WeakMap === 'function' ? new WeakMap() : null;
+  var loopStop = typeof WeakSet === 'function' ? new WeakSet() : null;
+  api.loops = 0; api.loopList = [];
+  function looping(el) {
+    if (!loopSeen || !el) return false;
+    if (loopStop.has(el)) return true;
+    var now = Date.now(), s = loopSeen.get(el);
+    if (!s || now - s.t > 3000) { loopSeen.set(el, { t: now, n: 1, g: gen }); return false; }
+    if (s.g === gen) return false;   // ayni geciste ayni ogenin ikinci metni: bir sayilir
+    s.g = gen; s.n++;
+    if (s.n > 10) {   // yukleme sirasindaki birkac yeniden cizim degil, gercek titreme (3 sn'de 10+)
+      loopStop.add(el); api.loops++;
+      var tag = '';
+      try { tag = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.') : '') + ' "' + String(el.textContent || '').trim().slice(0, 40) + '"'; } catch (e) { tag = '?'; }
+      if (api.loopList.length < 50) api.loopList.push(tag);
+      try { console.warn('[LANG-TR] text keeps being reset, left in English: ' + tag); } catch (e) { /* ignore */ }
+      return true;
+    }
+    return false;
+  }
+
   function doText(n) {
     var v = n.nodeValue;
     if (!v || v.length > 200 || !/[A-Za-z]/.test(v)) return;
@@ -627,7 +715,10 @@
     if (skipped(p)) return;
     var lead = /^\s*/.exec(v)[0], tail = /\s*$/.exec(v)[0];
     var nv = lead + out + tail;
-    if (nv !== v) { n.nodeValue = nv; api.done++; }
+    if (nv !== v) {
+      if (looping(p)) return;
+      n.nodeValue = nv; api.done++;
+    }
   }
 
   var ATTRS = ['placeholder', 'title', 'aria-label'];
@@ -639,6 +730,7 @@
       if (out !== null && out !== a) {
         if (skipped(el) && !(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) continue;
         if (el.closest && el.closest(SKIP_SEL + ', table')) continue;
+        if (looping(el)) continue;
         el.setAttribute(ATTRS[i], out);
         api.done++;
       }
@@ -668,6 +760,7 @@
   var pend = [], sched = false;
   function flush() {
     sched = false;
+    gen++;
     var list = pend; pend = [];
     if (skipCache) skipCache = new WeakMap();   // DOM tasindi: atlama kararlarini tazele
     for (var i = 0; i < list.length; i++) {
@@ -685,6 +778,7 @@
     try { D.documentElement.setAttribute('lang', 'tr'); } catch (e) { /* ignore */ }
     queue(D.body);
     var mo = new MutationObserver(function (recs) {
+      gen++;   // ozellik yolu (doAttrs) flush beklemez: her gozlemci turu ayri gecis
       for (var i = 0; i < recs.length; i++) {
         var r = recs[i];
         if (r.type === 'childList') {
