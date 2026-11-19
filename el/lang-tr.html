@@ -197,11 +197,32 @@
         r.appendChild(m);
       }
     }
+    // (3) Seçili tablo yokken sayfa açılınca Bubble'in PageLoaded akisi Architect sablon panelini acar (gaiaTriggerOnboarding);
+    //     telefonda tablo secilince panel kapanmiyor, tablonun ustunde kaliyordu. Tablonun ekrani bos olmayan yeni bir
+    //     ekrana gecince panel acik ise kendi kapatma dugmesiyle kapatilir (kullanicinin sonradan actigi panele dokunulmaz).
+    var lastScr = null;
+    function screenId() {
+      var s = D.getElementById('bubble-table-config');
+      var m = s && /"screen_id"\s*:\s*"([^"]*)"/.exec(s.textContent || '');
+      return m ? m[1] : '';
+    }
+    function closeTemplates() {
+      var k = screenId();
+      if (lastScr === null) { lastScr = k; return; }
+      if (k === lastScr) return;
+      lastScr = k;
+      if (!k) return;
+      var mod = D.getElementById('gaia-automation-module');
+      if (!mod || mod.classList.contains('is-hidden')) return;
+      var b = mod.querySelector('.module-close-mobile');
+      if (b) b.click();
+    }
     function tick() {
       if (W.__gxNoMobilSheets) return;
       if ((W.innerWidth || 0) > 899) return;
       try { width(); } catch (e) { /* ignore */ }
       try { marks(); } catch (e) { /* ignore */ }
+      try { closeTemplates(); } catch (e) { /* ignore */ }
     }
     tick();
     setInterval(tick, 400);
