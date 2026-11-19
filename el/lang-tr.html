@@ -160,6 +160,75 @@
     api.fitMenus = fit;
   })();
 
+  // ---- MOBIL-SHEETS (19.11, Saltuk: "telefondan sheet degistiremiyorum, farkli workspace gectigimde acilmiyor"):
+  // (1) Bubble telefonda sol menunun (#sideMenu, FloatingGroup C) kendi olcusu current_width'i 0 tutuyor (ekranda 364 px).
+  //     Tablo listesi grubunun (Group XZZZZZ) Bubble kosulu "menu genisligi < 50 ise gizle": liste hic olusmuyor, telefon
+  //     cubugu (octo os9m) yalniz ilk tabloyu goruyor, baska tabloya gecilemiyor, sablon paneli acilip tabloyu ortuyordu.
+  //     Dar ekranda Bubble'in olcusu 50'den kucuk, DOM genisligi 50 ve uzeriyse olcu DOM genisligine esitlenir.
+  // (2) Bubble yeni olusturdugu satirlarda gizli "secili" isaretini (Shape A) olusturmuyor; kabuk isareti bulamayinca
+  //     yazinin kalinligina bakiyor (telefonda hepsi kalin) ve her tabloyu "zaten secili" sanip tiklamayi yok sayiyordu.
+  //     Isareti olmayan satirin sonuna gizli bir yer tutucu konur (secili degil demek); Bubble gercek isareti
+  //     olusturunca yer tutucu kaldirilir. Yalniz bu sekmenin ekran durumu, kayit yazilmaz. Kapatma: window.__gxNoMobilSheets = true.
+  (function mobilSheets() {
+    if (W.__gxMobilSheets) return;
+    W.__gxMobilSheets = 1;
+    var MARK = 'baUwsl', ROW = '#sideMenu .baUfaIf';
+    function width() {
+      var sm = D.getElementById('sideMenu');
+      var bd = sm && sm.bubble_data, inst = bd && bd.bubble_instance, st = inst && inst._states;
+      var cw = st && st.current_width;
+      if (!cw || typeof cw.set !== 'function' || typeof cw.dangerously_peek !== 'function') return;
+      var dom = Math.round(sm.getBoundingClientRect().width);
+      var cur = Number(cw.dangerously_peek()) || 0;
+      if (cur < 50 && dom >= 50) cw.set(dom);
+    }
+    function marks() {
+      var rows = D.querySelectorAll(ROW);
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i], all = r.querySelectorAll('.' + MARK), real = 0, ph = [];
+        for (var j = 0; j < all.length; j++) { if (all[j].getAttribute('data-gx-mark')) ph.push(all[j]); else real++; }
+        if (real) { for (var k = 0; k < ph.length; k++) ph[k].remove(); continue; }
+        if (ph.length) continue;
+        var m = D.createElement('div');
+        m.className = MARK;
+        m.setAttribute('data-gx-mark', '1');
+        m.setAttribute('aria-hidden', 'true');
+        m.style.display = 'none';
+        r.appendChild(m);
+      }
+    }
+    // (3) Seçili tablo yokken sayfa açılınca Bubble'in PageLoaded akisi Architect sablon panelini acar (gaiaTriggerOnboarding);
+    //     telefonda tablo secilince panel kapanmiyor, tablonun ustunde kaliyordu. Tablonun ekrani bos olmayan yeni bir
+    //     ekrana gecince panel acik ise kendi kapatma dugmesiyle kapatilir (kullanicinin sonradan actigi panele dokunulmaz).
+    var lastScr = null;
+    function screenId() {
+      var s = D.getElementById('bubble-table-config');
+      var m = s && /"screen_id"\s*:\s*"([^"]*)"/.exec(s.textContent || '');
+      return m ? m[1] : '';
+    }
+    function closeTemplates() {
+      var k = screenId();
+      if (lastScr === null) { lastScr = k; return; }
+      if (k === lastScr) return;
+      lastScr = k;
+      if (!k) return;
+      var mod = D.getElementById('gaia-automation-module');
+      if (!mod || mod.classList.contains('is-hidden')) return;
+      var b = mod.querySelector('.module-close-mobile');
+      if (b) b.click();
+    }
+    function tick() {
+      if (W.__gxNoMobilSheets) return;
+      if ((W.innerWidth || 0) > 899) return;
+      try { width(); } catch (e) { /* ignore */ }
+      try { marks(); } catch (e) { /* ignore */ }
+      try { closeTemplates(); } catch (e) { /* ignore */ }
+    }
+    tick();
+    setInterval(tick, 400);
+    api.fitSheets = tick;
+  })();
+
   if (choice.lang !== 'tr') return;
 
   // ---- sozluk: tam eslesen (bosluklari sadelestirilmis) metin -> Turkce
