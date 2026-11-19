@@ -114,6 +114,52 @@
   try { placeSwitch(); } catch (e) { /* ignore */ }
   setInterval(function () { try { placeSwitch(); } catch (e) { /* ignore */ } }, 1500);   // Bubble menuyu yeniden cizebilir
 
+  // ---- MOBIL-MENU (19.11, Saltuk: "mobilde girdigimde workspace secemiyorum degistiremiyorum"): Bubble'in acilir
+  // menuleri (GroupFocus: calisma alani disli menusu vb.) dugmeye gore konumlanir: left = dugmenin x'i, right = 20px.
+  // Telefonda dugme sagdaysa menu ~80px'e sikisiyordu (yazilar dikey, dugmelere basilamiyor). Bubble menunun style'ini
+  // acikken de defalarca bastan yazar, o yuzden duzeltme bir stil kuraliyla: sikisan ya da ekrandan tasan menu
+  // isaretlenir (data-gx-mobil-menu), dar ekranda (<= 767px) sagdan 12px, ekran - 24px genislikte (menunun kendi
+  // max-width'i ustte kalir) acilir. Masaustune dokunmaz. Kapatma: window.__gxNoMobilMenu = true.
+  (function mobilMenu() {
+    if (W.__gxMobilMenu) return;
+    W.__gxMobilMenu = 1;
+    function css() {
+      if (D.getElementById('gx-mobil-menu-css')) return;
+      var st = D.createElement('style');
+      st.id = 'gx-mobil-menu-css';
+      st.textContent = '@media (max-width: 767px){html:not(.gx-no-mobil-menu) .bubble-element.GroupFocus[data-gx-mobil-menu]' +
+        '{left:auto!important;right:12px!important;width:calc(100vw - 24px)!important;box-sizing:border-box!important}}';
+      (D.head || D.documentElement).appendChild(st);
+    }
+    function fit() {
+      if (W.__gxNoMobilMenu) { D.documentElement.classList.add('gx-no-mobil-menu'); return; }
+      var vw = W.innerWidth || 0;
+      if (!vw || vw > 767) return;
+      var gs = D.querySelectorAll('.bubble-element.GroupFocus:not([data-gx-mobil-menu])');
+      for (var i = 0; i < gs.length; i++) {
+        var g = gs[i], cs = W.getComputedStyle(g);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || cs.position !== 'fixed') continue;
+        var r = g.getBoundingClientRect();
+        if (!r.width || !r.height) continue;
+        var maxW = parseFloat(g.style.maxWidth || cs.maxWidth) || 280;
+        var want = Math.min(maxW, vw - 24);
+        // yalniz sikisan (sag kenara dayali ve kendi genisliginden dar) ya da ekrandan tasan menu;
+        // kendiliginden dar tasarlanmis ve sigan bir menu oldugu gibi kalir
+        var squeezed = r.width < want - 2 && r.right >= vw - 40;
+        if (!squeezed && r.right <= vw + 1 && r.left >= -1) continue;
+        css();
+        g.setAttribute('data-gx-mobil-menu', '1');
+      }
+    }
+    function soon() { [0, 60, 200, 500, 1000].forEach(function (ms) { setTimeout(function () { try { fit(); } catch (e) { /* ignore */ } }, ms); }); }
+    // Bubble menuyu bir dokunusla acar; dokunus / tik / yon degisimi sonrasi bakilir
+    D.addEventListener('click', soon, true);
+    D.addEventListener('touchend', soon, { capture: true, passive: true });
+    W.addEventListener('resize', soon);
+    W.addEventListener('orientationchange', soon);
+    api.fitMenus = fit;
+  })();
+
   if (choice.lang !== 'tr') return;
 
   // ---- sozluk: tam eslesen (bosluklari sadelestirilmis) metin -> Turkce
