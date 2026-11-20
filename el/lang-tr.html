@@ -951,7 +951,10 @@
     'Previous page': 'Önceki sayfa',
     'Next page': 'Sonraki sayfa',
     'Rows per page': 'Sayfa başına satır',
-    'People…': 'Kişiler…'
+    'People…': 'Kişiler…',
+    'E.g., Summarize incoming customer complaint emails, tag by category, and route to the relevant team.': 'Örn. gelen müşteri şikâyeti e-postalarını özetle, kategoriye göre etiketle ve ilgili ekibe yönlendir.',
+    'e.g., Forward to John': "örn. Ahmet'e ilet",
+    'e.g., trigger_abc123 or webhook URL...': 'örn. trigger_abc123 ya da webhook adresi...'
   };
 
   // Sektor adlari YALNIZ sayili filtre etiketinde cevrilir ("Sales (83)"): tek basina musteri alan adi olabilir.
@@ -1010,6 +1013,8 @@
     // prompt builder: "⚠ Connection needed: Gmail, Slack" / "2 native, 3 MCP tools selected" (20.11)
     [/^⚠ Connection needed: (.+)$/, function (m) { return '⚠ Bağlantı gerekli: ' + m[1]; }],
     [/^(\d+) native, (\d+) MCP tools selected$/, function (m) { return m[1] + ' yerleşik, ' + m[2] + ' MCP aracı seçili'; }],
+    // tablo silme dugmesi: "Delete 3 selected"
+    [/^Delete (\d+) selected$/, function (m) { return m[1] + ' seçili kaydı sil'; }],
     // "50 / 0 integrations loaded"
     [/^(\d+) \/ (\d+) integrations loaded$/, function (m) { return m[1] + ' / ' + m[2] + ' entegrasyon yüklendi'; }],
     // "Dec 17, 2026 4:19 pm" / "Dec 17, 2026"
