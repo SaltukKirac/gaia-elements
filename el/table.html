@@ -639,6 +639,52 @@
   border-color: #fecaca;
 }
 
+/* SUREC-TASI (20.11): Process button + menu (change a record's process from the table) */
+#dynamic-table-wrapper .dt-stage-pop {
+  position: fixed; z-index: 2600; box-sizing: border-box; overflow: auto;
+  background: #fff; border: 1px solid var(--gx-line-soft, #eef2f7); border-radius: var(--gx-r-lg, 16px);
+  box-shadow: var(--gx-shadow-md, 0 8px 24px -12px rgba(15,23,42,.18)), 0 2px 6px rgba(15,23,42,.06);
+  padding: 8px; font-family: var(--gx-font, 'Inter', system-ui, sans-serif); color: var(--gx-ink, #0f172a);
+}
+#dynamic-table-wrapper .dt-stage-head { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px 8px; border-bottom: 1px solid var(--gx-line-soft, #eef2f7); margin-bottom: 6px; }
+#dynamic-table-wrapper .dt-stage-head b { font-size: 13px; font-weight: 600; }
+#dynamic-table-wrapper .dt-stage-now { font-size: 12px; color: var(--gx-ink-2, #475569); }
+#dynamic-table-wrapper .dt-stage-cur { font-weight: 600; color: var(--gx-primary-deep, #4f46e5); }
+#dynamic-table-wrapper .dt-stage-list { display: flex; flex-direction: column; gap: 2px; }
+#dynamic-table-wrapper .dt-stage-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 44px; box-sizing: border-box;
+  border: 0; background: transparent; text-align: left; border-radius: var(--gx-r-sm, 6px); padding: 8px 10px; cursor: pointer;
+  font-family: inherit; color: inherit;
+}
+#dynamic-table-wrapper .dt-stage-item:hover, #dynamic-table-wrapper .dt-stage-item:focus-visible { background: var(--gx-bg, #f8fafc); outline: none; box-shadow: inset 0 0 0 2px rgba(99,102,241,.25); }
+#dynamic-table-wrapper .dt-stage-item[disabled] { cursor: default; background: #eef2ff; box-shadow: inset 3px 0 0 var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper .dt-stage-name { font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+#dynamic-table-wrapper .dt-stage-bolt { font-size: 12px; }
+#dynamic-table-wrapper .dt-stage-sub { font-size: 11.5px; color: var(--gx-ink-2, #475569); line-height: 1.35; }
+#dynamic-table-wrapper .dt-stage-item.is-auto .dt-stage-sub { color: var(--gx-primary-deep, #4f46e5); }
+#dynamic-table-wrapper .dt-stage-state { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--gx-ink-2, #475569); padding: 12px 10px; }
+#dynamic-table-wrapper .dt-stage-state.is-error { color: var(--gx-err, #dc2626); }
+#dynamic-table-wrapper .dt-stage-note { font-size: 11.5px; color: var(--gx-ink-2, #475569); padding: 8px 10px 2px; border-top: 1px solid var(--gx-line-soft, #eef2f7); margin-top: 6px; }
+#dynamic-table-wrapper .dt-stage-confirm { position: sticky; bottom: -8px; margin: 8px -8px -8px; padding: 10px 12px 12px; background: #fff7ed; border-top: 1px solid #fed7aa; border-radius: 0 0 var(--gx-r-lg, 16px) var(--gx-r-lg, 16px); }
+#dynamic-table-wrapper .dt-stage-confirm p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.45; color: #7c2d12; }
+#dynamic-table-wrapper .dt-stage-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 4px 2px 0; }
+#dynamic-table-wrapper .dt-stage-btn {
+  min-height: 36px; padding: 0 14px; border-radius: var(--gx-r-md, 10px); border: 1px solid var(--gx-line, #e2e8f0); background: #fff;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--gx-ink, #0f172a); cursor: pointer;
+}
+#dynamic-table-wrapper .dt-stage-btn.is-primary { background: var(--gx-primary, #6366f1); border-color: var(--gx-primary, #6366f1); color: #fff; }
+#dynamic-table-wrapper .dt-stage-btn:focus-visible { outline: none; box-shadow: var(--gx-ring, 0 0 0 3px rgba(99,102,241,.12)); }
+#dynamic-table-wrapper .dt-stage-spin { width: 14px; height: 14px; flex: 0 0 14px; border-radius: 50%; border: 2px solid #c7d2fe; border-top-color: var(--gx-primary, #6366f1); animation: dt-stage-spin .8s linear infinite; }
+@keyframes dt-stage-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .dt-stage-spin { animation-duration: 2.4s; } }
+#dynamic-table-wrapper .dt-stage-progress {
+  position: absolute; left: 50%; bottom: 14px; translate: -50% 0; z-index: 345; display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid var(--gx-line-soft, #eef2f7); border-left: 3px solid var(--gx-primary, #6366f1);
+  border-radius: var(--gx-r-md, 10px); box-shadow: var(--gx-shadow-md, 0 8px 24px -12px rgba(15,23,42,.18));
+  padding: 8px 10px 8px 14px; font-size: 12.5px; max-width: calc(100% - 28px); box-sizing: border-box;
+}
+#dynamic-table-wrapper .dt-stage-progress .dt-stage-btn { min-height: 30px; padding: 0 10px; }
+
 #dynamic-table-wrapper .dt-hidden {
   display: none !important;
 }
@@ -3538,6 +3584,7 @@
           <span id="dt-xl-stats" class="dt-xl-stats dt-hidden" aria-live="polite"></span>
           <span id="dt-selection-count" class="dt-selection-count dt-hidden" aria-live="polite"></span>
           <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" data-tip="Delete selected"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
+          <button id="dt-btn-stage" class="dt-icon-btn dt-hidden" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Change process" data-tip="Change process" data-gx-notr="1" translate="no"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11"></path><path d="m12 4 3 3-3 3"></path><path d="M20 17H9"></path><path d="m12 14-3 3 3 3"></path></svg><span class="dt-btn-label">Process</span></button>
           <button id="dt-btn-folders" class="dt-icon-btn" type="button" hidden aria-label="Add case folders, one record per folder" data-tip="Add case folders, one record each"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M12 11v5M9.5 13.5h5"></path></svg></button>
           <input id="dt-folders-input" type="file" multiple webkitdirectory directory tabindex="-1" aria-hidden="true" hidden />
           <button id="dt-btn-import" class="dt-icon-btn" type="button" aria-label="Import" data-tip="Import from a file"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V9"></path><path d="m8.5 12.5 3.5-3.5 3.5 3.5"></path><path d="M5 19h14"></path></svg><span class="dt-btn-label">Import</span></button>
@@ -5471,6 +5518,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           name: 'Clear cells',
           disabled() { return !!window.__gxNoXlEdit; },
           callback() { setTimeout(() => dtXlRun([['']], 'Clear'), 0); }
+        },
+        dt_stage: {   // SUREC-TASI
+          name() { return dtStageT('Change process', 'Süreci değiştir'); },
+          hidden() { return !dtStageOn(); },
+          disabled() { return !dtStageIds().length || !!_dtStage.run; },
+          callback() { const pt = _dtStage.ctxAt || null; setTimeout(() => dtStageOpen(pt), 0); }
         },
         dt_xl_open: {
           name: 'Open record',
@@ -8332,6 +8385,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       els.selectionCount.textContent = hasSelection ? `${count} selected` : '';
       els.selectionCount.classList.toggle('dt-hidden', !hasSelection);
     }
+    try { dtStageBtnSync(); } catch (e) {}   // SUREC-TASI
   }
 
   function handleSelection() {
@@ -13329,6 +13383,276 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return ids;
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SUREC-TASI (20.11.2026, Saltuk: "dosyanın sürecinde değişiklik yapmak için kullanıcı deneyimi çok zor"). A record's process
+  // changed only inside the form ("Select action") and only through a button its current process has (NOD: 'Claim Hazırla' has
+  // none, so those records could not be moved at all). Now: rows selected → the toolbar's Process button (or right click →
+  // "Change process") lists the table's processes. For each row:
+  //   · its current process has a BUTTON to the target → that button runs: the record opens in the form and the form presses the
+  //     button (window.__gxStageRun, form SUREC-TASI): Bubble's own action workflow, so the target's automations run as before;
+  //     the move is confirmed by reading the record (Data API, the person's session) until its process is the target;
+  //   · no button → a plain move (bridge mirror_stage_move: the server's one writer, ledger, undoable), after an inline confirm that
+  //     says the target's automations will not run.
+  // Menu data: bridge mirror_stage_menu {ids} (stages, current stage per row, the person's buttons). Off: window.__gxNoStage = true.
+  // ═══════════════════════════════════════════════════════════════════════════
+  const DT_STAGE = { maxIds: 50, menuTtlMs: 60000, openWaitMs: 30000, confirmMs: 45000, confirmPollMs: 2000, gapMs: 1500 };
+  const _dtStage = { pop: null, data: null, key: '', at: 0, seq: 0, confirm: '', run: null, skipBtn: null };
+  function dtStageTr() { try { return !!(window.__gxTr && window.__gxTr.lang === 'tr'); } catch (e) { return false; } }
+  function dtStageT(en, tr) { return dtStageTr() ? tr : en; }
+  function dtStageOn() { return !window.__gxNoStage; }
+  function dtStageIds() { return getSelectedUniqueIds().filter(id => /^\d{10,16}x\d{6,22}$/.test(id)).slice(0, DT_STAGE.maxIds + 1); }
+  function dtStageBtnSync() {
+    const b = document.getElementById('dt-btn-stage');
+    if (!b) return;
+    const n = dtStageOn() ? dtStageIds().length : 0;
+    b.classList.toggle('dt-hidden', !n || !!_dtStage.run);
+    const lab = b.querySelector('.dt-btn-label');
+    if (lab) lab.textContent = dtStageT('Process', 'Süreç');
+    b.setAttribute('aria-label', dtStageT('Change the process of the selected records', 'Seçili kayıtların sürecini değiştir'));
+    b.setAttribute('data-tip', dtStageT('Change process', 'Süreci değiştir'));
+  }
+  function dtStageEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function dtStageClose() {
+    const p = _dtStage.pop;
+    _dtStage.pop = null; _dtStage.confirm = '';
+    if (p && p.parentNode) p.remove();
+    const b = document.getElementById('dt-btn-stage');
+    if (b) b.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('mousedown', dtStageOutside, true);
+    document.removeEventListener('keydown', dtStageKey, true);
+  }
+  function dtStageOutside(e) {
+    const p = _dtStage.pop, b = document.getElementById('dt-btn-stage');
+    if (!p) return;
+    if (p.contains(e.target) || (b && b.contains(e.target))) return;
+    dtStageClose();
+  }
+  function dtStageKey(e) {
+    if (!_dtStage.pop) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); dtStageClose(); try { document.getElementById('dt-btn-stage').focus(); } catch (x) {} return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const items = Array.from(_dtStage.pop.querySelectorAll('.dt-stage-item:not([disabled])'));
+      if (!items.length) return;
+      e.preventDefault();
+      const i = items.indexOf(document.activeElement);
+      const n = e.key === 'ArrowDown' ? (i + 1) % items.length : (i <= 0 ? items.length - 1 : i - 1);
+      items[n].focus();
+    }
+  }
+  // the popover sits under the toolbar button (or at the right-click point), inside the viewport
+  function dtStagePlace(p, anchor) {
+    const vw = window.innerWidth || 1024, vh = window.innerHeight || 768;
+    const w = Math.min(340, vw - 24);
+    p.style.width = w + 'px';
+    let x = 12, y = 60;
+    if (anchor && anchor.getBoundingClientRect && anchor.getClientRects().length) { const r = anchor.getBoundingClientRect(); x = r.right - w; y = r.bottom + 6; }
+    else if (anchor && typeof anchor.x === 'number') { x = anchor.x; y = anchor.y; }
+    x = Math.max(12, Math.min(x, vw - w - 12));
+    y = Math.max(12, Math.min(y, vh - 220));
+    p.style.left = x + 'px'; p.style.top = y + 'px';
+    p.style.maxHeight = Math.max(200, vh - y - 16) + 'px';
+  }
+  async function dtStageOpen(anchor) {
+    if (!dtStageOn()) return;
+    if (_dtStage.run) { showWakeToast(dtStageT('A process change is already running.', 'Bir süreç değişikliği zaten sürüyor.'), 'info'); return; }
+    const ids = dtStageIds();
+    if (!ids.length) { showWakeToast(dtStageT('Select the records to move first.', 'Önce taşınacak kayıtları seçin.'), 'info'); return; }
+    if (ids.length > DT_STAGE.maxIds) { showWakeToast(dtStageT('Select at most ' + DT_STAGE.maxIds + ' records at a time.', 'Bir seferde en çok ' + DT_STAGE.maxIds + ' kayıt seçin.'), 'error'); return; }
+    if (_dtStage.pop) { dtStageClose(); return; }
+    const p = document.createElement('div');
+    p.className = 'dt-stage-pop';
+    p.setAttribute('role', 'menu');
+    p.setAttribute('data-gx-notr', '1');
+    p.setAttribute('translate', 'no');
+    (els.wrapper || document.body).appendChild(p);
+    _dtStage.pop = p;
+    dtStagePlace(p, anchor || document.getElementById('dt-btn-stage'));
+    const b = document.getElementById('dt-btn-stage');
+    if (b) b.setAttribute('aria-expanded', 'true');
+    document.addEventListener('mousedown', dtStageOutside, true);
+    document.addEventListener('keydown', dtStageKey, true);
+    const key = ids.slice().sort().join(',');
+    if (_dtStage.data && _dtStage.key === key && Date.now() - _dtStage.at < DT_STAGE.menuTtlMs) { dtStagePaint(ids); return; }
+    p.innerHTML = '<div class="dt-stage-head"><b>' + dtStageEsc(dtStageT('Change process', 'Süreci değiştir')) + '</b></div>' +
+      '<div class="dt-stage-state" role="status"><span class="dt-stage-spin" aria-hidden="true"></span>' + dtStageEsc(dtStageT("Loading this table's processes...", 'Tablonun süreçleri yükleniyor...')) + '</div>';
+    const seq = ++_dtStage.seq;
+    const r = await aynaBridgeCall('mirror_stage_menu', { ids: ids }, null, { timeoutMs: 25000 });
+    if (seq !== _dtStage.seq || _dtStage.pop !== p) return;
+    if (!r || !r.ok || !r.data || !Array.isArray(r.data.stages)) {
+      const msg = (r && r.message && r.kod) ? r.message : dtStageT('Could not load the processes. Try again.', 'Süreçler yüklenemedi. Yeniden deneyin.');
+      p.innerHTML = '<div class="dt-stage-head"><b>' + dtStageEsc(dtStageT('Change process', 'Süreci değiştir')) + '</b></div>' +
+        '<div class="dt-stage-state is-error" role="alert">' + dtStageEsc(msg) + '</div>' +
+        '<div class="dt-stage-foot"><button type="button" class="dt-stage-btn" data-act="retry">' + dtStageEsc(dtStageT('Try again', 'Yeniden dene')) + '</button></div>';
+      const rb = p.querySelector('[data-act="retry"]');
+      if (rb) rb.addEventListener('click', () => { dtStageClose(); dtStageOpen(anchor); });
+      return;
+    }
+    _dtStage.data = r.data; _dtStage.key = key; _dtStage.at = Date.now();
+    dtStagePaint(ids);
+  }
+  // per row: the button of its current process that leads to the target (none when the form could not show it last time)
+  function dtStageRoute(d, id, to) {
+    const cur = String((d.current || {})[id] || '');
+    if (cur === to) return { same: true };
+    const skip = _dtStage.skipBtn && _dtStage.skipBtn.has(id);
+    const btn = skip ? null : (((d.actions || {})[cur] || []).filter(a => a.to === to)[0] || null);
+    return { cur: cur, btn: btn };
+  }
+  function dtStageName(d, id) { const s = (d.stages || []).filter(x => x.id === id)[0]; return s ? s.name : ''; }
+  function dtStagePaint(ids) {
+    const p = _dtStage.pop, d = _dtStage.data;
+    if (!p || !d) return;
+    const rows = ids.filter(id => (d.current || {})[id] !== undefined);
+    const curs = Array.from(new Set(rows.map(id => String(d.current[id] || ''))));
+    const n = rows.length;
+    let head = '<div class="dt-stage-head"><b>' + dtStageEsc(n === 1 ? dtStageT('Change process', 'Süreci değiştir') : dtStageT('Move ' + n + ' records', n + ' kaydı taşı')) + '</b>';
+    if (curs.length === 1) head += '<span class="dt-stage-now">' + dtStageEsc(dtStageT('Now: ', 'Şu an: ')) + '<span class="dt-stage-cur">' + dtStageEsc(dtStageName(d, curs[0]) || dtStageT('No process', 'Süreç yok')) + '</span></span>';
+    else if (curs.length > 1) head += '<span class="dt-stage-now">' + dtStageEsc(dtStageT('Now in ' + curs.length + ' processes', 'Şu an ' + curs.length + ' farklı süreçte')) + '</span>';
+    head += '</div>';
+    let list = '';
+    (d.stages || []).forEach(s => {
+      if (s.create) return;
+      let same = 0, btn = 0, plain = 0, btnName = '';
+      rows.forEach(id => { const r = dtStageRoute(d, id, s.id); if (r.same) same++; else if (r.btn) { btn++; btnName = btnName || r.btn.name; } else plain++; });
+      const isCur = n > 0 && same === n;
+      let sub, cls = '';
+      if (isCur) { sub = dtStageT('Current process', 'Şu anki süreç'); cls = ' is-current'; }
+      else if (btn && !plain) { sub = dtStageT('Runs "' + btnName + '", automations run', '"' + btnName + '" çalışır, otomasyonlar çalışır'); cls = ' is-auto'; }
+      else if (!btn) { sub = dtStageT('Move only, automations do not run', 'Yalnız taşınır, otomasyonlar çalışmaz'); }
+      else { sub = dtStageT(btn + ' with "' + btnName + '", ' + plain + ' move only', btn + ' kayıt "' + btnName + '" ile, ' + plain + ' kayıt yalnız taşınır'); cls = ' is-auto'; }
+      list += '<button type="button" role="menuitem" class="dt-stage-item' + cls + '" data-stage="' + dtStageEsc(s.id) + '"' + (isCur ? ' disabled aria-disabled="true"' : '') + '>' +
+        '<span class="dt-stage-name">' + (btn && !isCur ? '<span class="dt-stage-bolt" aria-hidden="true">&#9889;</span>' : '') + dtStageEsc(s.name) + '</span>' +
+        '<span class="dt-stage-sub">' + dtStageEsc(sub) + '</span></button>';
+    });
+    if (!n) list = '<div class="dt-stage-state">' + dtStageEsc(dtStageT('The selected records are not saved yet.', 'Seçili kayıtlar henüz kaydedilmedi.')) + '</div>';
+    else if (!list) list = '<div class="dt-stage-state">' + dtStageEsc(dtStageT('This table has no other process.', 'Bu tablonun başka süreci yok.')) + '</div>';
+    let note = '';
+    if (d.actions_known === false) note = '<div class="dt-stage-note">' + dtStageEsc(dtStageT('Buttons could not be read; every move is a plain move.', 'Düğmeler okunamadı; her taşıma düz taşımadır.')) + '</div>';
+    if (n && rows.length < ids.length) note += '<div class="dt-stage-note">' + dtStageEsc(dtStageT((ids.length - rows.length) + ' selected record(s) are not saved yet and stay as they are.', (ids.length - rows.length) + ' seçili kayıt henüz kaydedilmedi, olduğu gibi kalır.')) + '</div>';
+    p.innerHTML = head + '<div class="dt-stage-list">' + list + '</div>' + note;
+    p.querySelectorAll('.dt-stage-item').forEach(el => el.addEventListener('click', () => dtStagePick(el.getAttribute('data-stage'), rows)));
+    try { const f = p.querySelector('.dt-stage-item:not([disabled])'); if (f) f.focus(); } catch (e) {}
+  }
+  function dtStagePick(to, ids) {
+    const d = _dtStage.data, p = _dtStage.pop;
+    if (!d || !p || !to) return;
+    const plan = { to: to, toName: dtStageName(d, to), btn: [], plain: [] };
+    ids.forEach(id => { const r = dtStageRoute(d, id, to); if (r.same) return; if (r.btn) plan.btn.push({ id: id, action: r.btn.id, name: r.btn.name }); else plan.plain.push(id); });
+    if (!plan.btn.length && !plan.plain.length) { dtStageClose(); return; }
+    if (plan.plain.length && _dtStage.confirm !== to) {   // a plain move says what it skips before it happens
+      _dtStage.confirm = to;
+      const k = plan.plain.length;
+      const msg = (k === 1 && !plan.btn.length)
+        ? dtStageT('Move to "' + plan.toName + '"? Its automations will not run, because the current process has no button for it.', '"' + plan.toName + '" sürecine taşınsın mı? Şu anki süreçte buraya giden düğme olmadığı için bu sürecin otomasyonları çalışmaz.')
+        : dtStageT(k + ' record(s) move to "' + plan.toName + '" without running its automations.' + (plan.btn.length ? ' ' + plan.btn.length + ' run the "' + plan.btn[0].name + '" button.' : ''), k + ' kayıt otomasyonlar çalışmadan "' + plan.toName + '" sürecine taşınır.' + (plan.btn.length ? ' ' + plan.btn.length + ' kayıt "' + plan.btn[0].name + '" düğmesiyle taşınır.' : ''));
+      const box = document.createElement('div');
+      box.className = 'dt-stage-confirm';
+      box.setAttribute('role', 'alertdialog');
+      box.innerHTML = '<p>' + dtStageEsc(msg) + '</p><div class="dt-stage-foot">' +
+        '<button type="button" class="dt-stage-btn" data-act="no">' + dtStageEsc(dtStageT('Cancel', 'Vazgeç')) + '</button>' +
+        '<button type="button" class="dt-stage-btn is-primary" data-act="yes">' + dtStageEsc(dtStageT('Move', 'Taşı')) + '</button></div>';
+      const old = p.querySelector('.dt-stage-confirm'); if (old) old.remove();
+      p.appendChild(box);
+      box.querySelector('[data-act="no"]').addEventListener('click', () => { _dtStage.confirm = ''; box.remove(); });
+      box.querySelector('[data-act="yes"]').addEventListener('click', () => { dtStageClose(); dtStageRun(plan); });
+      try { box.querySelector('[data-act="yes"]').focus(); box.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+      return;
+    }
+    dtStageClose();
+    dtStageRun(plan);
+  }
+  // the record's process as Gaia has it now (the person's session): '' when unreadable
+  async function dtStageReadNow(id) {
+    try {
+      const vt = (location.pathname.indexOf('/version-test') > -1) ? '/version-test' : '';
+      const r = await dtApiFetch(location.origin + vt + '/api/1.1/obj/Object/' + encodeURIComponent(id));
+      if (!r || !r.ok) return '';
+      const j = await r.json();
+      return String((j && j.response && j.response.surec) || '');
+    } catch (e) { return ''; }
+  }
+  function dtStageSleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+  function dtStageProgress(text) {
+    const run = _dtStage.run;
+    let t = els.wrapper ? els.wrapper.querySelector('.dt-stage-progress') : null;
+    if (!run || !text) { if (t) t.remove(); return; }
+    if (!t && els.wrapper) {
+      t = document.createElement('div');
+      t.className = 'dt-stage-progress';
+      t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite');
+      t.setAttribute('data-gx-notr', '1'); t.setAttribute('translate', 'no');
+      t.innerHTML = '<span class="dt-stage-spin" aria-hidden="true"></span><span class="dt-stage-ptext"></span><button type="button" class="dt-stage-btn" data-act="stop"></button>';
+      t.querySelector('[data-act="stop"]').addEventListener('click', () => { if (_dtStage.run) _dtStage.run.stop = true; });
+      els.wrapper.appendChild(t);
+    }
+    if (t) { t.querySelector('.dt-stage-ptext').textContent = text; t.querySelector('[data-act="stop"]').textContent = dtStageT('Stop', 'Durdur'); }
+  }
+  async function dtStageRun(plan) {
+    if (_dtStage.run) return;
+    const run = _dtStage.run = { plan: plan, stop: false, ok: [], fail: [], noBtn: [], err: '' };
+    dtStageBtnSync();
+    try {
+      // 1) plain moves: one server call (at most 50 records)
+      if (plan.plain.length) {
+        dtStageProgress(dtStageT('Moving ' + plan.plain.length + ' record(s) to "' + plan.toName + '"...', plan.plain.length + ' kayıt "' + plan.toName + '" sürecine taşınıyor...'));
+        const r = await aynaBridgeCall('mirror_stage_move', { ids: plan.plain, stage: plan.to, reason: 'moved from the table' }, null, { timeoutMs: 30000 });
+        if (r && r.ok && r.data) {
+          (r.data.moved || []).concat(r.data.unchanged || []).forEach(id => run.ok.push(id));
+          (r.data.failed || []).forEach(f => run.fail.push(f.id));
+        } else {
+          plan.plain.forEach(id => run.fail.push(id));
+          run.err = (r && r.kod && r.message) ? r.message : '';
+        }
+      }
+      // 2) buttons: the record opens in the form, the form presses the button, the record is read until it is in the target
+      for (let i = 0; i < plan.btn.length && !run.stop; i++) {
+        const it = plan.btn[i];
+        dtStageProgress(dtStageT('Running "' + it.name + '" ' + (i + 1) + '/' + plan.btn.length + '...', '"' + it.name + '" çalışıyor ' + (i + 1) + '/' + plan.btn.length + '...'));
+        const res = await dtStageRunOne(it, plan.to);
+        if (res === 'ok') run.ok.push(it.id); else if (res === 'no_button') run.noBtn.push(it.id); else run.fail.push(it.id);
+        if (i + 1 < plan.btn.length) await dtStageSleep(DT_STAGE.gapMs);
+      }
+      if (run.stop) plan.btn.forEach(it => { if (run.ok.indexOf(it.id) < 0 && run.fail.indexOf(it.id) < 0 && run.noBtn.indexOf(it.id) < 0) run.fail.push(it.id); });
+    } finally {
+      try { window.__gxStageRun = null; } catch (e) {}
+      _dtStage.run = null; _dtStage.data = null; _dtStage.key = '';
+      dtStageProgress('');
+      dtStageBtnSync();
+    }
+    if (run.noBtn.length) { _dtStage.skipBtn = _dtStage.skipBtn || new Set(); run.noBtn.forEach(id => _dtStage.skipBtn.add(id)); }
+    const okN = run.ok.length, bad = run.fail.length + run.noBtn.length;
+    if (okN) { try { dtLiveTouch(run.ok, 500); } catch (e) {} setTimeout(() => { try { aynaReloadPatched(false); } catch (e) {} }, 1500); }
+    if (!bad) showWakeToast(okN === 1 ? dtStageT('Moved to "' + plan.toName + '".', '"' + plan.toName + '" sürecine taşındı.') : dtStageT(okN + ' records moved to "' + plan.toName + '".', okN + ' kayıt "' + plan.toName + '" sürecine taşındı.'), 'success');
+    else {
+      let m = dtStageT(okN + ' moved, ' + bad + ' not moved.', okN + ' taşındı, ' + bad + ' taşınamadı.');
+      if (run.noBtn.length) m += ' ' + dtStageT('The form did not show the button for ' + run.noBtn.length + ' record(s); open Process again to move them without it.', run.noBtn.length + ' kayıtta form düğmeyi göstermedi; düğmesiz taşımak için Süreç menüsünü yeniden açın.');
+      if (run.stop) m += ' ' + dtStageT('Stopped.', 'Durduruldu.');
+      if (run.err) m += ' ' + run.err;
+      showWakeToast(m, 'error');
+    }
+  }
+  async function dtStageRunOne(it, to) {
+    const run = _dtStage.run;
+    const cur = { id: it.id, action: it.action, to: to, state: 'open', at: Date.now() };
+    try { window.__gxStageRun = { v: 1, cur: cur }; } catch (e) { return 'fail'; }
+    if (typeof window.bubble_fn_start !== 'function') return 'fail';
+    try { dtFormOpenSet(it.id, true); } catch (e) {}
+    try { window.bubble_fn_start([it.id]); } catch (e) { return 'fail'; }
+    try { aynaLiveBoost('start'); } catch (e) {}
+    // the form takes it from here (form SUREC-TASI): 'fired' after it pressed the button, 'no_button' when the record's form has none
+    const t0 = Date.now();
+    while (!run.stop && cur.state === 'open' && Date.now() - t0 < DT_STAGE.openWaitMs) await dtStageSleep(300);
+    if (cur.state === 'no_button') return 'no_button';
+    if (cur.state !== 'fired') { cur.state = 'gave_up'; return 'fail'; }
+    const t1 = Date.now();
+    while (Date.now() - t1 < DT_STAGE.confirmMs) {
+      await dtStageSleep(DT_STAGE.confirmPollMs);
+      if (await dtStageReadNow(it.id) === to) return 'ok';
+    }
+    return 'fail';
+  }
+  // ═══ SUREC-TASI end ═══
+
   function deleteSelected() {
     const ids = getSelectedUniqueIds();
     const pend = dtSelectedPendIds();   // GX-PEND-SIL: rows still being saved (no id yet)
@@ -15879,6 +16203,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
     if (els.deleteButton) {
       els.deleteButton.addEventListener('click', deleteSelected);
+      { const sb = document.getElementById('dt-btn-stage'); if (sb && !sb.dataset.gxStage) { sb.dataset.gxStage = '1'; sb.addEventListener('click', (ev) => { ev.preventDefault(); dtStageOpen(sb); }); } if (els.container && !els.container.dataset.gxStageCtx) { els.container.dataset.gxStageCtx = '1'; els.container.addEventListener('contextmenu', (ev) => { _dtStage.ctxAt = { x: ev.clientX, y: ev.clientY }; }, true); } window.__gxStageMovedFn = (ev) => { try { const ids = (ev && ev.detail && ev.detail.ids) || []; if (!aynaAlive()) return; _dtStage.data = null; dtLiveTouch(ids, 300); setTimeout(() => { try { aynaReloadPatched(false); } catch (e) {} }, 1500); } catch (e) {} }; if (!window.__gxStageMovedOn) { window.__gxStageMovedOn = 1; window.addEventListener('gx:stage-moved', (ev) => { try { if (typeof window.__gxStageMovedFn === 'function') window.__gxStageMovedFn(ev); } catch (e) {} }); } }   // SUREC-TASI (+ a move made in the form leaves this view)
     }
 
     if (els.importButton) {
