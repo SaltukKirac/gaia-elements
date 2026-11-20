@@ -8461,7 +8461,9 @@
           bdf_stageRepaint();
         });
       }
-      // "Process: X" next to the menu button (or the last move's result for a few seconds)
+      // "Process: X ▾" at the left of the action bar: a button (20.11 Saltuk: "formdan da aynı işlemi kolaylaştıran birşey olmalı").
+      // It opens the same list as the table's Process menu: every process of the table, the current one marked; a target the current
+      // process has a button for runs that button (automations run), any other is a plain move after a confirm.
       function bdf_stagePaintChip() {
         if (!bdfStage) return;
         var bar = byId("actionBar");
@@ -8470,21 +8472,142 @@
         var chip = byId("bdfStageChip");
         var info = bdf_stageInfo();
         var noteOn = bdfStage.note && Date.now() < bdfStage.noteUntil && hasExistingBubbleData();
-        if (!info && !noteOn) { if (chip) chip.hidden = true; return; }
-        if (!chip) {
-          chip = document.createElement("span");
+        if (!info && !noteOn) { if (chip) chip.hidden = true; bdf_stagePopClose(); return; }
+        if (!chip || chip.tagName !== "BUTTON") {
+          if (chip) chip.remove();
+          chip = document.createElement("button");
+          chip.type = "button";
           chip.id = "bdfStageChip";
           chip.className = "bdf-stage-chip";
           chip.setAttribute("translate", "no"); chip.setAttribute("data-gx-notr", "1");
-          chip.setAttribute("role", "status"); chip.setAttribute("aria-live", "polite");
+          chip.setAttribute("aria-haspopup", "menu"); chip.setAttribute("aria-expanded", "false");
+          chip.innerHTML = '<span class="bdf-stage-chip-text" aria-live="polite"></span><span class="bdf-stage-chip-caret" aria-hidden="true">▾</span>';
+          chip.addEventListener("click", function (ev) { ev.preventDefault(); ev.stopPropagation(); if (byId("bdfStagePop")) bdf_stagePopClose(); else bdf_stagePopOpen(); });
           main.insertBefore(chip, main.firstChild);
         }
         var text, kind = "";
         if (noteOn) { text = bdfStage.note; kind = bdfStage.noteKind; }
         else text = bdf_stageT("Process: ", "Süreç: ") + (info.curName || bdf_stageT("none", "yok"));
-        if (chip.textContent !== text) chip.textContent = text;
-        chip.className = "bdf-stage-chip" + (kind ? " is-" + kind : "");
+        var tEl = chip.querySelector(".bdf-stage-chip-text");
+        if (tEl && tEl.textContent !== text) tEl.textContent = text;
+        var cls = "bdf-stage-chip" + (kind ? " is-" + kind : "") + (info ? "" : " is-static");
+        if (chip.className !== cls) chip.className = cls;
+        chip.disabled = !info || bdfStage.moving;
+        chip.title = info ? bdf_stageT("Change this record's process", "Bu kaydın sürecini değiştir") : "";
         chip.hidden = false;
+      }
+      function bdf_stagePopClose() {
+        var p = byId("bdfStagePop");
+        if (p) p.remove();
+        var c = byId("bdfStageChip");
+        if (c) c.setAttribute("aria-expanded", "false");
+        bdfStage.popConfirm = "";
+        document.removeEventListener("mousedown", bdf_stagePopOutside, true);
+        document.removeEventListener("keydown", bdf_stagePopKey, true);
+      }
+      function bdf_stagePopOutside(e) {
+        var p = byId("bdfStagePop"), c = byId("bdfStageChip");
+        if (!p) return;
+        if (p.contains(e.target) || (c && c.contains(e.target))) return;
+        bdf_stagePopClose();
+      }
+      function bdf_stagePopKey(e) {
+        var p = byId("bdfStagePop");
+        if (!p) return;
+        if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); bdf_stagePopClose(); try { byId("bdfStageChip").focus(); } catch (_) { } return; }
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          var items = Array.prototype.slice.call(p.querySelectorAll(".bdf-sp-item:not([disabled])"));
+          if (!items.length) return;
+          e.preventDefault();
+          var i = items.indexOf(document.activeElement);
+          items[e.key === "ArrowDown" ? (i + 1) % items.length : (i <= 0 ? items.length - 1 : i - 1)].focus();
+        }
+      }
+      // the button of the current process that leads to `to`, only if this form shows it (so pressing it is the form's own action)
+      function bdf_stageBtnFor(info, to) {
+        var ids = Object.keys(info.btnTo).filter(function (k) { return info.btnTo[k].to === to; });
+        for (var i = 0; i < ids.length; i++) {
+          var opt = (Array.isArray(actionOptions) ? actionOptions : []).filter(function (o) { return o && o.id === ids[i]; })[0];
+          if (opt) return opt;
+        }
+        return null;
+      }
+      function bdf_stagePopOpen() {
+        var info = bdf_stageInfo(), chip = byId("bdfStageChip");
+        if (!info || !chip) return;
+        bdf_stagePopClose();
+        try { closeActionMenu(); } catch (_) { }
+        var d = bdfStage.data;
+        var p = document.createElement("div");
+        p.id = "bdfStagePop";
+        p.className = "bdf-sp";
+        p.setAttribute("role", "menu");
+        p.setAttribute("translate", "no"); p.setAttribute("data-gx-notr", "1");
+        var head = document.createElement("div");
+        head.className = "bdf-sp-head";
+        head.innerHTML = "<b></b><span></span>";
+        head.querySelector("b").textContent = bdf_stageT("Change process", "Süreci değiştir");
+        head.querySelector("span").textContent = bdf_stageT("Now: ", "Şu an: ") + (info.curName || bdf_stageT("none", "yok"));
+        p.appendChild(head);
+        d.stages.forEach(function (s) {
+          if (s.create) return;
+          var isCur = s.id === info.cur;
+          var opt = isCur ? null : bdf_stageBtnFor(info, s.id);
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "bdf-sp-item" + (isCur ? " is-current" : opt ? " is-auto" : "") + (bdfStage.popConfirm === s.id ? " is-confirm" : "");
+          b.setAttribute("role", "menuitem");
+          b.dataset.stageId = s.id;
+          if (isCur) { b.disabled = true; b.setAttribute("aria-disabled", "true"); }
+          var n = document.createElement("span"); n.className = "bdf-sp-name"; n.textContent = (opt ? "⚡ " : "") + s.name;
+          var sub = document.createElement("span"); sub.className = "bdf-sp-sub";
+          sub.textContent = isCur ? bdf_stageT("Current process", "Şu anki süreç")
+            : bdfStage.popConfirm === s.id ? bdf_stageT("Automations will not run. Click again to move.", "Otomasyonlar çalışmaz. Taşımak için yeniden tıklayın.")
+            : opt ? bdf_stageT('Runs "' + opt.name + '", automations run', '"' + opt.name + '" çalışır, otomasyonlar çalışır')
+            : bdf_stageT("Move only, automations do not run", "Yalnız taşınır, otomasyonlar çalışmaz");
+          b.appendChild(n); b.appendChild(sub);
+          b.addEventListener("click", function (ev) {
+            ev.preventDefault(); ev.stopPropagation();
+            if (isCur || bdfStage.moving) return;
+            if (opt) {   // the form's own button: Bubble's action workflow, the target's automations run
+              bdf_stagePopClose();
+              bdf_stageNote(bdf_stageT('Running "' + opt.name + '"...', '"' + opt.name + '" çalışıyor...'), "busy");
+              selectActionAndTrigger(opt);
+              setTimeout(function () { bdfStage.at = 0; }, 5000); setTimeout(function () { bdfStage.at = 0; }, 15000);   // read the new process back soon
+              return;
+            }
+            if (bdfStage.popConfirm !== s.id) {   // first click: say what is skipped; the second click moves
+              var prev = p.querySelector(".bdf-sp-item.is-confirm");
+              if (prev) { prev.classList.remove("is-confirm"); var ps = prev.querySelector(".bdf-sp-sub"); if (ps) ps.textContent = bdf_stageT("Move only, automations do not run", "Yalnız taşınır, otomasyonlar çalışmaz"); }
+              bdfStage.popConfirm = s.id; bdf_stagePopRefreshConfirm(s.id); return;
+            }
+            bdf_stagePopClose();
+            bdfStage.confirm = s.id;   // bdf_stagePlainClick moves when confirm already matches
+            bdf_stagePlainClick(s);
+          });
+          p.appendChild(b);
+        });
+        var bar = byId("actionBar");
+        (bar || chip.parentNode).appendChild(p);
+        try {
+          var br = (bar || chip.parentNode).getBoundingClientRect(), cr = chip.getBoundingClientRect();
+          p.style.left = Math.max(0, cr.left - br.left) + "px";
+          p.style.top = (cr.bottom - br.top + 6) + "px";
+        } catch (_) { }
+        chip.setAttribute("aria-expanded", "true");
+        document.addEventListener("mousedown", bdf_stagePopOutside, true);
+        document.addEventListener("keydown", bdf_stagePopKey, true);
+        try { var f = p.querySelector(bdfStage.popConfirm ? '.bdf-sp-item.is-confirm' : ".bdf-sp-item:not([disabled])"); if (f) f.focus(); } catch (_) { }
+      }
+      function bdf_stagePopRefreshConfirm(id) {
+        var p = byId("bdfStagePop");
+        if (!p) return;
+        var el = p.querySelector('.bdf-sp-item[data-stage-id="' + id + '"]');
+        if (!el) return;
+        el.classList.add("is-confirm");
+        var sub = el.querySelector(".bdf-sp-sub");
+        if (sub) sub.textContent = bdf_stageT("Automations will not run. Click again to move.", "Otomasyonlar çalışmaz. Taşımak için yeniden tıklayın.");
+        try { el.focus(); } catch (_) { }
       }
       // the table's Process menu: press the chosen button once this form shows that record with it
       function bdf_stageRunTick() {
@@ -21883,6 +22006,28 @@
       border-radius: 999px; background: #eef2ff; color: var(--gx-primary-deep, #4f46e5); font-size: 12px; font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
     #bdf-root .bdf-stage-chip[hidden] { display: none !important; }
+    #bdf-root button.bdf-stage-chip { border: 1px solid #c7d2fe; cursor: pointer; gap: 6px; font-family: inherit; flex: 0 1 auto; min-height: 34px; }
+    #bdf-root button.bdf-stage-chip:hover:not(:disabled) { background: #e0e7ff; }
+    #bdf-root button.bdf-stage-chip:focus-visible { outline: none; box-shadow: var(--gx-ring, 0 0 0 3px rgba(99,102,241,.25)); }
+    #bdf-root button.bdf-stage-chip:disabled { cursor: default; opacity: 1; }
+    #bdf-root button.bdf-stage-chip.is-static .bdf-stage-chip-caret { display: none; }
+    #bdf-root .bdf-stage-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    #bdf-root .bdf-stage-chip-caret { font-size: 10px; opacity: .8; }
+    #bdf-root .bdf-sp { position: absolute; z-index: 400; width: min(320px, calc(100vw - 32px)); max-height: 60vh; overflow: auto; box-sizing: border-box;
+      background: #fff; border: 1px solid var(--gx-line-soft, #eef2f7); border-radius: var(--gx-r-lg, 16px); padding: 6px;
+      box-shadow: var(--gx-shadow-md, 0 8px 24px -12px rgba(15,23,42,.18)), 0 2px 6px rgba(15,23,42,.06); }
+    #bdf-root .bdf-sp-head { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--gx-line-soft, #eef2f7); }
+    #bdf-root .bdf-sp-head b { font-size: 13px; font-weight: 600; color: var(--gx-ink, #0f172a); }
+    #bdf-root .bdf-sp-head span { font-size: 12px; color: var(--gx-ink-2, #475569); }
+    #bdf-root .bdf-sp-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 44px; box-sizing: border-box;
+      border: 0; background: transparent; text-align: left; border-radius: var(--gx-r-sm, 6px); padding: 7px 10px; cursor: pointer; font-family: inherit; color: var(--gx-ink, #0f172a); }
+    #bdf-root .bdf-sp-item:hover:not(:disabled), #bdf-root .bdf-sp-item:focus-visible { background: #f1f5f9; outline: none; }
+    #bdf-root .bdf-sp-item:disabled { cursor: default; background: #eef2ff; box-shadow: inset 3px 0 0 var(--gx-primary, #6366f1); }
+    #bdf-root .bdf-sp-name { font-size: 13px; font-weight: 500; }
+    #bdf-root .bdf-sp-sub { font-size: 11.5px; color: var(--gx-ink-2, #475569); line-height: 1.35; }
+    #bdf-root .bdf-sp-item.is-auto .bdf-sp-sub { color: var(--gx-primary-deep, #4f46e5); }
+    #bdf-root .bdf-sp-item.is-confirm { background: #fff7ed; box-shadow: inset 3px 0 0 #f97316; }
+    #bdf-root .bdf-sp-item.is-confirm .bdf-sp-sub { color: #9a3412; font-weight: 600; }
     #bdf-root .bdf-stage-chip.is-busy { background: #f1f5f9; color: var(--gx-ink-2, #475569); }
     #bdf-root .bdf-stage-chip.is-ok { background: #f0fdf4; color: var(--gx-ok, #15803d); }
     #bdf-root .bdf-stage-chip.is-err { background: #fef2f2; color: var(--gx-err, #dc2626); white-space: normal; }

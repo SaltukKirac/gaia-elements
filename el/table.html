@@ -10195,6 +10195,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // (16.11 canlı deneme) evrak_duzen ({not, surum, ozet, ...}) and kayit_klasor ({me, kayitlar} / {kayit} / {kapandi}) come back the
       // same way; without these keys their answer read as "Unexpected bridge answer" and the box said "Could not reach Gaia"
       if (!inner && g && typeof g === 'object' && (Array.isArray(g.ozet) || g.me !== undefined || g.kayit !== undefined || g.kapandi !== undefined)) inner = g;
+      // SUREC-TASI (20.11 canlı): mirror_stage_menu ({stages, current, actions}) / mirror_stage_move ({stage, moved, ...}) come back the same way
+      if (!inner && g && typeof g === 'object' && (Array.isArray(g.stages) || Array.isArray(g.moved))) inner = g;
       if (g && String(g.error_message || '').trim()) return { error: 'server', message: String(g.error_message) };
       if (!inner || typeof inner !== 'object') return { error: 'shape', message: 'Unexpected bridge answer.' };
       if (String(inner.status || '').toUpperCase() === 'ERROR') return { error: 'server', message: inner.message || 'Mirror error', kod: inner.kod || '' };
