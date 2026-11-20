@@ -6188,11 +6188,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const key = dtSiraliKey(id, bicim), cur = _dtSirali.get(key);
     if (cur && cur.st === 'working') return;   // double press: the job already runs
     if (cur && cur.st === 'done' && cur.url && Date.now() < cur.exp) { window.open(cur.url, '_blank', 'noopener'); return; }
-    if (bicim === 'klasor' && cur && (cur.st === 'sec' || cur.st === 'istendi') && kip !== 'burada' && kip !== 'oto') { dtKkIste(id); return; }   // KAYIT-KLASOR: "Ask <name>"
+    // GX-INDIR-ZIP (19.11, test: "Klasör indirilmiyor ... toplu indirme kısmı olsa güzel olur"): kip 'zip' = "Download all" in the
+    // explorer: one numbered ZIP from the server, no folder dialog, no permission prompt (works in any browser)
+    const zipKip = bicim === 'klasor' && kip === 'zip';
+    if (bicim === 'klasor' && cur && (cur.st === 'sec' || cur.st === 'istendi') && kip !== 'burada' && kip !== 'oto' && !zipKip) { dtKkIste(id); return; }   // KAYIT-KLASOR: "Ask <name>"
     if (cur && cur.st === 'istiyor') return;
-    const onay = Boolean(cur && cur.st === 'ask' && kip !== 'oto');   // "Organize" pressed: the person agreed to rename in their folder
+    const onay = Boolean(cur && cur.st === 'ask' && kip !== 'oto' && !zipKip);   // "Organize" pressed: the person agreed to rename in their folder
     let dir = null, zip = false, kk = null;
-    if (bicim === 'klasor') {
+    if (zipKip) zip = true;
+    else if (bicim === 'klasor') {
       if (_dtSiraliPicking) return;
       const bag = dtSiraliCanFolder() ? dtKkAl(id) : null;
       if (kip === 'oto' && !bag) return;
@@ -6230,7 +6234,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         }
         catch (e) {
           if (e && e.name === 'AbortError') return;   // the person closed the dialog: nothing to say
-          if (denedi && e && e.name === 'SecurityError') { showWakeToast('Press Klasör again to pick where to save.', 'success'); return; }   // the click was used up by the prompt
+          if (denedi && e && e.name === 'SecurityError') { _dtSiraliYer = null; showWakeToast('Press Klasör again to pick where to save.', 'success'); return; }   // the click was used up by the prompt; GX-INDIR-ZIP: forget the refused place so the next press opens a fresh picker
           _dtSiraliNoFolder = true;                    // a frame / policy that refuses the folder API: ZIP from now on
           showWakeToast('This browser cannot save into a folder here, so the files come as one download.', 'success');
         } finally { _dtSiraliPicking = false; }
@@ -6242,7 +6246,19 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       kk: kk, onay: onay, kip: kip || '', yeni: 0, vardi: 0, tasindi: 0, adsiz: 0, geri: false };
     _dtSirali.set(key, s);
     dtSiraliPaint(id);
-    const r = await aynaBridge('evrak_sirali', { id: id, bicim: bicim === 'pdf' ? 'pdf' : (dir ? 'liste' : 'zip') }, null, { timeoutMs: 25000 });
+    // GX-SIRALI-YENIDEN (19.11, test: "bazen PDF'e dönüştürmede sorun çıkıyor, hata veriyor"): the start call gave up at Gaia's ~25 s
+    // bridge limit and showed "Gaia did not answer in time" although the job had often started. The server joins a running job of the
+    // same person + record + format (evrak_sirali "(joined)"), so a timeout / network / 5xx start is tried again after 1.5 s and 4 s.
+    const startArgs = { id: id, bicim: bicim === 'pdf' ? 'pdf' : (dir ? 'liste' : 'zip') };
+    const gecici = (x) => !!(x && (x.error === 'timeout' || x.error === 'network' || (x.error === 'http' && Number(x.status) >= 500)));   // = aynaTransient
+    let r = await aynaBridge('evrak_sirali', startArgs, null, { timeoutMs: 25000 });
+    for (const bekle of (window.__gxNoSiraliYeniden ? [] : [1500, 4000])) {
+      if (_dtSirali.get(key) !== s || !gecici(r)) break;
+      try { log('[GX-SIRALI-YENIDEN] start ' + (r && r.error) + ', trying again in ' + bekle + ' ms'); } catch (e) {}
+      await new Promise(res => setTimeout(res, bekle));
+      if (_dtSirali.get(key) !== s) return;
+      r = await aynaBridge('evrak_sirali', startArgs, null, { timeoutMs: 25000 });
+    }
     if (_dtSirali.get(key) !== s) return;
     if (!r || !r.ok || !r.data) {
       const m = (r && r.error === 'session') ? 'Sign in to Gaia and try again.' : (r && r.error === 'server' && r.message) ? String(r.message)
@@ -7453,7 +7469,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const box = root.querySelector('.dt-gez-acts');
     if (!box) return;
     const had = box.contains(document.activeElement) && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-bicim') : '';
-    box.innerHTML = dtGezActHtml(g.id, 'klasor') + dtGezActHtml(g.id, 'pdf')
+    const ks = _dtSirali.get(dtSiraliKey(g.id, 'klasor'));
+    const zipBtn = (window.__gxNoIndirZip || (ks && ks.st === 'working')) ? ''   // GX-INDIR-ZIP: while a folder / ZIP job runs, its progress is on the button before
+      : '<button class="dt-gez-act" type="button" data-gez-act="job" data-bicim="klasor" data-kip="zip" title="All documents as one ZIP download, numbered in office order (no folder to pick)">Download all (ZIP)</button>';
+    box.innerHTML = dtGezActHtml(g.id, 'klasor') + zipBtn + dtGezActHtml(g.id, 'pdf')
       + (dtKuralVar() ? `<button class="dt-gez-act${g.kural ? ' is-on' : ''}" type="button" data-gez-act="kural" aria-expanded="${g.kural ? 'true' : 'false'}" title="Write how your company wants files ordered and named">Folder rules</button>` : '');   // EVRAK-BIRAK: "Add files" is the drop area in the list now
     if (had) { const f = box.querySelector('[data-bicim="' + had + '"]'); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} }
   }
@@ -7491,7 +7510,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return warn + bar + view;
     }
     const groups = dtGezGruplar(g.files);
-    if (g.folder !== null && groups[g.folder]) return warn + '<ul class="dt-gez-list">' + groups[g.folder].files.map(i => dtGezFileRow(g, i)).join('') + '</ul>';
+    if (g.folder !== null && groups[g.folder]) {
+      const gr = groups[g.folder], busyN = gr.files.filter(i => g.busy[i]).length;   // GX-INDIR-ZIP: the whole folder in one press
+      const bar = window.__gxNoIndirZip ? '' : `<div class="dt-gez-pbar"><span class="dt-gez-pname">${escapeHtml(gr.ad)} · ${escapeHtml(dtGezCount(gr.files.length))}</span>`
+        + `<button class="dt-gez-btn is-primary" type="button" data-gez-act="dl-folder" data-g="${g.folder}"${busyN ? ' aria-busy="true" disabled' : ''}>${busyN ? 'Downloading ' + (gr.files.length - busyN) + '/' + gr.files.length : 'Download all ' + gr.files.length}</button></div>`;
+      return warn + bar + '<ul class="dt-gez-list">' + gr.files.map(i => dtGezFileRow(g, i)).join('') + '</ul>';
+    }
     // Saltuk 12.11: documents are not put in folders (most are one file); only a set of photos is a folder, in its place in the order
     // 13.11: the files keep the server's order (001, 002, ...); a name label shared by two files ("Poliçe 01" / "Poliçe 02") no longer pulls the second one up
     const fotoOf = new Map();
@@ -7501,7 +7525,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const gi = fotoOf.get(i), gr = groups[gi];
       if (gr.files[0] !== i) return '';
       return `<li class="dt-gez-item" data-gez-key="g${gi}"><button class="dt-gez-folder" type="button" data-gez-act="folder" data-g="${gi}">`
-        + `<span class="dt-gez-ico is-folder">${DT_GEZ_FOLDER_SVG}</span><span class="dt-gez-fname">${escapeHtml(gr.ad)}</span><span class="dt-gez-cnt">${escapeHtml(dtGezCount(gr.files.length) + ' (photos)')}</span></button></li>`;
+        + `<span class="dt-gez-ico is-folder">${DT_GEZ_FOLDER_SVG}</span><span class="dt-gez-fname">${escapeHtml(gr.ad)}</span><span class="dt-gez-cnt">${escapeHtml(dtGezCount(gr.files.length) + ' (photos)')}</span></button>`
+        + (window.__gxNoIndirZip ? '' : (() => { const b = gr.files.filter(j => g.busy[j]).length;   // GX-INDIR-ZIP: Download on the folder row too
+          return `<span class="dt-gez-btns"><button class="dt-gez-btn" type="button" data-gez-act="dl-folder" data-g="${gi}"${b ? ' aria-busy="true" disabled' : ''}>${b ? 'Downloading...' : 'Download'}</button></span>`; })())
+        + '</li>';
     }).join('') + '</ul>';
   }
   // a folder only for a set of photos: at least 3 files (a licence front + back stays in the list), more than half of them pictures (HEIC counts)
@@ -7569,6 +7596,23 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (e && e.gx === 'expired') g.expired = true;
       showWakeToast(dtGezWhy(e), 'error');
     } finally { g.busy[i] = false; if (!g.dead) dtGezRender(); }
+  }
+  // GX-INDIR-ZIP (19.11): a photo folder of the explorer had no Download (only "open"); this downloads its files one after another
+  // with the same path as a single Download (each file its own download; the browser may ask once to allow several downloads)
+  async function dtGezDownloadGroup(g, gi) {
+    const gr = dtGezGruplar(g.files)[gi];
+    if (!gr || !gr.files.length || gr.files.some(i => g.busy[i])) return;
+    showWakeToast('Downloading ' + dtGezCount(gr.files.length) + ' from ' + (gr.ad || 'the folder') + '...', 'info');
+    gr.files.forEach(i => { g.busy[i] = true; });
+    dtGezRender();
+    let ok = 0;
+    for (const i of gr.files) {
+      if (g.dead) return;
+      g.busy[i] = false;
+      try { await dtGezDownload(g, i); ok++; } catch (e) {}
+      await new Promise(res => setTimeout(res, 350));   // a short gap: Chromium drops downloads started in the same instant
+    }
+    if (!g.dead) dtGezRender('g' + gi);
   }
   // EVRAK-KLASOR (13.11.2026, Saltuk: "yeni eklenen file ikonu ile açılan kısma da"): gezginden kaydın evrak klasörüne dosya ekleme.
   // Kaydı tablonun kendi yolundan açar (çift tık ile aynı), dosyaları formun "Document folder" alanına devreder (window.__gxKlasorTeslim,
@@ -8146,7 +8190,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (act === 'kural-onizle') { event.preventDefault(); dtKuralGonder(g, 'onizle'); return; }
     if (act === 'kural-kaydet') { event.preventDefault(); dtKuralGonder(g, 'kaydet'); return; }
     if (act === 'kural-kapat') { event.preventDefault(); dtKuralKapat(g); return; }
-    if (act === 'job') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, el.getAttribute('data-bicim')); } catch (e) {} }   // synchronous up to the folder dialog (needs the click)
+    if (act === 'dl-folder') { event.preventDefault(); dtGezDownloadGroup(g, Number(el.getAttribute('data-g'))); return; }   // GX-INDIR-ZIP
+    if (act === 'job') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, el.getAttribute('data-bicim'), el.getAttribute('data-kip') || undefined); } catch (e) {} }   // synchronous up to the folder dialog (needs the click)
   }
   function dtGezKey(event) {
     if (event.key !== 'Escape') return;
@@ -13792,8 +13837,31 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (typeof window.bubble_fn_delete === 'function') {
       window.bubble_fn_delete(ids);
       dtGoneArm(ids, pids);   // GX-GONE-ONAY (30.10): the rows leave the grid when Bubble's dialog says Delete, not on this click
+      dtGoneDialogFitLoop();   // GX-SIL-SIGDIR
     }
     return ids;
+  }
+  /* GX-SIL-SIGDIR (19.11, test: "toplu silmede silmek istediğim dosyaların kodu silme sekmesinden taşıyor"): Bubble's Delete / Cancel
+     dialog (popup bUfam) prints the selected records' codes as one long unbroken line, which ran out of the dialog when many rows were
+     selected. While the dialog is up its texts wrap anywhere, a text taller than a third of the screen scrolls inside itself, and the
+     dialog keeps its buttons on screen. Only looks, nothing about the delete changes. Off: window.__gxNoSilSigdir = true. */
+  function dtGoneDialogFit() {
+    const b = document.querySelector('button.baUfas, button.baUfat');
+    if (!b || b.offsetParent === null) return false;
+    const pop = b.closest('.Popup') || b.closest('[class*="Popup"]') || (b.parentElement && b.parentElement.parentElement);
+    if (!pop) return false;
+    pop.querySelectorAll('.bubble-element').forEach(t => {
+      if (t.querySelector('button') || t.tagName === 'BUTTON') return;
+      t.style.overflowWrap = 'anywhere'; t.style.wordBreak = 'break-word';
+      if (t.scrollHeight > window.innerHeight / 3) { t.style.maxHeight = Math.round(window.innerHeight / 3) + 'px'; t.style.overflowY = 'auto'; }
+    });
+    if (pop.getBoundingClientRect().height > window.innerHeight * 0.92 || pop.scrollHeight > pop.clientHeight + 2) { pop.style.maxHeight = '92vh'; pop.style.overflowY = 'auto'; }
+    return true;
+  }
+  function dtGoneDialogFitLoop() {
+    if (window.__gxNoSilSigdir) return;
+    let n = 0;
+    const t = setInterval(() => { n++; let ok = false; try { ok = dtGoneDialogFit(); } catch (e) {} if ((ok && n > 6) || n > 40) clearInterval(t); }, 150);
   }
 
   /* GX-GONE-ONAY (30.10, Ömer): "Delete'e bastığım anda siliniyor gibi; emin misin sormasının anlamı kalmıyor." Bubble does ask

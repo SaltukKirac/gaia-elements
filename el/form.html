@@ -15200,7 +15200,7 @@
           const ad = document.createElement("span"); ad.className = "bdf-klasor-ad"; ad.textContent = "Document folder";
           const n = document.createElement("span"); n.className = "bdf-klasor-n";
           const not = document.createElement("div"); not.className = "bdf-klasor-not";
-          not.textContent = "All documents of this file. Add new ones any time and press Save: only the new ones are read and the claim is completed.";
+          not.textContent = "All documents of this file. Add new ones any time: they are saved as soon as they upload, only the new ones are read and the claim is completed.";
           t.append(ad, n); bas.append(t, not);
           wrapper.insertBefore(bas, wrapper.firstChild);
         }
@@ -15389,6 +15389,35 @@
             .filter((u) => u && /^(https?:)?\/\//i.test(u))
             .filter((u) => { const k = bdf_klasorAdresAnahtar(u); return k && s.indexOf(k) < 0; });
         } catch (_) { return []; }
+      }
+      // GORUNUM-DOSYA-KAYDET (19.11.2026, test: "dosyalara ek evrak eklediğimde güncelle tuşu olmadığı için dosyalar eklenemiyor; eklemek
+      // için editi aç kapa yapmak gerekiyor"): kayıtlı bir dosyada form özet görünümündeyken (Edit kapalı) bir dosya alanına eklenen dosya
+      // yalnız "değişti" işaretleniyordu; kayıt Edit açılıp kapanınca (inline-toggle-close) ya da sayfa kapanınca gidiyordu ve görünümde
+      // Update / Save düğmesi yok. Şimdi yükleyicinin adresi gelince 1,2 sn sonra (birkaç dosya tek kayıtta toplanır) aynı otomatik kayıt
+      // yolu çalışır; yükleme sürüyorsa bitmesi beklenir. Aksiyon seçilmez, yalnız alan kaydedilir. Gezginin "Add files" devri kendi
+      // kaydını yaptığı için (bdfKlasorOtoKey) burada atlanır. Kapatma: window.__gxNoGorunumKaydet = true.
+      function bdf_gorunumDosyaKaydet(key) {
+        try {
+          if (window.__gxNoGorunumKaydet || isEditPanelOpen || !hasExistingBubbleData() || bdfKlasorOtoKey) return;
+          if (!changedFieldKeys.has(key)) return;
+          // yalnız kayıtta henüz olmayan bir dosya adresi varsa (kayıt açılırken gelen eski adresler yeniden kaydettirmez)
+          const kayitli = safeStringify(readCurrentBubbleDataObject() || {});
+          const yeni = (Array.isArray(state.fileBuffers[key]) ? state.fileBuffers[key] : [])
+            .map((x) => String((x && x.url) || ""))
+            .filter((u) => u && /^(https?:)?\/\//i.test(u))
+            .filter((u) => { const k = bdf_klasorAdresAnahtar(u); return k && kayitli.indexOf(k) < 0; });
+          if (!yeni.length) return;
+          clearTimeout(BDF.__gorunumKaydetT);
+          BDF.__gorunumKaydetT = setTimeout(function kaydet() {
+            BDF.__gorunumKaydetT = 0;
+            if (isEditPanelOpen || !changedFieldKeys.size) return;
+            if (isFormSaving) { BDF.__gorunumKaydetT = setTimeout(kaydet, 1500); return; }
+            if (bdf_deferUntilUploadsSettle(() => bdf_gorunumDosyaKaydet(key), "Saving")) return;
+            console.log("[BDF] GORUNUM-DOSYA-KAYDET: saving the files added in view mode", { fieldKey: key });
+            bdf_showToast("Saving the new documents...", "info");
+            runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "view-file-add", modeHint: getSubmitModeHint() });
+          }, 1200);
+        } catch (e) { console.warn("[BDF] view-file-add", e); }
       }
       let bdfKlasorDoneT = 0;
       function bdf_klasorDone() {
@@ -21170,6 +21199,7 @@
           try { updateSubmitState(state.config || null); } catch (_) { }
           try { updateToolbarStatus(); } catch (_) { }
           try { updateActionBarUi(); } catch (_) { }
+          bdf_gorunumDosyaKaydet(key);   // GORUNUM-DOSYA-KAYDET
 
           // Kullanıcı uploader'dan yeni seçim yaptıysa stuck lock kalmasın
           if (!isFormSaving && isWaitingForServerRefresh) {
