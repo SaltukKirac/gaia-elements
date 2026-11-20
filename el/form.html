@@ -3740,6 +3740,8 @@
       let bdfPanelWasVisible = null;
       let bdfPanelLastId = "";
       let bdfCloseIdOverride = null;   // { id, until }
+      let bdfPanelEmptySince = 0;      // görünür formda kayıt kimliği ne zamandan beri boş (yeni kayıt mı, kapanış yarışı mı)
+      let bdfPanelCloseSubmitAt = 0;   // kapanış kaydı ne zaman gönderildi (aynı kapanışın ikinci kez gönderilmemesi için)
       let hasSeenEditingSignal = false;
       let lastEditingParamWasTrue = false;
       let activeSubmitAttemptId = 0;
@@ -15673,6 +15675,12 @@
       }
 
       function queueStartCloseAutosave(trigger, reason = "") {
+        // PANEL-KAPAT-KAYDET: aynı kapanışın kaydı az önce gönderildiyse ikinci (ertelenmiş) gönderim yok; panel kapalıyken
+        // Bubble başka kayda geçerse ertelenen gönderim yanlış kayda düşebilirdi.
+        if (trigger !== "panel-hidden-close" && bdfPanelCloseSubmitAt && Date.now() - bdfPanelCloseSubmitAt < 3000) {
+          traceAutosave("queue-start-close-autosave-skipped-panel-close", { trigger, reason });
+          return;
+        }
         pendingStartCloseAutosave = {
           trigger,
           reason,
@@ -16369,13 +16377,19 @@
         if (visible) {
           bdfPanelWasVisible = true;
           const idNow = readCurrentUniqueId();
-          if (idNow) bdfPanelLastId = idNow;
-          else if (!hasExistingBubbleData()) bdfPanelLastId = "";   // yeni kayıt: kapanışta kaydetme yok (CREATE-FOOTER)
+          if (idNow) { bdfPanelLastId = idNow; bdfPanelEmptySince = 0; return; }
+          // Kimlik boş: yeni kayıt (CREATE-FOOTER, kapanışta kaydetme yok) ya da Bubble kapanırken veriyi bir an önce boşalttı.
+          // 1,5 sn'den uzun boş kalırsa ya da yeni kayıt açılışıysa (start = true) eski kayıt unutulur.
+          const nowTs = Date.now();
+          if (!bdfPanelEmptySince) bdfPanelEmptySince = nowTs;
+          if (readStartSignalValue() === true || nowTs - bdfPanelEmptySince > 1500) bdfPanelLastId = "";
           return;
         }
         if (bdfPanelWasVisible !== true) { bdfPanelWasVisible = false; return; }
         bdfPanelWasVisible = false;
+        bdfPanelEmptySince = 0;
         const recordId = bdfPanelLastId;
+        bdfPanelLastId = "";
         if (window.__gxNoPanelKaydet) return;
         if (!recordId) return;   // yalnız var olan kayıt
         try { if (window.__gxBulk && (window.__gxBulk.tabId || window.__gxBulk.running)) return; } catch (_) { }
@@ -16391,6 +16405,7 @@
         }
         if (isFormSaving) { queueStartCloseAutosave("panel-hidden-close", "saving-lock"); return; }
         if (!idNow) bdfCloseIdOverride = { id: recordId, until: Date.now() + 120000 };
+        bdfPanelCloseSubmitAt = Date.now();
         try { console.info("[BDF] PANEL-KAPAT-KAYDET: panel kapandı, değişiklik kaydediliyor", { recordId, editPanel: isEditPanelOpen }); } catch (_) { }
         if (isEditPanelOpen) {
           hasEnteredEditSession = true;
@@ -16615,11 +16630,13 @@
         window.__bdfActiveAiRunTick = _bdfAiRunTick;
         window.__bdfActiveAiRunRefresh = _bdfRefreshAiRunState;
         BDF.__startWatcherInterval = setInterval(() => {
+          // PANEL-KAPAT-KAYDET: start / editing'den ÖNCE: Bubble kapanışta veriyi boşaltıp start'ı da düşürürse start yolu
+          // kaydı yeni kayıt sanıp sıfırlıyordu; panel kapanışı kaydı önce gönderir.
+          try { if (typeof window.__bdfActivePanelCloseCheck === "function") window.__bdfActivePanelCloseCheck(); } catch (_) { }
           try {
             if (typeof window.__bdfActiveEvaluateStartSignalTransition === "function") window.__bdfActiveEvaluateStartSignalTransition();
             if (typeof window.__bdfActiveEvaluateEditingSignalTransition === "function") window.__bdfActiveEvaluateEditingSignalTransition();
           } catch (_) { }
-          try { if (typeof window.__bdfActivePanelCloseCheck === "function") window.__bdfActivePanelCloseCheck(); } catch (_) { }   // PANEL-KAPAT-KAYDET
           try {
             if (typeof window.__bdfActiveEvaluateUniqueIdTransition === "function") window.__bdfActiveEvaluateUniqueIdTransition();
           } catch (_) { }
