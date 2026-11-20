@@ -16627,16 +16627,26 @@
         if (!idNow) bdfCloseIdOverride = { id: recordId, until: Date.now() + 120000 };
         bdfPanelCloseSubmitAt = Date.now();
         try { console.info("[BDF] PANEL-KAPAT-KAYDET: panel kapandı, değişiklik kaydediliyor", { recordId, editPanel: isEditPanelOpen }); } catch (_) { }
+        // Bubble'a gönderim çoğunlukla eşzamanlı biter (settle runSubmitFlow içinde): gönderildi mi, BDF.__sonKayitOk'tan okunur.
+        const okBefore = Number(BDF.__sonKayitOk || 0);
+        const sentNow = () => Number(BDF.__sonKayitOk || 0) !== okBefore;
         if (isEditPanelOpen) {
           hasEnteredEditSession = true;
           setInlineEditPanelOpen(false);   // Done ile aynı: düzenleme paneli kapanır + inline-toggle-close kaydı
           // Done'daki ikinci (editing-close:deferred) gönderim panel kapalıyken başka kayda düşebilir; bu kayıt zaten gidiyor.
           if (pendingStartCloseAutosave && pendingStartCloseAutosave.trigger === "editing-close") pendingStartCloseAutosave = null;
-          if (!isFormSaving) runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
+          if (!isFormSaving && !sentNow()) runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
         } else {
           runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
         }
-        if (isFormSaving) bdfPanelCloseAttemptId = activeSubmitAttemptId;
+        if (sentNow()) {
+          // gitti: değişiklik takibi (ve tarayıcıdaki kopyası) temizlenir; Bubble formu yeniden kurunca eski liste geri gelmez,
+          // çıkışta "kaydedilmemiş değişiklik" uyarısı ve kapanış sinyalinde yeniden gönderim olmaz
+          try { clearChangedTracking(); } catch (_) { }
+          isFormDirty = false;
+        } else if (isFormSaving) {
+          bdfPanelCloseAttemptId = activeSubmitAttemptId;   // söz veren (Promise) gönderim: dönünce settle temizler
+        }
         hasChangesSinceStartOpen = false;
         hasAiHydratedData = false;
         persistStartFlowState();
