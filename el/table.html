@@ -2979,6 +2979,38 @@
   }
 }
 
+/* GX-FORM-OPEN (20.11): the row whose record is open in the form keeps a mark until the form closes or shows another
+   record: a light tint on its cells and an accent bar on its row header (inset shadows: the selection background is
+   !important). Opening plays a short pulse; reduced motion: no pulse */
+@keyframes dt-row-inform-in {
+  0% { box-shadow: inset 0 0 0 999px rgba(99, 102, 241, .28); }
+  100% { box-shadow: inset 0 0 0 999px rgba(99, 102, 241, .07); }
+}
+@keyframes dt-rh-inform-in {
+  0% { box-shadow: inset 4px 0 0 var(--dt-primary, #6366f1), inset 0 0 0 999px rgba(99, 102, 241, .32); }
+  100% { box-shadow: inset 4px 0 0 var(--dt-primary, #6366f1), inset 0 0 0 999px rgba(99, 102, 241, .12); }
+}
+#dynamic-table-wrapper .handsontable td.dt-row--inform {
+  box-shadow: inset 0 0 0 999px rgba(99, 102, 241, .07);
+}
+#dynamic-table-wrapper .handsontable th.dt-row--inform {
+  box-shadow: inset 4px 0 0 var(--dt-primary, #6366f1), inset 0 0 0 999px rgba(99, 102, 241, .12);
+}
+#dynamic-table-wrapper .handsontable th.dt-row--inform .dt-rh-num {
+  color: var(--dt-primary, #6366f1);
+  font-weight: 700;
+}
+#dynamic-table-wrapper .handsontable td.dt-row--inform-in {
+  animation: dt-row-inform-in .9s ease-out both;
+}
+#dynamic-table-wrapper .handsontable th.dt-row--inform-in {
+  animation: dt-rh-inform-in .9s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  #dynamic-table-wrapper .handsontable td.dt-row--inform-in,
+  #dynamic-table-wrapper .handsontable th.dt-row--inform-in { animation: none; }
+}
+
 #dynamic-table-wrapper .handsontable thead th {
   position: relative;
   overflow: visible !important;
@@ -3383,6 +3415,60 @@
   color: var(--gx-primary-deep, #4f46e5);
 }
 
+/* ── GX-EXCEL (18.11): status line, in-place editor, copy flash ─────────────── */
+#dynamic-table-wrapper .dt-xl-stats {
+  font-size: 12px; color: var(--gx-ink-2, #475569); white-space: nowrap; font-variant-numeric: tabular-nums;
+  padding: 0 4px; overflow: hidden; text-overflow: ellipsis; max-width: 360px;
+}
+#dynamic-table-wrapper .dt-xl-stats b { font-weight: 600; color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper .dt-xl-editor {
+  position: absolute; z-index: 1000; box-sizing: border-box; display: flex; flex-direction: column;
+}
+#dynamic-table-wrapper .dt-xl-input {
+  box-sizing: border-box; width: 100%; height: 100%; margin: 0; padding: 0 8px;
+  font: inherit; font-size: 13px; color: var(--gx-ink, #0f172a); background: var(--gx-surface, #ffffff);
+  border: 2px solid var(--gx-primary, #6366f1); border-radius: 2px; outline: none;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .12);
+}
+#dynamic-table-wrapper .dt-xl-editor[aria-busy="true"] .dt-xl-input { opacity: .6; }
+#dynamic-table-wrapper .dt-xl-hint {
+  margin-top: 4px; align-self: flex-start; max-width: 320px; white-space: nowrap; padding: 4px 8px; border-radius: var(--gx-r-sm, 6px);
+  font-size: 11.5px; line-height: 1.4; color: var(--gx-ink-2, #475569); background: var(--gx-surface, #ffffff);
+  border: 1px solid var(--gx-line, #e2e8f0); box-shadow: 0 4px 14px rgba(15, 23, 42, .08);
+}
+#dynamic-table-wrapper .dt-xl-hint.is-error { color: var(--gx-err, #dc2626); border-color: var(--gx-err, #dc2626); }
+@keyframes dt-xl-flash { 0% { box-shadow: inset 0 0 0 999px rgba(99, 102, 241, .28); } 100% { box-shadow: inset 0 0 0 999px rgba(99, 102, 241, 0); } }
+#dynamic-table-wrapper .handsontable td.dt-xl-flash { animation: dt-xl-flash 700ms ease-out 1; }
+@media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .handsontable td.dt-xl-flash { animation: none; } }
+@media (max-width: 767px) { #dynamic-table-wrapper .dt-xl-stats { display: none !important; } }
+/* ── GX-FILTRE-SUREC (19.11): an active filter is visible on the toolbar and clears in one click ─────────────── */
+#dynamic-table-wrapper .dt-filter-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; margin: 0; padding: 0 10px; box-sizing: border-box;
+  border: 1px solid rgba(99, 102, 241, .38); border-radius: 999px; background: rgba(99, 102, 241, .09);
+  color: var(--gx-primary-deep, #4f46e5); font: inherit; font-size: 12px; font-weight: 600; line-height: 1;
+  white-space: nowrap; max-width: 280px; cursor: pointer;
+}
+#dynamic-table-wrapper .dt-filter-chip[hidden] { display: none !important; }
+#dynamic-table-wrapper .dt-filter-chip:hover { background: rgba(99, 102, 241, .16); }
+#dynamic-table-wrapper .dt-filter-chip:focus-visible { outline: 2px solid var(--gx-primary, #6366f1); outline-offset: 2px; }
+#dynamic-table-wrapper .dt-filter-chip svg { width: 12px; height: 12px; flex: none; }
+#dynamic-table-wrapper .dt-filter-chip-text { overflow: hidden; text-overflow: ellipsis; }
+#dynamic-table-wrapper .dt-filter-chip-x { font-weight: 500; opacity: .8; padding-left: 6px; border-left: 1px solid rgba(99, 102, 241, .3); }
+@media (max-width: 767px) { #dynamic-table-wrapper .dt-filter-chip { max-width: 170px; height: 32px; } }
+/* GX-ARAMA-FILTRE (19.11): search + filter together → the chip is filled, and a line above the grid says so */
+#dynamic-table-wrapper .dt-filter-chip.is-loud { background: var(--gx-primary, #6366f1); border-color: var(--gx-primary, #6366f1); color: #fff; }
+#dynamic-table-wrapper .dt-filter-chip.is-loud:hover { background: var(--gx-primary-deep, #4f46e5); }
+#dynamic-table-wrapper .dt-filter-chip.is-loud .dt-filter-chip-x { opacity: 1; border-left-color: rgba(255, 255, 255, .45); }
+@keyframes dt-chip-pulse { 0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, .55); } 100% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); } }
+#dynamic-table-wrapper .dt-filter-chip.is-pulse { animation: dt-chip-pulse 900ms ease-out 2; }
+@media (prefers-reduced-motion: reduce) { #dynamic-table-wrapper .dt-filter-chip.is-pulse { animation: none; } }
+#dynamic-table-wrapper #dt-search-hint {
+  margin: 8px 0; padding: 10px 14px; border-radius: var(--gx-r-md, 10px); background: #eef2ff;
+  border: 1px solid rgba(99, 102, 241, .35); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-family: inherit;
+}
+#dynamic-table-wrapper #dt-search-hint.is-none { border-color: var(--gx-primary, #6366f1); }
+#dynamic-table-wrapper #dt-search-hint .dt-search-hint-btn { flex-shrink: 0; }
+
 /* ── First-run banner (updateFirstRunBanner ile dinamik eklenir) ─────────── */
 #dynamic-table-wrapper #dt-first-run-banner {
   margin: 8px 0;
@@ -3448,6 +3534,8 @@
           </div>
         </div>
         <div class="dt-toolbar-right">
+          <button id="dt-filter-chip" class="dt-filter-chip" type="button" hidden><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 2h10l-4 5v3l-2-1V7z" fill="currentColor"/></svg><span class="dt-filter-chip-text"></span><span class="dt-filter-chip-x" aria-hidden="true">Clear</span></button>
+          <span id="dt-xl-stats" class="dt-xl-stats dt-hidden" aria-live="polite"></span>
           <span id="dt-selection-count" class="dt-selection-count dt-hidden" aria-live="polite"></span>
           <button id="dt-btn-delete" class="dt-icon-btn dt-icon-btn-danger" type="button" aria-label="Delete" data-tip="Delete selected"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12h10l1-12"></path><path d="M9 7V5h6v2"></path></svg></button>
           <button id="dt-btn-folders" class="dt-icon-btn" type="button" hidden aria-label="Add case folders, one record per folder" data-tip="Add case folders, one record each"><svg class="dt-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M12 11v5M9.5 13.5h5"></path></svg></button>
@@ -3671,13 +3759,13 @@
     let inter = 0; B.forEach(x => { if (A.has(x)) inter += 1; });
     return inter / (A.size + B.size - inter);
   }
+  // GX-FILTRE-SUREC (19.11): the screen is read the way the mirror reads it (config, then #bubble-options, then the
+  // plugin globals). Before, only the config was read: a page whose process (Surec) came from #bubble-options always
+  // looked like the same screen, so a filter set in one process stayed on in the next one.
   function viewKeyOf(config, data) {
-    let ag = config && config.agent;
-    if (typeof ag === 'string') { try { ag = JSON.parse(ag); } catch (e) { ag = null; } }
-    if (!ag || typeof ag !== 'object') ag = {};
-    const pick = (a, b) => String((a !== undefined && a !== null && String(a).trim() !== '') ? a : (b || '')).trim();
+    const scr = aynaScreenOf(config || {});
     return {
-      screen: { list: pick(config.list_id, ag.list_id), stage: pick(config.stage_id, ag.stage_id) },
+      screen: { list: scr.list, stage: scr.stage, key: scr.any ? scr.key : '' },
       cols: sanitizeColumns(config.columns).map(c => c.id),
       rows: (Array.isArray(data) ? data : []).map(rowIdOf).filter(Boolean)
     };
@@ -3690,9 +3778,11 @@
     const layoutNew = (listKnown && ps.list !== ns.list) ||
       (!(listKnown && ps.list === ns.list) && idJaccard(prev.cols, next.cols) < 0.5);
     const stageChanged = !!(ps.stage && ns.stage && ps.stage !== ns.stage);
+    // GX-FILTRE-SUREC: another process / list / screen is another view (also "all records" → one process)
+    const screenChanged = !(typeof window !== 'undefined' && window.__gxKeepFilters) && !!(ps.key && ns.key && ps.key !== ns.key);
     let disjoint = false;
     if (prev.rows.length && next.rows.length) { const P = new Set(prev.rows); disjoint = !next.rows.some(id => P.has(id)); }
-    return { layoutNew, dataNew: layoutNew || stageChanged || disjoint };
+    return { layoutNew, dataNew: layoutNew || stageChanged || screenChanged || disjoint };
   }
   // Boş veri kimlik taşımaz → önceki kayıt id kümesi korunur (iki adımlı render'da sahne değişimi kaçmasın)
   function carryRowIds(prev, next) { return (prev && !next.rows.length) ? Object.assign({}, next, { rows: prev.rows }) : next; }
@@ -4765,7 +4855,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!row) return '';
       const id = rowIdOf(row);
       if (row.__gxDelFail || (id && _dtDelFail.has(id))) return 'delfailed';   // GX-PEND-SIL: the background delete failed
-      if (id && dtPaket.has(id)) return '';
+      if (id && dtPaket.has(id)) return dtEkDurum(row);   // EK-SAYIM: a ready claim that new documents are completing
       let claim = '';
       for (const k in row) { if (k !== '__sourceIndex' && dtNormKey(k) === 'claim') { claim = String(row[k] == null ? '' : row[k]).trim(); break; } }
       if (claim) return '';
@@ -4797,6 +4887,83 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) {}
     return null;
   }
+  /* EK-SAYIM (19.11.2026, Saltuk: "ek evrak eklendiği zaman müşteri claimin tekrar hazırlanmaya başlamasını anlamamış, elle doldurmuş; tabloda
+     claim tamamlanıyor şeklinde bir ifade ve geri sayım gerekiyor"). A ready claim whose record got new documents shows "Completing" with
+     the clock instead of "Ready ✓" until the claim line (nod-gaia-hat ek turu) writes the new package. Seen when:
+       - the record's documents (Evraklar + Ek Evrak) hold files the claim package (octo1, its 'evraklar' list) does not, and none of the
+         package's files is gone: the line's own rule for an incremental turn (Klasor-Farki), so every viewer sees it;
+       - the line writes 'Claim Aşaması' = "Ek evrak okunuyor (n)" (it is reading them);
+       - this browser has just added files to the record (EVRAK-BIRAK), until the package changes: the mirror can be 2 min behind.
+     "Ek evrak işlenemedi (2/2)" (the line gave up) shows "Not completed". Off: window.__gxNoEkSayim = true. */
+  // what the add card says when the files are in (the claim column counts down)
+  const DT_EK_TAMAM_NOT = 'The claim is being completed now, about 5 min. Watch the Claim column, no need to fill it by hand.';
+  const _dtPaketEvrak = new Map();   // id → { p: package, keys: Set of file keys | null }
+  const _dtEkleSon = new Map();      // id → { at, p: the package when this browser added files, n }
+  function dtEvrakAnahtar(u) { return String(u || '').split('?')[0].split('/').filter(Boolean).slice(-2).join('/'); }
+  function dtPaketEvraklari(id) {
+    const p = dtPaket.get(id);
+    if (!p || p.slice(0, 6) !== 'octo1.') return null;   // octo2 is sealed for the extension: not readable here
+    const c = _dtPaketEvrak.get(id);
+    if (c && c.p === p) return c.keys;
+    let keys = null;
+    try {
+      let b = p.slice(6).replace(/-/g, '+').replace(/_/g, '/'); b += '='.repeat((4 - b.length % 4) % 4);
+      const bin = atob(b), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      const o = JSON.parse(new TextDecoder().decode(u8));
+      if (o && Array.isArray(o.evraklar)) keys = new Set(o.evraklar.map(e => dtEvrakAnahtar(e && e.url)).filter(Boolean));
+    } catch (e) { keys = null; }
+    _dtPaketEvrak.delete(id); _dtPaketEvrak.set(id, { p, keys });
+    if (_dtPaketEvrak.size > 500) _dtPaketEvrak.delete(_dtPaketEvrak.keys().next().value);
+    return keys;
+  }
+  function dtRowEvrakUrls(row) {
+    const out = [];
+    try {
+      for (const k in row) {
+        const nk = dtNormKey(k);
+        if (nk !== 'evraklar' && nk !== 'ekevrak') continue;
+        let v = row[k];
+        if (typeof v === 'string') { const t = v.trim(); if (t.charAt(0) === '[') { try { v = JSON.parse(t); } catch (e) {} } else v = t ? t.split(/\s*,\s*(?=https?:|\/\/)/) : []; }
+        if (Array.isArray(v)) v.forEach(x => { if (typeof x === 'string' && x.trim()) out.push(x.trim()); });
+      }
+    } catch (e) {}
+    return out;
+  }
+  // new documents the claim package does not have yet (0 when one of its files is gone: the line then builds the claim again)
+  function dtEkYeni(row) {
+    const keys = dtPaketEvraklari(rowIdOf(row));
+    if (!keys || !keys.size) return 0;
+    const now = new Set(dtRowEvrakUrls(row).map(dtEvrakAnahtar).filter(Boolean));
+    if (!now.size) return 0;
+    for (const k of keys) if (!now.has(k)) return 0;
+    let n = 0; now.forEach(k => { if (!keys.has(k)) n++; });
+    return n;
+  }
+  function dtEkSayi(row) {
+    try { const n = dtEkYeni(row); if (n) return n; const s = _dtEkleSon.get(rowIdOf(row)); return s ? s.n : 1; } catch (e) { return 1; }
+  }
+  function dtEkDurum(row) {
+    if (window.__gxNoEkSayim) return '';
+    try {
+      const id = rowIdOf(row);
+      const asama = dtAsamaOf(row);
+      if (/^Ek evrak işlenemedi\s*\(2\s*\/\s*2\)/i.test(asama)) return 'ekfail';
+      if (/^Ek evrak okunuyor/i.test(asama)) return 'completing';
+      if (dtEkYeni(row)) return 'completing';
+      const s = id ? _dtEkleSon.get(id) : null;
+      if (s && dtNow() - s.at < 20 * 60000 && (dtPaket.get(id) || '') === s.p) return 'completing';
+    } catch (e) {}
+    return '';
+  }
+  // EVRAK-BIRAK → EK-SAYIM: this browser added files to a record (the clock starts now, the row says Completing at once)
+  function dtEkleSonYaz(id, n) {
+    if (!id) return;
+    const at = dtNow();
+    _dtEkleSon.set(id, { at, p: dtPaket.get(id) || '', n: Number(n) || 1 });
+    _dtWaitStart.delete(id + '|completing'); _dtWaitStart.set(id + '|completing', at);
+    try { if (state.hot) state.hot.render(); } catch (e) {}
+  }
   function dtWaitStart(row, st) {
     const id = rowIdOf(row) || (row && row._created) || '';
     const mod = Number(row && row._gxDurumMod) || aynaLiveTime(row && row._modified);
@@ -4807,12 +4974,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return at;
   }
   function dtClaimTimeText(row, st) {
-    if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued')) return '';
+    if (window.__gxNoClaimTime || !row || (st !== 'preparing' && st !== 'queued' && st !== 'completing')) return '';
     const at = dtWaitStart(row, st);
     const min = at ? Math.max(0, Math.floor((dtNow() - at) / 60000)) : null;   // CANLI-VERI: a browser clock 28 s fast said "1 min" 28 s early
     if (st === 'queued') return min === null ? '' : (min < 1 ? '<1 min' : min + ' min');
     const n = dtEvrakCount(row);
-    const est = (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
+    // EK-SAYIM: the line waits 3 min for the upload to settle, then reads only the new documents (13.11 / 16.11: 2-3 min)
+    const est = st === 'completing' ? Math.max(5, Math.round(5 + 0.15 * dtEkSayi(row)))
+      : (n && n > 0) ? Math.max(2, Math.round(2 + 0.15 * n)) : null;
     if (min === null || min < 1) return est ? '~' + est + ' min' : '';
     if (est && min < est) return min + ' / ~' + est + ' min';
     return min + ' min in';
@@ -4830,6 +4999,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const m = String(t || '').trim(); let x;
     if (!m) return '';
     if ((x = /^İndiriliyor\s+(\d+)/i.exec(m))) return 'Downloading ' + x[1];
+    if ((x = /^Ek evrak okunuyor\s*\((\d+)\)/i.exec(m))) return 'reading ' + x[1] + ' new';   // EK-SAYIM
     if ((x = /^Okunuyor\s+(\d+)\s*\/\s*(\d+)/i.exec(m))) return 'Reading ' + x[1] + '/' + x[2];
     if (/^Yazılıyor/i.test(m)) return 'Writing claim';
     if (/^Kontrol/i.test(m)) return 'Checking';
@@ -4876,7 +5046,590 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       log('[TIDY-STAGE] retry ' + ((e && e.message) || e));
     }
   }
+  /* GX-EXCEL (18.11.2026, Saltuk: "tablodan excel gibi kopyalama deneyimi … tablodan direkt veri güncelleme gerekecek")
+     Copy: Ctrl+C copies the selected cells the way Excel reads them (T5.1 beforeCopy) and says how many; Ctrl+Shift+C and the
+     right-click menu copy with the field names on top. Next to the selection count, Excel's status line: Count, and Sum /
+     Average when numbers are selected.
+     Edit in place: F2 or typing on a cell opens a small editor on it (text, number, date, single choice); Enter saves and moves
+     down, Tab saves and moves right, Esc cancels; Space flips a yes / no cell; Ctrl+V pastes a block copied from Excel (one value
+     fills the whole selection); Delete clears. Double-click still opens the record.
+     Writes: the record's jsonarray through the Data API with the viewer's own session (Bubble's privacy rules decide, as Retry /
+     Kapak), one PATCH per record after reading it again; a cell someone else changed meanwhile is not overwritten (the record is
+     skipped and named). More than one cell asks first; every write offers Undo. The mirror is touched (CANLI-VERI) and GX-DIRECT
+     shows the new value until the mirror has it. A field change is a data change only: it never runs a process action.
+     Not editable: people, files, multi choice, time, the claim package (Claim), Claim Aşaması, ids, pending (not yet saved) rows.
+     Off: window.__gxNoXl = true (all of it), window.__gxNoXlEdit = true (editing only). */
+  const DT_XL_LOCKED = new Set(['claim', 'claimasamasi', 'uniqueid', 'id']);
+  const DT_XL_CONFIRM_MAX = 400;   // cells in one paste / clear
+  const _dtXl = { ed: null, statsT: 0, keepSel: null };
+  function dtXlCol(vc) {
+    try { const c = (state._mountedCols || [])[state.hot.toPhysicalColumn(vc)]; return (c && !c.__uiOnly) ? c : null; } catch (e) { return null; }
+  }
+  function dtXlRaw(vr) {
+    try { const p = state.hot.toPhysicalRow(vr); const d = (p === null || p === undefined || p < 0) ? null : state.displayRows[p]; return d ? state.rawRows[d.__sourceIndex] : null; } catch (e) { return null; }
+  }
+  function dtXlKind(col) {   // 'text' | 'number' | 'date' | 'datetime' | 'bool' | 'choice' | '' (not editable here)
+    if (!col || col.__uiOnly) return '';
+    const t = col.type;
+    if (t === 'user' || t === 'time' || t === 'reference' || DT_FILE_TYPES[t]) return '';
+    if (t === 'dropdown') return col.multiple === true ? '' : 'choice';
+    if (DT_NUMBER_TYPES[t]) return 'number';
+    if (t === 'date' || t === 'datetime') return t;
+    if (t === 'boolean') return 'bool';
+    return 'text';
+  }
+  function dtXlEditable(col, raw) {
+    if (window.__gxNoXl || window.__gxNoXlEdit || !col || !raw || raw.__gxPend || !rowIdOf(raw)) return '';
+    const id = String(col.id || '');
+    if (!id || id.charAt(0) === '_' || DT_XL_LOCKED.has(dtNormKey(id)) || DT_XL_LOCKED.has(dtNormKey(col.header || ''))) return '';
+    const kind = dtXlKind(col);
+    if (!kind) return '';
+    const v = pickValue(raw, col);
+    if (Array.isArray(v) ? (v.length > 1 || v.some(x => x && typeof x === 'object')) : (v && typeof v === 'object')) return '';   // a list / object value
+    if (typeof v === 'string' && /^octo\d\./.test(v)) return '';   // a claim package under another name
+    return kind;
+  }
+  function dtXlOptions(col) {   // { list, strict }: strict = the field's own options are known (a value must be one of them)
+    const out = [], seen = new Set();
+    const add = x => { const s = String(x == null ? '' : x).trim(); const k = s.toLocaleLowerCase('tr-TR'); if (s && !seen.has(k)) { seen.add(k); out.push(s); } };
+    try {
+      const pools = [state._xlRawCols, AYNA && AYNA.cfg && AYNA.cfg.columns];
+      pools.forEach(list => (Array.isArray(list) ? list : []).forEach(c => {
+        if (!c || cfgColId(c) !== col.id) return;
+        ['source', 'options', 'choices', 'values'].forEach(k => { if (Array.isArray(c[k])) c[k].forEach(x => add(x && typeof x === 'object' ? (x.label || x.value || x.name) : x)); });
+      }));
+    } catch (e) {}
+    const strict = out.length > 0;
+    (state.rawRows || []).slice(0, 3000).forEach(r => { const v = pickValue(r, col); (Array.isArray(v) ? v : [v]).forEach(x => { if (typeof x !== 'object') add(x); }); });
+    return { list: out.slice(0, 400), strict };
+  }
+  function dtXlTrBool(s) {
+    const t = String(s == null ? '' : s).trim().toLocaleLowerCase('tr-TR');
+    if (t === 'evet' || t === 'var' || t === '✓' || t === 'x') return true;
+    if (t === 'hayır' || t === 'hayir' || t === 'yok') return false;
+    return gxParseBool(t);
+  }
+  // text from the editor / clipboard → { ok, value, msg }
+  function dtXlParse(kind, col, text, opts) {
+    const s = String(text == null ? '' : text).replace(/\r/g, '').trim();
+    if (!s) return { ok: true, value: '' };
+    if (kind === 'number') { const n = dtStoredNumber(s); return isFinite(n) ? { ok: true, value: n } : { ok: false, msg: 'Enter a number.' }; }
+    if (kind === 'date' || kind === 'datetime') {
+      const p = gxParseDate(s, { dateOnly: kind === 'date' });
+      if (!p) return { ok: false, msg: 'Enter a date like 18.11.2026.' };
+      return { ok: true, value: (kind === 'datetime' && p.timeGiven) ? gxIsoDate(p) + 'T' + gxPad(p.hh) + ':' + gxPad(p.mi) : gxIsoDate(p) };
+    }
+    if (kind === 'bool') { const b = dtXlTrBool(s); return b === null ? { ok: false, msg: 'Enter yes or no.' } : { ok: true, value: b }; }
+    if (kind === 'choice') {
+      const o = opts || dtXlOptions(col), low = s.toLocaleLowerCase('tr-TR');
+      const hit = o.list.find(x => x.toLocaleLowerCase('tr-TR') === low);
+      if (hit) return { ok: true, value: hit };
+      return o.strict ? { ok: false, msg: 'Pick one of the options.' } : { ok: true, value: s };
+    }
+    return { ok: true, value: s };
+  }
+  // the editor's starting text for a stored value (dates as 18.11.2026, the grid's own reading)
+  function dtXlShow(kind, v) {
+    if (gxIsBlank(v)) return '';
+    if (Array.isArray(v)) v = v[0];
+    if (kind === 'date' || kind === 'datetime') {
+      const p = gxParseDate(v, { dateOnly: kind === 'date' });
+      if (p) return gxPad(p.d) + '.' + gxPad(p.m) + '.' + p.y + ((kind === 'datetime' && p.timeGiven) ? ' ' + gxPad(p.hh) + ':' + gxPad(p.mi) : '');
+    }
+    if (kind === 'number') { const n = dtStoredNumber(v); if (isFinite(n)) return String(n).replace('.', ','); }
+    if (kind === 'bool') { const b = dtXlTrBool(v); return b === null ? String(v) : (b ? 'Yes' : 'No'); }
+    return dtRawText(v);
+  }
+  // two values the same for this kind? (blank = blank; numbers / dates / yes-no by meaning, text trimmed)
+  function dtXlSame(kind, a, b) {
+    const ba = gxIsBlank(a), bb = gxIsBlank(b);
+    if (ba || bb) return ba && bb;
+    if (Array.isArray(a) && a.length === 1) a = a[0];
+    if (Array.isArray(b) && b.length === 1) b = b[0];
+    if (kind === 'number') { const x = dtStoredNumber(a), y = dtStoredNumber(b); if (isFinite(x) && isFinite(y)) return x === y; }
+    if (kind === 'date' || kind === 'datetime') { const x = gxParseDate(a, { dateOnly: kind === 'date' }), y = gxParseDate(b, { dateOnly: kind === 'date' }); if (x && y) return gxIsoDate(x) === gxIsoDate(y) && (kind === 'date' || (x.hh === y.hh && x.mi === y.mi)); }
+    if (kind === 'bool') { const x = dtXlTrBool(a), y = dtXlTrBool(b); if (x !== null && y !== null) return x === y; }
+    return dtRawText(a).replace(/\s+/g, ' ').trim() === dtRawText(b).replace(/\s+/g, ' ').trim();
+  }
+  // the JSON value written: keeps the stored shape (a number stays a number, "Evet" stays Turkish, text numbers stay text)
+  function dtXlEncode(kind, cur, value) {
+    if (value === '' || value === null || value === undefined) return '';
+    if (kind === 'number') return typeof cur === 'number' ? value : String(value);
+    if (kind === 'bool') {
+      if (typeof cur === 'string') {
+        const c = cur.trim().toLocaleLowerCase('tr-TR');
+        if (c === 'evet' || c === 'hayır' || c === 'hayir') return value ? 'Evet' : 'Hayır';
+        if (c === 'yes' || c === 'no') return value ? 'yes' : 'no';
+        return value ? 'true' : 'false';
+      }
+      return !!value;
+    }
+    return value;
+  }
+  function dtXlNorm(kind, v) {   // a stored value as the editor would have produced it (Undo writes it back in the same shape)
+    if (Array.isArray(v)) v = v.length ? v[0] : '';
+    if (gxIsBlank(v)) return '';
+    if (kind === 'number') { const n = dtStoredNumber(v); return isFinite(n) ? n : v; }
+    if (kind === 'bool') { const b = dtXlTrBool(v); return b === null ? v : b; }
+    return v;
+  }
+  function dtXlLineKey(line) {
+    const m = /^\s*\x22((?:[^\x22\\]|\\.)*)\x22\s*:/.exec(String(line));
+    if (!m) return null;
+    try { return JSON.parse('"' + m[1] + '"'); } catch (e) { return m[1]; }
+  }
+  // one record: read again, check every cell still holds what the grid showed, write all in one PATCH.
+  // items: [{ col, kind, value, expect }] → { ok } | { ok: false, why: 'conflict' | 'denied' | 'read' | 'write' | 'net' }
+  async function dtXlWriteRecord(id, items) {
+    const u = dtDirectBase() + encodeURIComponent(id);
+    const r = await dtApiFetch(u);
+    if (!r) return { ok: false, why: 'net' };
+    if (!r.ok) return { ok: false, why: (r.status === 401 || r.status === 403 || r.status === 404) ? 'denied' : 'read' };
+    let o = {};
+    try { o = ((await r.json()) || {}).response || {}; } catch (e) { return { ok: false, why: 'read' }; }
+    const ja = Array.isArray(o.jsonarray) ? o.jsonarray.slice() : [];
+    const plan = [];
+    for (const it of items) {
+      const names = new Set([dtNormKey(it.col.id), dtNormKey(it.col.header || it.col.id)]);
+      let idx = -1, key = String(it.col.id), cur;
+      for (let i = 0; i < ja.length; i++) {
+        const k = dtXlLineKey(ja[i]);
+        if (k === null || !names.has(dtNormKey(k))) continue;
+        idx = i; key = k;
+        try { cur = JSON.parse('{' + ja[i] + '}')[k]; } catch (e) { cur = undefined; }
+        break;
+      }
+      if (!dtXlSame(it.kind, cur, it.expect)) return { ok: false, why: 'conflict' };
+      plan.push({ it, idx, key, cur });
+    }
+    let changed = 0;
+    plan.forEach(p => {
+      const v = dtXlEncode(p.it.kind, p.cur, p.it.value);
+      p.it.written = v;
+      if (dtXlSame(p.it.kind, p.cur, v) && (p.idx >= 0 || v === '')) return;
+      const line = JSON.stringify(p.key) + ': ' + JSON.stringify(v);
+      if (p.idx >= 0) ja[p.idx] = line; else ja.push(line);
+      changed++;
+    });
+    if (!changed) return { ok: true, same: true };
+    const w = await dtApiFetch(u, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonarray: ja }) });
+    if (!w) return { ok: false, why: 'net' };
+    if (!w.ok) return { ok: false, why: (w.status === 401 || w.status === 403) ? 'denied' : 'write' };
+    return { ok: true };
+  }
+  function dtXlLocal(raw, col, value) {   // the grid shows the new value now (the mirror follows)
+    const keys = new Set([col.id].concat(col.sourceKeys || []));
+    const nk = dtNormKey(col.id);
+    Object.keys(raw).forEach(k => { if (keys.has(k) || dtNormKey(k) === nk) raw[k] = value; });
+    raw[col.id] = value;
+  }
+  function dtXlRepaint() {   // the cells stay selected as they were (the remount would widen them to whole records)
+    try { const sel = state.hot ? state.hot.getSelected() : null; _dtXl.keepSel = (sel && sel.length) ? sel : null; } catch (e) { _dtXl.keepSel = null; }
+    try { remountColumns(); } catch (e) { try { if (state.hot) state.hot.render(); } catch (x) {} }
+  }
+  function dtXlRestoreSel() {
+    const sel = _dtXl.keepSel;
+    _dtXl.keepSel = null;
+    if (!sel || !state.hot || _dtXl.ed) return;
+    try {
+      const nr = state.hot.countRows(), nc = state.hot.countCols();
+      const ok = sel.filter(s => s.every(x => typeof x === 'number') && Math.max(s[0], s[2]) < nr && Math.max(s[1], s[3]) < nc);
+      if (ok.length) state.hot.selectCells(ok, false, false);
+    } catch (e) {}
+  }
+  // changes: [{ raw, col, kind, value, expect }] → writes record by record, then one toast (Undo when anything was written)
+  async function dtXlApply(changes, opts) {
+    opts = opts || {};
+    const byId = new Map();
+    changes.forEach(c => { const id = rowIdOf(c.raw); if (!id) return; if (!byId.has(id)) byId.set(id, []); byId.get(id).push(c); });
+    if (!byId.size) return;
+    const done = [], bad = { conflict: 0, denied: 0, other: 0 };
+    if (byId.size > 1 || changes.length > 1) showWakeToast('Saving ' + changes.length + ' cell' + (changes.length > 1 ? 's' : '') + '…', 'info');
+    for (const [id, list] of byId) {
+      const res = await dtXlWriteRecord(id, list.map(c => ({ col: c.col, kind: c.kind, value: c.value, expect: c.expect })));
+      if (!res.ok) { if (res.why === 'conflict') bad.conflict++; else if (res.why === 'denied') bad.denied++; else bad.other++; continue; }
+      const fields = {};
+      list.forEach(c => { const v = dtXlEncode(c.kind, c.expect, c.value); dtXlLocal(c.raw, c.col, v); fields[c.col.id] = v; done.push(c); });
+      if (!res.same) {
+        try { const prev = _dtDirect.get(id); _dtDirect.set(id, { mod: dtNow(), fields: Object.assign({}, prev && prev.fields, fields) }); } catch (e) {}
+        dtLiveTouch([id]);   // CANLI-VERI: the other viewers and the mirror get it
+      }
+    }
+    if (done.length) dtXlRepaint();
+    const parts = [];
+    if (bad.conflict) parts.push(bad.conflict + ' record' + (bad.conflict > 1 ? 's were' : ' was') + ' changed by someone else meanwhile, not saved');
+    if (bad.denied) parts.push('you have no permission to change ' + bad.denied + ' record' + (bad.denied > 1 ? 's' : ''));
+    if (bad.other) parts.push(bad.other + ' record' + (bad.other > 1 ? 's' : '') + ' could not be saved, try again');
+    log('[GX-EXCEL] saved ' + done.length + ' cell(s); ' + JSON.stringify(bad));
+    if (!done.length) { showWakeToast(parts.length ? 'Not saved: ' + parts.join('; ') + '.' : 'Not saved.', 'error'); return; }
+    const head = opts.undo ? 'Undone' : (done.length === 1 ? (done[0].col.header || done[0].col.id) + ' saved' : done.length + ' cells saved');
+    const text = head + (parts.length ? '. ' + parts.join('; ') + '.' : '');
+    if (opts.undo) { showWakeToast(text, parts.length ? 'error' : 'success'); return; }
+    const back = done.map(c => ({ raw: c.raw, col: c.col, kind: c.kind, value: dtXlNorm(c.kind, c.expect), expect: dtXlEncode(c.kind, c.expect, c.value) }));
+    showActionToast(text, 'Undo', () => { dtXlApply(back, { undo: true }); }, 8000);
+  }
+  function dtXlHighlight() {
+    try { const r = state.hot.getSelectedRangeLast(); return (r && r.highlight && r.highlight.row >= 0 && r.highlight.col >= 0) ? { row: r.highlight.row, col: r.highlight.col } : null; } catch (e) { return null; }
+  }
+  // ── the in-place editor ──
+  function dtXlClose(save, move) {
+    const ed = _dtXl.ed;
+    if (!ed) return;
+    _dtXl.ed = null;
+    try { window.removeEventListener('scroll', ed.onScroll, true); } catch (e) {}
+    const text = ed.input.value;
+    try { ed.box.remove(); } catch (e) {}
+    try { if (state.hot) { state.hot.listen(); if (move && state.hot.selectCell) { const r = Math.min(ed.row + (move === 'down' ? 1 : 0), state.hot.countRows() - 1), c = Math.min(ed.col + (move === 'right' ? 1 : 0), state.hot.countCols() - 1); state.hot.selectCell(r, c); } } } catch (e) {}
+    if (!save) return;
+    const p = dtXlParse(ed.kind, ed.colDef, text, ed.opts);
+    if (!p.ok) { showWakeToast(p.msg + ' Nothing was saved.', 'error'); return; }
+    if (dtXlSame(ed.kind, p.value, ed.expect)) return;   // nothing changed
+    dtXlApply([{ raw: ed.raw, col: ed.colDef, kind: ed.kind, value: p.value, expect: ed.expect }]);
+  }
+  function dtXlPlace(ed) {
+    try {
+      const td = state.hot.getCell(ed.row, ed.col, true);
+      if (!td) { dtXlClose(true); return; }
+      const a = td.getBoundingClientRect(), w = els.wrapper.getBoundingClientRect();
+      Object.assign(ed.box.style, { left: Math.round(a.left - w.left) + 'px', top: Math.round(a.top - w.top) + 'px', width: Math.max(160, Math.round(a.width)) + 'px' });
+      ed.input.style.height = Math.max(30, Math.round(a.height)) + 'px';
+    } catch (e) {}
+  }
+  function dtXlWhy(col, raw) {
+    if (!raw || !col) return;
+    if (raw.__gxPend) { showWakeToast('This record is still being saved. Edit it in a moment.', 'info'); return; }
+    showWakeToast('This cell cannot be edited in the table. Open the record to change it.', 'info');
+  }
+  function dtXlOpen(vr, vc, typed, explain) {
+    if (_dtXl.ed) dtXlClose(true);
+    const col = dtXlCol(vc), raw = dtXlRaw(vr), kind = dtXlEditable(col, raw);
+    if (!kind) { if (explain) dtXlWhy(col, raw); return false; }
+    const expect = pickValue(raw, col);
+    if (kind === 'bool' && typed == null) {   // F2 / Space / menu on a yes / no cell: flip it
+      const b = dtXlTrBool(Array.isArray(expect) ? expect[0] : expect);
+      dtXlApply([{ raw, col, kind, value: !b, expect }]);
+      return true;
+    }
+    const box = document.createElement('div');
+    box.className = 'dt-xl-editor';
+    const input = document.createElement('input');
+    input.className = 'dt-xl-input'; input.type = 'text'; input.autocomplete = 'off'; input.spellcheck = false;
+    input.setAttribute('aria-label', 'Edit ' + (col.header || col.id));
+    if (kind === 'number') input.inputMode = 'decimal';
+    if (kind === 'date') input.placeholder = 'dd.mm.yyyy';
+    if (kind === 'datetime') input.placeholder = 'dd.mm.yyyy hh:mm';
+    box.appendChild(input);
+    let opts = null;
+    if (kind === 'choice') {
+      opts = dtXlOptions(col);
+      const dl = document.createElement('datalist');
+      dl.id = 'dt-xl-dl-' + Date.now();
+      opts.list.forEach(x => { const o = document.createElement('option'); o.value = x; dl.appendChild(o); });
+      box.appendChild(dl);
+      input.setAttribute('list', dl.id);
+    }
+    const hint = document.createElement('div');
+    hint.className = 'dt-xl-hint';
+    hint.textContent = 'Enter to save, Esc to cancel' + (kind === 'choice' && opts && opts.strict ? '. Pick one of the options.' : '.');
+    box.appendChild(hint);
+    els.wrapper.appendChild(box);
+    const ed = { box, input, hint, row: vr, col: vc, colDef: col, raw, kind, expect, opts, onScroll: null };
+    ed.onScroll = () => { if (_dtXl.ed === ed) requestAnimationFrame(() => dtXlPlace(ed)); };
+    _dtXl.ed = ed;
+    input.value = typed != null ? typed : dtXlShow(kind, expect);
+    dtXlPlace(ed);
+    try { state.hot.unlisten(); } catch (e) {}
+    ed.at = Date.now();
+    const focusIn = () => { if (_dtXl.ed !== ed) return; input.focus(); try { const n = input.value.length; input.setSelectionRange(n, n); } catch (e) {} };
+    focusIn(); setTimeout(focusIn, 0);   // the grid moves focus back to its cell after the key; take it once more
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); dtXlClose(true, 'down'); }
+      else if (e.key === 'Tab') { e.preventDefault(); dtXlClose(true, 'right'); }
+      else if (e.key === 'Escape') { e.preventDefault(); dtXlClose(false, 'stay'); }
+      e.stopPropagation();
+    });
+    input.addEventListener('input', () => {
+      const p = dtXlParse(kind, col, input.value, opts);
+      hint.classList.toggle('is-error', !p.ok);
+      hint.textContent = p.ok ? 'Enter to save, Esc to cancel.' : p.msg;
+    });
+    input.addEventListener('blur', () => {
+      if (Date.now() - ed.at < 400) { setTimeout(focusIn, 0); return; }   // the grid's own refocus right after opening
+      setTimeout(() => { if (_dtXl.ed === ed && document.activeElement !== input) dtXlClose(true); }, 120);
+    });
+    window.addEventListener('scroll', ed.onScroll, true);
+    return true;
+  }
+  // ── paste / clear: a block of values onto the selection ──
+  function dtXlTargets(block) {   // block: string[][] → [{ raw, col, kind, text }] + skipped count
+    const sel = state.hot.getSelectedLast();
+    if (!sel) return { cells: [], skipped: 0 };
+    let r1 = Math.min(sel[0], sel[2]), c1 = Math.min(sel[1], sel[3]), r2 = Math.max(sel[0], sel[2]), c2 = Math.max(sel[1], sel[3]);
+    r1 = Math.max(r1, 0); c1 = Math.max(c1, 0);
+    const one = block.length === 1 && block[0].length === 1;
+    if (!one) { r2 = Math.max(r2, r1 + block.length - 1); c2 = Math.max(c2, c1 + Math.max.apply(null, block.map(x => x.length)) - 1); }
+    r2 = Math.min(r2, state.hot.countRows() - 1); c2 = Math.min(c2, state.hot.countCols() - 1);
+    const cells = []; let skipped = 0;
+    for (let r = r1; r <= r2; r++) {
+      for (let c = c1; c <= c2; c++) {
+        const text = one ? block[0][0] : ((block[(r - r1) % block.length] || [])[(c - c1) % (block[(r - r1) % block.length] || ['']).length]);
+        if (text === undefined) continue;
+        const col = dtXlCol(c), raw = dtXlRaw(r);
+        if (!col) continue;
+        const kind = dtXlEditable(col, raw);
+        if (!kind) { skipped++; continue; }
+        cells.push({ raw, col, kind, text });
+        if (cells.length > DT_XL_CONFIRM_MAX) return { cells, skipped, tooMany: true };
+      }
+    }
+    return { cells, skipped };
+  }
+  function dtXlRun(block, verb) {
+    if (window.__gxNoXl || window.__gxNoXlEdit || !state.hot) return;
+    const t = dtXlTargets(block);
+    if (t.tooMany) { showWakeToast('That is more than ' + DT_XL_CONFIRM_MAX + ' cells. Select fewer and try again.', 'error'); return; }
+    const changes = [], bad = [];
+    t.cells.forEach(c => {
+      const p = dtXlParse(c.kind, c.col, c.text);
+      const expect = pickValue(c.raw, c.col);
+      if (!p.ok) { bad.push(c.col.header || c.col.id); return; }
+      if (dtXlSame(c.kind, p.value, expect)) return;
+      changes.push({ raw: c.raw, col: c.col, kind: c.kind, value: p.value, expect });
+    });
+    const notes = [];
+    if (t.skipped) notes.push(t.skipped + ' cell' + (t.skipped > 1 ? 's' : '') + ' cannot be edited in the table');
+    if (bad.length) notes.push(bad.length + ' value' + (bad.length > 1 ? 's do' : ' does') + ' not fit the field (' + Array.from(new Set(bad)).slice(0, 3).join(', ') + ')');
+    if (!changes.length) { showWakeToast((notes.length ? notes.join('; ') + '. ' : '') + 'Nothing to change.', notes.length ? 'error' : 'info'); return; }
+    const recs = new Set(changes.map(c => rowIdOf(c.raw))).size;
+    if (changes.length === 1 && !notes.length) { dtXlApply(changes); return; }
+    const ask = verb + ' ' + changes.length + ' cell' + (changes.length > 1 ? 's' : '') + ' in ' + recs + ' record' + (recs > 1 ? 's' : '') + '?' + (notes.length ? ' (' + notes.join('; ') + ')' : '');
+    showActionToast(ask, verb, () => dtXlApply(changes), 12000);
+  }
+  function dtXlBeforePaste(data) {
+    if (window.__gxNoXl || window.__gxNoXlEdit) return;   // HOT's own (read-only cells: nothing happens)
+    const block = (Array.isArray(data) ? data : []).map(row => (Array.isArray(row) ? row : [row]).map(v => v == null ? '' : String(v)));
+    while (block.length > 1 && block[block.length - 1].every(v => v === '')) block.pop();   // Excel's trailing line
+    if (block.length) dtXlRun(block, 'Paste');
+    return false;   // the grid itself never changes a cell; the record does, then the grid shows it
+  }
+  // ── copy ──
+  function dtXlAfterCopy(data, coords, heads) {
+    if (window.__gxNoXl) return;
+    try {
+      const hn = Number(heads && heads.columnHeadersCount) || 0;
+      const rows = Math.max(0, (Array.isArray(data) ? data.length : 0) - hn), cols = data && data.length ? Math.max.apply(null, data.map(r => (r || []).length)) : 0;
+      const n = rows * cols;
+      if (!n) return;
+      showWakeToast((n === 1 ? 'Copied 1 cell' : 'Copied ' + rows + ' row' + (rows > 1 ? 's' : '') + ' x ' + cols + ' column' + (cols > 1 ? 's' : '')) + (hn ? ' with field names' : '') + '. Paste it into Excel.', 'info');
+      (Array.isArray(coords) ? coords : []).forEach(rg => {
+        const r1 = Math.max(0, Math.min(rg.startRow, rg.endRow)), r2 = Math.max(rg.startRow, rg.endRow);
+        const c1 = Math.max(0, Math.min(rg.startCol, rg.endCol)), c2 = Math.max(rg.startCol, rg.endCol);
+        for (let r = r1; r <= Math.min(r2, r1 + 80); r++) for (let c = c1; c <= Math.min(c2, c1 + 40); c++) {
+          const td = state.hot.getCell(r, c, true);
+          if (td) { td.classList.remove('dt-xl-flash'); void td.offsetWidth; td.classList.add('dt-xl-flash'); }
+        }
+      });
+    } catch (e) {}
+  }
+  function dtXlCopyHeaders() {
+    try { const cp = state.hot.getPlugin('copyPaste'); if (cp && typeof cp.copyWithColumnHeaders === 'function') { cp.copyWithColumnHeaders(); return true; } if (cp) cp.copy('with-column-headers'); return true; } catch (e) { return false; }
+  }
+  function dtXlKeyDown(event) {
+    if (window.__gxNoXl || !state.hot || !event || _dtXl.ed) return;
+    const ae = document.activeElement;
+    if (ae && ae !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && !ae.classList.contains('HandsontableCopyPaste') && !(els.container && els.container.contains(ae))) return;
+    const k = event.key, mod = event.ctrlKey || event.metaKey;
+    const stop = () => { event.preventDefault(); try { Handsontable.dom.stopImmediatePropagation(event); } catch (e) { event.stopImmediatePropagation(); } };
+    if (mod && event.shiftKey && !event.altKey && (k === 'c' || k === 'C')) { stop(); dtXlCopyHeaders(); return; }
+    if (window.__gxNoXlEdit || event.altKey || event.isComposing) return;
+    const h = dtXlHighlight();
+    if (!h) return;
+    if (k === 'F2') { stop(); dtXlOpen(h.row, h.col, null, true); return; }
+    if ((k === 'Delete' || k === 'Backspace') && !mod) { stop(); dtXlRun([['']], 'Clear'); return; }
+    if (mod) return;
+    if (k === ' ') { const col = dtXlCol(h.col); if (col && dtXlKind(col) === 'bool') { stop(); dtXlOpen(h.row, h.col, null, true); return; } }
+    if (k && k.length === 1 && k !== ' ') {
+      const col = dtXlCol(h.col), raw = dtXlRaw(h.row), kind = dtXlEditable(col, raw);
+      if (!kind || kind === 'bool') return;
+      stop(); dtXlOpen(h.row, h.col, k, false);
+    }
+  }
+  // ── right-click menu ──
+  function dtXlMenu() {
+    const at = () => dtXlHighlight();
+    return {
+      items: {
+        copy: { name: 'Copy' },
+        copy_with_column_headers: { name: 'Copy with field names' },
+        dt_xl_sep: '---------',
+        dt_xl_edit: {
+          name: 'Edit cell',
+          disabled() { if (window.__gxNoXlEdit) return true; const h = at(); return !h || !dtXlEditable(dtXlCol(h.col), dtXlRaw(h.row)); },
+          callback() { const h = at(); if (h) setTimeout(() => dtXlOpen(h.row, h.col, null, true), 0); }
+        },
+        dt_xl_clear: {
+          name: 'Clear cells',
+          disabled() { return !!window.__gxNoXlEdit; },
+          callback() { setTimeout(() => dtXlRun([['']], 'Clear'), 0); }
+        },
+        dt_xl_open: {
+          name: 'Open record',
+          callback() {
+            const h = at(); if (!h) return;
+            try { const td = state.hot.getCell(h.row, h.col, true); if (td) td.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true })); } catch (e) {}
+          }
+        }
+      }
+    };
+  }
+  // ── Excel's status line: Count · Sum · Average ──
+  function dtXlStatsSoon() {
+    if (_dtXl.statsT) return;
+    _dtXl.statsT = setTimeout(() => { _dtXl.statsT = 0; dtXlStats(); }, 60);
+  }
+  function dtXlStats() {
+    const el = document.getElementById('dt-xl-stats');
+    if (!el) return;
+    const hide = () => { el.textContent = ''; el.classList.add('dt-hidden'); };
+    if (window.__gxNoXl || !state.hot) return hide();
+    let sel = null; try { sel = state.hot.getSelected(); } catch (e) { sel = null; }
+    if (!Array.isArray(sel) || !sel.length) return hide();
+    let cells = 0, filled = 0, nums = 0, sum = 0;
+    const seen = new Set();
+    for (const s of sel) {
+      const r1 = Math.max(0, Math.min(s[0], s[2])), r2 = Math.max(s[0], s[2]), c1 = Math.max(0, Math.min(s[1], s[3])), c2 = Math.max(s[1], s[3]);
+      if (s[0] < 0 && s[2] < 0) continue;
+      for (let c = c1; c <= c2; c++) {
+        const col = dtXlCol(c);
+        if (!col) continue;
+        const isNum = dtKind(col) === 'number';
+        for (let r = r1; r <= r2; r++) {
+          const key = r + ':' + c;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          if (++cells > 20000) break;
+          const v = pickValue(dtXlRaw(r), col);
+          if (gxIsBlank(v)) continue;
+          filled++;
+          if (isNum) { const n = dtStoredNumber(v); if (isFinite(n)) { nums++; sum += n; } }
+        }
+      }
+    }
+    if (cells < 2) return hide();
+    const f = x => x.toLocaleString('tr-TR', { maximumFractionDigits: 2 });
+    let html = 'Count <b>' + f(filled) + '</b>';
+    if (nums) html += ' · Sum <b>' + f(sum) + '</b> · Average <b>' + f(sum / nums) + '</b>';
+    el.innerHTML = html;
+    el.classList.remove('dt-hidden');
+  }
+  // ── GX-FILTRE-SUREC (19.11, Saltuk): entering a process showed rows filtered by a filter set earlier, and nothing but
+  // a small header badge said so. Another process / list now starts unfiltered (classifyView, aynaRescreen), and while
+  // any column filter is on the toolbar shows "Filtered: <field>  Clear". Old behaviour: window.__gxKeepFilters = true.
+  function dtActiveFilterNames() {
+    const cols = state._mountedCols || [];
+    return Object.keys(state.filterConfigs || {}).filter(k => isFilterActive(Number(k)))
+      .map(k => { const c = cols[Number(k)]; return c && !c.__uiOnly ? String(c.header || c.id || '').trim() : ''; }).filter(Boolean);
+  }
+  function dtFilterChipSync() {
+    const el = document.getElementById('dt-filter-chip');
+    if (!el) return;
+    if (!el.__gxBound) { el.__gxBound = true; el.addEventListener('click', e => { e.preventDefault(); dtClearAllFilters(); }); }
+    let names = [];
+    try { names = dtActiveFilterNames(); } catch (e) { names = []; }
+    if (!names.length) { el.hidden = true; el.classList.remove('is-loud', 'is-pulse'); return; }
+    const txt = el.querySelector('.dt-filter-chip-text');
+    if (txt) txt.textContent = names.length === 1 ? 'Filtered: ' + names[0] : 'Filtered: ' + names.length + ' fields';
+    el.title = 'Filters on: ' + names.join(', ') + '. Click to clear.';
+    el.setAttribute('aria-label', 'Filters on: ' + names.join(', ') + '. Clear filters');
+    el.hidden = false;
+    // GX-ARAMA-FILTRE: a search typed while a filter is on makes the chip loud (the search only looks inside it)
+    const loud = !!(els.search && els.search.value.trim());
+    if (loud && !el.classList.contains('is-loud')) { el.classList.remove('is-pulse'); void el.offsetWidth; el.classList.add('is-pulse'); }
+    el.classList.toggle('is-loud', loud);
+  }
+  // ── GX-ARAMA-FILTRE (19.11, Saltuk): a search came back empty and nothing said a filter was still on. The filter is
+  // never dropped by a search; it is made obvious instead: while a search and a filter are both on, a line above the
+  // grid says the search looks only inside the filter (and how many matches the filter hides, when the grid knows);
+  // an empty answer says "No matches" (never "No records yet") with one click to search everything.
+  function dtSearchHintModel(o) {
+    // o: { term, names, visible (-1 unknown), hidden (-1 unknown), loading }
+    const term = String(o.term || '').trim(), names = o.names || [];
+    if (!term && !names.length) return null;
+    const none = !o.loading && o.visible === 0;
+    if (!none && !(term && names.length)) return null;
+    const what = names.length === 1 ? names[0] : names.length + ' fields';
+    const q = term.length > 40 ? term.slice(0, 40) + '...' : term;
+    const more = o.hidden > 0 ? o.hidden + ' more match' + (o.hidden === 1 ? '' : 'es') + ' hidden by the filter on ' + what + '.' : '';
+    if (!names.length) return { title: 'No matches for "' + q + '"', desc: 'Try another word.', action: 'search', label: 'Clear search' };
+    if (none && !term) return { title: 'No rows match the filter', desc: 'The filter on ' + what + ' hides every row.', action: 'filters', label: 'Clear filters' };
+    return {
+      title: none ? 'No matches with filters on' : 'Searching filtered rows only',
+      desc: more || ('The filter on ' + what + ' still applies' + (none ? ' and may hide matches.' : '.')),
+      action: 'filters', label: 'Search all records'
+    };
+  }
+  function dtSearchHintSync() {
+    try {
+      let h = document.getElementById('dt-search-hint');
+      const c = els.container;
+      const term = els.search ? els.search.value.trim() : '';
+      let names = []; try { names = dtActiveFilterNames(); } catch (e) { names = []; }
+      const hold = typeof aynaEmptyHold === 'function' ? aynaEmptyHold() : '';
+      const shown = !!(c && c.parentNode && c.style.display !== 'none' && state._dtDataLoaded && hold !== 'error');
+      let visible = -1, hidden = -1;
+      const rows = Array.isArray(state.displayRows) ? state.displayRows.length : 0;
+      const windowed = typeof aynaWindowed === 'function' && aynaWindowed();
+      if (!windowed && state.hot && !state.hot.isDestroyed && typeof state.hot.countRows === 'function') {
+        visible = state.hot.countRows(); hidden = Math.max(0, rows - visible);
+      } else visible = rows;
+      if (!rows) { visible = 0; hidden = -1; }   // nothing to show at all (the grid may still hold the last mount)
+      const m = shown ? dtSearchHintModel({ term, names, visible, hidden, loading: hold === 'loading' || !!state._mounting }) : null;
+      if (!m) { if (h) h.remove(); return; }
+      const html = '<div class="dt-first-run-body"><div class="dt-first-run-title"></div><div class="dt-first-run-desc"></div></div>' +
+        '<button type="button" class="dt-action-btn dt-action-btn-primary dt-search-hint-btn"></button>';
+      if (!h) {
+        h = document.createElement('div'); h.id = 'dt-search-hint'; h.setAttribute('role', 'status');
+        h.innerHTML = html; c.parentNode.insertBefore(h, c);
+        h.querySelector('.dt-search-hint-btn').addEventListener('click', e => {
+          e.preventDefault();
+          if (h.dataset.action === 'search') { closeSearch(true); dtSearchHintSync(); } else dtClearAllFilters();
+        });
+      }
+      h.dataset.action = m.action;
+      h.classList.toggle('is-none', /^No /.test(m.title));
+      const t = h.querySelector('.dt-first-run-title'), d = h.querySelector('.dt-first-run-desc'), b = h.querySelector('.dt-search-hint-btn');
+      if (t.textContent !== m.title) t.textContent = m.title;
+      if (d.textContent !== m.desc) d.textContent = m.desc;
+      if (b.textContent !== m.label) b.textContent = m.label;
+    } catch (e) {}
+  }
+  function dtClearAllFilters() {
+    if (!Object.keys(state.filterConfigs || {}).length) { dtFilterChipSync(); return; }
+    state.filterConfigs = {};
+    try { hideFilterPanel(); } catch (e) {}
+    applyAllColumnFilters();
+    try { if (state.hot && !state.hot.isDestroyed) state.hot.render(); } catch (e) {}   // the header badges (window mode skips the render)
+    showWakeToast('Filters cleared', 'info');
+  }
+  // a new view: filters, search, held selection and the grid's sort / scroll start over. announce → a short note when
+  // a filter or a search was really on (the person sees why the rows changed)
+  function dtResetDataView(announce) {
+    let had = false;
+    try { had = dtActiveFilterNames().length > 0 || !!(els.search && els.search.value.trim()); } catch (e) { had = false; }
+    state.filterConfigs = {};
+    state._carrySelectionIds = [];
+    state._resetHotView = true;
+    if (els.search) els.search.value = '';
+    closeSearch(false);
+    closeColumnMenu();
+    closeFieldConfigModal(); // eski satırların örnekleriyle taslak açık kalmasın
+    try { hideFilterPanel(); } catch (e) {}
+    dtFilterChipSync();
+    dtSearchHintSync();
+    if (announce && had) showWakeToast('New view, filters cleared', 'info');
+  }
   function dtRenderClaimWait(td, st, row) {
+    if (st === 'completing' || st === 'ekfail') { dtRenderEkSayim(td, st, row); return; }   // EK-SAYIM
     const b = document.createElement('span');
     b.className = 'dt-claim-wait dt-claim-wait--' + st + (st === 'delfailed' ? ' dt-claim-wait--failed' : '');
     if (st === 'preparing') { const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp); }
@@ -4909,12 +5662,30 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     td.appendChild(b);
   }
+  // EK-SAYIM: "Completing 2 / ~5 min" (spinner) while new documents go into a ready claim; "Not completed" when the line gave up
+  function dtRenderEkSayim(td, st, row) {
+    const b = document.createElement('span');
+    b.className = 'dt-claim-wait dt-claim-wait--' + st + (st === 'completing' ? ' dt-claim-wait--preparing' : ' dt-claim-wait--failed');
+    if (st === 'ekfail') {
+      b.appendChild(document.createTextNode('Not completed'));
+      td.title = 'The new documents could not be added to the claim. The claim is from the earlier documents. Open the record and check the new ones.';
+      td.appendChild(b);
+      return;
+    }
+    const sp = document.createElement('span'); sp.className = 'dt-claim-spin'; sp.setAttribute('aria-hidden', 'true'); b.appendChild(sp);
+    let time = ''; try { time = dtClaimTimeText(row, 'completing'); } catch (e) { time = ''; }
+    b.appendChild(document.createTextNode('Completing' + (time ? ' ' + time : '…')));
+    b.setAttribute('aria-label', 'Completing the claim with new documents' + (time ? ', ' + time : ''));
+    const n = dtEkSayi(row), en = window.__gxNoStage ? '' : dtAsamaEn(dtAsamaOf(row));
+    td.title = 'Completing the claim with ' + n + ' new document' + (n === 1 ? '' : 's') + (en ? ' (' + en + ')' : '') + '. Only the new ones are read; the claim keeps what it has. No need to fill it by hand: it says Ready ✓ again when done.';
+    td.appendChild(b);
+  }
   // TIDY-CLAIMTIME: the clock moves without a data change; a visible Preparing / Queued cell is redrawn every 30 s (one timer per page)
   window.__gxClaimTimeTick = function () {
     try {
       if (window.__gxNoClaimTime || !state.hot || document.visibilityState === 'hidden') return;
       const c = els && els.container;
-      if (c && c.querySelector('.dt-claim-wait--preparing, .dt-claim-wait--queued')) state.hot.render();
+      if (c && c.querySelector('.dt-claim-wait--preparing, .dt-claim-wait--queued, .dt-claim-wait--completing')) state.hot.render();
     } catch (e) {}
   };
   if (!window.__gxClaimTimeTimer) window.__gxClaimTimeTimer = setInterval(() => { try { const f = window.__gxClaimTimeTick; if (f) f(); } catch (e) {} }, 30000);
@@ -6826,6 +7597,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         else return;
       } else if (m.t === 'done') {
         j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(m.k) || j.n)); j.not = String(m.not || ''); j.doneAt = Date.now();
+        dtEkleSonYaz(j.rid, j.k);   // EK-SAYIM
         try { ch.close(); } catch (e) {} j.chan = null;
         try { dtKkEkSonra(j); } catch (e) {}   // KAYIT-KLASOR: the same files into the record's folder on this computer
       } else if (m.t === 'error') {
@@ -6905,6 +7677,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     else if (o.st === 'saving') { j.st = 'saving'; j.kayit = true; j.k = Math.max(j.k, Math.min(j.n, Number(o.k) || 0)); }
     else if (o.st === 'done') {
       j.st = 'done'; j.k = Math.max(0, Math.min(j.n, Number(o.k) || j.n)); j.not = String(o.not || ''); j.doneAt = Date.now();
+      dtEkleSonYaz(j.rid, j.k);   // EK-SAYIM
       setTimeout(() => { if (!dtEkleSayfaAktif(null)) dtEklePanel(false); }, 4000);
     }
     else if (o.st === 'error') { j.kayit = j.kayit || j.st === 'saving'; dtEkleSayfaHata(j, String(o.msg || 'The files could not be added.')); return; }
@@ -6964,7 +7737,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const sira = Array.from(_dtEkle.values()).filter(x => x.sayfa && x.st === 'queued').length;
       const kime = j.etiket ? ' to ' + j.etiket : '';
       const t = j.st === 'done' ? 'Added ' + dtEkleAd(j.k) + kime : j.st === 'error' ? 'Files not added' : 'Adding ' + dtEkleAd(j.n) + kime;
-      const l = j.st === 'done' ? (j.k < j.n ? (j.n - j.k) + ' could not be added. ' : '') + 'Only the new ones are read for the claim.'
+      const l = j.st === 'done' ? (j.k < j.n ? (j.n - j.k) + ' could not be added. ' : '') + DT_EK_TAMAM_NOT
         : j.st === 'error' ? (j.msg || '') : j.st === 'up' ? j.k + ' of ' + j.n + ' uploaded' : j.st === 'saving' ? 'Saving to the file' : 'Opening the file';
       v.querySelector('.gx-ev-t').textContent = t;
       v.querySelector('.gx-ev-l').textContent = l;
@@ -6988,7 +7761,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     else if (j.st === 'opening') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: 0, n: 0, line: j.sayfa ? 'Opening the file' : 'Opening the file in a helper tab' };
     else if (j.st === 'up') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.k, n: j.n, line: j.k + ' of ' + j.n + ' uploaded' };
     else if (j.st === 'saving') kart = { title: 'Adding ' + dtEkleAd(j.n), sub: kime, state: 'working', k: j.n, n: j.n, line: 'Saving to the file' };
-    else if (j.st === 'done') kart = { title: 'Added ' + dtEkleAd(j.k), sub: kime, state: 'done', k: j.k, n: j.n, line: [j.k < j.n ? (j.n - j.k) + ' could not be added.' : '', 'Only the new ones are read for the claim.', j.not].filter(Boolean).join(' ') };
+    else if (j.st === 'done') kart = { title: 'Added ' + dtEkleAd(j.k), sub: kime, state: 'done', k: j.k, n: j.n, line: [j.k < j.n ? (j.n - j.k) + ' could not be added.' : '', DT_EK_TAMAM_NOT, j.not].filter(Boolean).join(' ') };
     else kart = { title: 'Files not added', sub: kime, state: 'error', msg: j.msg, line: '' };
     if (kart.state !== 'error') kart.msg = '';   // the card keeps earlier fields: the error shows its own sentence, not the last line
     kart.onRetry = j.st === 'error' && !j.kayit ? () => dtEkleCalistir(j) : null;
@@ -7481,6 +8254,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         }
         return;
       }
+      // EK-SAYIM: a ready claim (Ready ✓) that new documents are completing
+      if (value === DT_PAKET_BADGE && dtNormKey(c.id || '') === 'claim') {
+        try { const p = instance.toPhysicalRow(row), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; const st = dtClaimWaitState(raw); if (st === 'completing' || st === 'ekfail') { dtRenderClaimWait(td, st, raw); return; } } catch (e) {}
+      }
 
       if (kind === 'number') { dtAppendText(td, typeof value === 'number' ? dtNumberText(c, value) : dtRawText(value)); return; }
       if (kind === 'date') { dtAppendText(td, dtIsoText(value) || dtRawText(value)); return; }
@@ -7658,6 +8435,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
     prioritizeSelection(sourceIndex);
     start();
+    try { dtFormOpenRequest(rawRow); } catch (e) {}   // GX-FORM-OPEN
   }
 
   // T3: cell links must not break double-click-open or Ctrl/Shift multi-select. A plain click follows the link
@@ -8348,6 +9126,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       selectionMode: 'multiple',
       licenseKey: 'non-commercial-and-evaluation',
       afterSelectionEnd: handleSelection,
+      // GX-EXCEL: copy with column names (Ctrl+Shift+C, right-click), Excel's status line, edit / paste / clear in place
+      copyPaste: { copyColumnHeaders: true },
+      contextMenu: window.__gxNoXl ? false : dtXlMenu(),
+      afterCopy: dtXlAfterCopy,
+      beforePaste: dtXlBeforePaste,
+      beforeKeyDown: dtXlKeyDown,
+      afterSelection: () => dtXlStatsSoon(),
+      afterDeselect: () => dtXlStatsSoon(),
       // T2: Kolon başlığına / köşeye basmak kayıt seçimini ASLA değiştirmez (başlık = kolon menüsü).
       // HOT 14.6 mouseEventHandler: başlık dalları controller.column/row/cell ile kapanır;
       // köşe dalı (selectAll) controller'a bakmaz → yalnız köşede stopImmediatePropagation.
@@ -8401,6 +9187,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const typedCols = cols.map(vc => {
           const col = visibleColumns[state.hot.toPhysicalColumn(vc)];
           return (col && !col.__uiOnly && (dtKind(col) !== 'text' || col.type === 'user')) ? col : null;   // GX-USERS (06.10): + User
+        });
+        // GX-EXCEL: "copy with column names" gets the plain names (colHeaders returns the header's HTML)
+        rows.forEach((vr, i) => {
+          if (vr >= 0 || !Array.isArray(data[i])) return;
+          cols.forEach((vc, j) => { const c = visibleColumns[state.hot.toPhysicalColumn(vc)]; if (c && j < data[i].length) data[i][j] = c.__uiOnly ? '' : String(c.header || c.id || ''); });
         });
         if (!typedCols.some(Boolean)) return;
         rows.forEach((vr, i) => {
@@ -8484,6 +9275,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (state._hScrollRenderHandler) state.hot.removeHook('afterRender', state._hScrollRenderHandler);
     state._hScrollRenderHandler = () => syncHScrollUi();
     state.hot.addHook('afterRender', state._hScrollRenderHandler);
+    try { dtFormOpenHooks(); dtFormOpenStart(); } catch (e) {}   // GX-FORM-OPEN: the open record's row mark
     // Initial injection — afterRender won't fire for this render since hook was
     // registered after new Handsontable() / updateSettings() already rendered.
     syncCreateRowDOM();
@@ -8525,6 +9317,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } finally { state._mounting = false; }
     // Seçim: taşınan kayıtlar yeniden vurgulanır, görünmeyenler düşer; değiştiyse yayınlanır
     syncHotSelectionFromState();
+    dtXlRestoreSel();   // GX-EXCEL: after a cell edit the selected cells stay cells (not whole records)
+    dtFilterChipSync();   // GX-FILTRE-SUREC
+    dtSearchHintSync();   // GX-ARAMA-FILTRE
 
     updateFooter();
     attachDoubleClickListener();
@@ -8541,7 +9336,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function syncCreateRowDOM() {
     if (!els.container || !els.createRow) return;
 
-    const show = els.createRow.classList.contains('is-visible');
+    // GX-EXCEL (18.11, Saltuk: "en üste mouse gelince new record diye çıkan kısım … mouse kayması yapıyor"): the drawer
+    // above the first row is off; the toolbar's New button stays. Back: window.__gxCreateRow = true.
+    const show = window.__gxCreateRow === true && els.createRow.classList.contains('is-visible');
     const THIN_H = 4;   // default: thin accent bar
     // hover: full row height — canlı --dt-row-h (mobilde iç etiket 40px, her zaman açık)
     let FULL_H = 36;
@@ -8696,6 +9493,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (rb) rb.addEventListener('click', function () { aynaRetry(); });
         return;
       }
+      // GX-ARAMA-FILTRE: an empty answer to a search or a filter is "No matches" (dtSearchHintSync), never "No records yet"
+      let narrowed = false;
+      try { narrowed = !!(els.search && els.search.value.trim()) || dtActiveFilterNames().length > 0; } catch (e) { narrowed = false; }
+      if (narrowed) { if (b) b.remove(); dtSearchHintSync(); return; }
       const w = state.wake || {};
       const canAsk = !!(w.show && w.hasAgent && !w.waking && !(w.manualWake && w.manualWake.enabled === false));
       let mode = '';
@@ -9085,6 +9886,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     // T7: 150 ms debounce; the box is read when the timer fires (Escape / clear paths still apply at once)
     let searchTimer = null;
     els.search.addEventListener('input', () => {
+      dtFilterChipSync();   // GX-ARAMA-FILTRE: the filter chip turns loud as soon as a search is typed
       if (searchTimer) clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
         searchTimer = null;
@@ -9290,6 +10092,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!AYNA.cfg || !aynaAlive()) return;
       const scr = aynaScreenOf(AYNA.cfg);
       if (!scr.any || scr.key === AYNA.screenKey) return;
+      // GX-FILTRE-SUREC: the page moved to another process without a new table config → the old filters go with it
+      // (only when a screen was showing; a screen id that lands late is the same view)
+      if (AYNA.screenKey && !window.__gxKeepFilters) dtResetDataView(true);
+      if (state._viewKey) state._viewKey = Object.assign({}, state._viewKey, { screen: { list: scr.list, stage: scr.stage, key: scr.key } });
       aynaLoad(AYNA.cfg, AYNA.cfg.columns);
     } catch (e) {}
   }
@@ -9806,6 +10612,60 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       log('[GX-PEND] row shown before the mirror has it (' + n + ' fields)');
     } catch (e) { log('[GX-PEND] ' + ((e && e.message) || e)); }
   }
+  /* GX-FORM-EDIT (19.11, Saltuk: "formdan düzenlediğim zaman autosave ile database'e gidiyor ama tablo güncellenmiyor"). An
+     edit in the form reached the table only when the mirror pulled it from Bubble on its own (seconds to minutes): GX-PEND
+     handled new records only and nothing told the mirror to read the edited record. Now the form's save of an existing record
+     (output3 = its unique id) shows in the row at once (the values the form handed Bubble, through the GX-DIRECT overlay, the
+     mirror's row wins as soon as it is as new) and the mirror reads that record from Bubble 2.5 s later (CANLI-VERI touch), so
+     the other viewers get it too. Only what the form really sent (its changed / emptied field lists); files are left to the mirror.
+     Off: window.__gxNoFormEdit = true. */
+  const DT_FORM_EDIT_TTL_MS = 120000;
+  function dtEditFromSubmit(payload) {
+    try {
+      if (window.__gxNoFormEdit || window.__gxNoDirect || !payload || typeof payload !== 'object') return 0;
+      const id = String(payload.output3 || '').trim();
+      if (!id || !/^\d{6,}x\d{6,}$/.test(id)) return 0;
+      dtLiveTouch([id], 2500);   // CANLI-VERI: the mirror reads the record after Bubble's workflow wrote it
+      // what the form sent Bubble: outputlist1 = the changed fields' '"Key": value' lines (non-empty), outputlist3 = the
+      // fields it emptied; an older form without them → the full snapshot's non-empty values
+      let obj = null, cleared = [];
+      if (Array.isArray(payload.outputlist1)) {
+        obj = {};
+        payload.outputlist1.forEach(l => { try { const p = JSON.parse('{' + String(l) + '}'); Object.keys(p).forEach(k => { obj[k] = p[k]; }); } catch (e) {} });
+        if (Array.isArray(payload.outputlist3)) cleared = payload.outputlist3.map(String);
+      } else {
+        obj = payload.output_full_obj;
+        if ((!obj || typeof obj !== 'object') && typeof payload.output_full_json === 'string') { try { obj = JSON.parse(payload.output_full_json); } catch (e) { obj = null; } }
+      }
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj) || !AYNA.cfg || !aynaAlive() || !Array.isArray(AYNA.painted)) return 0;
+      const row = AYNA.painted.find(r => r && String(r._id || '') === id);
+      if (!row) return 0;   // not on this page of the table: the mirror brings it
+      const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
+      const want = new Map(cols.map(c => [dtNormKey(c), c]));
+      const fields = {};
+      let n = 0;
+      cleared.forEach(k => { const col = want.get(dtNormKey(k)); if (col && !(k in obj) && row[col] != null && row[col] !== '' && typeof row[col] !== 'object') { fields[col] = ''; n++; } });
+      Object.keys(obj).forEach(k => {
+        if (k.charAt(0) === '_') return;
+        const col = want.get(dtNormKey(k)); if (!col) return;
+        let v = obj[k];
+        if (v === null || v === undefined || v === '') return;
+        if (Array.isArray(v)) { if (!v.length || !v.every(x => typeof x === 'string' || typeof x === 'number')) return; v = v.map(String); }
+        else if (typeof v === 'object') return;
+        else if (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean') return;
+        if (dtUploadIds(v).size) return;   // a file address: the mirror's row brings the file cell
+        const cur = row[col];
+        if (JSON.stringify(cur) === JSON.stringify(v) || (cur != null && typeof cur !== 'object' && String(cur) === String(v))) return;
+        fields[col] = v; n++;
+      });
+      if (!n) return 0;
+      const now = dtNow(), prev = _dtDirect.get(id);
+      _dtDirect.set(id, { mod: now, exp: now + DT_FORM_EDIT_TTL_MS, fields: Object.assign({}, prev && prev.fields, fields) });
+      aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
+      log('[GX-FORM-EDIT] ' + n + ' field(s) of the edited record shown before the mirror has them');
+      return n;
+    } catch (e) { log('[GX-FORM-EDIT] ' + ((e && e.message) || e)); return 0; }
+  }
   /* GX-PEND-SIL (30.10, Ömer): "kaydediliyorda ise belki kullanıcı yanlış bir şey yaptı, hemen silmek istiyor; onu göz önünden
      kaldır, arka plandan silinebildiği zaman silinsin, silinemezse failed olarak geri dönsün tabloya". A GX-PEND row (no _id yet)
      used to send Bubble an empty list ("Records have no id field") and stay. Now Delete on it opens the same Bubble dialog; the
@@ -10051,6 +10911,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const o = id ? _dtDirect.get(id) : null;
       if (!o) return r;
       if (aynaLiveTime(r._modified) >= o.mod) { _dtDirect.delete(id); return r; }   // the mirror caught up: its row wins
+      if (o.exp && dtNow() > o.exp) { _dtDirect.delete(id); return r; }   // GX-FORM-EDIT: a save Bubble never confirmed stops showing
       changed = true;
       return Object.assign({}, r, o.fields, { _gxDurumMod: o.mod });   // TIDY-CLAIMTIME: Bubble's own change time
     });
@@ -10063,7 +10924,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const r = rows[i];
       if (!r || r.__gxPend || !r._id) continue;
       const st = dtClaimWaitState(r);
-      if (st === 'preparing' || st === 'queued') ids.push(String(r._id));
+      if (st === 'preparing' || st === 'queued' || st === 'completing') ids.push(String(r._id));   // EK-SAYIM: its stage
     }
     if (!window.__gxNoStage) {   // TIDY-STAGE: a Failed row once (its reason), again when the row changed
       for (let i = 0; i < rows.length && ids.length < DT_DIRECT_MAX; i++) {
@@ -10945,7 +11806,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       try {
         const f = window.bubble_fn_submit;
         if (typeof f !== 'function' || f.__gxSave) return;
-        const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first
+        const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); dtEditFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first; GX-FORM-EDIT: an edit too
         w.__gxSave = true; w.__gxRaw = f;
         window.bubble_fn_submit = w;
       } catch (e) {}
@@ -11694,6 +12555,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!Array.isArray(state._carrySelectionIds)) state._carrySelectionIds = getSelectedUniqueIds();
     state.rawRows = data.map((row, index) => normalizeRow(row, index));
     state.columns = sanitizeColumns(columns);
+    state._xlRawCols = Array.isArray(columns) ? columns : [];   // GX-EXCEL: a choice cell's options (source / options)
     // T1: arama + son-tarih sıralaması yeni veriye de uygulanır (eskiden ham satırlar basılıyordu)
     applySearch(els.search && els.search.value ? els.search.value.trim() : '');
     attachSearchListener();
@@ -11874,15 +12736,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       closeDueDatePanel();
       closeFieldConfigModal();
     }
-    if (v.dataNew) {
-      state.filterConfigs = {};
-      state._carrySelectionIds = [];
-      state._resetHotView = true;
-      if (els.search) els.search.value = '';
-      closeSearch(false);
-      closeColumnMenu();
-      closeFieldConfigModal(); // aşama değişimi (aynı düzen): eski satırların örnekleriyle taslak açık kalmasın
-    }
+    if (v.dataNew) dtResetDataView(!!verdict);   // aşama değişimi (aynı düzen): filtre / arama / seçim sıfır
     const saved = savedViewOf(config);
     if (saved && saved.key !== state._lastAppliedSavedKey && (v.layoutNew || !state._layoutTouched)) {
       if (saved.columnOrder) state.columnOrder = saved.columnOrder;
@@ -12155,6 +13009,113 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     state._reveal = null;
     try { if (els.container) els.container.querySelectorAll('.dt-row--reveal').forEach(el => dtRevealMark(el, false)); } catch (e) {}
     if (render && state.hot && !state.hot.isDestroyed) { try { state.hot.render(); } catch (e) {} }
+  }
+  // GX-FORM-OPEN (20.11, Saltuk: "tabloda bir dosyayı açtığımda formda hangi dosyanın açık olduğu konusunda kafam
+  // karışıyor"): opening a record only selected its row, and the next click on any cell moved the selection while the
+  // form kept the old record. Now the row of the record open in the form keeps its own mark (dt-row--inform) whatever is
+  // selected, until the form closes or shows another record. Truth = the form: #bdf-root visible + the record id Bubble
+  // gives it (BUBBLE_INPUTS.BUBBLE_DATA_JSON.uniquieid, the id the form saves with). The open click is trusted for a
+  // few seconds until the form catches up. The form shows the same name as its title (window.__gxFormOpen).
+  // Off: window.__gxNoFormOpen = true.
+  const DT_FORM_OPEN_POLL_MS = 400, DT_FORM_OPEN_REQ_MS = 8000, DT_FORM_OPEN_PULSE_MS = 900;
+  function dtFormVisible() {
+    const root = document.getElementById('bdf-root');
+    if (!root || !root.getClientRects().length) return false;   // closed: display none up the chain
+    const r = root.getBoundingClientRect();
+    return r.width > 40 && r.height > 40;
+  }
+  let _dtFormIdSrc = null, _dtFormIdVal = '';
+  function dtFormRecordId() {
+    const src = (window.BUBBLE_INPUTS || {}).BUBBLE_DATA_JSON;
+    if (src === _dtFormIdSrc) return _dtFormIdVal;   // polled: parse only when Bubble gives the form new data
+    _dtFormIdSrc = src;
+    let o = src;
+    if (typeof o === 'string') { try { o = JSON.parse(o); } catch (e) { o = null; } }
+    const id = (o && typeof o === 'object') ? (o.uniquieid || o.unique_id || o.uniqueid || o._id || '') : '';
+    _dtFormIdVal = id ? String(id) : '';
+    return _dtFormIdVal;
+  }
+  function dtFormOpenTitle(raw) {   // what the person reads on the row: the first visible column's text
+    try {
+      const cols = getOrderedColumns();
+      for (const c of cols) {
+        if (!c || c.__uiOnly) continue;
+        let v = raw[c.id];
+        if (Array.isArray(v)) v = v.join(', ');
+        v = String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (v && !/^https?:\/\//i.test(v)) return v.slice(0, 160);
+      }
+    } catch (e) {}
+    return '';
+  }
+  function dtFormOpenRaw(id) {
+    if (!id) return null;
+    for (const raw of state.rawRows) if (rowIdOf(raw) === id) return raw;
+    return null;
+  }
+  function dtFormOpenSet(id, pulse) {
+    const prev = state._formOpen || {};
+    if (prev.id === id) return;
+    const raw = dtFormOpenRaw(id);
+    state._formOpen = { id, pulseUntil: pulse ? Date.now() + DT_FORM_OPEN_PULSE_MS : 0 };
+    try {
+      window.__gxFormOpen = id ? { id, title: raw ? dtFormOpenTitle(raw) : '', at: Date.now() } : null;
+      window.dispatchEvent(new CustomEvent('gx:form-open', { detail: window.__gxFormOpen }));
+    } catch (e) {}
+    if (state.hot && !state.hot.isDestroyed) {
+      try { state.hot.render(); } catch (e) {}
+      if (pulse) setTimeout(() => { try { if (state.hot && !state.hot.isDestroyed) state.hot.render(); } catch (e) {} }, DT_FORM_OPEN_PULSE_MS + 50);
+    }
+  }
+  function dtFormOpenMark(el, on, pulse) {
+    if (!el || !el.classList) return;
+    el.classList.toggle('dt-row--inform', !!on);
+    el.classList.toggle('dt-row--inform-in', !!(on && pulse));
+    if (el.tagName === 'TH') { if (on) el.setAttribute('title', 'Open in the form'); else if (el.getAttribute('title') === 'Open in the form') el.removeAttribute('title'); }
+  }
+  function dtFormOpenHooks() {   // once per HOT instance (a remount makes a new one)
+    const hot = state.hot;
+    if (!hot || hot.isDestroyed || state._formOpenHot === hot) return;
+    state._formOpenHot = hot;
+    const on = vr => {
+      const f = state._formOpen;
+      if (!f || !f.id || vr === null || vr === undefined || vr < 0) return false;
+      const sid = dtRevealSidOfVisual(vr);
+      return sid >= 0 && rowIdOf(state.rawRows[sid]) === f.id;
+    };
+    const pulse = () => !!(state._formOpen && Date.now() < state._formOpen.pulseUntil);
+    hot.addHook('afterRenderer', (td, vr) => { const o = on(vr); dtFormOpenMark(td, o, o && pulse()); });
+    hot.addHook('afterGetRowHeader', (vr, th) => { const o = vr >= 0 && on(vr); dtFormOpenMark(th, o, o && pulse()); });
+  }
+  function dtFormOpenTick() {
+    if (window.__gxNoFormOpen) { if (state._formOpen && state._formOpen.id) dtFormOpenSet('', false); return; }
+    dtFormOpenHooks();
+    const req = state._formOpenReq;
+    const shown = dtFormVisible();
+    const formId = shown ? dtFormRecordId() : '';
+    let id = shown ? formId : '';
+    if (req) {
+      if (formId && formId === req.id) state._formOpenReq = null;           // the form caught up
+      else if (Date.now() - req.at < DT_FORM_OPEN_REQ_MS) id = req.id;      // just opened: the form is on its way
+      else state._formOpenReq = null;
+    }
+    dtFormOpenSet(id, false);
+  }
+  function dtFormOpenRequest(raw) {   // the open click: mark at once and pulse
+    const id = rowIdOf(raw);
+    if (!id || window.__gxNoFormOpen) return;
+    state._formOpenReq = { id, at: Date.now() };
+    dtFormOpenHooks();
+    dtFormOpenSet(id, true);
+    dtFormOpenStart();
+  }
+  function dtFormOpenStart() {   // after each mount: the form may already be open (page reload with ?start=true)
+    if (state._formOpenIv) return;
+    const box = els.container;
+    state._formOpenIv = setInterval(() => {
+      if (document.getElementById('hot-container') !== box) { clearInterval(state._formOpenIv); state._formOpenIv = null; return; }   // stale element
+      try { dtFormOpenTick(); } catch (e) {}
+    }, DT_FORM_OPEN_POLL_MS);
   }
   function dtRevealIntoWindow(el) {   // GX-REVEAL (07.10): page-scroll step; never scrollIntoView on a grid cell
     // a scrolling box around the table (a page group with its own scroll bar) first, instantly, then the window
@@ -14686,6 +15647,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
 
   function applyAllColumnFilters() {
     dtPeopleSoon();   // GX-PEOPLE (07.10): the bar's pressed state follows the column filters
+    dtFilterChipSync();   // GX-FILTRE-SUREC: the toolbar says a filter is on
     if (!state.hot || typeof state.hot.getPlugin !== 'function') return;
     const filterPlugin = state.hot.getPlugin('filters');
     if (!filterPlugin) return;
@@ -14767,6 +15729,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
       syncHotSelectionFromState();
       saveViewCarry();
+      if (!state._mounting) dtSearchHintSync();   // GX-ARAMA-FILTRE: the count of rows the filter hides changed
     } catch (err) {
       console.warn('Filter apply failed', err);
       if (typeof showWakeToast === 'function') showWakeToast('Filter could not be applied', 'error');
