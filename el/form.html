@@ -3005,6 +3005,11 @@
       </div>
 
       <section class="card">
+        <!-- GX-FORM-OPEN (20.11): which record is open, always at the top (name = what the table row shows) -->
+        <div id="bdf-rec-head" class="bdf-rec-head" hidden>
+          <span class="bdf-rec-kicker">Record</span>
+          <span class="bdf-rec-name" id="bdf-rec-name" translate="no"></span>
+        </div>
         <div id="formContainer">
           <div id="formRefreshLoading" class="form-refresh-loading" aria-live="polite" aria-hidden="true">
             <span class="edit-mode-spinner" aria-hidden="true"></span>
@@ -21560,6 +21565,85 @@
       box-shadow: var(--gx-ring, 0 0 0 3px rgba(99, 102, 241, .12)) !important;
     }
   </style>
+
+  <!-- GX-FORM-OPEN (20.11, Saltuk: "tabloda bir dosyayı açtığımda formda hangi dosyanın açık olduğu konusunda kafam karışıyor"):
+       the form says which record it shows, at the top. Name: the table's own row text when the table opened this record
+       (window.__gxFormOpen, same id), else the form's first filled text field. New record (no id): "New record".
+       A short pulse when the record changes; reduced motion: none. Off: window.__gxNoFormOpen = true. -->
+  <style>
+    #bdf-root .bdf-rec-head { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; padding: 10px 14px;
+      border-radius: 10px; background: #eef2ff; box-shadow: inset 4px 0 0 var(--gx-primary, #6366f1); min-width: 0; }
+    #bdf-root .bdf-rec-head[hidden] { display: none; }
+    #bdf-root .bdf-rec-kicker { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+      color: var(--gx-primary-deep, #4f46e5); }
+    #bdf-root .bdf-rec-name { font-size: 15px; font-weight: 700; line-height: 1.35; color: var(--gx-ink, #0f172a);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    #bdf-root .bdf-rec-head.is-new .bdf-rec-name { color: var(--gx-ink-2, #475569); }
+    @keyframes bdf-rec-in { 0% { background: #c7d2fe; } 100% { background: #eef2ff; } }
+    #bdf-root .bdf-rec-head.is-in { animation: bdf-rec-in .9s ease-out both; }
+    @media (prefers-reduced-motion: reduce) { #bdf-root .bdf-rec-head.is-in { animation: none; } }
+  </style>
+  <script>
+  (function () {
+    var W = window, D = document;
+    if (W.__bdfRecHead) return;
+    W.__bdfRecHead = 1;
+    var lastKey = null, lastSrc = null, lastId = '';
+    function recordId() {
+      var src = (W.BUBBLE_INPUTS || {}).BUBBLE_DATA_JSON;
+      if (src === lastSrc) return lastId;
+      lastSrc = src;
+      var o = src;
+      if (typeof o === 'string') { try { o = JSON.parse(o); } catch (e) { o = null; } }
+      var id = (o && typeof o === 'object') ? (o.uniquieid || o.unique_id || o.uniqueid || o._id || '') : '';
+      lastId = id ? String(id) : '';
+      return lastId;
+    }
+    function clean(v) {
+      if (Array.isArray(v)) v = v.join(', ');
+      return String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    function fieldName() {   // the first filled text-like field, in the form's own order
+      var s = null;
+      try { s = typeof W.bdfGetCurrentState === 'function' ? W.bdfGetCurrentState() : null; } catch (e) { s = null; }
+      var f = s && Array.isArray(s.fields) ? s.fields : [];
+      for (var i = 0; i < f.length; i++) {
+        var x = f[i] || {};
+        if (!/^(text|email|phone|number|select|option|textarea|longtext|url)?$/i.test(String(x.type || ''))) continue;
+        var v = clean(x.value);
+        if (v && !/^https?:\/\//i.test(v)) return v.slice(0, 160);
+      }
+      return '';
+    }
+    function paint() {
+      var head = D.getElementById('bdf-rec-head'), nameEl = D.getElementById('bdf-rec-name');
+      if (!head || !nameEl) return;
+      if (W.__gxNoFormOpen) { head.hidden = true; return; }
+      var id = recordId();
+      var g = W.__gxFormOpen;
+      var name = (id && g && g.id === id && g.title) ? g.title : (id ? fieldName() : '');
+      var isNew = !id;
+      if (isNew) name = 'New record';
+      var key = id + '|' + name;
+      if (key === lastKey) return;
+      var changedRecord = !lastKey || lastKey.split('|')[0] !== id;
+      lastKey = key;
+      if (!name) { head.hidden = true; return; }
+      nameEl.textContent = name;
+      nameEl.title = name;
+      head.classList.toggle('is-new', isNew);
+      head.hidden = false;
+      if (changedRecord) {
+        head.classList.remove('is-in');
+        void head.offsetWidth;   // restart the pulse
+        head.classList.add('is-in');
+      }
+    }
+    W.addEventListener('gx:form-open', function () { try { paint(); } catch (e) { /* ignore */ } });
+    setInterval(function () { try { paint(); } catch (e) { /* ignore */ } }, 500);
+    try { paint(); } catch (e) { /* ignore */ }
+  })();
+  </script>
 
 </body>
 
