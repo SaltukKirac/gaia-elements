@@ -640,6 +640,7 @@
 }
 
 /* SUREC-TASI (20.11): Process button + menu (change a record's process from the table) */
+#dynamic-table-wrapper #dt-btn-stage.is-idle { color: var(--gx-ink-2, #475569); }
 #dynamic-table-wrapper .dt-stage-pop {
   position: fixed; z-index: 2600; box-sizing: border-box; overflow: auto;
   background: #fff; border: 1px solid var(--gx-line-soft, #eef2f7); border-radius: var(--gx-r-lg, 16px);
@@ -13404,12 +13405,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtStageBtnSync() {
     const b = document.getElementById('dt-btn-stage');
     if (!b) return;
+    // always there while the table has records (20.11 Saltuk: "canlıda göremiyorum" — it only appeared with a selection)
+    const hasRows = Array.isArray(state.rawRows) && state.rawRows.length > 0;
     const n = dtStageOn() ? dtStageIds().length : 0;
-    b.classList.toggle('dt-hidden', !n || !!_dtStage.run);
+    b.classList.toggle('dt-hidden', !dtStageOn() || !hasRows || !!_dtStage.run);
+    b.classList.toggle('is-idle', !n);
     const lab = b.querySelector('.dt-btn-label');
     if (lab) lab.textContent = dtStageT('Process', 'Süreç');
     b.setAttribute('aria-label', dtStageT('Change the process of the selected records', 'Seçili kayıtların sürecini değiştir'));
-    b.setAttribute('data-tip', dtStageT('Change process', 'Süreci değiştir'));
+    b.setAttribute('data-tip', n ? dtStageT('Change process', 'Süreci değiştir') : dtStageT('Select records, then change their process', 'Kayıtları seçin, sonra sürecini değiştirin'));
   }
   function dtStageEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function dtStageClose() {
@@ -13456,7 +13460,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!dtStageOn()) return;
     if (_dtStage.run) { showWakeToast(dtStageT('A process change is already running.', 'Bir süreç değişikliği zaten sürüyor.'), 'info'); return; }
     const ids = dtStageIds();
-    if (!ids.length) { showWakeToast(dtStageT('Select the records to move first.', 'Önce taşınacak kayıtları seçin.'), 'info'); return; }
+    if (!ids.length) { showWakeToast(dtStageT('Select one or more records (tick the row) first, then press Process.', 'Önce bir ya da daha çok kayıt seçin (satırı işaretleyin), sonra Süreç düğmesine basın.'), 'info'); return; }
     if (ids.length > DT_STAGE.maxIds) { showWakeToast(dtStageT('Select at most ' + DT_STAGE.maxIds + ' records at a time.', 'Bir seferde en çok ' + DT_STAGE.maxIds + ' kayıt seçin.'), 'error'); return; }
     if (_dtStage.pop) { dtStageClose(); return; }
     const p = document.createElement('div');
