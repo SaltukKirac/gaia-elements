@@ -8171,6 +8171,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function normalizeRow(row, index) {
     if (row && typeof row === 'object' && !Array.isArray(row)) {
       const out = Object.assign({ __sourceIndex: index }, row);
+      try { dtLocalEditApply(out); } catch (e) {}   // GX-FORM-EDIT-YEREL
       dtPaketIngest(out);   // GX-FILL: a claim package never reaches a cell
       return out;
     }
@@ -10674,6 +10675,65 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
      the other viewers get it too. Only what the form really sent (its changed / emptied field lists); files are left to the mirror.
      Off: window.__gxNoFormEdit = true. */
   const DT_FORM_EDIT_TTL_MS = 120000;
+  /* GX-FORM-EDIT-YEREL (20.11, Saltuk: "kaydetmiyor, bir şey değiştirip direk X'e basıyorum"): ayna olmayan (Bubble'ın kendi
+     verisiyle dolan) tabloda formdan düzenlenen değer satıra ancak Bubble'ın yenilemesiyle (~17 sn) geliyordu; kayıt yazılmış
+     olsa da kullanıcı "kaydetmedi" sanıyordu. Artık formun gönderdiği değişiklik satıra hemen yazılır ve 2 dk boyunca Bubble'ın
+     eski veriyle gelen yenilemesine karşı tutulur (yeni değer Bubble'dan gelince örtü kalkar). Dosya hücreleri Bubble'a bırakılır.
+     Kapatma: window.__gxNoFormEdit = true (GX-FORM-EDIT ile birlikte). */
+  const _dtLocalEdit = new Map();   // record id → { exp, fields: { rawKey: value } }
+  function dtLocalEditApply(out) {   // normalizeRow: Bubble's (maybe stale) row + the form's not-yet-arrived edit
+    if (!_dtLocalEdit.size) return;
+    const id = rowIdOf(out); if (!id) return;
+    const e = _dtLocalEdit.get(id); if (!e) return;
+    if (dtNow() > e.exp) { _dtLocalEdit.delete(id); return; }
+    Object.keys(e.fields).forEach(k => {
+      const v = e.fields[k], cur = out[k];
+      const same = (v === '' && (cur === undefined || cur === null || cur === '')) || JSON.stringify(cur) === JSON.stringify(v)
+        || (cur != null && typeof cur !== 'object' && String(cur) === String(v));
+      if (same) { delete e.fields[k]; return; }   // Bubble has it now
+      out[k] = v;
+    });
+    if (!Object.keys(e.fields).length) _dtLocalEdit.delete(id);
+  }
+  function dtEditLocal(id, obj, cleared) {
+    if (!Array.isArray(state.rawRows) || !Array.isArray(state.columns)) return 0;
+    const raw = state.rawRows.find(r => rowIdOf(r) === id);
+    if (!raw) return 0;
+    const colOf = k => {
+      const nk = dtNormKey(k);
+      return state.columns.find(c => c && !c.__uiOnly && (dtNormKey(c.id || '') === nk || (Array.isArray(c.sourceKeys) && c.sourceKeys.some(s => dtNormKey(String(s)) === nk))));
+    };
+    const keyIn = c => { const ks = [c.id].concat(Array.isArray(c.sourceKeys) ? c.sourceKeys : []).filter(Boolean); return ks.find(x => x in raw) || ks[0]; };
+    const fields = {};
+    let n = 0;
+    cleared.forEach(k => {
+      if (k in obj) return;
+      const c = colOf(k); if (!c) return;
+      const rk = keyIn(c), cur = raw[rk];
+      if (cur == null || cur === '' || typeof cur === 'object') return;
+      fields[rk] = ''; n++;
+    });
+    Object.keys(obj).forEach(k => {
+      if (k.charAt(0) === '_') return;
+      const c = colOf(k); if (!c) return;
+      let v = obj[k];
+      if (v === null || v === undefined || v === '') return;
+      if (Array.isArray(v)) { if (!v.length || !v.every(x => typeof x === 'string' || typeof x === 'number')) return; v = v.map(String); }
+      else if (typeof v === 'object') return;
+      else if (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean') return;
+      if (dtUploadIds(v).size) return;   // a file address: Bubble's row brings the file cell
+      const rk = keyIn(c), cur = raw[rk];
+      if (JSON.stringify(cur) === JSON.stringify(v) || (cur != null && typeof cur !== 'object' && String(cur) === String(v))) return;
+      fields[rk] = v; n++;
+    });
+    if (!n) return 0;
+    const prev = _dtLocalEdit.get(id);
+    _dtLocalEdit.set(id, { exp: dtNow() + DT_FORM_EDIT_TTL_MS, fields: Object.assign({}, prev && prev.fields, fields) });
+    Object.keys(fields).forEach(k => { raw[k] = fields[k]; });
+    try { applySearch(els.search && els.search.value ? els.search.value.trim() : ''); } catch (e) { if (state.hot) state.hot.render(); }
+    log('[GX-FORM-EDIT-YEREL] ' + n + ' field(s) of the edited record shown before Bubble refreshes the table');
+    return n;
+  }
   function dtEditFromSubmit(payload) {
     try {
       if (window.__gxNoFormEdit || window.__gxNoDirect || !payload || typeof payload !== 'object') return 0;
@@ -10691,7 +10751,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         obj = payload.output_full_obj;
         if ((!obj || typeof obj !== 'object') && typeof payload.output_full_json === 'string') { try { obj = JSON.parse(payload.output_full_json); } catch (e) { obj = null; } }
       }
-      if (!obj || typeof obj !== 'object' || Array.isArray(obj) || !AYNA.cfg || !aynaAlive() || !Array.isArray(AYNA.painted)) return 0;
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return 0;
+      if (!AYNA.cfg || !aynaAlive() || !Array.isArray(AYNA.painted)) return dtEditLocal(id, obj, cleared);   // GX-FORM-EDIT-YEREL
       const row = AYNA.painted.find(r => r && String(r._id || '') === id);
       if (!row) return 0;   // not on this page of the table: the mirror brings it
       const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
