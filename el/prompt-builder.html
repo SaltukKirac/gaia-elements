@@ -929,7 +929,7 @@
                         <span class="tpp-name">File Search</span>
                     </div>
                     <div style="padding:10px 6px 4px;border-top:1px solid #f3f4f6;margin-top:6px;text-align:center;font-size:10px;color:#6366f1;">
-                        Entegrasyon eklemek için AI Architect panelini açın
+                        Open the AI Architect panel to add integrations
                     </div>
                 </div>
             </div>
@@ -973,7 +973,7 @@
         <!-- Auth warning banner — visible when unconnected apps detected -->
         <div id="pb-auth-warn">
             <span id="pb-auth-warn-text"></span>
-            <button id="pb-auth-warn-connect" onclick="window._pbTriggerAuth()">Bağla</button>
+            <button id="pb-auth-warn-connect" onclick="window._pbTriggerAuth()">Connect</button>
         </div>
 
         <div class="top-actions">
@@ -1003,7 +1003,7 @@
                 <div class="palette-fs-tabs" id="ptabBar">
                   <button class="palette-fs-tab ptab ptab-active" data-ptab="apps">🔧 Uygulamalar</button>
                   <button class="palette-fs-tab ptab"             data-ptab="fields">📋 Alanlar</button>
-                  <button class="palette-fs-tab ptab"             data-ptab="actions">🔀 Yönlendiriciler</button>
+                  <button class="palette-fs-tab ptab"             data-ptab="actions">🔀 Routing</button>
                 </div>
                 <!-- Body -->
                 <div class="palette-fs-body">
@@ -1017,8 +1017,8 @@
                       <div id="paletteToolsHint"></div>
                       <!-- Force Tools toggle — araçlar sekmesinin altında -->
                       <div id="ptab-force-tools-footer" style="margin-top:auto;padding:7px 10px 5px;border-top:1px solid #f0f4f8;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-                        <span style="font-size:11px;font-weight:600;color:#475569;">🔒 Araçları zorla kullandır</span>
-                        <button id="toggleForceTools" class="floating-toggle" type="button" onclick="toggleOption('force_tools')" title="AI agent'ı seçili araçları kesinlikle çalıştırmaya zorlar." style="margin:0;">
+                        <span style="font-size:11px;font-weight:600;color:#475569;">🔒 Require tool use</span>
+                        <button id="toggleForceTools" class="floating-toggle" type="button" onclick="toggleOption('force_tools')" title="Forces the AI agent to run the selected tools." style="margin:0;">
                           <span class="ft-track"><span class="ft-thumb"></span></span>
                         </button>
                       </div>
@@ -1476,7 +1476,7 @@
             chip.className = 'tool-chip native';
             const icon = NATIVE_TOOL_ICONS[toolId] || '⚙️';
             const label = toolId.replace(/_/g, ' ');
-            chip.innerHTML = `<span class="tool-chip-name">${icon} ${label}</span><span class="tool-chip-remove" title="Kaldır">×</span>`;
+            chip.innerHTML = `<span class="tool-chip-name">${icon} ${label}</span><span class="tool-chip-remove" title="Remove">×</span>`;
             chip.querySelector('.tool-chip-remove').onclick = () => {
                 state.enabledTools.delete(toolId);
                 applyToolCards();
@@ -1493,7 +1493,7 @@
             const appSlug = (toolObj.app || '').toLowerCase();
             const appPrefix = appSlug ? `${appSlug}/` : '';
             if (appSlug) chip.dataset.app = appSlug;
-            chip.innerHTML = `<span class="tool-chip-name" title="${appPrefix}${toolObj.tool || key}">🔧 ${label}</span><span class="tool-chip-remove" title="Kaldır">×</span>`;
+            chip.innerHTML = `<span class="tool-chip-name" title="${appPrefix}${toolObj.tool || key}">🔧 ${label}</span><span class="tool-chip-remove" title="Remove">×</span>`;
             chip.querySelector('.tool-chip-remove').onclick = () => {
                 state.mcpTools.delete(key);
                 applyToolCards();
@@ -1560,7 +1560,7 @@
                     warn = document.createElement('span');
                     warn.className = 'tool-chip-warn';
                     warn.textContent = '⚠';
-                    warn.title = 'Bu uygulama bağlı değil — Kaydet\'e basınca bağlantı istenir';
+                    warn.title = 'This app is not connected. You are asked to connect it when you press Save.';
                     chip.insertBefore(warn, chip.querySelector('.tool-chip-name'));
                 } else if (ok && warn) {
                     warn.remove();
@@ -1574,7 +1574,7 @@
                     .map(s => s.charAt(0).toUpperCase() + s.slice(1))
                     .join(', ');
                 const textEl = document.getElementById('pb-auth-warn-text');
-                if (textEl) textEl.textContent = `⚠ Bağlantı gerekli: ${appNames}`;
+                if (textEl) textEl.textContent = `⚠ Connection needed: ${appNames}`;
                 warnBanner.classList.add('visible');
             } else {
                 warnBanner.classList.remove('visible');
@@ -1603,8 +1603,8 @@
         if (btn) {
             btn.classList.toggle('has-active', totalCount > 0);
             btn.title = totalCount > 0
-                ? `${nativeCount} native, ${mcpCount} MCP tool seçili`
-                : 'Tools seç';
+                ? `${nativeCount} native, ${mcpCount} MCP tools selected`
+                : 'Choose tools';
         }
         // Update native tool checkboxes in fallback panel
         Object.keys(NATIVE_TOOLS).forEach(toolType => {
@@ -2223,7 +2223,7 @@
                     spin.style.cssText = 'grid-column:span 4;display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 0;';
                     spin.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border:2px solid #e2e8f0;'
                         + 'border-top-color:#6366f1;border-radius:50%;animation:spin 0.7s linear infinite;"></span>'
-                        + '<span style="font-size:10px;color:#94a3b8;">Uygulamalar yükleniyor...</span>';
+                        + '<span style="font-size:10px;color:#94a3b8;">Loading apps...</span>';
                     paletteAppGrid.appendChild(spin);
                     return; // tools hint'i gösterme
                 }
@@ -2275,7 +2275,7 @@
                 if (hintEl) hintEl.textContent = '';
 
                 if (!_pAppKey) {
-                    if (hintEl) hintEl.textContent = 'Araç eklemek için bir uygulama seçin ↑';
+                    if (hintEl) hintEl.textContent = 'Pick an app to add its tools ↑';
                 } else {
                     // Native tool seçildiyse tek item
                     const NATIVE_MAP = {
@@ -2403,7 +2403,7 @@
                 // Fallback: Architect henüz yüklenmediyse basit mesaj
                 const msg = document.createElement('div');
                 msg.style.cssText = 'font-size:11px;color:#94a3b8;text-align:center;padding:32px 8px;';
-                msg.textContent = 'Yönlendirici paneli yüklenemedi.';
+                msg.textContent = 'The routing panel could not load.';
                 paletteActions.appendChild(msg);
             }
         }
