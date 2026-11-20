@@ -10695,10 +10695,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     });
     if (!Object.keys(e.fields).length) _dtLocalEdit.delete(id);
   }
+  function dtFormEditColKey(nk, row) {   // a normalized form key → the key this row holds for that column ('' = none)
+    if (!Array.isArray(state.columns)) return '';
+    const c = state.columns.find(c => c && !c.__uiOnly && (dtNormKey(c.id || '') === nk || dtNormKey(c.header || '') === nk
+      || (Array.isArray(c.sourceKeys) && c.sourceKeys.some(x => dtNormKey(String(x)) === nk))));
+    if (!c) return '';
+    const ks = [c.id].concat(Array.isArray(c.sourceKeys) ? c.sourceKeys : []).filter(Boolean);
+    return (row && ks.find(x => x in row)) || ks[0] || '';
+  }
   function dtEditLocal(id, obj, cleared) {
     if (!Array.isArray(state.rawRows) || !Array.isArray(state.columns)) return 0;
     const raw = state.rawRows.find(r => rowIdOf(r) === id);
-    if (!raw) return 0;
+    if (!raw) { log('[GX-FORM-EDIT-YEREL] record not in the table'); return 0; }
     const colOf = k => {
       const nk = dtNormKey(k);
       return state.columns.find(c => c && !c.__uiOnly && (dtNormKey(c.id || '') === nk || (Array.isArray(c.sourceKeys) && c.sourceKeys.some(s => dtNormKey(String(s)) === nk))));
@@ -10726,7 +10734,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (JSON.stringify(cur) === JSON.stringify(v) || (cur != null && typeof cur !== 'object' && String(cur) === String(v))) return;
       fields[rk] = v; n++;
     });
-    if (!n) return 0;
+    if (!n) { log('[GX-FORM-EDIT-YEREL] nothing to show', Object.keys(obj), cleared); return 0; }
     const prev = _dtLocalEdit.get(id);
     _dtLocalEdit.set(id, { exp: dtNow() + DT_FORM_EDIT_TTL_MS, fields: Object.assign({}, prev && prev.fields, fields) });
     Object.keys(fields).forEach(k => { raw[k] = fields[k]; });
@@ -10754,9 +10762,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return 0;
       if (!AYNA.cfg || !aynaAlive() || !Array.isArray(AYNA.painted)) return dtEditLocal(id, obj, cleared);   // GX-FORM-EDIT-YEREL
       const row = AYNA.painted.find(r => r && String(r._id || '') === id);
-      if (!row) return 0;   // not on this page of the table: the mirror brings it
+      if (!row) { log('[GX-FORM-EDIT] record not on this page'); return 0; }   // not on this page of the table: the mirror brings it
       const cols = AYNA.fields.length ? AYNA.fields : aynaFieldsOf(AYNA.cfg.columns);
-      const want = new Map(cols.map(c => [dtNormKey(c), c]));
+      const want0 = new Map(cols.map(c => [dtNormKey(c), c]));
+      // GX-FORM-EDIT-YEREL (20.11): the form names a field the way the column does (header / sourceKeys); the mirror's field
+      // list may not hold that name (19.11 tested only with names that matched). Fall back to the table's own column → the key
+      // the painted row holds.
+      const want = { get: k => want0.get(k) || dtFormEditColKey(k, row) };
       const fields = {};
       let n = 0;
       cleared.forEach(k => { const col = want.get(dtNormKey(k)); if (col && !(k in obj) && row[col] != null && row[col] !== '' && typeof row[col] !== 'object') { fields[col] = ''; n++; } });
@@ -10773,7 +10785,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if (JSON.stringify(cur) === JSON.stringify(v) || (cur != null && typeof cur !== 'object' && String(cur) === String(v))) return;
         fields[col] = v; n++;
       });
-      if (!n) return 0;
+      if (!n) { log('[GX-FORM-EDIT] nothing to show', Object.keys(obj), cleared, cols.slice(0, 6), Object.keys(row).slice(0, 10)); return 0; }
       const now = dtNow(), prev = _dtDirect.get(id);
       _dtDirect.set(id, { mod: now, exp: now + DT_FORM_EDIT_TTL_MS, fields: Object.assign({}, prev && prev.fields, fields) });
       aynaLivePaint(AYNA.painted, AYNA.cfg.columns);
