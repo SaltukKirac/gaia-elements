@@ -8139,7 +8139,8 @@
       function updateActionBarUi() {
         const hasOptions = Array.isArray(actionOptions) && actionOptions.length > 0;
         syncDefaultActionLabelFromData();
-        const safeSelectedName = String(selectedActionName || getDefaultActionLabel()).trim() || getDefaultActionLabel();
+        let safeSelectedName = String(selectedActionName || getDefaultActionLabel()).trim() || getDefaultActionLabel();
+        if (!selectedActionId && safeSelectedName === DEFAULT_ACTION_PLACEHOLDER_LABEL) { const sl = bdf_stageLabel(); if (sl) safeSelectedName = sl; }   // SUREC-TASI
         const uploadWaitLabel = bdf_uploadWaitLabel(); // UPLOAD-WAIT: aksiyon yüklemenin bitmesini bekliyor
         const actionBusy = Boolean(isWaitingForServerRefresh) || Boolean(uploadWaitLabel);
         if (actionTriggerBtn) {
@@ -8153,8 +8154,9 @@
         const _isCreateMode = !hasExistingBubbleData();
         if (actionSplit) actionSplit.classList.toggle("is-create", _isCreateMode);
         if (actionChevronBtn) {
-          actionChevronBtn.disabled = actionBusy || !hasOptions;
-          actionChevronBtn.style.display = hasOptions ? "inline-flex" : "none";
+          const stageItems = bdf_stageHasItems();   // SUREC-TASI
+          actionChevronBtn.disabled = actionBusy || (!hasOptions && !stageItems);
+          actionChevronBtn.style.display = (hasOptions || stageItems) ? "inline-flex" : "none";
         }
         if (actionEmptyMsg) {
           actionEmptyMsg.style.display = "none";
@@ -8272,6 +8274,7 @@
             actionMenu.appendChild(noActionItem);
           }
 
+          try { bdf_stageDecorate(); } catch (_) { }   // SUREC-TASI
           updateActionBarUi();
           return;
         }
@@ -8308,8 +8311,207 @@
           actionMenu.appendChild(noActionItem);
         }
 
+        try { bdf_stageDecorate(); } catch (_) { }   // SUREC-TASI
         updateActionBarUi();
       }
+
+      // ═══ SUREC-TASI (20.11.2026, Saltuk: "dosyanın sürecinde değişiklik yapmak için kullanıcı deneyimi çok zor") ═══
+      // An open record's action bar now says which process the record is in ("Process: X"), the menu button reads "Change process",
+      // each button shows where it takes the record ("→ X"), and the processes no button reaches are listed under "Move without
+      // automations" (two clicks: the second confirms; the server's plain move mirror_stage_move). Data: bridge mirror_stage_menu
+      // {ids:[record]}. The table's Process menu runs a button through this form (window.__gxStageRun.cur {id, action, state}):
+      // once this form shows that record with that button, the button is pressed (state 'fired'); a record whose form has no
+      // such button → state 'no_button'. Off: window.__gxNoStage = true.
+      var bdfStage = { id: "", data: null, at: 0, loading: false, seq: 0, confirm: "", moving: false, note: "", noteKind: "", noteUntil: 0, runId: "", runSince: 0 };
+      var BDF_STAGE_TTL_MS = 60000;
+      function bdf_stageTr() { try { return !!(window.__gxTr && window.__gxTr.lang === "tr"); } catch (_) { return false; } }
+      function bdf_stageT(en, tr) { return bdf_stageTr() ? tr : en; }
+      function bdf_stageOff() { return !!window.__gxNoStage; }
+      function bdf_stageRecordId() {
+        var src = (window.BUBBLE_INPUTS || {}).BUBBLE_DATA_JSON;
+        var o = src;
+        if (typeof o === "string") { try { o = JSON.parse(o); } catch (_) { o = null; } }
+        var id = (o && typeof o === "object") ? (o.uniquieid || o.unique_id || o.uniqueid || o._id || "") : "";
+        id = String(id || "").trim();
+        return /^\d{10,16}x\d{6,22}$/.test(id) ? id : "";
+      }
+      function bdf_stageCall(op, payload, timeoutMs) {
+        var loc = window.location;
+        try { if ((!loc.origin || loc.origin === "null") && window.parent && window.parent !== window) loc = window.parent.location; } catch (_) { }
+        var url = loc.origin + (String(loc.pathname || "").indexOf("/version-test") > -1 ? "/version-test" : "") + "/api/1.1/wf/bridge";
+        var ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function () { try { ctrl.abort(); } catch (_) { } }, timeoutMs || 25000) : null;
+        var done = function (x) { if (timer) clearTimeout(timer); return x; };
+        if (typeof fetch !== "function") return Promise.resolve({ error: "fetch" });
+        return fetch(url, {
+          method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op: op, bridge_payload: JSON.stringify(payload || {}) }), signal: ctrl ? ctrl.signal : undefined
+        }).then(function (r) {
+          return r.text().then(function (text) {
+            var j = null, g, inner = null, st;
+            try { j = JSON.parse(text); } catch (_) { j = null; }
+            if (!r.ok || !j) return done({ error: "http" });
+            g = (j && j.response) ? j.response : j;
+            if (g && String(g.error_message || "").trim()) return done({ error: "server", message: String(g.error_message) });
+            if (g && typeof g.final_json === "string" && g.final_json.trim()) { try { inner = JSON.parse(g.final_json); } catch (_) { inner = null; } }
+            if (!inner && g && typeof g === "object") inner = g;
+            if (!inner || typeof inner !== "object") return done({ error: "shape" });
+            st = String(inner.status || "").toUpperCase();
+            if (st === "ERROR") return done({ error: "server", kod: inner.kod || "", message: inner.message || "" });
+            if (st && st !== "SUCCESS" && st !== "OK") return done({ error: "timeout" });
+            return done({ ok: true, data: (inner.data && typeof inner.data === "object") ? inner.data : inner });
+          });
+        }).catch(function () { return done({ error: "network" }); });
+      }
+      // the record's process data (once per record, refreshed after a minute)
+      function bdf_stageEnsure() {
+        if (bdf_stageOff() || !hasExistingBubbleData()) { if (bdfStage.data || bdfStage.id) { bdfStage.id = ""; bdfStage.data = null; bdfStage.confirm = ""; bdf_stageRepaint(); } return; }
+        var id = bdf_stageRecordId();
+        if (!id) return;
+        if (bdfStage.id === id && (bdfStage.loading || Date.now() - bdfStage.at < BDF_STAGE_TTL_MS)) return;
+        if (bdfStage.id !== id) { bdfStage.data = null; bdfStage.confirm = ""; }
+        bdfStage.id = id; bdfStage.loading = true;
+        var seq = ++bdfStage.seq;
+        bdf_stageCall("mirror_stage_menu", { ids: [id] }, 25000).then(function (r) {
+          if (seq !== bdfStage.seq) return;
+          bdfStage.loading = false; bdfStage.at = Date.now();
+          bdfStage.data = (r && r.ok && r.data && Array.isArray(r.data.stages) && r.data.current && r.data.current[id] !== undefined) ? r.data : null;
+          bdf_stageRepaint();
+        });
+      }
+      function bdf_stageRepaint() { try { renderActionOptions(); } catch (_) { } try { updateActionBarUi(); } catch (_) { } }
+      function bdf_stageInfo() {
+        if (!bdfStage) return null;   // updateActionBarUi can run before this block's var is set (CREATE-FOOTER note)
+        var d = bdfStage.data, id = bdfStage.id;
+        if (!d || !id || bdf_stageOff() || !hasExistingBubbleData() || bdf_stageRecordId() !== id) return null;
+        var cur = String((d.current || {})[id] || "");
+        var nameOf = function (sid) { for (var i = 0; i < d.stages.length; i++) if (d.stages[i].id === sid) return d.stages[i].name; return ""; };
+        var btnTo = {}, reach = {};
+        ((d.actions || {})[cur] || []).forEach(function (a) { btnTo[a.id] = { to: a.to, toName: nameOf(a.to) }; reach[a.to] = 1; });
+        // the form's own buttons may carry a target the server listed under no stage (template copy): name them by id when known
+        (Array.isArray(actionOptions) ? actionOptions : []).forEach(function (o) {
+          if (!o || btnTo[o.id]) return;
+          Object.keys(d.actions || {}).forEach(function (k) { (d.actions[k] || []).forEach(function (a) { if (a.id === o.id && !btnTo[o.id]) { btnTo[o.id] = { to: a.to, toName: nameOf(a.to) }; reach[a.to] = 1; } }); });
+        });
+        var plain = d.stages.filter(function (s) { return !s.create && s.id !== cur && !reach[s.id]; });
+        return { cur: cur, curName: nameOf(cur), btnTo: btnTo, plain: plain };
+      }
+      function bdf_stageHasItems() { var i = bdf_stageInfo(); return !!(i && i.plain.length); }
+      function bdf_stageLabel() { return bdf_stageInfo() ? bdf_stageT("Change process", "Süreci değiştir") : ""; }
+      // the menu: targets under each button + the plain-move section
+      function bdf_stageDecorate() {
+        if (!actionMenu) return;
+        var info = bdf_stageInfo();
+        Array.prototype.forEach.call(actionMenu.querySelectorAll(".bdf-stage-sec, .bdf-stage-plain"), function (el) { el.remove(); });
+        if (!info) return;
+        Array.prototype.forEach.call(actionMenu.querySelectorAll(".action-menu-item[data-action-id]"), function (el) {
+          var t = info.btnTo[el.dataset.actionId];
+          if (!t || !t.toName || el.querySelector(".bdf-stage-to")) return;
+          el.classList.add("bdf-stage-has-to");
+          var s = document.createElement("span");
+          s.className = "bdf-stage-to";
+          s.setAttribute("translate", "no"); s.setAttribute("data-gx-notr", "1");
+          s.textContent = "→ " + t.toName;
+          el.appendChild(s);
+        });
+        Array.prototype.forEach.call(actionMenu.querySelectorAll(".action-menu-item[disabled]"), function (el) {
+          if (/^(No actions available|Kullanılabilir eylem yok)$/.test(String(el.textContent || "").trim())) el.textContent = bdf_stageT("No buttons in this process", "Bu süreçte düğme yok");
+        });
+        if (!info.plain.length) return;
+        var head = document.createElement("div");
+        head.className = "bdf-stage-sec";
+        head.setAttribute("translate", "no"); head.setAttribute("data-gx-notr", "1");
+        head.innerHTML = "<b></b><span></span>";
+        head.querySelector("b").textContent = bdf_stageT("Move without automations", "Otomasyonsuz taşı");
+        head.querySelector("span").textContent = bdf_stageT("No button leads here; the process's automations will not run.", "Buraya giden düğme yok; sürecin otomasyonları çalışmaz.");
+        actionMenu.appendChild(head);
+        info.plain.forEach(function (s) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "action-menu-item bdf-stage-plain" + (bdfStage.confirm === s.id ? " is-confirm" : "");
+          b.setAttribute("role", "menuitem");
+          b.setAttribute("translate", "no"); b.setAttribute("data-gx-notr", "1");
+          b.dataset.stageId = s.id;
+          var n = document.createElement("span"); n.className = "bdf-stage-pname"; n.textContent = s.name; b.appendChild(n);
+          if (bdfStage.confirm === s.id) { var c = document.createElement("span"); c.className = "bdf-stage-to"; c.textContent = bdf_stageT("Click again to move", "Taşımak için yeniden tıklayın"); b.appendChild(c); }
+          b.disabled = bdfStage.moving;
+          b.addEventListener("click", function (ev) { ev.preventDefault(); ev.stopPropagation(); bdf_stagePlainClick(s); });
+          actionMenu.appendChild(b);
+        });
+      }
+      function bdf_stageNote(text, kind) { bdfStage.note = text; bdfStage.noteKind = kind || ""; bdfStage.noteUntil = Date.now() + 7000; bdf_stagePaintChip(); }
+      function bdf_stagePlainClick(s) {
+        if (bdfStage.moving) return;
+        var id = bdfStage.id;
+        if (bdfStage.confirm !== s.id) { bdfStage.confirm = s.id; bdf_stageDecorate(); try { var el = actionMenu.querySelector('.bdf-stage-plain[data-stage-id="' + s.id + '"]'); if (el) el.focus(); } catch (_) { } return; }
+        bdfStage.confirm = ""; bdfStage.moving = true;
+        closeActionMenu();
+        bdf_stageNote(bdf_stageT("Moving to \"" + s.name + "\"...", "\"" + s.name + "\" sürecine taşınıyor..."), "busy");
+        bdf_stageCall("mirror_stage_move", { ids: [id], stage: s.id, reason: "moved from the form" }, 30000).then(function (r) {
+          bdfStage.moving = false;
+          var ok = r && r.ok && r.data && ((r.data.moved || []).indexOf(id) > -1 || (r.data.unchanged || []).indexOf(id) > -1);
+          if (ok) {
+            if (bdfStage.data && bdfStage.data.current) bdfStage.data.current[id] = s.id;
+            bdf_stageNote(bdf_stageT("Moved to \"" + s.name + "\".", "\"" + s.name + "\" sürecine taşındı."), "ok");
+            try { window.dispatchEvent(new CustomEvent("gx:stage-moved", { detail: { ids: [id], stage: s.id } })); } catch (_) { }
+          } else {
+            bdf_stageNote((r && r.kod && r.message) ? r.message : bdf_stageT("Could not move the record. Try again.", "Kayıt taşınamadı. Yeniden deneyin."), "err");
+          }
+          bdf_stageRepaint();
+        });
+      }
+      // "Process: X" next to the menu button (or the last move's result for a few seconds)
+      function bdf_stagePaintChip() {
+        if (!bdfStage) return;
+        var bar = byId("actionBar");
+        var main = bar ? bar.querySelector(".action-main") : null;
+        if (!main) return;
+        var chip = byId("bdfStageChip");
+        var info = bdf_stageInfo();
+        var noteOn = bdfStage.note && Date.now() < bdfStage.noteUntil && hasExistingBubbleData();
+        if (!info && !noteOn) { if (chip) chip.hidden = true; return; }
+        if (!chip) {
+          chip = document.createElement("span");
+          chip.id = "bdfStageChip";
+          chip.className = "bdf-stage-chip";
+          chip.setAttribute("translate", "no"); chip.setAttribute("data-gx-notr", "1");
+          chip.setAttribute("role", "status"); chip.setAttribute("aria-live", "polite");
+          main.insertBefore(chip, main.firstChild);
+        }
+        var text, kind = "";
+        if (noteOn) { text = bdfStage.note; kind = bdfStage.noteKind; }
+        else text = bdf_stageT("Process: ", "Süreç: ") + (info.curName || bdf_stageT("none", "yok"));
+        if (chip.textContent !== text) chip.textContent = text;
+        chip.className = "bdf-stage-chip" + (kind ? " is-" + kind : "");
+        chip.hidden = false;
+      }
+      // the table's Process menu: press the chosen button once this form shows that record with it
+      function bdf_stageRunTick() {
+        var R = window.__gxStageRun, c = R && R.cur;
+        if (!c || c.state !== "open") { bdfStage.runId = ""; return; }
+        var id = bdf_stageRecordId();
+        if (id !== c.id) { bdfStage.runId = ""; return; }
+        if (bdfStage.runId !== id) { bdfStage.runId = id; bdfStage.runSince = Date.now(); }
+        if (!state.config || !Array.isArray(state.config.fields) || !state.config.fields.length) return;
+        if (isWaitingForServerRefresh || isFormSaving) return;
+        var opt = (Array.isArray(actionOptions) ? actionOptions : []).filter(function (o) { return o && o.id === c.action; })[0];
+        var age = Date.now() - bdfStage.runSince;
+        if (!opt) { if (age > 9000) c.state = "no_button"; return; }
+        if (age < 1200) return;   // the same record for a moment: its own buttons, not the previous record's
+        c.state = "fired"; c.firedAt = Date.now();
+        try { console.log("[BDF] SUREC-TASI table run: pressing", opt.name); } catch (_) { }
+        selectActionAndTrigger(opt);
+      }
+      (function () {
+        var gen = (window.__bdfStageGen = (Number(window.__bdfStageGen) || 0) + 1);
+        var t = setInterval(function () {
+          if (window.__bdfStageGen !== gen) { clearInterval(t); return; }   // Bubble re-ran the form script: the newest copy owns it
+          try { bdf_stageRunTick(); } catch (_) { }
+          try { bdf_stageEnsure(); } catch (_) { }
+          try { bdf_stagePaintChip(); } catch (_) { }
+        }, 400);
+      })();
+      // ═══ SUREC-TASI end ═══
 
       // CREATE-FOOTER: yeni kayıtta aksiyonlar menü yerine formun altında düğme olur.
       // Var olan kayıt, düzenleme ve test kipi eskisi gibi kalır.
@@ -19812,7 +20014,7 @@
       function bindPrimaryUiListeners() {
         bdf_bindDomListenerOnce(actionChevronBtn, "actionChevronClick", "click", (event) => {
           event.preventDefault();
-          if (!actionOptions.length) return;
+          if (!actionOptions.length && !bdf_stageHasItems()) return;   // SUREC-TASI: plain moves open the menu too
           const isOpen = actionMenu.classList.toggle("open");
           bdf_setActionMenuExpanded(isOpen);
           if (isOpen && event.detail === 0) {
@@ -21646,6 +21848,25 @@
       border-color: var(--gx-primary, #6366f1) !important;
       box-shadow: var(--gx-ring, 0 0 0 3px rgba(99, 102, 241, .12)) !important;
     }
+  </style>
+
+  <!-- SUREC-TASI (20.11): the record's process next to the action menu, targets under the buttons, plain moves -->
+  <style>
+    #bdf-root .bdf-stage-chip { display: inline-flex; align-items: center; max-width: 260px; min-height: 30px; padding: 0 10px; margin-right: 8px;
+      border-radius: 999px; background: #eef2ff; color: var(--gx-primary-deep, #4f46e5); font-size: 12px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+    #bdf-root .bdf-stage-chip[hidden] { display: none !important; }
+    #bdf-root .bdf-stage-chip.is-busy { background: #f1f5f9; color: var(--gx-ink-2, #475569); }
+    #bdf-root .bdf-stage-chip.is-ok { background: #f0fdf4; color: var(--gx-ok, #15803d); }
+    #bdf-root .bdf-stage-chip.is-err { background: #fef2f2; color: var(--gx-err, #dc2626); white-space: normal; }
+    #bdf-root .action-menu-item .bdf-stage-to { display: block; margin-top: 2px; font-size: 0.72rem; font-weight: 500; color: var(--gx-primary-deep, #4f46e5); }
+    #bdf-root .bdf-stage-sec { display: flex; flex-direction: column; gap: 2px; margin: 6px 0 2px; padding: 8px 10px 4px; border-top: 1px solid var(--gx-line-soft, #eef2f7); }
+    #bdf-root .bdf-stage-sec b { font-size: 0.75rem; font-weight: 600; color: var(--gx-ink, #0f172a); }
+    #bdf-root .bdf-stage-sec span { font-size: 0.7rem; color: var(--gx-ink-2, #475569); line-height: 1.35; }
+    #bdf-root .action-menu-item.bdf-stage-plain { color: var(--gx-ink-2, #475569); }
+    #bdf-root .action-menu-item.bdf-stage-plain.is-confirm { background: #fff7ed; color: #7c2d12; box-shadow: inset 3px 0 0 #f97316; }
+    #bdf-root .action-menu-item.bdf-stage-plain.is-confirm .bdf-stage-to { color: #9a3412; }
+    @media (max-width: 480px) { #bdf-root .bdf-stage-chip { max-width: 46vw; } }
   </style>
 
   <!-- GX-FORM-OPEN (20.11, Saltuk: "tabloda bir dosyayı açtığımda formda hangi dosyanın açık olduğu konusunda kafam karışıyor"):
