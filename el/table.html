@@ -10738,6 +10738,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const prev = _dtLocalEdit.get(id);
     _dtLocalEdit.set(id, { exp: dtNow() + DT_FORM_EDIT_TTL_MS, fields: Object.assign({}, prev && prev.fields, fields) });
     Object.keys(fields).forEach(k => { raw[k] = fields[k]; });
+    // the mirror may repaint this table with its own (not yet updated) row: the same edit rides on its GX-DIRECT overlay
+    // (keys are the row's own field names; the mirror's newer _modified ends it)
+    try { const now = dtNow(), pd = _dtDirect.get(id); _dtDirect.set(id, { mod: now, exp: now + DT_FORM_EDIT_TTL_MS, fields: Object.assign({}, pd && pd.fields, fields) }); } catch (e) {}
     try { applySearch(els.search && els.search.value ? els.search.value.trim() : ''); } catch (e) { if (state.hot) state.hot.render(); }
     log('[GX-FORM-EDIT-YEREL] ' + n + ' field(s) of the edited record shown before Bubble refreshes the table');
     return n;
@@ -11929,13 +11932,32 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (window.__gxSaveWatch || window.__gxNoSaveWatch) return;
     window.__gxSaveWatch = true;
     const after = () => { try { const h = window.__gxLiveDoc; if (h && h.save) h.save(); } catch (e) {} };
+    const mk = f => {
+      if (typeof f !== 'function' || f.__gxSave) return f;
+      const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); dtEditFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first; GX-FORM-EDIT: an edit too
+      w.__gxSave = true; w.__gxRaw = f;
+      return w;
+    };
+    // GX-SAVE-KANCA (20.11): Bubble re-creates bubble_fn_submit while the record panel is open (seen 1,5 s after opening and
+    // again around edits); the 2 s re-wrap missed a save made right after, and the edited row waited for the mirror / Bubble
+    // (~10-17 s; Saltuk: "kaydetmiyor"). An accessor wraps every function Bubble puts there at once; the timer stays as a
+    // fallback (and puts the accessor back if the property was deleted and set plainly).
+    let cur = null;
+    const own = () => { try { const d = Object.getOwnPropertyDescriptor(window, 'bubble_fn_submit'); return !!(d && d.get && d.get.__gxSaveGet); } catch (e) { return false; } };
+    const install = () => {
+      if (window.__gxNoSaveHook || own()) return;
+      try {
+        cur = mk(window.bubble_fn_submit);
+        const get = function () { return cur; }; get.__gxSaveGet = true;
+        Object.defineProperty(window, 'bubble_fn_submit', { configurable: true, enumerable: true, get, set: function (v) { cur = mk(v); } });
+      } catch (e) {}
+    };
     const wrap = () => {
+      install();
       try {
         const f = window.bubble_fn_submit;
         if (typeof f !== 'function' || f.__gxSave) return;
-        const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); dtEditFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first; GX-FORM-EDIT: an edit too
-        w.__gxSave = true; w.__gxRaw = f;
-        window.bubble_fn_submit = w;
+        window.bubble_fn_submit = mk(f);
       } catch (e) {}
     };
     wrap();
