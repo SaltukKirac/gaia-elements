@@ -3736,6 +3736,10 @@
       let startOpenSequence = 0;
       let pendingSubmitUntilConfigReady = null;
       let pendingStartCloseAutosave = null;
+      // PANEL-KAPAT-KAYDET (20.11): son görünür andaki kayıt kimliği + kapanış kaydının kimlik yedeği
+      let bdfPanelWasVisible = null;
+      let bdfPanelLastId = "";
+      let bdfCloseIdOverride = null;   // { id, until }
       let hasSeenEditingSignal = false;
       let lastEditingParamWasTrue = false;
       let activeSubmitAttemptId = 0;
@@ -8693,7 +8697,7 @@
         return {
           output1: startTimestamp,
           output2: endTimestamp,
-          output3: readCurrentUniqueId(),
+          output3: readCurrentUniqueId() || bdf_closeIdOverride(),
           output4: output4,
           outputlist1: outputlist1,
           outputlist2: outputlist2,
@@ -16342,6 +16346,63 @@
         persistStartFlowState();
       }
 
+      // PANEL-KAPAT-KAYDET (20.11 Saltuk: "form otomatik kaydetmiyor kapattığım zaman"): var olan kayıt Edit ile düzenlenip
+      // panel Done'a basılmadan kapatılınca Bubble start / editing sinyalini değiştirmiyor, yalnız formu gizliyor (display:none);
+      // değişiklik kayboluyordu. Form görünürken gizlenince (kapanış) değişiklik varsa Done ile aynı yoldan kaydedilir.
+      // EKLE-GIZLI visibility:hidden kullanır, kapanış sayılmaz. Kapatma: window.__gxNoPanelKaydet = true.
+      function bdf_closeIdOverride() {
+        const o = bdfCloseIdOverride;
+        if (!o) return "";
+        if (Date.now() > o.until) { bdfCloseIdOverride = null; return ""; }
+        return o.id;
+      }
+
+      function bdf_formPanelVisible() {
+        const root = (rootElement && rootElement.isConnected) ? rootElement : document.getElementById("bdf-root");
+        if (!root || !root.getClientRects().length) return false;
+        const r = root.getBoundingClientRect();
+        return r.width > 40 && r.height > 40;
+      }
+
+      function bdf_panelCloseCheck() {
+        const visible = bdf_formPanelVisible();
+        if (visible) {
+          bdfPanelWasVisible = true;
+          const idNow = readCurrentUniqueId();
+          if (idNow) bdfPanelLastId = idNow;
+          else if (!hasExistingBubbleData()) bdfPanelLastId = "";   // yeni kayıt: kapanışta kaydetme yok (CREATE-FOOTER)
+          return;
+        }
+        if (bdfPanelWasVisible !== true) { bdfPanelWasVisible = false; return; }
+        bdfPanelWasVisible = false;
+        const recordId = bdfPanelLastId;
+        if (window.__gxNoPanelKaydet) return;
+        if (!recordId) return;   // yalnız var olan kayıt
+        try { if (window.__gxBulk && (window.__gxBulk.tabId || window.__gxBulk.running)) return; } catch (_) { }
+        try { if (window.__gxKlasorTab) return; } catch (_) { }
+        const idNow = readCurrentUniqueId();
+        if (idNow && idNow !== recordId) return;   // Bubble başka kayda geçti: uniqueid-dirty-current-first yolu yönetir
+        const dirtyNow = reconcileDirtyTracking("panel-hidden-close");
+        const hasDirty = dirtyNow || isFormDirty || changedFieldKeys.size > 0 || hasChangesSinceStartOpen;
+        traceAutosave("panel-hidden-close", { recordId, idNow, hasDirty, isFormSaving, isEditPanelOpen });
+        if (!hasDirty) {
+          if (isEditPanelOpen) setInlineEditPanelOpen(false);   // Done'suz kapanan düzenleme paneli bir sonraki açılışta özet görünümle açılsın
+          return;
+        }
+        if (isFormSaving) { queueStartCloseAutosave("panel-hidden-close", "saving-lock"); return; }
+        if (!idNow) bdfCloseIdOverride = { id: recordId, until: Date.now() + 120000 };
+        try { console.info("[BDF] PANEL-KAPAT-KAYDET: panel kapandı, değişiklik kaydediliyor", { recordId, editPanel: isEditPanelOpen }); } catch (_) { }
+        if (isEditPanelOpen) {
+          hasEnteredEditSession = true;
+          setInlineEditPanelOpen(false);   // Done ile aynı: düzenleme paneli kapanır + inline-toggle-close kaydı
+          // Done'daki ikinci (editing-close:deferred) gönderim panel kapalıyken başka kayda düşebilir; bu kayıt zaten gidiyor.
+          if (pendingStartCloseAutosave && pendingStartCloseAutosave.trigger === "editing-close") pendingStartCloseAutosave = null;
+          if (!isFormSaving) runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
+          return;
+        }
+        runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
+      }
+
       function evaluateEditingSignalTransition() {
         if (readStartSignalValue() === true) return;
         const editingSignal = readEditingSignalValue();
@@ -16548,6 +16609,7 @@
           try { clearInterval(BDF.__startWatcherInterval); } catch (_) { }
         }
         window.__bdfActiveEvaluateUniqueIdTransition = evaluateUniqueIdTransition;
+        window.__bdfActivePanelCloseCheck = bdf_panelCloseCheck;   // PANEL-KAPAT-KAYDET
         // TH-4: the AI run state is rendered independently of hydration (boot/remount without uniqueid,
         // results that arrive while the form is dirty or saving). Timers call the ACTIVE instance's refresh.
         window.__bdfActiveAiRunTick = _bdfAiRunTick;
@@ -16556,6 +16618,9 @@
           try {
             if (typeof window.__bdfActiveEvaluateStartSignalTransition === "function") window.__bdfActiveEvaluateStartSignalTransition();
             if (typeof window.__bdfActiveEvaluateEditingSignalTransition === "function") window.__bdfActiveEvaluateEditingSignalTransition();
+          } catch (_) { }
+          try { if (typeof window.__bdfActivePanelCloseCheck === "function") window.__bdfActivePanelCloseCheck(); } catch (_) { }   // PANEL-KAPAT-KAYDET
+          try {
             if (typeof window.__bdfActiveEvaluateUniqueIdTransition === "function") window.__bdfActiveEvaluateUniqueIdTransition();
           } catch (_) { }
           try { if (typeof window.__bdfActiveAiRunTick === "function") window.__bdfActiveAiRunTick(); } catch (_) { }
