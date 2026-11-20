@@ -11929,12 +11929,25 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // The mirror needs ~10-20 s after Bubble's create, so the row shows ~10-20 s after Save instead of 18 s to 2 min.
   // Off: window.__gxNoSaveWatch = true before the table loads.
   function aynaSaveWatch() {
+    // GX-SAVE-AKTIF (20.11): Bubble re-renders the table element (a new instance) while the page stays; the hook below is
+    // installed once per page, so it used to call the FIRST instance's GX-PEND / GX-FORM-EDIT, whose rows are no longer on
+    // screen (the edit "showed" in a dead table). Each instance registers itself; a save goes to the live ones.
+    const hooks = window.__gxSubmitHooks || (window.__gxSubmitHooks = []);
+    if (!hooks.some(h => h.c === els)) {
+      hooks.push({ c: els, live: () => { try { return !!(els && els.container && els.container.isConnected); } catch (e) { return false; } },
+        run: a0 => { dtPendFromSubmit(a0); dtEditFromSubmit(a0); } });
+    }
     if (window.__gxSaveWatch || window.__gxNoSaveWatch) return;
     window.__gxSaveWatch = true;
     const after = () => { try { const h = window.__gxLiveDoc; if (h && h.save) h.save(); } catch (e) {} };
+    const runHooks = a0 => {
+      const all = window.__gxSubmitHooks || [];
+      for (let i = all.length - 1; i >= 0; i--) if (!all[i].live()) all.splice(i, 1);   // dead instances leave the list
+      all.forEach(h => { try { h.run(a0); } catch (e) {} });
+    };
     const mk = f => {
       if (typeof f !== 'function' || f.__gxSave) return f;
-      const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { dtPendFromSubmit(a0); dtEditFromSubmit(a0); after(); }, 0); } };   // GX-PEND: the row first; GX-FORM-EDIT: an edit too
+      const w = function () { const a0 = arguments[0]; try { return f.apply(this, arguments); } finally { setTimeout(() => { runHooks(a0); after(); }, 0); } };   // GX-PEND: the row first; GX-FORM-EDIT: an edit too
       w.__gxSave = true; w.__gxRaw = f;
       return w;
     };
@@ -12710,6 +12723,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     attachSearchListener();
     attachResizeListener();
     attachTouchScroll();
+    try { aynaSaveWatch(); } catch (e) {}   // GX-SAVE-AKTIF: a table without the mirror gets the form-save hook too
   }
 
   // MOBIL-KAYDIR (18.11): dokunmatikte iki sorun vardı. (1) Sabit ilk kolon (HOT'un sol kopyası) parmağı yutuyordu: üstünden
