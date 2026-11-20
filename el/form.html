@@ -3747,6 +3747,7 @@
       let bdfCloseIdOverride = null;   // { id, until }
       let bdfPanelEmptySince = 0;      // görünür formda kayıt kimliği ne zamandan beri boş (yeni kayıt mı, kapanış yarışı mı)
       let bdfPanelCloseSubmitAt = 0;   // kapanış kaydı ne zaman gönderildi (aynı kapanışın ikinci kez gönderilmemesi için)
+      let bdfPanelCloseAttemptId = 0;  // kapanış kaydının gönderim numarası: başarıyla dönünce değişiklik takibi temizlenir
       let hasSeenEditingSignal = false;
       let lastEditingParamWasTrue = false;
       let activeSubmitAttemptId = 0;
@@ -15884,7 +15885,7 @@
       function queueStartCloseAutosave(trigger, reason = "") {
         // PANEL-KAPAT-KAYDET: aynı kapanışın kaydı az önce gönderildiyse ikinci (ertelenmiş) gönderim yok; panel kapalıyken
         // Bubble başka kayda geçerse ertelenen gönderim yanlış kayda düşebilirdi.
-        if (trigger !== "panel-hidden-close" && bdfPanelCloseSubmitAt && Date.now() - bdfPanelCloseSubmitAt < 3000) {
+        if (trigger !== "panel-hidden-close" && bdf_panelJustSaved()) {
           traceAutosave("queue-start-close-autosave-skipped-panel-close", { trigger, reason });
           return;
         }
@@ -15968,7 +15969,15 @@
         activeSubmitAttemptId = 0;
         isFormSaving = false;
         isFormDirty = !success;
-        if (success) BDF.__sonKayitOk = Date.now();   // EVRAK-BIRAK: yardımcı sekme kaydın Bubble'a verildiğini buradan görür
+        if (success) BDF.__sonKayitOk = Date.now();
+        // PANEL-KAPAT-KAYDET: kapanış kaydı Bubble'a verildi; değişiklik takibi temizlenir (yoksa çıkışta "kaydedilmemiş
+        // değişiklik" uyarısı çıkıyor, Bubble'ın sonraki start=false sinyali aynı kaydı yeniden gönderiyordu)
+        if (success && bdfPanelCloseAttemptId && submitAttemptId === bdfPanelCloseAttemptId) {
+          bdfPanelCloseAttemptId = 0;
+          try { clearChangedTracking(); } catch (_) { }
+          hasChangesSinceStartOpen = false;
+          hasAiHydratedData = false;
+        }   // EVRAK-BIRAK: yardımcı sekme kaydın Bubble'a verildiğini buradan görür
         if (success && !autosave && hasExistingBubbleData()) {
           setFormRefreshLoading(true, "Saved");
           try { if (formRefreshLoading) formRefreshLoading.dataset.state = "saved"; } catch (_) { }
@@ -16462,7 +16471,7 @@
             uploadFieldBuffers: closeAiDiag
           });
           reconcileDirtyTracking("evaluateStartSignalTransition:close");
-          const hasDirtyIndicators = hasChangesSinceStartOpen || isFormDirty || changedFieldKeys.size > 0 || hasAiHydratedData;
+          const hasDirtyIndicators = (hasChangesSinceStartOpen || isFormDirty || changedFieldKeys.size > 0 || hasAiHydratedData) && !bdf_panelJustSaved();
           const shouldSubmit = hasDirtyIndicators && !isFormSaving;
           const closeDiagnostics = {
             hasDirtyIndicators,
@@ -16572,6 +16581,10 @@
         return o.id;
       }
 
+      function bdf_panelJustSaved() {   // panel kapanışı kaydı son 5 sn'de gönderildi: aynı kapanışın start / editing yolu yeniden göndermez
+        return Boolean(bdfPanelCloseSubmitAt && Date.now() - bdfPanelCloseSubmitAt < 5000);
+      }
+
       function bdf_formPanelVisible() {
         const root = (rootElement && rootElement.isConnected) ? rootElement : document.getElementById("bdf-root");
         if (!root || !root.getClientRects().length) return false;
@@ -16614,15 +16627,29 @@
         if (!idNow) bdfCloseIdOverride = { id: recordId, until: Date.now() + 120000 };
         bdfPanelCloseSubmitAt = Date.now();
         try { console.info("[BDF] PANEL-KAPAT-KAYDET: panel kapandı, değişiklik kaydediliyor", { recordId, editPanel: isEditPanelOpen }); } catch (_) { }
+        // Bubble'a gönderim çoğunlukla eşzamanlı biter (settle runSubmitFlow içinde): gönderildi mi, BDF.__sonKayitOk'tan okunur.
+        const okBefore = Number(BDF.__sonKayitOk || 0);
+        const sentNow = () => Number(BDF.__sonKayitOk || 0) !== okBefore;
         if (isEditPanelOpen) {
           hasEnteredEditSession = true;
           setInlineEditPanelOpen(false);   // Done ile aynı: düzenleme paneli kapanır + inline-toggle-close kaydı
           // Done'daki ikinci (editing-close:deferred) gönderim panel kapalıyken başka kayda düşebilir; bu kayıt zaten gidiyor.
           if (pendingStartCloseAutosave && pendingStartCloseAutosave.trigger === "editing-close") pendingStartCloseAutosave = null;
-          if (!isFormSaving) runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
-          return;
+          if (!isFormSaving && !sentNow()) runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
+        } else {
+          runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
         }
-        runSubmitFlow({ autosave: true, forceSubmit: true, trigger: "panel-hidden-close", modeHint: "edit" });
+        if (sentNow()) {
+          // gitti: değişiklik takibi (ve tarayıcıdaki kopyası) temizlenir; Bubble formu yeniden kurunca eski liste geri gelmez,
+          // çıkışta "kaydedilmemiş değişiklik" uyarısı ve kapanış sinyalinde yeniden gönderim olmaz
+          try { clearChangedTracking(); } catch (_) { }
+          isFormDirty = false;
+        } else if (isFormSaving) {
+          bdfPanelCloseAttemptId = activeSubmitAttemptId;   // söz veren (Promise) gönderim: dönünce settle temizler
+        }
+        hasChangesSinceStartOpen = false;
+        hasAiHydratedData = false;
+        persistStartFlowState();
       }
 
       function evaluateEditingSignalTransition() {
@@ -16640,7 +16667,7 @@
         if (lastEditingParamWasTrue && !editingSignal) {
           reconcileDirtyTracking("evaluateEditingSignalTransition:close");
           const hasDirtyIndicators = isFormDirty || changedFieldKeys.size > 0 || hasChangesSinceStartOpen;
-          const hasDirtyOrAiHydrate = hasDirtyIndicators || hasAiHydratedData;
+          const hasDirtyOrAiHydrate = (hasDirtyIndicators || hasAiHydratedData) && !bdf_panelJustSaved();
           const shouldSubmit = hasDirtyOrAiHydrate && !isFormSaving;
           traceAutosave("editing-close", { editingSignal, hasDirtyIndicators: hasDirtyOrAiHydrate, shouldSubmit, hasAiHydratedData });
           lastEditingParamWasTrue = false;
