@@ -21573,7 +21573,9 @@
   <style>
     #bdf-root .bdf-rec-head { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; padding: 10px 14px;
       border-radius: 10px; background: #eef2ff; box-shadow: inset 4px 0 0 var(--gx-primary, #6366f1); min-width: 0; }
-    #bdf-root .bdf-rec-head[hidden] { display: none; }
+    /* the form hides unknown children of its card on each record switch (inline display: none): ours stays */
+    #bdf-root .bdf-rec-head:not([hidden]) { display: flex !important; }
+    #bdf-root .bdf-rec-head[hidden] { display: none !important; }
     #bdf-root .bdf-rec-kicker { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
       color: var(--gx-primary-deep, #4f46e5); }
     #bdf-root .bdf-rec-name { font-size: 15px; font-weight: 700; line-height: 1.35; color: var(--gx-ink, #0f172a);
