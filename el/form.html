@@ -8141,7 +8141,6 @@
         const hasOptions = Array.isArray(actionOptions) && actionOptions.length > 0;
         syncDefaultActionLabelFromData();
         let safeSelectedName = String(selectedActionName || getDefaultActionLabel()).trim() || getDefaultActionLabel();
-        if (!selectedActionId && safeSelectedName === DEFAULT_ACTION_PLACEHOLDER_LABEL) { const sl = bdf_stageLabel(); if (sl) safeSelectedName = sl; }   // SUREC-TASI
         const uploadWaitLabel = bdf_uploadWaitLabel(); // UPLOAD-WAIT: aksiyon yüklemenin bitmesini bekliyor
         const actionBusy = Boolean(isWaitingForServerRefresh) || Boolean(uploadWaitLabel);
         if (actionTriggerBtn) {
@@ -8472,7 +8471,7 @@
         var chip = byId("bdfStageChip");
         var info = bdf_stageInfo();
         var noteOn = bdfStage.note && Date.now() < bdfStage.noteUntil && hasExistingBubbleData();
-        if (!info && !noteOn) { if (chip) chip.hidden = true; bdf_stagePopClose(); return; }
+        if (!info && !noteOn) { if (chip) chip.hidden = true; main.classList.remove("has-stage"); bdf_stagePopClose(); return; }
         if (!chip || chip.tagName !== "BUTTON") {
           if (chip) chip.remove();
           chip = document.createElement("button");
@@ -8495,6 +8494,7 @@
         chip.disabled = !info || bdfStage.moving;
         chip.title = info ? bdf_stageT("Change this record's process", "Bu kaydın sürecini değiştir") : "";
         chip.hidden = false;
+        main.classList.add("has-stage");   // the chip keeps its width, the action menu button narrows (20.11 canlı: "S..." ezilmesi)
       }
       function bdf_stagePopClose() {
         var p = byId("bdfStagePop");
@@ -22006,7 +22006,9 @@
       border-radius: 999px; background: #eef2ff; color: var(--gx-primary-deep, #4f46e5); font-size: 12px; font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
     #bdf-root .bdf-stage-chip[hidden] { display: none !important; }
-    #bdf-root button.bdf-stage-chip { border: 1px solid #c7d2fe; cursor: pointer; gap: 6px; font-family: inherit; flex: 0 1 auto; min-height: 34px; }
+    #bdf-root button.bdf-stage-chip { border: 1px solid #c7d2fe; cursor: pointer; gap: 6px; font-family: inherit; flex: 0 0 auto; max-width: 46%; min-height: 34px; }
+    #bdf-root .action-main.has-stage .action-split { min-width: 0; flex: 0 1 auto; }
+    #bdf-root .action-main.has-stage .action-trigger-btn { min-width: 0; }
     #bdf-root button.bdf-stage-chip:hover:not(:disabled) { background: #e0e7ff; }
     #bdf-root button.bdf-stage-chip:focus-visible { outline: none; box-shadow: var(--gx-ring, 0 0 0 3px rgba(99,102,241,.25)); }
     #bdf-root button.bdf-stage-chip:disabled { cursor: default; opacity: 1; }

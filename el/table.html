@@ -640,6 +640,14 @@
 }
 
 /* SUREC-TASI (20.11): Process button + menu (change a record's process from the table) */
+/* SUREC-TASI (20.11 canlı: "süreç yazısında görsel bozulma"): the button has its own size; the Import / Export label rules
+   (TIDY-LABELS, only >= 1100 px) did not cover it, so its word overflowed a 36 px box at the page's 18 px font and the icon shrank to 0 */
+#dynamic-table-wrapper #dt-btn-stage { width: auto; min-width: 36px; padding: 0 12px 0 10px; gap: 6px; flex: 0 0 auto;
+  font-family: var(--gx-font, 'Inter', system-ui, sans-serif); font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap;
+  color: var(--gx-ink, #0f172a); }
+#dynamic-table-wrapper #dt-btn-stage .dt-svg-icon { width: 18px; height: 18px; flex: 0 0 18px; }
+#dynamic-table-wrapper #dt-btn-stage .dt-btn-label { display: inline; font-size: 13px; line-height: 1; }
+#dynamic-table-wrapper #dt-btn-stage.dt-hidden { display: none !important; }
 #dynamic-table-wrapper #dt-btn-stage.is-idle { color: var(--gx-ink-2, #475569); }
 #dynamic-table-wrapper .dt-stage-pop {
   position: fixed; z-index: 2600; box-sizing: border-box; overflow: auto;
@@ -13562,7 +13570,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let x = 12, y = 60;
     if (anchor && anchor.getBoundingClientRect && anchor.getClientRects().length) { const r = anchor.getBoundingClientRect(); x = r.right - w; y = r.bottom + 6; }
     else if (anchor && typeof anchor.x === 'number') { x = anchor.x; y = anchor.y; }
-    x = Math.max(12, Math.min(x, vw - w - 12));
+    // the form panel (Bubble's floating group) covers the right side while a record is open: stay left of it (20.11 canlı)
+    let maxRight = vw - 12;
+    try {
+      const f = document.getElementById('bdf-root');
+      if (f && f.getClientRects().length) { const fr = f.getBoundingClientRect(); if (fr.width > 40 && fr.left > vw * 0.3 && fr.left < vw) maxRight = Math.min(maxRight, fr.left - 44); }
+    } catch (e) {}
+    x = Math.max(12, Math.min(x, maxRight - w));
     y = Math.max(12, Math.min(y, vh - 220));
     p.style.left = x + 'px'; p.style.top = y + 'px';
     p.style.maxHeight = Math.max(200, vh - y - 16) + 'px';
