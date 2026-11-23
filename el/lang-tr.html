@@ -287,6 +287,9 @@
     'Continue': 'Devam',
     'Retry': 'Yeniden dene',
     'Try again': 'Yeniden dene',
+    // mobil test 20.11 (23.11): tablo Activity paneli + form Claim Hazırla onayı
+    'Clear all': 'Tümünü temizle',
+    'Press again to start': 'Başlatmak için tekrar basın',
     'Upload': 'Yükle',
     'Download': 'İndir',
     'Copy': 'Kopyala',
@@ -1013,6 +1016,9 @@
     // prompt builder: "⚠ Connection needed: Gmail, Slack" / "2 native, 3 MCP tools selected" (20.11)
     [/^⚠ Connection needed: (.+)$/, function (m) { return '⚠ Bağlantı gerekli: ' + m[1]; }],
     [/^(\d+) native, (\d+) MCP tools selected$/, function (m) { return m[1] + ' yerleşik, ' + m[2] + ' MCP aracı seçili'; }],
+    // tablo Activity paneli basligi: "3 running" / "2 ready · 8 failed" (23.11)
+    [/^(\d+) running$/, function (m) { return m[1] + ' çalışıyor'; }],
+    [/^(?:(\d+) ready)?(?: · )?(?:(\d+) failed)?$/, function (m) { if (!m[1] && !m[2]) return null; return [m[1] ? m[1] + ' hazır' : '', m[2] ? m[2] + ' başarısız' : ''].filter(Boolean).join(' · '); }],
     // tablo silme dugmesi: "Delete 3 selected"
     [/^Delete (\d+) selected$/, function (m) { return m[1] + ' seçili kaydı sil'; }],
     // "50 / 0 integrations loaded"

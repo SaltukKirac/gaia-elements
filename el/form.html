@@ -2875,7 +2875,9 @@
 <body>
   <div id="bdf-root" data-bdf-root>
     <main class="page">
-      <div id="debugPanels">
+      <!-- DEBUG-GIZLI (23.11, mobil test 20.11: telefonda "Bubble JSON Inputs" paneli göründü): geliştirici paneli varsayılan gizli;
+           yalnız applyVersionVisibility hata ayıklama kipinde açar (kod yüklenmeden / hata verince ham panel görünmesin) -->
+      <div id="debugPanels" style="display:none">
         <section class="card" id="jsonInputsSection">
           <h2>Bubble JSON Inputs</h2>
           <p class="helper-text">
@@ -8685,6 +8687,21 @@
       const BDF_FOOTER_COOLDOWN_MS = 10000;
       const BDF_ACTION_REQUIRES_FILES = { "Claim Hazırla": "Evraklar" };
       var bdfFooterLockUntil = 0;
+      // CLAIM-ONAY (23.11, mobil test 20.11: "Claim oluştururken hazırla tuşuna bastığımızda bir daha sorarsa daha iyi olur, yanlışlıkla
+      // basılma şansı çok yüksek"): "Claim Hazırla" ilk basışta başlamaz; düğme BDF_ONAY_MS boyunca "Press again to start" olur, ikinci
+      // basış başlatır. Süre dolunca düğme eski hâline döner. "Save only" tek basışta kalır. Kapatma: window.__bdfNoClaimOnay = true.
+      const BDF_ACTION_CONFIRM = { "Claim Hazırla": true };
+      const BDF_ONAY_MS = 6000;
+      var bdfOnayAction = "";
+      var bdfOnayUntil = 0;
+      var bdfOnayTimer = 0;
+      function bdf_onayBekliyor(actionName) {
+        return Boolean(bdfOnayAction) && bdfOnayAction === String(actionName || "").trim() && Date.now() < bdfOnayUntil;
+      }
+      function bdf_onayBitir() {
+        bdfOnayAction = ""; bdfOnayUntil = 0;
+        if (bdfOnayTimer) { clearTimeout(bdfOnayTimer); bdfOnayTimer = 0; }
+      }
 
       // Alandaki dosya sayısı (yüklenmiş + Dropzone'da sırada / yüklenen); alan yoksa -1 (koruma devre dışı).
       function bdf_fieldFileCount(labelOrKey) {
@@ -8739,6 +8756,17 @@
           bdf_footerMessage(`Upload files to "${need}" first. A claim can't be prepared without documents.`);
           return;
         }
+        const nm = String(actionName || "").trim();
+        if (BDF_ACTION_CONFIRM[nm] && window.__bdfNoClaimOnay !== true) {   // CLAIM-ONAY
+          if (!bdf_onayBekliyor(nm)) {
+            bdfOnayAction = nm; bdfOnayUntil = Date.now() + BDF_ONAY_MS;
+            if (bdfOnayTimer) clearTimeout(bdfOnayTimer);
+            bdfOnayTimer = setTimeout(() => { bdf_onayBitir(); bdf_renderCreateFooter(); }, BDF_ONAY_MS + 50);
+            bdf_renderCreateFooter();
+            return;
+          }
+        }
+        bdf_onayBitir();
         bdfFooterLockUntil = Date.now() + BDF_FOOTER_COOLDOWN_MS;
         bdf_renderCreateFooter();
         setTimeout(bdf_renderCreateFooter, BDF_FOOTER_COOLDOWN_MS + 50);
@@ -8802,7 +8830,11 @@
           if (busy) btn.setAttribute("aria-busy", "true");
           else btn.removeAttribute("aria-busy");
           // Bekleme yazısı yalnız ilk (ana) düğmede görünür.
-          btn.textContent = (busy && i === 0 && busyLabel) ? busyLabel : btn.dataset.label;
+          const onay = !busy && bdf_onayBekliyor(btn.dataset.label);   // CLAIM-ONAY
+          btn.classList.toggle("bdf-cf-onay", onay);
+          btn.textContent = (busy && i === 0 && busyLabel) ? busyLabel : (onay ? "Press again to start" : btn.dataset.label);
+          if (onay) btn.setAttribute("aria-label", `${btn.dataset.label}: press again to start`);
+          else btn.removeAttribute("aria-label");
         });
 
         bdf_pinCreateFooter();
@@ -21938,6 +21970,14 @@
     #bdf-root .bdf-create-footer button:disabled {
       opacity: 0.6;
       cursor: wait;
+    }
+
+    /* CLAIM-ONAY: ilk basıştan sonra düğme onay ister (turuncu, halkalı) */
+    #bdf-root .bdf-create-footer button.bdf-cf-onay {
+      background: #b45309;
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.25);
     }
 
     #bdf-root .bdf-create-footer button:focus-visible {

@@ -1727,12 +1727,20 @@
 }
 #gx-isler[hidden] { display: none; }
 #gx-isler *, #gx-isler *::before, #gx-isler *::after { box-sizing: border-box; }
+#gx-isler .gx-is-headrow { display: flex; align-items: center; flex: 0 0 auto; border-bottom: 1px solid var(--is-line); background: #f8fafc; }
 #gx-isler .gx-is-head {
-  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; margin: 0; padding: 8px 12px;
-  border: 0; border-bottom: 1px solid var(--is-line); background: #f8fafc; color: var(--is-ink);
+  display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; width: 100%; min-height: 40px; margin: 0; padding: 8px 12px;
+  border: 0; background: transparent; color: var(--is-ink);
   font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; text-align: left; cursor: pointer;
 }
-#gx-isler.is-folded .gx-is-head { border-bottom: 0; }
+#gx-isler .gx-is-clear {
+  flex: 0 0 auto; min-height: 28px; margin: 0 8px 0 0; padding: 0 10px; border: 1px solid var(--is-line); border-radius: 999px;
+  background: #fff; color: var(--is-ink-2); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; white-space: nowrap;
+}
+#gx-isler .gx-is-clear[hidden] { display: none; }
+#gx-isler .gx-is-clear:hover { background: #f1f5f9; color: var(--is-ink); }
+#gx-isler .gx-is-clear:focus-visible { outline: 2px solid var(--is-ring); outline-offset: 1px; }
+#gx-isler.is-folded .gx-is-headrow { border-bottom: 0; }
 #gx-isler.is-folded { width: auto; }   /* folded: a small pill, so it does not sit over the record form */
 #gx-isler.is-folded .gx-is-head-n { flex: 0 0 auto; }
 #gx-isler .gx-is-head:focus-visible, #gx-isler .gx-is-btn:focus-visible, #gx-isler .gx-is-x:focus-visible { outline: 2px solid var(--is-ring); outline-offset: 1px; }
@@ -1789,7 +1797,8 @@
   #gx-isler .gx-is-card, #gx-isler .gx-is-bar > i, #gx-isler .gx-is-chev { transition: none; }
 }
 @media (max-width: 480px) {
-  #gx-isler { right: 8px; left: 8px; bottom: 8px; width: auto; max-width: none; }
+  #gx-isler { right: 8px; left: 8px; bottom: 8px; width: auto; max-width: none; max-height: 42vh; }   /* GX-ISLER-TEMIZLE: phone, less of the screen */
+  #gx-isler.is-folded { left: auto; }
 }
 
 /* EVRAK-BIRAK (13.11): the helper tab (?gxadd=) shows one calm card over its page; it closes by itself */
@@ -1943,6 +1952,18 @@
 /* GX-GEZGIN (12.11): folder icon at the start of a NOD x GAIA row + the document browser (four states: loading, empty, error, ready) */
 #dynamic-table-wrapper.dt-gez-on {
   --dt-row-header-width: 68px;
+}
+#dynamic-table-wrapper.dt-gez-on.dt-gez-dar {   /* MOBIL-SIKI: phone (DT_GEZ_RH_W_DAR) */
+  --dt-row-header-width: 56px;
+}
+#dynamic-table-wrapper.dt-gez-dar .handsontable th .dt-rh-gez {
+  width: 24px;
+  height: 24px;
+  margin: 0 2px 0 0;
+}
+#dynamic-table-wrapper.dt-gez-dar .handsontable th .dt-row-open.dt-rh-open {
+  width: 26px !important;
+  height: 26px !important;
 }
 #dynamic-table-wrapper .handsontable th .dt-rh-gez {
   display: inline-flex;
@@ -2643,6 +2664,24 @@
 
   #dynamic-table-wrapper .handsontable th .dt-row-open.dt-rh-open {
     display: inline-flex;
+  }
+}
+
+/* MOBIL-SIKI (23.11, mobil test 20.11: "tablo telefon için çok büyük"): telefonda satır 36 → 32 px, hücre yazısı 13 → 12.5 px,
+   iç boşluk 8/12 → 6/8 px; dokunmatikte "aç" düğmesi 30 px (satırı büyütmesin). Masaüstü değişmez. */
+@media (max-width: 640px) {
+  #dynamic-table-wrapper { --dt-row-h: 32px; }
+  #dynamic-table-wrapper .handsontable td {
+    font-size: 12.5px;
+    padding: 6px 8px !important;
+  }
+  #dynamic-table-wrapper .handsontable thead th { font-size: 12px; }
+  #dynamic-table-wrapper .handsontable thead th .dt-type-icon { display: none; }   /* "Aa" / "#": the column name gets the room */
+}
+@media (max-width: 640px) and (hover: none) and (pointer: coarse) {
+  #dynamic-table-wrapper .handsontable th .dt-row-open.dt-rh-open {
+    width: 30px !important;
+    height: 30px !important;
   }
 }
 
@@ -6287,6 +6326,25 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     return aynaBridge('evrak_sirali_durum', { job: s.job }, null, { timeoutMs: 15000 });
   }
+  // GX-SIRALI-KAYIP (23.11, mobil test 20.11: "aynı anda birden fazla pdf indirmeye çalıştığımızda birden fazla hata çıkıyor"): the
+  // server keeps jobs in memory; when it restarts (20.11 14:30 it crashed under parallel PDFs, fixed on the server the same night) a
+  // job still being made answers 404 "no longer available". Such a job starts once more by itself (PDF / ZIP only: a folder save
+  // would ask for the place again); a second loss within 3 min shows the error. Off: window.__gxNoSiraliKayip = true.
+  const _dtSiraliKayip = new Map();   // key → when the last lost job was started again
+  function dtSiraliKayipYeniden(id, bicim, s) {
+    try {
+      if (window.__gxNoSiraliKayip || s.st !== 'working' || s.dir || !s.job) return false;
+      if (bicim !== 'pdf' && !s.zip) return false;
+      const key = dtSiraliKey(id, bicim), simdi = Date.now();
+      if (simdi - (_dtSiraliKayip.get(key) || 0) < 180000) return false;
+      if (_dtSirali.get(key) !== s) return false;
+      _dtSiraliKayip.set(key, simdi);
+      try { log('[GX-SIRALI-KAYIP] job lost on the server, starting it again'); } catch (e) {}
+      _dtSirali.delete(key);
+      dtSiraliStart(s.raw, bicim, s.kip || (s.zip && bicim === 'klasor' ? 'zip' : undefined));
+      return true;
+    } catch (e) { return false; }
+  }
   async function dtSiraliPoll(id, bicim, s) {
     const key = dtSiraliKey(id, bicim);
     while (_dtSirali.get(key) === s && s.st === 'working') {
@@ -6298,6 +6356,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const r = await dtSiraliDurumOku(s);
       if (_dtSirali.get(key) !== s) return;
       if (!r || !r.ok || !r.data) {
+        if (r && r.error === 'server' && dtSiraliKayipYeniden(id, bicim, s)) return;   // GX-SIRALI-KAYIP
         if (r && r.error === 'server') { dtSiraliFail(id, bicim, s, r.message || 'This file is no longer available. Make it again.'); return; }
         const why = String((r && (r.kod || (r.status ? 'http ' + r.status : '') || r.error)) || 'no answer');
         try { log('[GX-SIRALI] status read failed (' + why + '), try ' + (s.fails + 1)); } catch (e) {}
@@ -7111,12 +7170,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     r = document.createElement('section');
     r.id = 'gx-isler';
     r.setAttribute('aria-label', 'Activity');
-    r.innerHTML = '<button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Activity</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
+    // GX-ISLER-TEMIZLE (23.11, mobil test 20.11: "biten aktiviteler orada kalmaya devam ediyor, hepsini toplu sil seçeneği gelmeli"):
+    // the head is a row now: the fold toggle + "Clear all" (shown while finished / failed cards exist), never a button inside a button
+    r.innerHTML = '<div class="gx-is-headrow"><button class="gx-is-head" type="button" aria-expanded="true"><span class="gx-is-head-t">Activity</span><span class="gx-is-head-n"></span><span class="gx-is-chev" aria-hidden="true"></span></button>'
+      + '<button class="gx-is-clear" type="button" data-is-act="clear" hidden>Clear all</button></div>'
       + '<div class="gx-is-list" role="list"></div><div class="gx-is-sr" role="status" aria-live="polite"></div>';
     r.querySelector('.gx-is-head').addEventListener('click', () => { _dtIslerKapali = !_dtIslerKapali; _dtIslerElle = !_dtIslerKapali; dtIslerCiz(); });
     r.addEventListener('click', (ev) => {
       const b = ev.target && ev.target.closest ? ev.target.closest('[data-is-act]') : null;
       if (!b) return;
+      if (b.getAttribute('data-is-act') === 'clear') { dtIslerTemizle(); return; }   // GX-ISLER-TEMIZLE
       const card = b.closest('.gx-is-card'), id = card && card.getAttribute('data-is-id'), j = id && _dtIsler.get(id);
       if (!j) return;
       const act = b.getAttribute('data-is-act');
@@ -7127,6 +7190,25 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     });
     document.body.appendChild(r);
     return r;
+  }
+  // GX-ISLER-TEMIZLE: every finished / failed card goes, like its own ×; running and waiting jobs stay. Returns how many went.
+  function dtIslerTemizle() {
+    let n = 0;
+    try {
+      for (const [id, j] of Array.from(_dtIsler.entries())) {
+        if (j.state !== 'done' && j.state !== 'error') continue;
+        _dtIslerGizli.set(id, j.state); _dtIsler.delete(id); n++;
+      }
+      if (n) dtIslerCiz();
+    } catch (e) {}
+    return n;
+  }
+  // the head's count (GX-ISLER-TEMIZLE: failed cards were counted as "ready", 20.11 test showed "10 ready" over ten errors)
+  function dtIslerBaslik(l) {
+    let calisan = 0, hazir = 0, hata = 0;
+    (l || []).forEach((j) => { if (!j) return; if (j.state === 'working' || j.state === 'queued') calisan++; else if (j.state === 'error') hata++; else hazir++; });
+    if (calisan) return calisan + ' running';
+    return [hazir ? hazir + ' ready' : '', hata ? hata + ' failed' : ''].filter(Boolean).join(' · ');
   }
   function dtIslerCardHtml(id, j) {
     const st = j.state === 'queued' || j.state === 'working' || j.state === 'done' || j.state === 'error' ? j.state : 'working';
@@ -7165,7 +7247,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       r.classList.toggle('is-folded', _dtIslerKapali);
       const head = r.querySelector('.gx-is-head');
       head.setAttribute('aria-expanded', _dtIslerKapali ? 'false' : 'true');
-      r.querySelector('.gx-is-head-n').textContent = calisan ? calisan + ' running' : (biten ? biten + ' ready' : '');
+      r.querySelector('.gx-is-head-n').textContent = dtIslerBaslik(l.map(([, j]) => j));
+      const tm = r.querySelector('.gx-is-clear');
+      if (tm) tm.hidden = !biten || _dtIslerKapali;   // GX-ISLER-TEMIZLE
       const list = r.querySelector('.gx-is-list');
       const had = list.contains(document.activeElement) && document.activeElement.closest ? document.activeElement.closest('.gx-is-card') : null;
       const hadId = had ? had.getAttribute('data-is-id') : '';
@@ -7275,6 +7359,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // links past their 15 min say so and offer "Refresh list". Escape steps back (preview → folder) then closes; focus returns to the icon.
   // Off: window.__gxNoGezgin = true.
   const DT_GEZ_RH_W = 68;   // row header width on a claim table: folder icon + number / open
+  const DT_GEZ_RH_W_DAR = 56;   // MOBIL-SIKI: the same on a phone (smaller folder + open buttons, class dt-gez-dar)
   const DT_GEZ_FOLDER_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M1.75 4.25c0-.69.56-1.25 1.25-1.25h3.1l1.4 1.5H13c.69 0 1.25.56 1.25 1.25v6.5c0 .69-.56 1.25-1.25 1.25H3c-.69 0-1.25-.56-1.25-1.25z"/></svg>';
   const DT_GEZ_FILE_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>';
   const DT_GEZ_IMG_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2.75" width="12" height="10.5" rx="1.5"/><circle cx="5.75" cy="6.25" r="1.1"/><path d="M2.5 12l3.5-3.5 2.5 2.5 2-2 3 3"/></svg>';
@@ -7283,7 +7368,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   let _dtGezOpen = false;   // the panel is on screen
   let _dtGezOpener = null;  // the icon that opened it (focus goes back there)
   function dtGezOnTable() { try { return !window.__gxNoGezgin && dtSiraliExtraW() > 0; } catch (e) { return false; } }
-  function dtGezRhW() { return dtGezOnTable() ? DT_GEZ_RH_W : 44; }
+  function dtGezRhW() { return dtGezOnTable() ? (dtMobilSiki() ? DT_GEZ_RH_W_DAR : DT_GEZ_RH_W) : 44; }
+  function dtGezRhSinif(w) {   // the CSS width follows the grid's row header width (GX-GEZGIN 68, MOBIL-SIKI 56)
+    if (!els.wrapper) return;
+    els.wrapper.classList.toggle('dt-gez-on', w > 44);
+    els.wrapper.classList.toggle('dt-gez-dar', w === DT_GEZ_RH_W_DAR);
+  }
   function dtGezIconHtml(raw) {
     if (window.__gxNoGezgin || !dtSiraliOn(raw)) return '';
     return `<button class="dt-rh-gez" type="button" aria-label="Browse documents" title="Browse documents">${DT_GEZ_FOLDER_SVG}</button>`;
@@ -7292,8 +7382,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtGezWiden() {
     try {
       if (!dtGezOnTable()) return;
-      if (els.wrapper) els.wrapper.classList.add('dt-gez-on');
-      if (state.hot && !state.hot.isDestroyed && state.hot.getSettings().rowHeaderWidth !== DT_GEZ_RH_W) state.hot.updateSettings({ rowHeaderWidth: DT_GEZ_RH_W });
+      const w = dtGezRhW();
+      dtGezRhSinif(w);
+      if (state.hot && !state.hot.isDestroyed && state.hot.getSettings().rowHeaderWidth !== w) state.hot.updateSettings({ rowHeaderWidth: w });
     } catch (e) {}
   }
   // "03 - Tutanak 02.pdf" → "Tutanak" (number, extension and repeat counter off)
@@ -8918,7 +9009,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         dtAutoWidth._fam = cs && cs.fontFamily ? cs.fontFamily : 'Inter, system-ui, sans-serif';
       }
       ctx.font = '600 12.5px ' + dtAutoWidth._fam;
-      const head = Math.ceil(ctx.measureText(String(col.header || '')).width) + 92;   // type glyph 16 + caret 12 + gaps + th padding 24 + header slack (measured 29.10: 88 px around the text)
+      let pay = 92; try { if (dtMobilSiki()) pay = 64; } catch (e) {}   // MOBIL-SIKI: no type glyph, smaller padding on a phone
+      const head = Math.ceil(ctx.measureText(String(col.header || '')).width) + pay;   // type glyph 16 + caret 12 + gaps + th padding 24 + header slack (measured 29.10: 88 px around the text)
       ctx.font = dtAutoWidth._font;
       const rows = state.displayRows || [], n = Math.min(rows.length, DT_AUTO_W_SAMPLE), ws = [];
       const chip = col.type === 'dropdown' || col.multiple === true;
@@ -8932,7 +9024,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
       ws.sort((a, b) => a - b);
       const body = ws.length ? ws[Math.min(ws.length - 1, Math.floor(ws.length * 0.9))] + (chip ? 40 : 28) : 0;
-      const w = Math.max(DT_AUTO_W_MIN, Math.min(DT_AUTO_W_MAX, Math.max(head, body)));
+      let enCok = DT_AUTO_W_MAX; try { if (dtMobilSiki()) enCok = DT_AUTO_W_MAX_DAR; } catch (e) {}   // MOBIL-SIKI
+      const w = Math.max(DT_AUTO_W_MIN, Math.min(enCok, Math.max(head, body)));
       const prev = cache[col.id] || 0;
       return (cache[col.id] = Math.max(prev, w));
     } catch (e) { return col.width; }
@@ -8943,9 +9036,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // Şimdi karar çizilen genişlikle verilir; dar ekranda (< 640 px) sabit ilk kolon, satır başlığıyla birlikte ekranın en çok
   // %45'i olur (metin "…" ile kısalır, kayıt kimliği görünür kalır, ekranın yarıdan fazlası kaydırılır). Geniş ekran aynı.
   const DT_NARROW_W = 640, DT_FROZEN_SHARE = 0.45, DT_FROZEN_MIN = 96;
+  // MOBIL-SIKI (23.11, mobil test 20.11: "Plakaların yazıldığı yer ekranı çok dolduruyor", "tablo telefon için çok büyük"): telefonda
+  // sabit bölge (satır başlığı + Plaka) ekranın %45'i → %36–40'ı: satır başlığı 68 → 56 px (klasör + aç düğmesi küçük, sınıf
+  // dt-gez-dar), Plaka en az 96 px (kesilmez), öteki kolonlar en çok 200 px (masaüstünde 320), başlıktaki tür simgesi gizli, satır /
+  // yazı daha sıkı (CSS, aynı ad). Kapatma: window.__gxNoMobilSiki = true (eski %45 / 68 / 320 px; CSS yazı sıkılığı kalır).
+  const DT_FROZEN_SHARE_SIKI = 0.36, DT_FROZEN_MIN_SIKI = 96, DT_AUTO_W_MAX_DAR = 200;   // 96: "34 ABC 1234" kesilmeden sığar
+  function dtMobilSiki() { return !window.__gxNoMobilSiki && dtNarrowView(); }
   function dtContainerW() { return Math.floor(els.container?.clientWidth || 0); }
   function dtNarrowView() { const cw = dtContainerW(); return cw > 0 && cw < DT_NARROW_W; }
-  function dtFrozenCap() { return Math.max(DT_FROZEN_MIN, Math.floor(dtContainerW() * DT_FROZEN_SHARE) - dtGezRhW()); }
+  function dtFrozenCap() {
+    const siki = !window.__gxNoMobilSiki;   // MOBIL-SIKI: yalnız dar ekranda çağrılır
+    return Math.max(siki ? DT_FROZEN_MIN_SIKI : DT_FROZEN_MIN, Math.floor(dtContainerW() * (siki ? DT_FROZEN_SHARE_SIKI : DT_FROZEN_SHARE)) - dtGezRhW());
+  }
   // modifyColWidth (HOT ayarı): dar ekranda sabitlenmiş ilk kolonu tavana indirir; kullanıcının sürüklediği genişlik de dahil
   function dtModifyColWidth(w, col) {
     if (col !== 0 || !(w > 0) || !dtNarrowView()) return w;
@@ -9161,7 +9263,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const holderBefore = els.container.querySelector('.ht_master .wtHolder');
     const scrollBefore = holderBefore ? { top: holderBefore.scrollTop, left: holderBefore.scrollLeft } : null;
 
-    try { if (els.wrapper) els.wrapper.classList.toggle('dt-gez-on', dtGezRhW() > 44); } catch (e) {}   // GX-GEZGIN: wider row header
+    const rhW = dtGezRhW();   // MOBIL-SIKI: one reading for the class and the grid setting below
+    try { dtGezRhSinif(rhW); } catch (e) {}   // GX-GEZGIN: wider row header
     const settings = {
       data: state.displayRows,
       columns: visibleColumns.map(col => {
@@ -9217,7 +9320,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const tooltip = escapeHtml('Due today: ' + (dispRow.__dueTodayLabels || ''));
         return `${head}<span class="dt-row-due-dot" role="img" aria-label="${tooltip}" title="${tooltip}"></span>`;
       },
-      rowHeaderWidth: dtGezRhW(),   // GX-GEZGIN: 68 on a claim table (folder icon + number)
+      rowHeaderWidth: rhW,   // GX-GEZGIN: 68 on a claim table (folder icon + number); MOBIL-SIKI: 56 on a phone
       // Yatay kaydırmada satırın kimliği (ilk alan: plaka, ad …) görünür kalsın
       fixedColumnsStart: getFrozenColumnCount(visibleColumns),
       modifyColWidth: dtModifyColWidth,   // MOBIL-SABIT
