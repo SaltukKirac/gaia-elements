@@ -47544,9 +47544,10 @@ html[data-octo-ws="1"] [data-octo-ws-gutter="1"] { margin-left: 0 !important; }
   html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baUfaHaM,
   html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baVczaM { opacity: 1 !important; }
   /* SEO-UX TMPL-VISIBLE (24.11): while a template setup is in front (html.gx-setup-front, set by _gxRevealSetup),
-     the restored full-screen Bubble menu (z 1504) must not cover the setup chat on a phone. */
-  html.gx-setup-front:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) #sideMenu,
-  html.gx-setup-front:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baUfaHw { visibility: hidden !important; pointer-events: none !important; }
+     the restored full-screen Bubble menu (z 1504) must not cover the setup chat on a phone. Only while the module is
+     really open (:has): any other path that hides the module brings the menu back without touching the class. */
+  html.gx-setup-front:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]):has(#gaia-automation-module:not(.is-hidden)) #sideMenu,
+  html.gx-setup-front:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]):has(#gaia-automation-module:not(.is-hidden)) .baUfaHw { visibility: hidden !important; pointer-events: none !important; }
 }
 /* Classic menu: Bubble menusu sol kenarda cekmece (kendi z'si 1504), bar altta; menuyu kapatan ok gizli
    (kapatilirsa Done sonrasi gorunmez kalirdi). */
