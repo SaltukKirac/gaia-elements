@@ -1354,6 +1354,8 @@
       var a = el.getAttribute(ATTRS[i]);
       if (!a || !/[A-Za-z]/.test(a)) continue;
       var out = tr(a, null, el);
+      // yer tutucu (placeholder) hic musteri verisi degildir: kapsamli sozluk her yerde gecerli (ornek: sol menude "Name")
+      if (out === null && ATTRS[i] === 'placeholder') { var k0 = a.replace(/\s+/g, ' ').trim(); if (Object.prototype.hasOwnProperty.call(SCOPED, k0)) out = SCOPED[k0]; }
       if (out !== null && out !== a) {
         if (skipped(el) && !(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) continue;
         if (el.closest && el.closest(SKIP_SEL + ', table')) continue;
