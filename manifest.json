@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
-    "channel":  "main",
-    "rev":  75,
-    "updated":  "2026-11-23T18:45:12Z",
+    "channel":  "saltuk-tr-tam",
+    "rev":  76,
+    "updated":  "2026-11-24T12:05:37Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -29,12 +29,12 @@
                                   "updated":  "2026-11-23T18:45:12Z"
                               },
                      "lang-tr":  {
-                                     "commit":  "5eac424990d670c7a17ae80604c4f054b32f848d",
+                                     "commit":  "7a20d29f14d75bf130c9e311e74df5e36e394312",
                                      "path":  "el/lang-tr.html",
-                                     "blob":  "c6779999c21d31862eeb04bdb5efbf54fed397a2",
-                                     "bytes":  63953,
+                                     "blob":  "91bbf3ad6e75ce2bdbd877f95943926aa671cfa2",
+                                     "bytes":  81454,
                                      "title":  "Turkish UI layer - app page (auto, no Bubble stub)",
-                                     "updated":  "2026-11-23T18:45:12Z"
+                                     "updated":  "2026-11-24T12:05:37Z"
                                  },
                      "onboarding":  {
                                         "commit":  "f39ee569c4627b019ecd98938b52097296c54535",
@@ -53,12 +53,12 @@
                                      "updated":  "2026-09-24T21:46:46Z"
                                  },
                      "prompt-builder":  {
-                                            "commit":  "6f749e8393441588b6dbc2467a1f2200252e809a",
+                                            "commit":  "7a20d29f14d75bf130c9e311e74df5e36e394312",
                                             "path":  "el/prompt-builder.html",
-                                            "blob":  "83a371e9f4d3357120e2d124d2d0df7506627eae",
+                                            "blob":  "56c2142a1b61aceaffdab0c517a565cc7675a27e",
                                             "bytes":  119482,
                                             "title":  "Prompt Builder - app page",
-                                            "updated":  "2026-11-20T19:22:00Z"
+                                            "updated":  "2026-11-24T12:05:37Z"
                                         },
                      "table":  {
                                    "commit":  "5eac424990d670c7a17ae80604c4f054b32f848d",
