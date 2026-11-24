@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
-    "channel":  "main",
-    "rev":  75,
-    "updated":  "2026-11-23T18:45:12Z",
+    "channel":  "seo-inis-ux",
+    "rev":  76,
+    "updated":  "2026-11-24T15:27:05Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -13,12 +13,12 @@
                                             "updated":  "2026-10-23T10:01:19Z"
                                         },
                      "architect":  {
-                                       "commit":  "78ebd4b30d2905ee2ec7b73ac966c328c93bf559",
+                                       "commit":  "9d8bb221e4d50068c18eab8ec5003ade68d03c44",
                                        "path":  "el/architect.html",
-                                       "blob":  "d436f51dffb9027d4c3c6da61b92228a4bd8e412",
-                                       "bytes":  4269832,
+                                       "blob":  "870ec0b93e9a840ca37059d0bb52e22152fc67d0",
+                                       "bytes":  4272858,
                                        "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-10-27T16:50:45Z"
+                                       "updated":  "2026-11-24T15:27:05Z"
                                    },
                      "form":  {
                                   "commit":  "5eac424990d670c7a17ae80604c4f054b32f848d",
@@ -28,6 +28,14 @@
                                   "title":  "Dynamic form - app page",
                                   "updated":  "2026-11-23T18:45:12Z"
                               },
+                     "guide-ux":  {
+                                      "commit":  "9d8bb221e4d50068c18eab8ec5003ade68d03c44",
+                                      "path":  "el/guide-ux.html",
+                                      "blob":  "154ad40a5b544303be9591b5108217fa4299758f",
+                                      "bytes":  14745,
+                                      "title":  "Guide / app page fixes - /guides/\u003cslug\u003e, /apps/\u003cslug\u003e (auto, no Bubble stub)",
+                                      "updated":  "2026-11-24T15:27:05Z"
+                                  },
                      "lang-tr":  {
                                      "commit":  "5eac424990d670c7a17ae80604c4f054b32f848d",
                                      "path":  "el/lang-tr.html",
@@ -69,12 +77,12 @@
                                    "updated":  "2026-11-23T18:45:12Z"
                                },
                      "template-page":  {
-                                           "commit":  "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
+                                           "commit":  "9d8bb221e4d50068c18eab8ec5003ade68d03c44",
                                            "path":  "el/template-page.html",
-                                           "blob":  "ea4781cce9230c7fff12a9102a770d9e64326336",
-                                           "bytes":  286439,
+                                           "blob":  "9b60ce094eb74b770db2a4869df97450bf35edcc",
+                                           "bytes":  287199,
                                            "title":  "Template detail page (public, /template/\u003cslug\u003e)",
-                                           "updated":  "2026-10-22T09:24:24Z"
+                                           "updated":  "2026-11-24T15:27:05Z"
                                        },
                      "templates-button":  {
                                               "commit":  "b9aef8edee91bc5c6981d3f94130c64f5e160353",
