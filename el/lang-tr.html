@@ -1,5 +1,6 @@
 <!-- GAIA - LANG-TR (17.11.2026): /app arayuzu Turkiye'den girilince Turkce.
-     Karar: ?lang=tr|en (sekmede ve tarayicida hatirlanir) > tarayici dili tr > saat dilimi Europe/Istanbul > Ingilizce.
+     Karar: ?lang=tr|en (tarayicida hatirlanir) > TR / EN dugmesi secimi > saat dilimi Europe/Istanbul (Turkiye) > Ingilizce.
+     (24.11'den beri tarayici dili karar vermez: dil ziyaretcinin bulundugu ulkeye gore.)
      Yalniz arayuz yazilari cevrilir (tam eslesen metin + placeholder / title / aria-label). Musteri verisi CEVRILMEZ:
      tablo (baslik + satirlar), Board kartlari, alan cipleri, form alanlari (#dynamicForm), yazilabilir alanlar, translate="no" / .notranslate / [data-gx-notr].
      Elementlerin kodu degismez; metni ceviri katmani DOM'da degistirir, yeniden cizilen metni MutationObserver yakalar.
@@ -27,9 +28,8 @@
       return { lang: v, why: 'url' };
     }
     try { var s = localStorage.getItem('gx_lang'); if (s === 'tr' || s === 'en') return { lang: s, why: 'saved' }; } catch (e) { /* blocked */ }
-    var first = '';
-    try { first = String((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase(); } catch (e) { first = ''; }
-    if (first.indexOf('tr') === 0) return { lang: 'tr', why: 'browser' };
+    // 24.11 Saltuk: "herkes girdigi ulkenin dilini gormeli" -> karar YALNIZ konumla (saat dilimi). Tarayici dili artik
+    // karar vermez: Turkce tarayicili biri ABD'den girerse Ingilizce gorur; Turkiye'den Ingilizce tarayiciyla giren Turkce.
     var tz = '';
     try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { tz = ''; }
     if (tz === 'Europe/Istanbul' || tz === 'Asia/Istanbul') return { lang: 'tr', why: 'timezone' };
@@ -479,8 +479,6 @@
     'Apps yükleniyor...': 'Uygulama listesi yükleniyor...',
     'Loading apps...': 'Uygulama listesi yükleniyor...',
     'Open the AI Architect panel to add integrations': 'Entegrasyon eklemek için AI Architect panelini açın',
-    'Connect': 'Bağla',
-    'Remove': 'Kaldır',
     'Forces the AI agent to run the selected tools.': 'AI ajanını seçili araçları çalıştırmaya zorlar.',
     'This app is not connected. You are asked to connect it when you press Save.': "Bu uygulama bağlı değil. Kaydet'e basınca bağlantı istenir.",
     'Choose tools': 'Araç seç',
@@ -957,7 +955,136 @@
     'People…': 'Kişiler…',
     'E.g., Summarize incoming customer complaint emails, tag by category, and route to the relevant team.': 'Örn. gelen müşteri şikâyeti e-postalarını özetle, kategoriye göre etiketle ve ilgili ekibe yönlendir.',
     'e.g., Forward to John': "örn. Ahmet'e ilet",
-    'e.g., trigger_abc123 or webhook URL...': 'örn. trigger_abc123 ya da webhook adresi...'
+    'e.g., trigger_abc123 or webhook URL...': 'örn. trigger_abc123 ya da webhook adresi...',
+
+    // ---- 24.11 kalanlar (AITHIA posta paneli, octo kabugu, tablo uyarilari)
+    'Close (Esc)': 'Kapat (Esc)',
+    'Start typing...': 'Yazmaya başlayın...',
+    'Invoice PDF': 'Fatura PDF',
+    'Gaiasphere Extension trigger': 'Gaiasphere eklenti tetikleyicisi',
+    'Not verified for this request:': 'Bu istek için doğrulanmadı:',
+    'The test finished. Not verified:': 'Test bitti. Doğrulanmayanlar:',
+    'Your mail and your files were read. The analysis did not finish this time.': 'Postanız ve dosyalarınız okundu. Analiz bu sefer bitmedi.',
+    'One line about your business': 'İşiniz hakkında tek satır',
+    'Read your lists again': 'Listelerinizi yeniden oku',
+    'Check for changes.': 'Değişiklikleri denetle.',
+    'Working hours': 'Çalışma saatleri',
+    'Check Drive for changed documents': "Drive'da değişen belgeleri denetle",
+    'Index the chosen documents again': 'Seçilen belgeleri yeniden dizinle',
+    'Search your records': 'Kayıtlarınızda arayın',
+    'Working days from stock': 'Stoktan iş günü',
+    'Gmail is not connected, so no draft is prepared until you connect it.': 'Gmail bağlı değil; bağlayana kadar taslak hazırlanmaz.',
+    'What this means:': 'Bunun anlamı:',
+    'Mail scope': 'Posta kapsamı',
+    'What I understood. Everything here is taken from the message.': 'Anladıklarım. Buradaki her şey mesajdan alındı.',
+    'Checks done. This message needs no reply, so no draft was written.': 'Denetimler tamam. Bu mesaj yanıt gerektirmiyor, taslak yazılmadı.',
+    'Checks done. The checks this request needs are done.': 'Denetimler tamam. Bu isteğin gerektirdiği denetimler yapıldı.',
+    'Send email: never. You send the emails.': 'E-posta gönderme: asla. E-postaları siz gönderirsiniz.',
+    'I have not processed a new email yet.': 'Henüz yeni bir e-posta işlemedim.',
+    'Open windows': 'Açık pencereler',
+    'Search commands': 'Komutlarda ara',
+    'Calendar view': 'Takvim görünümü',
+    'Folder path': 'Klasör yolu',
+    'Search Drive': "Drive'da ara",
+    'New field name': 'Yeni alan adı',
+    'Drop files or folders': 'Dosya ya da klasör bırakın',
+    'Waiting for a reply': 'Yanıt bekleniyor',
+    'Suggested questions': 'Önerilen sorular',
+    'Pick one': 'Birini seçin',
+    'Ask Aithia': "Aithia'ya sor",
+    'Mail views': 'Posta görünümleri',
+    'Task groups': 'Görev grupları',
+    'Row number': 'Satır numarası',
+    'Search spreadsheets': 'Elektronik tablolarda ara',
+    'Workspace actions': 'Çalışma alanı eylemleri',
+    'Processes, zoom out': 'Süreçler, uzaklaştır',
+    'Process columns': 'Süreç sütunları',
+    'Workspace name': 'Çalışma alanı adı',
+    'All day': 'Tüm gün',
+    'Manage process': 'Süreci yönet',
+    'Send to': 'Şuraya gönder',
+    'Open WhatsApp': "WhatsApp'ı aç",
+    'No rows': 'Satır yok',
+    'Plan only': 'Yalnız plan',
+    'Not loaded': 'Yüklenmedi',
+    'Run again': 'Yeniden çalıştır',
+    'Name taken': 'Bu ad kullanılıyor',
+    'Office script writes tasks': 'Ofis betiği görev yazar',
+    'Task builder': 'Görev oluşturucu',
+    'Header row': 'Başlık satırı',
+    'Open a table to start': 'Başlamak için bir tablo açın',
+    'Note wake': 'Notla uyandırma',
+    'Wake it with a note.': 'Bir notla uyandırın.',
+    'Rows found': 'Bulunan satırlar',
+    'Files found': 'Bulunan dosyalar',
+    'Zip your folder first': 'Önce klasörünüzü ZIP olarak sıkıştırın',
+    'Create your company': 'Şirketinizi oluşturun',
+    'Files stay on your computer': 'Dosyalar bilgisayarınızda kalır',
+    'Could not finish': 'Bitirilemedi',
+    'Open Gaia to continue': "Devam etmek için Gaia'yı açın",
+    'Keep this page open': 'Bu sayfayı açık tutun',
+    'Due now': 'Zamanı geldi',
+    'Choose an AITHIA package': 'Bir AITHIA paketi seçin',
+    'One subscription, no per-email fees.': 'Tek abonelik, e-posta başına ücret yok.',
+    'The AI that remembers.': 'Hatırlayan yapay zekâ.',
+    'Aithia found it.': 'Aithia buldu.',
+    'Partial results': 'Kısmi sonuçlar',
+    'Draft ready': 'Taslak hazır',
+    'Open draft': 'Taslağı aç',
+    'Preparing draft': 'Taslak hazırlanıyor',
+    'Track reply': 'Yanıtı takip et',
+    'Draft only. You send.': 'Yalnız taslak. Siz gönderirsiniz.',
+    'Last read': 'Son okuma',
+    'Reading your newest emails': 'En yeni e-postalarınız okunuyor',
+    'Waking up the server. This can take up to a minute.': 'Sunucu uyandırılıyor. Bu bir dakika kadar sürebilir.',
+    'Could not load your tasks.': 'Görevleriniz yüklenemedi.',
+    'Hidden file': 'Gizli dosya',
+    'What to do:': 'Ne yapmalı:',
+    'Last contact:': 'Son iletişim:',
+    'Next step:': 'Sonraki adım:',
+    'Next step': 'Sonraki adım',
+    'Change status': 'Durumu değiştir',
+    'Opens in Workspace': 'Çalışma alanında açılır',
+    'No agent yet': 'Henüz ajan yok',
+    'Menu hidden in Bubble': "Menü Bubble'da gizli",
+    'No match': 'Eşleşme yok',
+    'No processes yet': 'Henüz süreç yok',
+    'Add process': 'Süreç ekle',
+    'Classic menu': 'Klasik menü',
+    'No records': 'Kayıt yok',
+    'Back to my view': 'Görünümüme dön',
+    'Find a teammate': 'Ekip arkadaşı bul',
+    'Opening editor': 'Düzenleyici açılıyor',
+    'Pick a workspace above': 'Yukarıdan bir çalışma alanı seçin',
+    'Checking processes': 'Süreçler denetleniyor',
+    'New items start with you': 'Yeni öğeler sizinle başlar',
+    'No lists yet': 'Henüz liste yok',
+    'No workspaces yet': 'Henüz çalışma alanı yok',
+    'Finish or cancel the open sign-in first.': 'Önce açık girişi bitirin ya da iptal edin.',
+    'Too many tries. Please wait a minute and try again.': 'Çok fazla deneme. Bir dakika bekleyip yeniden deneyin.',
+    'Disconnect is not available right now. Please try again later.': 'Bağlantıyı kesme şu an kullanılamıyor. Lütfen sonra yeniden deneyin.',
+    'Could not disconnect': 'Bağlantı kesilemedi',
+    'E.g., send email, post Slack message, call API': "Örn. e-posta gönder, Slack'e mesaj yaz, API çağır",
+    'No record yet': 'Henüz kayıt yok',
+    'Open tab': 'Sekmeyi aç',
+    'Multi file': 'Çoklu dosya',
+    'Date & time': 'Tarih ve saat',
+    'Download all (ZIP)': 'Hepsini indir (ZIP)',
+    'Filters on:': 'Açık filtreler:',
+    'Retry the claim': "Claim'i yeniden dene",
+    'Completing the claim with new documents': 'Claim yeni belgelerle tamamlanıyor',
+    'All documents as one ZIP download, numbered in office order (no folder to pick)': 'Tüm belgeler tek ZIP olarak, ofis sırasıyla numaralı (klasör seçmeden)',
+    'Waiting for the screen id…': 'Ekran kimliği bekleniyor…',
+    'More people': 'Diğer kişiler',
+    'Enter a number.': 'Bir sayı girin.',
+    'Enter a date like 18.11.2026.': '18.11.2026 gibi bir tarih girin.',
+    'Enter yes or no.': 'Evet ya da hayır girin.',
+    'Pick one of the options.': 'Seçeneklerden birini seçin.',
+    'This record is not in the table any more.': 'Bu kayıt artık tabloda değil.',
+    'The file did not open. Open it and drop the files into Document folder.': 'Dosya açılmadı. Açın ve dosyaları belge klasörüne bırakın.',
+    'The helper tab could not start.': 'Yardımcı sekme başlatılamadı.',
+    'This file is not in the table any more.': 'Bu dosya artık tabloda değil.',
+    'The file did not open in the helper tab. Try again.': 'Dosya yardımcı sekmede açılmadı. Yeniden deneyin.'
   };
 
   // Sektor adlari YALNIZ sayili filtre etiketinde cevrilir ("Sales (83)"): tek basina musteri alan adi olabilir.
@@ -997,6 +1124,76 @@
     'Procurement': 'Satın alma'
   };
 
+  // 24.11 KAPSAMLI (inScope): yalniz uygulamanin kendi kutularinda cevrilir (octo kabugu, ajan paneli, tablo / form cubugu,
+  // prompt builder paleti). Arac / tetikleyici adlari burada: musterinin eylem / asama adi olabilir, form ve Bubble listeleri kapsam disi.
+  // Kod karsilastirmasi olanlar BILEREK YOK: Apps, Home, Files, Dropdown, Tab. CTX kelimeleri (Type, Press, Choose) da yok.
+  // Prompt builder icinde Architect TR_EN alt dizeleri ('Veri', 'Alanlar', 'Uygulamalar'...) Turkce karsiliklarda buyuk harfle GECMEZ.
+  var SCOPED = {
+    // octo kabugu / ajan paneli
+    'Schedule': 'Zamanla', 'Change': 'Değiştir', 'Default': 'Varsayılan', 'Later': 'Sonra', 'Start': 'Başlat',
+    'Label': 'Etiket', 'Labels': 'Etiketler', 'Preview': 'Önizleme', 'Signature': 'İmza', 'Timezone': 'Saat dilimi',
+    'Scope': 'Kapsam', 'Verify': 'Doğrula', 'Permissions': 'İzinler', 'Password': 'Parola', 'Security': 'Güvenlik',
+    'Updated': 'Güncellendi', 'Auto': 'Otomatik', 'Light': 'Hafif', 'Standard': 'Standart', 'Advanced': 'Gelişmiş',
+    'Add': 'Ekle', 'Added': 'Eklendi', 'Adding': 'Ekleniyor', 'Messages': 'Mesajlar', 'Message': 'Mesaj', 'Note': 'Not',
+    'Name': 'Ad', 'Address': 'Adres', 'Phone': 'Telefon', 'Category': 'Kategori', 'Website': 'Web sitesi',
+    'Industry': 'Sektör', 'Rating': 'Puan', 'Use': 'Kullan', 'File': 'Dosya', 'Column': 'Sütun', 'List': 'Liste',
+    'Locked': 'Kilitli', 'Desktop': 'Masaüstü', 'Commands': 'Komutlar', 'Assistant': 'Asistan', 'Busy': 'Meşgul',
+    'Calendar': 'Takvim', 'Today': 'Bugün', 'Recent': 'Son', 'Notes': 'Notlar', 'Tasks': 'Görevler', 'Sheet': 'Sayfa',
+    'Autonomy': 'Özerklik', 'Workspace': 'Çalışma alanı', 'Menu': 'Menü', 'Rail': 'Yan panel', 'Folders': 'Klasörler',
+    'Conversation': 'Konuşma', 'Expired': 'Süresi doldu', 'Tracking': 'Takipte', 'Reopen': 'Yeniden aç',
+    'Tables': 'Tablolar', 'Sources': 'Kaynaklar', 'Tabs': 'Sekmeler', 'Processes': 'Süreçler', 'Views': 'Görünümler',
+    'Layout': 'Düzen', 'Automations': 'Otomasyonlar', 'Exports': 'Dışa aktarımlar', 'Dashboard': 'Panel',
+    'Documentation': 'Belgeler', 'Open': 'Aç', 'Sent': 'Gönderildi', 'Wake': 'Uyandır', 'Run': 'Çalıştır',
+    'Approve': 'Onayla', 'Soon': 'Yakında', 'Accept': 'Kabul et', 'Finish': 'Bitir', 'Skipped': 'Atlandı',
+    'Company': 'Şirket', 'Company name': 'Şirket adı', 'Replied': 'Yanıtlandı', 'Snoozed': 'Ertelendi',
+    'Checked': 'Denetlendi', 'Closed': 'Kapandı', 'First': 'İlk', 'Status:': 'Durum:', 'Note:': 'Not:', 'Next:': 'Sıradaki:',
+    'Show': 'Göster', 'Stop': 'Durdur', 'Manual': 'Elle', 'Thinking': 'Düşünüyor', 'Yours': 'Sizinki', 'Stages': 'Aşamalar',
+    'Call': 'Ara', 'You': 'Siz', 'Former': 'Önceki', 'Trigger': 'Tetikleyici', 'Body': 'Gövde', 'Empty': 'Boş', 'Now': 'Şimdi',
+    // tablo cubugu, belgeler cekmecesi, alan ekleme (alan turu cipleri, rol)
+    'Process': 'Süreç', 'Activity': 'Etkinlik', 'Documents': 'Belgeler', 'Multi': 'Çoklu', 'Replace': 'Değiştir',
+    'Hide': 'Gizle', 'People': 'Kişiler', 'Role': 'Rol', 'Value': 'Değer', 'Show field': 'Alanı göster', 'Not added': 'Eklenmedi',
+    'Text': 'Metin', 'Number': 'Sayı', 'Date': 'Tarih', 'Checkbox': 'Onay kutusu', 'Email': 'E-posta', 'Time': 'Saat',
+    'Integer': 'Tam sayı', 'Decimal': 'Ondalık', 'Currency': 'Para birimi', 'Percent': 'Yüzde', 'Boolean': 'Evet / hayır',
+    'Image': 'Görsel', 'User': 'Kullanıcı', 'Reference': 'Referans', 'Textarea': 'Uzun metin', 'Datetime': 'Tarih ve saat',
+    'Enter': 'Girilir', 'Review': 'Kontrol', 'Optional': 'İsteğe bağlı',
+    // arac adlari (ajan araclari / prompt builder paleti)
+    'Send Email': 'E-posta gönder', 'Create Draft': 'Taslak oluştur', 'Reply to Email': 'E-postayı yanıtla',
+    'Fetch Emails': 'E-postaları getir', 'List Threads': 'Yazışmaları listele', 'Add Label': 'Etiket ekle',
+    'Create Label': 'Etiket oluştur', 'Move Email': 'E-postayı taşı', 'Delete Email': 'E-postayı sil',
+    'Send Message': 'Mesaj gönder', 'List Channels': 'Kanalları listele', 'Read Messages': 'Mesajları oku',
+    'Create Channel': 'Kanal oluştur', 'Invite User': 'Kullanıcı davet et', 'Upload File': 'Dosya yükle',
+    'Create Page': 'Sayfa oluştur', 'Update Page': 'Sayfayı güncelle', 'Query Database': 'Bir veritabanını sorgula',
+    'Get Page': 'Sayfayı getir', 'Create Database': 'Yeni veritabanı oluştur', 'List PRs': "PR'ları listele",
+    'Create Issue': 'Kayıt (issue) aç', 'Add Review Comment': 'İnceleme yorumu ekle', 'Get File Contents': 'Dosya içeriğini getir',
+    'Commit File': 'Dosyayı commit et', 'Merge PR': "PR'ı birleştir", 'Create Event': 'Etkinlik oluştur',
+    'List Events': 'Etkinlikleri listele', 'Delete Event': 'Etkinliği sil', 'Update Event': 'Etkinliği güncelle',
+    'Find Free Slots': 'Boş zaman bul', 'Batch Update': 'Toplu güncelle', 'Create Spreadsheet': 'Elektronik tablo oluştur',
+    'Get Spreadsheet Info': 'Tablo bilgisini getir', 'Read Cell': 'Hücreyi oku', 'Insert Row': 'Satır ekle',
+    'Create File': 'Dosya oluştur', 'List Files': 'Dosyaları listele', 'Move File': 'Dosyayı taşı', 'Share File': 'Dosyayı paylaş',
+    'Create Document': 'Belge oluştur', 'Update Document': 'Belgeyi güncelle', 'Get Document': 'Belgeyi getir',
+    'Create Contact': 'Kişi oluştur', 'Create Deal': 'Fırsat oluştur', 'Update Deal': 'Fırsatı güncelle',
+    'List Contacts': 'Kişileri listele', 'Update Issue': 'Kaydı (issue) güncelle', 'List Issues': 'Kayıtları (issue) listele',
+    'Get Issue Details': 'Kayıt (issue) ayrıntısı', 'List Orders': 'Siparişleri listele', 'Create Product': 'Ürün oluştur',
+    'Update Order': 'Siparişi güncelle', 'Get Order': 'Siparişi getir', 'Post Tweet': 'Tweet at', 'Search Tweets': 'Tweet ara',
+    'Timeline': 'Zaman akışı', 'Retweet': 'Retweet', 'Share Post': 'Gönderi paylaş', 'Get Profile': 'Profili getir',
+    'Create Task': 'Görev oluştur', 'Update Task': 'Görevi güncelle', 'List Tasks': 'Görevleri listele',
+    'Create Card': 'Kart oluştur', 'Move Card': 'Kartı taşı', 'List Cards': 'Kartları listele',
+    'Create Record': 'Kayıt oluştur', 'Update Record': 'Kaydı güncelle', 'List Records': 'Kayıtları listele',
+    'Create Lead': 'Potansiyel müşteri oluştur', 'Update Contact': 'Kişiyi güncelle', 'Create Opportunity': 'Fırsat oluştur',
+    // tetikleyici adlari
+    'New Email Received': 'Yeni e-posta geldi', 'Email with Attachment': 'Ekli e-posta', 'Label Added': 'Etiket eklendi',
+    'New Message': 'Yeni mesaj', 'New DM': 'Yeni özel mesaj', 'Channel Created': 'Kanal oluşturuldu',
+    'Page Created': 'Sayfa oluşturuldu', 'Page Updated': 'Sayfa güncellendi', 'New Issue': 'Yeni kayıt (issue)',
+    'New Pull Request': 'Yeni pull request', 'New Commit': 'Yeni commit', 'New Event': 'Yeni etkinlik',
+    'Event Updated': 'Etkinlik güncellendi', 'New Contact': 'Yeni kişi', 'New Deal': 'Yeni fırsat',
+    'Deal Stage Changed': 'Fırsat aşaması değişti', 'New Order': 'Yeni sipariş', 'Order Paid': 'Sipariş ödendi',
+    'New Customer': 'Yeni müşteri', 'New Payment': 'Yeni ödeme', 'Payment Failed': 'Ödeme başarısız', 'New Card': 'Yeni kart',
+    'Card Moved': 'Kart taşındı', 'Issue Updated': 'Kayıt (issue) güncellendi', 'New Task': 'Yeni görev',
+    'Task Completed': 'Görev tamamlandı', 'New Record': 'Yeni kayıt', 'Record Updated': 'Kayıt güncellendi',
+    'New File': 'Yeni dosya', 'File Updated': 'Dosya güncellendi', 'New Member': 'Yeni üye', 'New Mention': 'Yeni anma',
+    'New Follower': 'Yeni takipçi'
+  };
+
   // Parcali cumleler (klavye cipinin iki yani): kelime yalniz ayni ebeveynde isaret metni varsa cevrilir.
   var CTX = {
     'Type': [['in the prompt or click', 'yazın ya da'], 'Yeni alan için komut metnine'],
@@ -1019,6 +1216,9 @@
     // tablo Activity paneli basligi: "3 running" / "2 ready · 8 failed" (23.11)
     [/^(\d+) running$/, function (m) { return m[1] + ' çalışıyor'; }],
     [/^(?:(\d+) ready)?(?: · )?(?:(\d+) failed)?$/, function (m) { if (!m[1] && !m[2]) return null; return [m[1] ? m[1] + ' hazır' : '', m[2] ? m[2] + ' başarısız' : ''].filter(Boolean).join(' · '); }],
+    // hata ekleri: "Invalid JSON: Unexpected token" / "Save failed: 500" (24.11)
+    [/^Invalid JSON: (.+)$/, function (m) { return 'Geçersiz JSON: ' + m[1]; }],
+    [/^Save failed: (.+)$/, function (m) { return 'Kaydedilemedi: ' + m[1]; }],
     // tablo silme dugmesi: "Delete 3 selected"
     [/^Delete (\d+) selected$/, function (m) { return m[1] + ' seçili kaydı sil'; }],
     // "50 / 0 integrations loaded"
@@ -1035,10 +1235,36 @@
     }]
   ];
 
-  function tr(raw, ctxEl) {
+  // ---- 24.11 KAPSAMLI SOZLUK: tek kelimelik / musteri adi olabilecek metinler YALNIZ uygulamanin kendi arayuz kutusundaysa cevrilir
+  // (kendisi ya da bir atasi, body / html haric, bu oneklerle baslayan id / sinif tasir). Sablon kartlari (tmpl-) bilerek yok.
+  var SCOPE_PFX = ['octo', 'gad-', 'gad_', 'hub-', 'gas-', 'dt-', 'gx-', 'bdf', 'aithia', 'tool-', 'palette', 'pal-', 'ptab', 'tpp-', 'rpp-', 'fcw-'];
+  function hasPfx(s) {
+    for (var i = 0; i < SCOPE_PFX.length; i++) { if (s.lastIndexOf(SCOPE_PFX[i], 0) === 0) return true; }
+    return false;
+  }
+  var scopeCache = typeof WeakMap === 'function' ? new WeakMap() : null;
+  function inScope(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (scopeCache && scopeCache.has(el)) return scopeCache.get(el);
+    var r = false;
+    for (var p = el; p && p.nodeType === 1 && p !== D.body && p !== D.documentElement; p = p.parentNode) {
+      if (p.id && hasPfx(p.id)) { r = true; break; }
+      var c = p.className;
+      if (typeof c === 'string' && c) {
+        var parts = c.split(/\s+/);
+        for (var i = 0; i < parts.length; i++) { if (parts[i] && hasPfx(parts[i])) { r = true; break; } }
+        if (r) break;
+      }
+    }
+    if (scopeCache) scopeCache.set(el, r);
+    return r;
+  }
+
+  function tr(raw, ctxEl, scopeEl) {
     var t = raw.replace(/\s+/g, ' ').trim();
     if (!t || t.length > 200) return null;
     if (Object.prototype.hasOwnProperty.call(T, t)) return T[t];
+    if (scopeEl && Object.prototype.hasOwnProperty.call(SCOPED, t) && inScope(scopeEl)) return SCOPED[t];
     if (ctxEl && Object.prototype.hasOwnProperty.call(CTX, t)) {
       var c = CTX[t];
       for (var e = ctxEl, up = 0; e && e.nodeType === 1 && up < 3; e = e.parentNode, up++) {
@@ -1061,13 +1287,22 @@
     // form kodu metni karsilastirir / surekli yeniden yazar (18.11 titreme; KLASOR akisi "Edit" metniyle dugmeyi bulur)
     '#toggleInlineEdit, ' +
     // prompt builder sekme adini degisince hemen geri yazar (Apps / Fields)
-    '.palette-fs-tab';
+    '.palette-fs-tab, ' +
+    // tablo filtre listesi musteri hucre degerlerini gosterir (24.11)
+    '#dt-filter-values';
   var skipCache = typeof WeakMap === 'function' ? new WeakMap() : null;
+  function selOk(el) {
+    var s = el.tagName === 'SELECT' ? el : (el.closest ? el.closest('select') : null);
+    if (!s || !inScope(s)) return false;
+    try { return !s.closest(SKIP_SEL); } catch (e) { return false; }
+  }
   function skipped(el) {
     if (!el || el.nodeType !== 1) return true;
     if (skipCache && skipCache.has(el)) return skipCache.get(el);
     var r = false;
     for (var p = el; p && p.nodeType === 1; p = p.parentNode) {
+      // uygulamanin kendi acilir listesi (ornek: tablo filtre kosulu) cevrilir; musteri listeleri (form, Bubble) degil
+      if ((p.tagName === 'OPTION' || p.tagName === 'SELECT') && selOk(p)) continue;
       if (SKIP_TAG[p.tagName]) { r = true; break; }
     }
     if (!r) { try { r = !!el.closest(SKIP_SEL); } catch (e) { r = false; } }
@@ -1103,7 +1338,7 @@
     if (!v || v.length > 200 || !/[A-Za-z]/.test(v)) return;
     var p = n.parentNode;
     if (!p) return;
-    var out = tr(v, p);
+    var out = tr(v, p, p);
     if (out === null) return;
     if (skipped(p)) return;
     var lead = /^\s*/.exec(v)[0], tail = /\s*$/.exec(v)[0];
@@ -1119,7 +1354,9 @@
     for (var i = 0; i < ATTRS.length; i++) {
       var a = el.getAttribute(ATTRS[i]);
       if (!a || !/[A-Za-z]/.test(a)) continue;
-      var out = tr(a);
+      var out = tr(a, null, el);
+      // yer tutucu (placeholder) hic musteri verisi degildir: kapsamli sozluk her yerde gecerli (ornek: sol menude "Name")
+      if (out === null && ATTRS[i] === 'placeholder') { var k0 = a.replace(/\s+/g, ' ').trim(); if (Object.prototype.hasOwnProperty.call(SCOPED, k0)) out = SCOPED[k0]; }
       if (out !== null && out !== a) {
         if (skipped(el) && !(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) continue;
         if (el.closest && el.closest(SKIP_SEL + ', table')) continue;
@@ -1135,12 +1372,13 @@
     if (root.nodeType === 3) { doText(root); return; }
     if (root.nodeType !== 1 && root.nodeType !== 11) return;
     if (root.nodeType === 1) {
-      if (SKIP_TAG[root.tagName] && root.tagName !== 'INPUT' && root.tagName !== 'TEXTAREA') return;
+      if (SKIP_TAG[root.tagName] && root.tagName !== 'INPUT' && root.tagName !== 'TEXTAREA' && !((root.tagName === 'SELECT' || root.tagName === 'OPTION') && selOk(root))) return;
       doAttrs(root);
     }
     var w = D.createTreeWalker(root, 1 | 4, {
       acceptNode: function (n) {
-        if (n.nodeType === 1 && SKIP_TAG[n.tagName] && n.tagName !== 'INPUT' && n.tagName !== 'TEXTAREA') return 2; // REJECT alt agac
+        if (n.nodeType === 1 && SKIP_TAG[n.tagName] && n.tagName !== 'INPUT' && n.tagName !== 'TEXTAREA' &&
+            !((n.tagName === 'SELECT' || n.tagName === 'OPTION') && selOk(n))) return 2; // REJECT alt agac
         return 1;
       }
     });
@@ -1156,6 +1394,7 @@
     gen++;
     var list = pend; pend = [];
     if (skipCache) skipCache = new WeakMap();   // DOM tasindi: atlama kararlarini tazele
+    if (scopeCache) scopeCache = new WeakMap();
     for (var i = 0; i < list.length; i++) {
       var n = list[i];
       if (n.isConnected === false) continue;
