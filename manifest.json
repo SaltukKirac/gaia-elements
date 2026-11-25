@@ -1,8 +1,8 @@
 {
   "repo": "SaltukKirac/gaia-elements",
-  "channel": "main",
-  "rev": 76,
-  "updated": "2026-11-25T09:00:20Z",
+  "channel": "geri-bildirim-2511",
+  "rev": 77,
+  "updated": "2026-11-25T17:28:00Z",
   "elements": {
     "aithia-pricing": {
       "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -21,20 +21,20 @@
       "updated": "2026-10-27T16:50:45Z"
     },
     "form": {
-      "commit": "28895eecb42d270954f61fc8954df9b9c4873905",
+      "commit": "15ef733b24dfc294f2fcc9b83a2c11e154919a72",
       "path": "el/form.html",
-      "blob": "78dc05d001b25308414cb1422d970d183f8437fa",
-      "bytes": 1056729,
+      "blob": "ea74b442414bc46e56f81db2835b67a65b93a6c2",
+      "bytes": 1066183,
       "title": "Dynamic form - app page",
-      "updated": "2026-11-25T09:00:20Z"
+      "updated": "2026-11-25T17:28:00Z"
     },
     "lang-tr": {
-      "commit": "5eac424990d670c7a17ae80604c4f054b32f848d",
+      "commit": "15ef733b24dfc294f2fcc9b83a2c11e154919a72",
       "path": "el/lang-tr.html",
-      "blob": "c6779999c21d31862eeb04bdb5efbf54fed397a2",
-      "bytes": 63953,
+      "blob": "5cd123249f17ac7d29c7773332b36826beeddcab",
+      "bytes": 82300,
       "title": "Turkish UI layer - app page (auto, no Bubble stub)",
-      "updated": "2026-11-23T18:45:12Z"
+      "updated": "2026-11-25T17:28:00Z"
     },
     "onboarding": {
       "commit": "f39ee569c4627b019ecd98938b52097296c54535",
@@ -61,12 +61,12 @@
       "updated": "2026-11-20T19:22:00Z"
     },
     "table": {
-      "commit": "5eac424990d670c7a17ae80604c4f054b32f848d",
+      "commit": "15ef733b24dfc294f2fcc9b83a2c11e154919a72",
       "path": "el/table.html",
-      "blob": "01f80828bb25f1925c5bbe72e0391d7bf72ab29d",
-      "bytes": 992097,
+      "blob": "ffcc68bb81e75d7593ef1a476f005bbf5451446c",
+      "bytes": 1003540,
       "title": "Dynamic table (tablev2) - app page",
-      "updated": "2026-11-23T18:45:12Z"
+      "updated": "2026-11-25T17:28:00Z"
     },
     "template-page": {
       "commit": "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
