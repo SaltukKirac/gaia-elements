@@ -2700,6 +2700,30 @@
   }
 }
 
+/* GB-SADE (25.11, uygulama geri bildirimi, telefon: "tablo çok dolu, biraz sadeleştirilebilir" + "bazı yerler sayfa dışına
+   çıkıyor"): with a selection the toolbar's right group ("1 seçili" · Sil · Süreç · ··· · ✦ · + Yeni) was ~440 px on a 366 px
+   row: "+ Yeni" ran off the screen and "1 selected" broke into two lines. On a phone the group may wrap (never past the edge),
+   its buttons are tighter and the count stays on one line. The grid's touch selection handles (the two blue circles on the
+   selected cell, for dragging a range) are gone on touch screens: the tap selects, the toolbar acts. Off: window.__gxNoSade. */
+@media (max-width: 640px) {
+  #dynamic-table-wrapper:not(.dt-no-sade) .dt-toolbar { padding: 8px 10px; gap: 6px; }
+  #dynamic-table-wrapper:not(.dt-no-sade) .dt-toolbar-right { flex-wrap: wrap; justify-content: flex-end; gap: 4px; min-width: 0; max-width: 100%; }
+  #dynamic-table-wrapper:not(.dt-no-sade) .dt-selection-count { white-space: nowrap; font-size: 12px; }
+  #dynamic-table-wrapper:not(.dt-no-sade) #dt-btn-stage { padding: 0 8px; gap: 5px; }
+  #dynamic-table-wrapper:not(.dt-no-sade) #dt-btn-new { padding: 0 10px 0 8px; }
+  #dynamic-table-wrapper:not(.dt-no-sade) #dt-btn-wake { padding: 0 11px; }
+}
+@media (hover: none) and (pointer: coarse) {
+  #dynamic-table-wrapper:not(.dt-no-sade) .handsontable .topLeftSelectionHandle,
+  #dynamic-table-wrapper:not(.dt-no-sade) .handsontable .bottomRightSelectionHandle,
+  #dynamic-table-wrapper:not(.dt-no-sade) .handsontable .topLeftSelectionHandle-HitArea,
+  #dynamic-table-wrapper:not(.dt-no-sade) .handsontable .bottomRightSelectionHandle-HitArea { display: none !important; }
+}
+/* GB-OK (25.11): the end column's header — "···" then "+" at the table's outer edge (see dtHeaderActionsHtml) */
+#dynamic-table-wrapper .dt-colheader-content--actions.dt-colheader-content--ok { justify-content: flex-end; min-width: 76px; box-sizing: border-box; padding-left: 0; padding-right: 2px; }
+#dynamic-table-wrapper .dt-colheader-content--ok .dt-colheader-actions { gap: 2px; }
+#dynamic-table-wrapper .dt-colheader-content--ok .dt-header-action-btn[data-header-action="add"] { color: var(--gx-primary, #6366f1); font-weight: 600; }
+
 #dynamic-table-wrapper .dt-img-thumb { display: none; }
 
 #dynamic-table-wrapper .dt-check {
@@ -4770,6 +4794,26 @@
   const UI_ACTIONS_COL_ID = '__dt_actions__';
   const ROW_OPEN_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"/></svg>';
   const ROW_HEADER_OPEN_HTML = `<button class="dt-row-open dt-rh-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
+  /* GB-OK (25.11, uygulama geri bildirimi: "tablonun en sağında ve solunda oklar var, ne işe yaradığı anlaşılmıyor" + "aynı alanda
+     '+' işareti çok kötü bir yerde, daha kenarda olabilir"): both arrows opened the same record. The left one (row header,
+     always in view) stays and draws the "expand" mark (two corner arrows, the usual "open this row" sign) with its name in
+     the viewer's language ("Kaydı aç"); the right one (the end column) is gone, so the end column holds only Fill / PDF /
+     Folder on a claim table and the header's "+" (Add field) sits at the table's outer edge, after "···" (Manage fields).
+     Off: window.__gxNoOk = true (the old chevron on both sides, "+" first). */
+  const ROW_OPEN_SVG_OK = '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 9 7"/><path d="M6.5 13.5h-4v-4"/><path d="M2.5 13.5 7 9"/></svg>';
+  function dtOkOn() { try { return !window.__gxNoOk; } catch (e) { return true; } }
+  function dtRowOpenLabel() { return dtStageT('Open record', 'Kaydı aç'); }
+  function dtRowHeaderOpenHtml() {
+    if (!dtOkOn()) return ROW_HEADER_OPEN_HTML;
+    const t = escapeHtml(dtRowOpenLabel());
+    return `<button class="dt-row-open dt-rh-open dt-row-open--ok" type="button" aria-label="${t}" title="${t}">${ROW_OPEN_SVG_OK}</button>`;
+  }
+  function dtHeaderActionsHtml() {
+    const add = dtStageT('Add field', 'Alan ekle'), man = dtStageT('Manage fields', 'Alanları yönet');
+    const plus = `<button class="dt-header-action-btn" data-header-action="add" type="button" aria-label="${escapeHtml(add)}" title="${escapeHtml(add)}">+</button>`;
+    const dots = `<button class="dt-header-action-btn dt-header-action-btn--manage" data-header-action="manage" type="button" aria-label="${escapeHtml(man)}" title="${escapeHtml(man)}"><svg class="dt-manage-dots" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.9"></circle><circle cx="12" cy="12" r="1.9"></circle><circle cx="18" cy="12" r="1.9"></circle></svg></button>`;
+    return `<span class="dt-colheader-content dt-colheader-content--actions dt-colheader-content--ok"><span class="dt-colheader-actions">${dots}${plus}</span></span>`;
+  }
   const BLANK_VALUE_TOKEN = '__DT_BLANK__';
 const COLUMN_WIDTH_MULTIPLIER = 1.25;
   const HANDSONTABLE_SCRIPT_SOURCES = [
@@ -9263,6 +9307,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const holderBefore = els.container.querySelector('.ht_master .wtHolder');
     const scrollBefore = holderBefore ? { top: holderBefore.scrollTop, left: holderBefore.scrollLeft } : null;
 
+    try { if (els.wrapper) els.wrapper.classList.toggle('dt-no-sade', !!window.__gxNoSade); } catch (e) {}   // GB-SADE: the off switch
     const rhW = dtGezRhW();   // MOBIL-SIKI: one reading for the class and the grid setting below
     try { dtGezRhSinif(rhW); } catch (e) {}   // GX-GEZGIN: wider row header
     const settings = {
@@ -9277,6 +9322,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
               // GX-FILL: "Fill on portal" before "Open record" on a row with a claim package (or one that may have it)
               let fill = '', sirali = '';
               try { const p = instance.toPhysicalRow(visualRow), dr = state.displayRows[p], raw = dr ? state.rawRows[dr.__sourceIndex] : null; fill = dtFillButtonHtml(dtFillState(raw)); sirali = dtSiraliHtml(raw); } catch (e) { fill = ''; sirali = ''; }   // GX-SIRALI: PDF / Klasör after Fill
+              if (dtOkOn()) { td.innerHTML = fill + sirali; return; }   // GB-OK: the row header's open button is the one way in
               td.innerHTML = fill + sirali + `<button class="dt-row-open" type="button" aria-label="Open record" title="Open record">${ROW_OPEN_SVG}</button>`;
             }
           };
@@ -9295,6 +9341,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // T3: no HOT checkbox cell meta (it rendered '#bad-value#' for yes/Evet/on); the typed ✓ renderer shows booleans
       colHeaders: index => {
         const col = visibleColumns[index];
+        if (col?.__uiOnly && dtOkOn()) return dtHeaderActionsHtml();   // GB-OK: "···" then "+" at the outer edge, names in the viewer's language
         if (col?.__uiOnly) {
           return '<span class="dt-colheader-content dt-colheader-content--actions"><span class="dt-colheader-actions"><button class="dt-header-action-btn" data-header-action="add" type="button" aria-label="Add field" title="Add field">+</button><button class="dt-header-action-btn dt-header-action-btn--manage" data-header-action="manage" type="button" aria-label="Manage field" title="Manage field"><svg class="dt-manage-dots" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.9"></circle><circle cx="12" cy="12" r="1.9"></circle><circle cx="18" cy="12" r="1.9"></circle></svg></button></span></span>';
         }
@@ -9311,7 +9358,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const dispRow = state.displayRows[physIdx >= 0 ? physIdx : index];
         let gez = '';   // GX-GEZGIN: the record's documents, first thing on the row
         try { gez = (dispRow && dtGezOnTable()) ? dtGezIconHtml(state.rawRows[dispRow.__sourceIndex]) : ''; } catch (e) { gez = ''; }
-        const head = `${gez}<span class="dt-rh-num">${index + 1}</span>${ROW_HEADER_OPEN_HTML}`;
+        const head = `${gez}<span class="dt-rh-num">${index + 1}</span>${dtRowHeaderOpenHtml()}`;   // GB-OK
         if (!state.dueDateSort.active || state.dueDateSort.fields.length === 0) {
           return head;
         }
@@ -9846,15 +9893,27 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const col = state.columns.find(c => c.id === key || (Array.isArray(c.sourceKeys) && c.sourceKeys.includes(key)));
         return {
           key,
-          label: col?.header || key,
+          label: col?.header || dtSysFieldLabel(key),   // GB-SISTEM-ADI
           sample: samples[key] ? formatDateValue(samples[key]) : ''
         };
       });
   }
 
+  /* GB-SISTEM-ADI (25.11, uygulama geri bildirimi: "Son tarih alanlarını seçin kısmında _created ve _modified ifadelerinin
+     değişmesi lazım, profesyonel değil"): the mirror's system dates get a person's name in the due-date field list and the
+     "Due today" note; the stored key (what the sort uses) does not change. Off: window.__gxNoSistemAdi = true. */
+  function dtSysFieldLabel(key) {
+    try {
+      if (window.__gxNoSistemAdi) return key;
+      if (key === '_created') return dtStageT('Created date', 'Oluşturulma tarihi');
+      if (key === '_modified') return dtStageT('Last modified', 'Son değişiklik tarihi');
+    } catch (e) {}
+    return key;
+  }
+
   function getFieldLabel(key) {
     const col = state.columns.find(c => c.id === key || (Array.isArray(c.sourceKeys) && c.sourceKeys.includes(key)));
-    return col?.header || key;
+    return col?.header || dtSysFieldLabel(key);   // GB-SISTEM-ADI
   }
 
   // Her satır için öncelik anahtarı döndürür:
@@ -10187,6 +10246,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   const AYNA = { windowSize: 200, fullLoadMax: 600, pageSize: 1500, maxRows: 20000, timeoutMs: 45000, screenWaitMs: 30000, renderEveryMs: 1200, cacheTtlMs: 10 * 60000, pageCacheTtlMs: 2 * 60000,
                  loading: false, seq: 0, last: null, stats: null, screenKey: '', cfg: null, cache: new Map(),
                  win: null, criteria: { where: null, text: '', order_by: '' }, critKey: '', pageCache: new Map(), cacheGen: 0, distinct: new Map(), hooked: [], fields: [] };
+  /* GB-YENI-USTTE (25.11, uygulama geri bildirimi: "son eklenen eleman tablonun başına yazılsa daha iyi olur"). With no sort of
+     the viewer's own (column sort / due-date sort) a mirror screen lists its NEWEST record first: every row request carries
+     query.order_by = '_created desc' (the server's default was '_created asc'; its top-level offset / limit still page), the
+     window pages ask the same, and a just-saved row (GX-PEND) goes on top of page 1. A column sort or the due-date sort wins
+     as before (order_by from the grid). Bubble rows (config.data) keep Bubble's own order.
+     Off: window.__gxNoYeniUstte = true (oldest first, as before). */
+  function aynaYeniUstte() { try { return !window.__gxNoYeniUstte; } catch (e) { return true; } }
+  function aynaDefOrder() { return aynaYeniUstte() ? '_created desc' : '_created asc'; }
+  function aynaOrderQuery() { return aynaYeniUstte() ? { order_by: '_created desc' } : undefined; }   // a whole-screen page: offset / limit stay top-level
   /* TIDY-KEEP (29.10, Ömer): the memory cache dies with the page, so a reload while the free-plan server sleeps showed an
      EMPTY grid for 30-60 s ("The Gaia server is waking up"), as if the records were gone. Every cache write is now also kept
      in this TAB's sessionStorage (gone when the tab closes; never localStorage), keyed by the signed-in Bubble user
@@ -10781,11 +10849,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return true;
     });
     if (dirty) { _dtPend = keep; dtPendSave(); }
-    if (aynaWindowed() && (AYNA.win.page !== aynaPages() || AYNA.criteria.where || AYNA.criteria.text)) return base;   // a filtered / earlier page: the new row belongs elsewhere
+    const top = aynaYeniUstte() && !(AYNA.criteria && AYNA.criteria.order_by);   // GB-YENI-USTTE: newest first → the new row is the first one of page 1
+    if (aynaWindowed() && (AYNA.win.page !== (top ? 1 : aynaPages()) || AYNA.criteria.where || AYNA.criteria.text)) return base;   // a filtered / other page: the new row belongs elsewhere
     const add = keep.filter(e => e.key === key && !e.del).map(e => Object.assign({}, e.row, e.fail ? { __gxDelFail: true } : {}));
     const held = dtPendHeld(base, keep, key);   // GX-PEND-SIL: the mirror's row of a record being deleted stays off the grid
     const out = held.size ? base.filter((r, i) => !held.has(i)) : base;
-    return add.length ? out.concat(add) : out;
+    if (top && add.length) add.reverse();   // the newest save first
+    return add.length ? (top ? out.slice(0, 0).concat(add, out) : out.concat(add)) : out;
   }
   // the form's submit (aynaSaveWatch): a create → the row from its fields, painted now
   function dtPendFromSubmit(payload) {
@@ -11519,7 +11589,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function aynaPages() { return AYNA.win ? Math.max(1, Math.ceil((AYNA.win.total || 0) / AYNA.win.size)) : 1; }
   function aynaGoPage(n) { if (!aynaWindowed()) return; const p = Math.max(1, Math.min(aynaPages(), Number(n) || 1)); if (p === AYNA.win.page) return; AYNA.win.page = p; aynaRequery(); }
   function aynaSetPageSize(size) { if (!aynaWindowed()) return; const s = Math.max(50, Math.min(2000, Number(size) || 200)); if (s === AYNA.win.size) return; AYNA.win.size = s; AYNA.win.page = 1; AYNA.cacheGen++; AYNA.pageCache.clear(); aynaRequery(); }
-  function aynaQueryFor(page) { const size = AYNA.win.size, offset = (page - 1) * size; const q = { limit: size, offset: offset, order_by: AYNA.criteria.order_by || '_created asc' }; if (AYNA.criteria.where) q.where = AYNA.criteria.where; if (AYNA.criteria.text) q.text = AYNA.criteria.text; return q; }
+  function aynaQueryFor(page) { const size = AYNA.win.size, offset = (page - 1) * size; const q = { limit: size, offset: offset, order_by: AYNA.criteria.order_by || aynaDefOrder() };   /* GB-YENI-USTTE */ if (AYNA.criteria.where) q.where = AYNA.criteria.where; if (AYNA.criteria.text) q.text = AYNA.criteria.text; return q; }
   async function aynaFetchPage(scr, page, ctrl, onWait) {
     // the key carries the screen and a generation (bumped by every load / cancel / page-size change): a page answer that
     // lands after the screen changed or the cache was cleared can never be served as a page of the next screen (review finding)
@@ -11606,7 +11676,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       AYNA.screenKey = scr.key;
       // mr17: the first request leaves BEFORE the grid is built (the empty grid, or the cached page, is painted while it travels)
       // mr18: seeded → the first request carries the current where / text / order_by exactly as aynaRequery sends them
-      const seedQuery = seeded ? Object.assign({ limit: AYNA.windowSize, offset: 0, order_by: seed.order_by || '_created asc' }, seed.where ? { where: seed.where } : {}, seed.text ? { text: seed.text } : {}) : undefined;
+      const seedQuery = seeded ? Object.assign({ limit: AYNA.windowSize, offset: 0, order_by: seed.order_by || aynaDefOrder() }, seed.where ? { where: seed.where } : {}, seed.text ? { text: seed.text } : {}) : aynaOrderQuery();   // GB-YENI-USTTE
       // mr21: retried while a sleeping server boots (the status line says so); a newer load stops the retries
       const live = () => seq === AYNA.seq && aynaAlive();
       const onWait = (a, max) => { if (!live()) return; let n = 0; try { n = painted ? (rows.length || (cached ? cached.rows.length : 0)) : 0; } catch (e) { n = 0; } aynaSetStatus('waking', { attempt: a, max: max, keptAt: AYNA.keptAt, rows: n }); };
@@ -11628,7 +11698,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       aynaProgress(3);
       while (offset < AYNA.maxRows) {
         const limit = offset === 0 ? AYNA.windowSize : AYNA.pageSize;
-        const r = offset === 0 ? await firstReq : await aynaScreenCall({ screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: limit, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined }, null, live, onWait);
+        const r = offset === 0 ? await firstReq : await aynaScreenCall({ screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: limit, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined, query: aynaOrderQuery() }, null, live, onWait);   // GB-YENI-USTTE: the same order as page 1
         if (seq !== AYNA.seq || !aynaAlive()) return;
         if (!r.ok) {
           AYNA.last = r;
@@ -11830,10 +11900,22 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function aynaLivePainted() { return Array.isArray(AYNA.painted) ? AYNA.painted : state.rawRows.map(r => { const o = Object.assign({}, r); delete o.__sourceIndex; return o; }); }
   // the live repaint: same soft fade as aynaPaint, on timers instead of animation frames (a frame may never come in a
   // throttled / headless page, and the rows must not wait for one: AYNA.painted already says they are on screen)
+  /* GB-SAKIN (25.11, uygulama geri bildirimi: "sayfa çok yenilendiği için ne gözlem yapılabiliyor ne işlem"). A screen whose
+     rows change often (an hourly / 5-minute job writing many records, the claim line) was repainted with a visible dip (the
+     grid faded to 72 % and back) at every change, also while the viewer was scrolling or reading a row on the phone.
+     Now a live repaint (rows written elsewhere) is silent: no fade, the grid only takes the new values; and it waits while the
+     viewer scrolls, swipes or uses the wheel (4 s after the last movement), as it already waited for a press or typing.
+     The viewer's own loads (a new screen, a search, a page) look as before. Off: window.__gxNoSakin = true. */
+  const DT_SAKIN_MS = 4000;
+  function dtSakinOn() { try { return !window.__gxNoSakin; } catch (e) { return true; } }
   function aynaLivePaint(rows, columns) {
     rows = dtDirectApply(dtPendMerge(dtGoneFilter(rows)));   // GX-GONE + GX-PEND + GX-DIRECT
     AYNA.painted = rows;
     const gen = AYNA.paintGen = (AYNA.paintGen || 0) + 1;   // shared with aynaPaint: the newest paint wins
+    if (dtSakinOn()) {   // GB-SAKIN: no dip, same timer path (a throttled tab still paints)
+      setTimeout(() => { if (gen === AYNA.paintGen) { refreshTable(rows); aynaHookHot(); } }, 16);
+      return;
+    }
     const c = els && els.container;
     try { if (c) { c.style.transition = 'opacity .18s ease'; c.style.opacity = '0.72'; } } catch (e) {}
     setTimeout(() => {
@@ -11886,6 +11968,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (state.pendingFields && state.pendingFields.size) return true;   // mr18: a field write in flight
       if (state.activeHeaderColumn !== null && state.activeHeaderColumn !== undefined) return true;   // a column menu is open
       if (L.downAt && now - L.downAt < 10000) return true;   // a press / drag (selection, column move, resize)
+      if (dtSakinOn() && L.scrollAt && now - L.scrollAt < DT_SAKIN_MS) return true;   // GB-SAKIN: scrolling / swiping / reading on the move
       const ae = document.activeElement, wr = els && els.wrapper;
       if (ae && wr && wr.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && now - L.keyAt < 2500) return true;   // typing in the table's boxes
       if (aynaWindowed() && els.search && els.search.value.trim().length === 1) return true;   // one character is "not a search yet": applySearch would not remount
@@ -11913,7 +11996,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const t0 = Date.now(), cfg = AYNA.cfg;
     let rows = [], offset = 0, total = 0, d = null;
     while (offset < AYNA.maxRows) {
-      const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: offset === 0 ? AYNA.windowSize : AYNA.pageSize, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined }, null, { timeoutMs: AYNA.timeoutMs });
+      const r = await aynaBridge('mirror_screen', { screen_id: scr.screen, stage: scr.stage, list: scr.list, offset: offset, limit: offset === 0 ? AYNA.windowSize : AYNA.pageSize, fresh: false, shape: 'columnar', fields: AYNA.fields.length ? AYNA.fields : undefined, query: aynaOrderQuery() }, null, { timeoutMs: AYNA.timeoutMs });   // GB-YENI-USTTE: same order as aynaLoad
       if (seq0 !== AYNA.seq || !aynaAlive() || AYNA.cfg !== cfg) return { gone: true };
       if (!r.ok || !aynaIsPage(r.data)) return { error: true };
       d = r.data;
@@ -12057,6 +12140,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const now = Date.now(), wasIdle = now - L.input > AYNA_LIVE.idleAfterMs;
         L.input = now;
         if (kind === 'key') L.keyAt = now;
+        else if (kind === 'wheel' || kind === 'touch' || kind === 'scroll') L.scrollAt = now;   // GB-SAKIN
         else if (kind === 'down') L.downAt = now;
         else if (kind === 'up') L.downAt = 0;
         // back from idle on a view older than one period, or last read by an idle probe (no table delta asked) → one probe at once
@@ -12079,6 +12163,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     document.addEventListener('pointercancel', () => call('input', 'up'), opt);
     document.addEventListener('wheel', () => call('input', 'wheel'), opt);
     document.addEventListener('touchstart', () => call('input', 'touch'), opt);
+    let scrolled = 0;   // GB-SAKIN: the grid's own scroll (momentum after the finger left), at most 4 calls a second
+    document.addEventListener('scroll', () => { const n = Date.now(); if (n - scrolled > 250) { scrolled = n; call('input', 'scroll'); } }, opt);
     document.addEventListener('mousemove', () => { const n = Date.now(); if (n - moved > 5000) { moved = n; call('input', 'move'); } }, opt);
   }
   // AYNA-SAVE (29.10, Ömer: a record saved in the form reached the table 18 s to 2 min later; the server answered in 0.5-2 s,
@@ -13786,7 +13872,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (curs.length === 1) head += '<span class="dt-stage-now">' + dtStageEsc(dtStageT('Now: ', 'Şu an: ')) + '<span class="dt-stage-cur">' + dtStageEsc(dtStageName(d, curs[0]) || dtStageT('No process', 'Süreç yok')) + '</span></span>';
     else if (curs.length > 1) head += '<span class="dt-stage-now">' + dtStageEsc(dtStageT('Now in ' + curs.length + ' processes', 'Şu an ' + curs.length + ' farklı süreçte')) + '</span>';
     head += '</div>';
-    let list = '';
+    let list = '', anyBtn = false;
     (d.stages || []).forEach(s => {
       if (s.create) return;
       let same = 0, btn = 0, plain = 0, btnName = '';
@@ -13795,12 +13881,19 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       let sub, cls = '';
       if (isCur) { sub = dtStageT('Current process', 'Şu anki süreç'); cls = ' is-current'; }
       else if (btn && !plain) { sub = dtStageT('Runs "' + btnName + '", automations run', '"' + btnName + '" çalışır, otomasyonlar çalışır'); cls = ' is-auto'; }
-      else if (!btn) { sub = dtStageT('Move only, automations do not run', 'Yalnız taşınır, otomasyonlar çalışmaz'); }
+      // SUREC-SADE (25.11 uygulama geri bildirimi madde 8: her seçeneğin altında "Yalnız taşınır, otomasyonlar çalışmaz" hata gibi
+      // okunuyordu): düz taşımada alt satır yok, üstte tek nötr ipucu; iki dokunuşlu onay aynı kalır. Kapatma: window.__gxNoSurecSade = true
+      else if (!btn) { sub = window.__gxNoSurecSade ? dtStageT('Move only, automations do not run', 'Yalnız taşınır, otomasyonlar çalışmaz') : ''; }
       else { sub = dtStageT(btn + ' with "' + btnName + '", ' + plain + ' move only', btn + ' kayıt "' + btnName + '" ile, ' + plain + ' kayıt yalnız taşınır'); cls = ' is-auto'; }
+      if (btn && !isCur) anyBtn = true;
       list += '<button type="button" role="menuitem" class="dt-stage-item' + cls + '" data-stage="' + dtStageEsc(s.id) + '"' + (isCur ? ' disabled aria-disabled="true"' : '') + '>' +
         '<span class="dt-stage-name">' + (btn && !isCur ? '<span class="dt-stage-bolt" aria-hidden="true">&#9889;</span>' : '') + dtStageEsc(s.name) + '</span>' +
-        '<span class="dt-stage-sub">' + dtStageEsc(sub) + '</span></button>';
+        (sub ? '<span class="dt-stage-sub">' + dtStageEsc(sub) + '</span>' : '') + '</button>';
     });
+    if (list && n && !window.__gxNoSurecSade) {   // SUREC-SADE: one neutral hint instead of a warning per option
+      head += '<div class="dt-stage-note">' + dtStageEsc(dtStageT('Tap a process to move ' + (n === 1 ? 'the record' : 'the records') + '.', (n === 1 ? 'Kaydı' : 'Kayıtları') + ' taşımak için bir sürece dokunun.') +
+        (anyBtn ? ' ' + dtStageT('⚡ ones run their own button.', '⚡ olanlar kendi düğmesini çalıştırır.') : '')) + '</div>';
+    }
     if (!n) list = '<div class="dt-stage-state">' + dtStageEsc(dtStageT('The selected records are not saved yet.', 'Seçili kayıtlar henüz kaydedilmedi.')) + '</div>';
     else if (!list) list = '<div class="dt-stage-state">' + dtStageEsc(dtStageT('This table has no other process.', 'Bu tablonun başka süreci yok.')) + '</div>';
     let note = '';
@@ -15138,10 +15231,36 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   function addField(ctx) { openAddField(Object.assign({ source: 'api' }, (ctx && typeof ctx === 'object') ? ctx : {})); }
 
+  /* GB-ALANLAR (25.11, uygulama geri bildirimi: "'Alanları yönet' butonu hiçbir işe yaramıyor"): the table's Manage fields
+     (More menu, header "···", empty state) did nothing when Bubble's bubble_fn_manage_field was not on this window at that
+     moment, without a word. Now it also looks at the parent / top window (as the form does), waits up to 5 s for a late
+     Bubble element, and says so when there is still none. Off: window.__gxNoAlanlar = true (the old silent call). */
+  function dtManageFieldFn() {
+    const n = 'bubble_fn_manage_field';
+    try { if (typeof window[n] === 'function') return window[n]; } catch (e) {}
+    try { if (window.parent && window.parent !== window && typeof window.parent[n] === 'function') return window.parent[n]; } catch (e) {}
+    try { if (window.top && window.top !== window && typeof window.top[n] === 'function') return window.top[n]; } catch (e) {}
+    return null;
+  }
+  let _dtManageWait = null;
   function manageField() {
-    if (typeof window.bubble_fn_manage_field === 'function') {
-      window.bubble_fn_manage_field();
+    if (window.__gxNoAlanlar) {
+      if (typeof window.bubble_fn_manage_field === 'function') window.bubble_fn_manage_field();
+      return;
     }
+    const call = f => { try { f(); } catch (e) { log('[GB-ALANLAR] ' + ((e && e.message) || e)); } };
+    const f = dtManageFieldFn();
+    if (f) { call(f); return; }
+    if (_dtManageWait) return;   // a second press while waiting: the first one is still on its way
+    const t0 = Date.now();
+    _dtManageWait = setInterval(() => {
+      const g = dtManageFieldFn();
+      if (g || Date.now() - t0 > 5000) {
+        clearInterval(_dtManageWait); _dtManageWait = null;
+        if (g) call(g);
+        else showWakeToast(dtStageT('Manage fields is not available on this page. Open the record and use ··· › Manage fields.', 'Alanları yönet bu sayfada açılamadı. Kaydı açıp ··· › Alanları yönet ile deneyin.'), 'error');
+      }
+    }, 300);
   }
 
   // ── name rules (client twin of the server's; the server stays authoritative) ──

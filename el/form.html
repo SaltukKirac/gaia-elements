@@ -8329,6 +8329,16 @@
       function bdf_stageTr() { try { return !!(window.__gxTr && window.__gxTr.lang === "tr"); } catch (_) { return false; } }
       function bdf_stageT(en, tr) { return bdf_stageTr() ? tr : en; }
       function bdf_stageOff() { return !!window.__gxNoStage; }
+      // SUREC-SADE (25.11 uygulama geri bildirimi md. 8: "İşlemler sekmesinde sadece 'taşınır, otomasyonlar çalışmaz' hatası veriyor"):
+      // a process with no buttons listed "Move only, automations do not run" under EVERY target, which read as an error. Now one
+      // neutral line at the top ("Tap a process to move the record there"), nothing under the plain targets; the two-tap confirm
+      // stays and its second line still says no automation runs. Off: window.__bdfNoSurecSade = true.
+      function bdf_stageSade() { return !window.__bdfNoSurecSade; }
+      function bdf_stagePlainSub() { return bdf_stageSade() ? "" : bdf_stageT("Move only, automations do not run", "Yalnız taşınır, otomasyonlar çalışmaz"); }
+      function bdf_stageConfirmSub() {
+        return bdf_stageSade() ? bdf_stageT("Tap again to move (no automations run).", "Taşımak için yeniden dokunun (otomasyon çalışmaz).")
+          : bdf_stageT("Automations will not run. Click again to move.", "Otomasyonlar çalışmaz. Taşımak için yeniden tıklayın.");
+      }
       function bdf_stageRecordId() {
         var src = (window.BUBBLE_INPUTS || {}).BUBBLE_DATA_JSON;
         var o = src;
@@ -8424,8 +8434,9 @@
         head.className = "bdf-stage-sec";
         head.setAttribute("translate", "no"); head.setAttribute("data-gx-notr", "1");
         head.innerHTML = "<b></b><span></span>";
-        head.querySelector("b").textContent = bdf_stageT("Move without automations", "Otomasyonsuz taşı");
-        head.querySelector("span").textContent = bdf_stageT("No button leads here; the process's automations will not run.", "Buraya giden düğme yok; sürecin otomasyonları çalışmaz.");
+        head.querySelector("b").textContent = bdf_stageSade() ? bdf_stageT("Move to another process", "Başka sürece taşı") : bdf_stageT("Move without automations", "Otomasyonsuz taşı");
+        head.querySelector("span").textContent = bdf_stageSade() ? bdf_stageT("Only the process changes.", "Yalnız süreç değişir.")
+          : bdf_stageT("No button leads here; the process's automations will not run.", "Buraya giden düğme yok; sürecin otomasyonları çalışmaz.");
         actionMenu.appendChild(head);
         info.plain.forEach(function (s) {
           var b = document.createElement("button");
@@ -8550,6 +8561,14 @@
         head.innerHTML = "<b></b><span></span>";
         head.querySelector("b").textContent = bdf_stageT("Change process", "Süreci değiştir");
         head.querySelector("span").textContent = bdf_stageT("Now: ", "Şu an: ") + (info.curName || bdf_stageT("none", "yok"));
+        if (bdf_stageSade()) {   // SUREC-SADE: one neutral line instead of a warning under every process
+          var anyAuto = d.stages.some(function (s) { return !s.create && s.id !== info.cur && !!bdf_stageBtnFor(info, s.id); });
+          var hint = document.createElement("i");
+          hint.className = "bdf-sp-hint";
+          hint.textContent = bdf_stageT("Tap a process to move the record there." + (anyAuto ? " ⚡ runs that process's button." : ""),
+            "Kaydı taşımak için bir sürece dokunun." + (anyAuto ? " ⚡ olanlar kendi düğmesini çalıştırır." : ""));
+          head.appendChild(hint);
+        }
         p.appendChild(head);
         d.stages.forEach(function (s) {
           if (s.create) return;
@@ -8564,9 +8583,9 @@
           var n = document.createElement("span"); n.className = "bdf-sp-name"; n.textContent = (opt ? "⚡ " : "") + s.name;
           var sub = document.createElement("span"); sub.className = "bdf-sp-sub";
           sub.textContent = isCur ? bdf_stageT("Current process", "Şu anki süreç")
-            : bdfStage.popConfirm === s.id ? bdf_stageT("Automations will not run. Click again to move.", "Otomasyonlar çalışmaz. Taşımak için yeniden tıklayın.")
+            : bdfStage.popConfirm === s.id ? bdf_stageConfirmSub()
             : opt ? bdf_stageT('Runs "' + opt.name + '", automations run', '"' + opt.name + '" çalışır, otomasyonlar çalışır')
-            : bdf_stageT("Move only, automations do not run", "Yalnız taşınır, otomasyonlar çalışmaz");
+            : bdf_stagePlainSub();
           b.appendChild(n); b.appendChild(sub);
           b.addEventListener("click", function (ev) {
             ev.preventDefault(); ev.stopPropagation();
@@ -8580,7 +8599,7 @@
             }
             if (bdfStage.popConfirm !== s.id) {   // first click: say what is skipped; the second click moves
               var prev = p.querySelector(".bdf-sp-item.is-confirm");
-              if (prev) { prev.classList.remove("is-confirm"); var ps = prev.querySelector(".bdf-sp-sub"); if (ps) ps.textContent = bdf_stageT("Move only, automations do not run", "Yalnız taşınır, otomasyonlar çalışmaz"); }
+              if (prev) { prev.classList.remove("is-confirm"); var ps = prev.querySelector(".bdf-sp-sub"); if (ps) ps.textContent = bdf_stagePlainSub(); }
               bdfStage.popConfirm = s.id; bdf_stagePopRefreshConfirm(s.id); return;
             }
             bdf_stagePopClose();
@@ -8608,7 +8627,7 @@
         if (!el) return;
         el.classList.add("is-confirm");
         var sub = el.querySelector(".bdf-sp-sub");
-        if (sub) sub.textContent = bdf_stageT("Automations will not run. Click again to move.", "Otomasyonlar çalışmaz. Taşımak için yeniden tıklayın.");
+        if (sub) sub.textContent = bdf_stageConfirmSub();
         try { el.focus(); } catch (_) { }
       }
       // the table's Process menu: press the chosen button once this form shows that record with it
@@ -22193,6 +22212,108 @@
     W.addEventListener('gx:form-open', function () { try { paint(); } catch (e) { /* ignore */ } });
     setInterval(function () { try { paint(); } catch (e) { /* ignore */ } }, 500);
     try { paint(); } catch (e) { /* ignore */ }
+  })();
+  </script>
+
+  <!-- GERI-BILDIRIM-2511 (25.11.2026, uygulama geri bildirimi PDF'i, telefon ekran görüntüleri): form tarafındaki maddeler.
+       Her madde kökte bir sınıfa bağlı; kapatma bayrağı konunca (konsoldan da) en geç 1 sn'de sınıf kalkar, eski görünüm döner.
+       BAR-IKI-SATIR (md. 1, "Edit kısmı iç içe geçtiği için görünmüyor"): dar çubukta (kayıt süreci çipi varken < 520 px) aksiyon
+         düğmesi daralıp oku çerçevesinden taşıyor, Edit'in üstüne biniyordu (390 px + büyük yazı tipinde ölçüldü). Çubuk iki satır:
+         üstte "Süreç: X ▾" + Edit + ⋯, altta tam genişlik "Eylem seçin ▾". Kapatma window.__bdfNoBarIkiSatir = true.
+       ALAN-KUTU (md. 4, "kutucuklar tek renk olduğundan kutular belli olmuyor"): alanlar Notion gibi çerçevesizdi, telefonda hover
+         olmadığından kutu hiç görünmüyordu. Her yazılabilir alana açık zemin + ince çerçeve, odakta beyaz + indigo halka.
+         Salt okunur alan kutusuz kalır. Kapatma window.__bdfNoAlanKutu = true.
+       YAZIM-CIZGI (md. 11, "gereksiz eğri çizgi var, yazıların düzeltilmesi gerekli"): tarayıcının yazım denetimi Türkçe değerlerin
+         altını kırmızı dalgalı çizgiyle çiziyor, "düzelt" öneriyordu → formdaki yazı alanlarında spellcheck / autocorrect kapalı;
+         telefonda yazı kutusunun sağ alttaki eğik boyutlandırma tutamağı gizli (dokunmatikte işe yaramıyor).
+         Kapatma window.__bdfNoYazimCizgi = true.
+       TARIH-ETIKET (md. 2, "rastgele yerlere tıklayınca durduk yere tarih girmemi istiyor"): tarih / tarih-saat alanının ADINA
+         dokunmak <label for> yüzünden alana gerçek odak veriyor, takvim ve sayısal klavye açılıyordu. Etikete dokunuş artık
+         hiçbir şey açmaz; takvim yalnız alanın kendisine dokununca açılır. Kapatma window.__bdfNoTarihEtiket = true. -->
+  <style data-bdf-geri-bildirim-2511>
+    /* BAR-IKI-SATIR: the bar is a size container so the rule follows the panel's width, not the window's */
+    #bdf-root.bdf-gb-bar .action-bar { container-type: inline-size; container-name: bdfbar; }
+    @media (max-width: 900px) { #bdf-root.bdf-gb-bar .action-bar:has(> .action-main.has-stage) { height: auto; min-height: 54px; } }
+    @container bdfbar (max-width: 520px) {
+      #bdf-root.bdf-gb-bar .action-main.has-stage { flex-wrap: wrap; row-gap: 6px; column-gap: 6px; }
+      #bdf-root.bdf-gb-bar .action-main.has-stage > .bdf-stage-chip { order: 0; flex: 0 1 auto; max-width: calc(100% - 120px); margin-right: 0; }
+      #bdf-root.bdf-gb-bar .action-main.has-stage > #toggleInlineEdit { order: 2; margin-left: auto; }
+      #bdf-root.bdf-gb-bar .action-main.has-stage > #moreActions { order: 3; }
+      #bdf-root.bdf-gb-bar .action-main.has-stage > #actionSplit { order: 4; flex: 1 1 100%; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+      #bdf-root.bdf-gb-bar .action-main.has-stage > #predictedActionBtn,
+      #bdf-root.bdf-gb-bar .action-main.has-stage > #actionEmptyMsg { order: 5; }
+      #bdf-root.bdf-gb-bar .action-main.has-stage .action-trigger-btn { flex: 1 1 auto; min-width: 0; max-width: none; }
+      #bdf-root.bdf-gb-bar .action-main.has-stage .action-chevron-btn { flex: 0 0 auto; }
+      #bdf-root.bdf-gb-bar .action-main.has-stage .action-split > .action-menu { left: 0; right: 0; min-width: 0; }
+    }
+    /* any width: the arrow never leaves its frame (it overlapped the Edit button) */
+    #bdf-root.bdf-gb-bar .action-split > .action-chevron-btn { flex: 0 0 auto; }
+    #bdf-root.bdf-gb-bar .action-split > .action-trigger-btn { flex: 1 1 auto; }
+
+    /* ALAN-KUTU */
+    #bdf-root.bdf-gb-box .field-control:not(.toggle):not(.file-field-control):not(:has(> .field-input[readonly])) {
+      background-color: #f8fafc; box-shadow: inset 0 0 0 1px #e2e8f0; }
+    #bdf-root.bdf-gb-box .field-control.ai-active:not(.toggle):not(.file-field-control) {
+      background-color: rgba(99, 102, 241, 0.05); box-shadow: inset 0 0 0 1px #c7d2fe; }
+    #bdf-root.bdf-gb-box .field-control:not(.toggle):not(.file-field-control):not(:has(> .field-input[readonly])):hover {
+      box-shadow: inset 0 0 0 1px #cbd5e1; }
+    #bdf-root.bdf-gb-box .field-control:not(.toggle):not(.file-field-control):focus-within {
+      background-color: #ffffff; box-shadow: inset 0 0 0 1px var(--gx-primary, #6366f1), 0 0 0 3px rgba(99, 102, 241, 0.12); }
+    #bdf-root.bdf-gb-box .field-control.invalid:not(.toggle):not(.file-field-control) {
+      background-color: var(--gx-err-bg, #fef2f2); box-shadow: inset 0 0 0 1px #fca5a5, 0 0 0 3px rgba(220, 38, 38, 0.10); }
+
+    /* YAZIM-CIZGI: no resize grip on touch screens */
+    @media (hover: none) and (pointer: coarse) {
+      #bdf-root.bdf-gb-yazim textarea { resize: none !important; }
+    }
+
+    /* SUREC-SADE (md. 8): the neutral hint line; empty sub-lines take no room; the confirm row is calm indigo, not an alarm */
+    #bdf-root .bdf-sp-hint { font-style: normal; font-size: 11.5px; line-height: 1.35; color: var(--gx-ink-2, #475569); margin-top: 2px; }
+    #bdf-root .bdf-sp-sub:empty { display: none; }
+    #bdf-root.bdf-gb-surec .bdf-sp-item.is-confirm { background: #eef2ff; box-shadow: inset 3px 0 0 var(--gx-primary, #6366f1); }
+    #bdf-root.bdf-gb-surec .bdf-sp-item.is-confirm .bdf-sp-sub { color: var(--gx-primary-deep, #4f46e5); }
+    #bdf-root.bdf-gb-surec .action-menu-item.bdf-stage-plain.is-confirm { background: #eef2ff; color: var(--gx-ink, #0f172a); box-shadow: inset 3px 0 0 var(--gx-primary, #6366f1); }
+    #bdf-root.bdf-gb-surec .action-menu-item.bdf-stage-plain.is-confirm .bdf-stage-to { color: var(--gx-primary-deep, #4f46e5); }
+  </style>
+  <script data-bdf-geri-bildirim-2511>
+  (function () {
+    var W = window, D = document;
+    var GATES = [['bdf-gb-bar', '__bdfNoBarIkiSatir'], ['bdf-gb-box', '__bdfNoAlanKutu'], ['bdf-gb-yazim', '__bdfNoYazimCizgi'], ['bdf-gb-surec', '__bdfNoSurecSade']];
+    function root() { return D.getElementById('bdf-root'); }
+    // YAZIM-CIZGI: every text box in the form (also the AI note box), now and after each render
+    function yazim(r) {
+      if (W.__bdfNoYazimCizgi || !r) return;
+      var list = r.querySelectorAll('textarea:not([data-bdf-yazim]), input:not([type]):not([data-bdf-yazim]), input[type="text"]:not([data-bdf-yazim]), input[type="search"]:not([data-bdf-yazim]), input[type="email"]:not([data-bdf-yazim]), input[type="url"]:not([data-bdf-yazim]), input[type="tel"]:not([data-bdf-yazim])');
+      for (var i = 0; i < list.length; i++) {
+        var el = list[i];
+        el.setAttribute('data-bdf-yazim', '1');
+        el.spellcheck = false;
+        el.setAttribute('spellcheck', 'false');
+        el.setAttribute('autocorrect', 'off');
+      }
+    }
+    function tick() {
+      var r = root();
+      if (!r) return;
+      for (var i = 0; i < GATES.length; i++) {
+        var on = !W[GATES[i][1]];
+        if (r.classList.contains(GATES[i][0]) !== on) r.classList.toggle(GATES[i][0], on);
+      }
+      yazim(r);
+    }
+    W.__bdfGb2511 = { tick: tick, gates: GATES };
+    // TARIH-ETIKET: a tap on a date field's name opens nothing (the label would focus the input → calendar + keyboard)
+    D.addEventListener('click', function (e) {
+      if (W.__bdfNoTarihEtiket) return;
+      var t = e.target;
+      var lab = t && t.closest ? t.closest('#bdf-root label') : null;
+      if (!lab) return;
+      var c = lab.control || (lab.htmlFor ? D.getElementById(lab.htmlFor) : null);
+      if (c && c.classList && c.classList.contains('is-date-input')) e.preventDefault();
+    }, true);
+    tick();
+    setInterval(function () { try { tick(); } catch (e) { /* ignore */ } }, 1000);
+    try { D.addEventListener('focusin', function (e) { try { if (!W.__bdfNoYazimCizgi && e.target && e.target.closest && e.target.closest('#bdf-root')) yazim(root()); } catch (x) { } }, true); } catch (e) { }
   })();
   </script>
 
