@@ -901,6 +901,16 @@
     'Put the old file names back (new files Gaia added stay)': "Eski dosya adlarını geri koy (Gaia'nın eklediği yeni dosyalar kalır)",
     'Documents in office order': 'Ofis sırasına göre belgeler',
     'Your folder': 'Klasörünüz',
+    // KLASOR-IKI-YON (25.11): kayıt klasörünü bağla / izle
+    'Link folder': 'Klasör bağla',
+    'Unlink folder': 'Klasör bağını kaldır',
+    'New files in your folder': 'Klasörünüzde yeni dosyalar',
+    'Your folders': 'Klasörleriniz',
+    'Allow': 'İzin ver',
+    'Upload now': 'Şimdi yükle',
+    'This folder holds the folder of another file, or is inside one. Pick the folder of this file only.': 'Bu klasör başka bir dosyanın klasörünü içeriyor ya da onun içinde. Yalnız bu dosyanın klasörünü seçin.',
+    'Klasör saves every file in that folder. Pick the folder of this file only.': 'Klasör tüm dosyaları o klasöre kaydediyor. Yalnız bu dosyanın klasörünü seçin.',
+    'Pick the folder of this file on your computer. Linking downloads and uploads nothing; then each side gets only what it is missing, and new files you put in the folder go to the file by themselves': 'Bu dosyanın bilgisayarınızdaki klasörünü seçin. Bağlarken hiçbir şey inmez ya da yüklenmez; sonra iki taraf da yalnız eksiğini alır, klasöre koyduğunuz yeni dosyalar kayda kendiliğinden gider',
     'Update your folder': 'Klasörünüzü güncelleyin',
     'Folder on another computer': 'Klasör başka bir bilgisayarda',
     'Update asked': 'Güncelleme istendi',
@@ -1221,6 +1231,12 @@
     [/^Save failed: (.+)$/, function (m) { return 'Kaydedilemedi: ' + m[1]; }],
     // tablo silme dugmesi: "Delete 3 selected"
     [/^Delete (\d+) selected$/, function (m) { return m[1] + ' seçili kaydı sil'; }],
+    // KLASOR-IKI-YON (25.11)
+    [/^Upload (\d+)$/, function (m) { return m[1] + ' dosyayı yükle'; }],
+    [/^(\d+) files? in (.+) (?:is|are) not in Gaia\. Upload (?:it|them) to the record\?$/, function (m) { return m[2] + ' klasöründe Gaia\'da olmayan ' + m[1] + ' dosya var. Kayda yüklensin mi?'; }],
+    [/^(\d+) new files? in (.+)\. Upload them to the record\?$/, function (m) { return m[2] + ' klasöründe ' + m[1] + ' yeni dosya var. Kayda yüklensin mi?'; }],
+    [/^(\d+) new files? in (.+) go to the record when the file and the document browser are closed\.$/, function (m) { return m[2] + ' klasöründeki ' + m[1] + ' yeni dosya, kayıt ve belge gezgini kapanınca kayda gider.'; }],
+    [/^Adding (\d+) files? from your folder to (.+)$/, function (m) { return m[1] + ' dosya klasörünüzden ' + m[2] + ' kaydına ekleniyor'; }],
     // "50 / 0 integrations loaded"
     [/^(\d+) \/ (\d+) integrations loaded$/, function (m) { return m[1] + ' / ' + m[2] + ' entegrasyon yüklendi'; }],
     // "Dec 17, 2026 4:19 pm" / "Dec 17, 2026"
