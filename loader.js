@@ -338,7 +338,9 @@
 
   // LANG-TR (17.11.2026): Bubble'da yer tutucusu OLMAYAN, sayfa yoluna gore kendiliginden kurulan elementler (stub yapistirmak
   // gerekmez). Yalniz kanalin manifestinde varsa kurulur; yoksa sessizce hicbir sey yapmaz (manifestten silmek = kapatmak).
-  var AUTO = [{ name: 'lang-tr', path: /^\/(version-test\/)?app(\/|$)/ }];
+  // GUIDE-UX (24.11.2026, SEO-UX): rehber / uygulama sayfalari (/guides/<slug>, /apps/<slug>) icin calisma aninda duzeltmeler.
+  var AUTO = [{ name: 'lang-tr', path: /^\/(version-test\/)?app(\/|$)/ },
+              { name: 'guide-ux', path: /^\/(version-test\/)?(guides|apps)\/[^\/?#.]+\/?$/ }];
   var autoDone = {};
   function autoMount() {
     var want = [], i;

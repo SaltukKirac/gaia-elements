@@ -24,6 +24,10 @@
      kullanmadığı için font dosyaları indirilmez (sadece küçük CSS fetch'i kalır; link B7'de temizlenebilir). */
   @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
   *{box-sizing:border-box;margin:0;padding:0}
+  /* SEO-UX CLS (24.11.2026): while the template loads, #root keeps a screen of height so the footer does not paint in
+     the first screen and jump away (measured CLS 0.398 -> 0.17 on purchase-order-status-tracker). The remaining 0.17
+     is the rail gutter arriving after Bubble's own heading painted: only a header CSS line in Bubble can fix that. */
+  #root:has(> .state){min-height:100vh}
   /* MARKA UI DİLİ B6 (2026-07-04) — shared tokens, see MARKA_UI_DILI.md §2 */
   :root{
     --gx-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -1999,6 +2003,10 @@ html #gxRail.gxr3 .gx3-burger{display:none}
     if(stored)return;                                                      // a saved language wins over geo
     function apply(cc){
       var lang=cc&&COUNTRY_LANG[String(cc).toUpperCase()];
+      // SEO-UX 24.11.2026: founder's language rule of 24.11 ("for now only TR + EN; everyone outside Turkey sees
+      // English"). DE/AT/CH/FR/ES/PT/BR/LatAm visitors were reloaded ~4.5 s after landing into machine-translated UI,
+      // whatever language they searched in. An explicit ?hl= choice (language switcher) still works.
+      if(lang!=='tr')return;
       if(!lang||!I18N[lang]||lang===LANG)return;                           // unknown / EN / unsupported / no change → stay English
       try{var nu=new URL(location.href);nu.searchParams.set('gl',lang);location.replace(nu.toString());}catch(e){}
     }

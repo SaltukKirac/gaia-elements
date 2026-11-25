@@ -1,0 +1,233 @@
+<!-- GAIA - GUIDE-UX (SEO-UX 24.11.2026): runtime fixes for /guides/<slug> and /apps/<slug> (search landings).
+     Mounted by element-deploy/loader.js (AUTO list): no Bubble stub, nothing to paste. Closing = take it out of the manifest.
+     Why (GSC rise 16-23.11, audit 24.11, scratchpad seo-ux): people land on guides from how-to searches, but
+       - the answer sat 2-5 screens down behind a second nav bar and an open "On this page" box on phones,
+       - the only button to the matching template sat at ~97% of the page (8-19 phone screens down),
+       - guide -> template clicks were not measured at all,
+       - a guide URL without a record (retired / never published) answered 200 with a blank page that Google indexed
+         (/guides/how-to-track-purchase-orders-from-email took the 'purchase order tracking' results on 20.11).
+     What it does (record present):
+       1. hides the guide body's own top bar (the site header / rail already carries logo, templates, pricing);
+       2. on phones (<= 640 px) drops the app tile + chips and tightens the hero so the start of the answer is closer;
+       3. shows the inline "On this page" box as one tap row below 1080 px (CSS, so nothing jumps; a tap opens it);
+       4. puts a compact copy of the guide's own template band right after the first section (same words, same link),
+          unless the page already has a quick-answer bridge (.g-qa-cta);
+       5. adds a Copy button to every "Copy this" block and wraps its lines on phones;
+       6. sends guide_cta_click {guide_slug, cta, target_slug} for every link to a template.
+     Record missing: noindex + a JS redirect for the slugs that have a successor, otherwise a "no longer here" card with a
+     way back to the guides. The real fix is a 301 in Bubble (founder list); this keeps people and Google off a blank page.
+     Copy is short and literal (gaia-ux); it adds no claim about the product. -->
+<style id="gxu-css">
+/* classes are set at mount, BEFORE Bubble draws the guide body: every rule below applies on first paint (no layout shift) */
+html.gxu-on .gx-guide .g-nav{display:none!important}
+@media (max-width:1079.98px){
+  html.gxu-on #gxTocIn:not([data-gxu-open])>.t-in{display:none}
+  html.gxu-on #gxTocIn:not([data-gxu-open])>summary:after{transform:rotate(90deg)}
+  html.gxu-on #gxTocIn[data-gxu-open]>summary:after{transform:rotate(-90deg)}
+  html.gxu-on #gxTocIn>summary{min-height:44px;box-sizing:border-box}
+}
+.gx-guide .gxu-cta{margin:28px 0 8px;padding:18px 20px;border:1px solid var(--tintb,#dde5ff);background:var(--tint,#eef2ff);border-radius:16px;text-align:left}
+.gx-guide .gxu-cta .gxu-cta-t{font-weight:700;font-size:17px;line-height:1.3;margin:0 0 4px;color:var(--ink,#0f172a)}
+.gx-guide .gxu-cta .gxu-cta-s{margin:0 0 14px;font-size:15.5px;line-height:1.55;color:var(--sec,#475569)}
+.gx-guide .gxu-cta .g-btn{font-size:15.5px;padding:11px 22px;min-height:44px;box-sizing:border-box}
+.gx-guide .g-copy{position:relative}
+.gx-guide .gxu-copy{position:absolute;top:5px;right:8px;min-height:30px;padding:4px 12px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:#fff;font:600 12.5px/1.2 Inter,system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--sec,#475569);cursor:pointer}
+.gx-guide .gxu-copy:hover{color:var(--ink,#0f172a);border-color:#cbd5e1}
+.gx-guide .gxu-copy:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
+@media (max-width:640px){
+  html.gxu-on .gx-guide .g-hero{padding:26px 0 18px}
+  html.gxu-on .gx-guide .g-lockup,html.gxu-on .gx-guide .g-tags{display:none}
+  html.gxu-on .gx-guide pre{white-space:pre-wrap;word-break:break-word}
+  .gx-guide .gxu-copy{min-height:36px}
+}
+.gxu-moved{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1000;width:min(560px,calc(100vw - 32px));box-sizing:border-box;padding:28px 26px;border:1px solid #e2e8f0;border-radius:16px;background:#fff;box-shadow:0 12px 40px rgba(15,23,42,.12);font:16px/1.6 Inter,system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;text-align:left}
+.gxu-moved h1{font-size:22px;line-height:1.25;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+.gxu-moved p{margin:0 0 18px;color:#475569}
+.gxu-moved .gxu-acts{display:flex;flex-wrap:wrap;gap:10px}
+.gxu-moved a{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:999px;font-weight:600;font-size:15px;text-decoration:none;box-sizing:border-box}
+.gxu-moved a.gxu-pri{background:#6366f1;color:#fff}
+.gxu-moved a.gxu-pri:hover{background:#4f46e5}
+.gxu-moved a.gxu-sec{border:1px solid #e2e8f0;color:#0f172a;background:#fff}
+.gxu-moved a:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
+</style>
+<script>
+(function (W, D) {
+  'use strict';
+  if (W.__gxGuideUx) return;
+  var G = W.__gxGuideUx = { v: 1, did: [] };
+  function note(s) { try { G.did.push(s); } catch (e) {} }
+
+  // ---- where are we: /guides/<slug> or /apps/<slug> (optionally under /version-test)
+  var m = /^\/(version-test\/)?(guides|apps)\/([^\/?#.]+)\/?$/.exec(location.pathname || '');
+  if (!m) return;
+  var PRE = m[1] ? '/version-test' : '', KIND = m[2], SLUG = '';
+  try { SLUG = decodeURIComponent(m[3]); } catch (e) { SLUG = m[3]; }
+  G.kind = KIND; G.slug = SLUG;
+
+  function track(name, p) {
+    try { if (typeof W.gtag === 'function') W.gtag('event', name, p); else if (W.dataLayer && W.dataLayer.push) W.dataLayer.push(['event', name, p]); } catch (e) {}
+    try { if (typeof W.clarity === 'function') W.clarity('event', name); } catch (e) {}
+  }
+
+  // ---- 0) record missing: the page header's data block is empty (server HTML, known before Bubble renders)
+  var dataEl = D.getElementById(KIND === 'guides' ? 'guide-data' : 'hub-data');
+  if (dataEl && !String(dataEl.textContent || '').replace(/<!--[\s\S]*?-->/g, '').trim()) {
+    var MOVED = {
+      'guides/how-to-track-purchase-orders-from-email': '/templates/purchase-order-status-tracker',
+      'guides/how-to-track-purchase-orders': '/templates/purchase-order-status-tracker',
+      'guides/meeting-notes-confluence': '/guides/confluence-meeting-notes',
+      'guides/how-to-keep-weekly-minutes-in-confluence': '/guides/confluence-meeting-notes',
+      'guides/accounting-homework-ai': '/templates/accounting-assignment'
+    };
+    try {
+      var rb = D.createElement('meta'); rb.setAttribute('name', 'robots'); rb.setAttribute('content', 'noindex'); D.head.appendChild(rb);
+      var cn = D.querySelectorAll('link[rel="canonical"]'); for (var ci = 0; ci < cn.length; ci++) cn[ci].parentNode.removeChild(cn[ci]);
+    } catch (e) {}
+    var to = MOVED[KIND + '/' + SLUG];
+    track('guide_missing', { kind: KIND, guide_slug: SLUG, redirected: !!to });
+    note('missing');
+    if (to) { try { location.replace(PRE + to); } catch (e) { location.href = PRE + to; } return; }
+    var showMoved = function () {
+      if (D.querySelector('.gxu-moved')) return;
+      try { D.title = (KIND === 'guides' ? 'This guide is no longer here' : 'This page is no longer here') + ' | Gaiasphere'; } catch (e) {}
+      var words = SLUG.replace(/^how-to-/, '').replace(/-/g, ' ').slice(0, 60);
+      var box = D.createElement('section');
+      box.className = 'gxu-moved'; box.setAttribute('role', 'region'); box.setAttribute('aria-label', 'Page moved');
+      box.innerHTML = '<h1>' + (KIND === 'guides' ? 'This guide is no longer here' : 'This page is no longer here') + '</h1>' +
+        '<p>It was merged into another page or retired. The current ' + (KIND === 'guides' ? 'guides' : 'app pages') + ' are one click away.</p>' +
+        '<div class="gxu-acts">' +
+        (KIND === 'guides'
+          ? '<a class="gxu-pri" href="' + PRE + '/guides?q=' + encodeURIComponent(words) + '">Search the guides</a><a class="gxu-sec" href="' + PRE + '/guides">All guides</a>'
+          : '<a class="gxu-pri" href="' + PRE + '/apps">All apps</a><a class="gxu-sec" href="' + PRE + '/templates">All templates</a>') +
+        '</div>';
+      D.body.appendChild(box);
+    };
+    if (D.body) showMoved(); else D.addEventListener('DOMContentLoaded', showMoved);
+    return;
+  }
+
+  // ---- 6) measurement: every link from a guide / hub body to a template (delegated, capture, beacon)
+  D.addEventListener('click', function (e) {
+    try {
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      if (!a) return;
+      var host = a.closest('.gx-guide') || a.closest('.gx-hub') || null;
+      if (!host && KIND === 'guides') return;
+      var href = a.getAttribute('href') || '';
+      var tm = /^(?:https?:\/\/(?:www\.)?gaiasphere\.io)?(?:\/version-test)?\/templates\/([a-z0-9\-]+)/i.exec(href);
+      if (!tm) return;
+      var cta = a.closest('.gxu-cta') ? 'early' : a.closest('.g-qa') ? 'quick_answer' : a.closest('.g-band') ? 'band' :
+        (a.closest('li') && a.closest('ul') ? 'list' : 'inline');
+      track('guide_cta_click', { surface: KIND, guide_slug: SLUG, cta: cta, target_slug: tm[1], transport_type: 'beacon' });
+    } catch (err) {}
+  }, true);
+
+  if (KIND !== 'guides') return;   // the layout fixes below are for guides only
+  D.documentElement.classList.add('gxu-on');   // now, before the body is drawn (see the CSS note)
+  // "On this page" below 1080 px: the guides header builds it as <details open>; CSS keeps the list folded until a tap
+  D.addEventListener('click', function (e) {
+    try {
+      var sm = e.target && e.target.closest ? e.target.closest('#gxTocIn > summary') : null;
+      if (!sm || !(W.matchMedia && W.matchMedia('(max-width:1079.98px)').matches)) return;
+      e.preventDefault();
+      var dt = sm.parentNode;
+      if (!dt.open) dt.open = true;
+      if (dt.hasAttribute('data-gxu-open')) dt.removeAttribute('data-gxu-open'); else dt.setAttribute('data-gxu-open', '1');
+      track('guide_toc_toggle', { guide_slug: SLUG, open: dt.hasAttribute('data-gxu-open') });
+    } catch (err) {}
+  }, true);
+  D.addEventListener('click', function (e) {   // a TOC link folds the box again on phones
+    try {
+      var a = e.target && e.target.closest ? e.target.closest('#gxTocIn .t-in a') : null;
+      if (a) { var dt = a.closest('#gxTocIn'); if (dt) dt.removeAttribute('data-gxu-open'); }
+    } catch (err) {}
+  });
+
+  // ---- 1-5) layout, once the guide body is on the page (Bubble renders it after load)
+  function isPhone() { try { return W.matchMedia && W.matchMedia('(max-width:640px)').matches; } catch (e) { return false; } }
+  function narrow() { try { return W.matchMedia && W.matchMedia('(max-width:1079.98px)').matches; } catch (e) { return false; } }
+
+  var done = { base: false, cta: false, toc: false, copy: false };
+  function apply() {
+    var g = D.querySelector('.gx-guide');
+    if (!g) return false;
+    if (!done.base) { done.base = true; note('base'); }
+
+    // 3) inline TOC: folded by CSS (see above); only noted here
+    if (!done.toc) {
+      var toc = D.getElementById('gxTocIn');
+      if (toc) { done.toc = true; if (narrow()) note('toc_folded'); }
+    }
+
+    // 4) early template card = the band's own title, line and button, placed before the second section
+    if (!done.cta) {
+      var btn = g.querySelector('.g-band a.g-btn[href*="/templates/"]');
+      var col = g.querySelector('.g-art .g-narrow') || g.querySelector('.g-art');
+      if (g.querySelector('.g-qa-cta a[href*="/templates/"]') || g.querySelector('.gxu-cta')) { done.cta = true; }
+      else if (btn && col) {
+        var hs = [], all = col.querySelectorAll('h2');
+        for (var i = 0; i < all.length; i++) { if (!all[i].closest('#gxTocIn') && (all[i].textContent || '').trim().length > 1) hs.push(all[i]); }
+        if (hs.length >= 2) {
+          done.cta = true;
+          var bt = g.querySelector('.g-band .g-bt'), bs = g.querySelector('.g-band .g-bs');
+          var card = D.createElement('aside');
+          card.className = 'gxu-cta'; card.setAttribute('aria-label', 'Template for this task');
+          var t1 = D.createElement('div'); t1.className = 'gxu-cta-t'; t1.textContent = bt ? (bt.textContent || '').trim() : '';
+          var t2 = D.createElement('p'); t2.className = 'gxu-cta-s'; t2.textContent = bs ? (bs.textContent || '').trim() : '';
+          var b2 = btn.cloneNode(true); b2.removeAttribute('id');
+          if (t1.textContent) card.appendChild(t1);
+          if (t2.textContent) card.appendChild(t2);
+          card.appendChild(b2);
+          hs[1].parentNode.insertBefore(card, hs[1]);
+          note('early_cta');
+        } else if (D.readyState === 'complete' && hs.length < 2) { done.cta = true; }
+      }
+    }
+
+    // 5) Copy buttons
+    if (!done.copy) {
+      var blocks = g.querySelectorAll('.g-copy');
+      if (blocks.length) {
+        done.copy = true;
+        for (var k = 0; k < blocks.length; k++) {
+          (function (blk) {
+            var pre = blk.querySelector('pre');
+            if (!pre || blk.querySelector('.gxu-copy')) return;
+            var b = D.createElement('button');
+            b.type = 'button'; b.className = 'gxu-copy'; b.textContent = 'Copy';
+            b.setAttribute('aria-label', 'Copy this text');
+            b.addEventListener('click', function () {
+              var txt = pre.innerText || pre.textContent || '';
+              var ok = function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1800); track('guide_copy', { guide_slug: SLUG }); };
+              try {
+                if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(ok, function () { fallback(); }); }
+                else fallback();
+              } catch (e) { fallback(); }
+              function fallback() {
+                try {
+                  var ta = D.createElement('textarea'); ta.value = txt; ta.setAttribute('readonly', '');
+                  ta.style.position = 'fixed'; ta.style.opacity = '0'; D.body.appendChild(ta); ta.select();
+                  D.execCommand('copy'); D.body.removeChild(ta); ok();
+                } catch (e2) {}
+              }
+            });
+            blk.appendChild(b);
+          })(blocks[k]);
+        }
+        note('copy');
+      }
+    }
+    return done.base && done.cta && done.toc && done.copy;
+  }
+
+  // Bubble draws the body after load; the TOC comes a beat later. Poll briefly, then stop (no observer left running).
+  var n = 0;
+  (function tick() {
+    var finished = false;
+    try { finished = apply(); } catch (e) { finished = false; }
+    n++;
+    if (finished || n > 60) return;   // ~15 s at most
+    setTimeout(tick, 250);
+  })();
+})(window, document);
+</script>

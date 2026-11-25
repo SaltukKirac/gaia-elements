@@ -4349,7 +4349,7 @@
                   <div class="gad-main">
                      <div class="gad-card" style="flex:1; display:flex; flex-direction:column; min-height:0; padding:0; overflow:hidden; position:relative;">
                         <div class="gad-title" style="margin:0; padding:13px 18px 11px; border-bottom:1px solid #f1f5f9;">Task Instructions</div>
-                        <div id="gad-pb-slot" style="flex:1; min-height:0; overflow:auto; background:#fff; position:relative;">
+                        <div id="gad-pb-slot" translate="no" class="notranslate" style="flex:1; min-height:0; overflow:auto; background:#fff; position:relative;">
                           <div id="gad-instr-empty" style="display:none; position:absolute; inset:0; pointer-events:none; align-items:center; justify-content:center; padding:24px; text-align:center;">
                             <div style="font-size:12.5px; color:#94a3b8; line-height:1.6; max-width:280px;">Press <strong style="color:#6366f1;">/</strong> to add a variable, or tell the assistant on the left what you'd like to do.</div>
                           </div>
@@ -5188,6 +5188,24 @@
       if (cBtn) cBtn.onclick = function () { if (currentDetailTmpl) window.gaiaUseTmpl(currentDetailTmpl.id, 'custom'); };
     }, 500);
 
+    // SEO-UX TMPL-VISIBLE (24.11.2026): a template setup must be ON SCREEN. A visitor who comes from a public
+    // /templates/<slug> "Use this template" (?use_template=) is often a guest: nothing else has opened the Architect
+    // module (it stays .is-hidden), the founder hid Bubble's menu with opacity 0 on desktop, and on phones (< 900 px,
+    // ACIL-MOB) Bubble's full-screen menu (z 1504) covers everything. Measured 24.11 (Playwright, logged out, 1366 px and
+    // 390 px): the template chat ran invisibly for 120-160 s, the page stayed white / menu-only and the account card was
+    // never reached. Same steps as gaiaTriggerOnboarding / _gxOpenTemplatesTab: reveal the module, hand the concierge
+    // shell over; plus html.gx-setup-front so the phone menu steps aside while the setup is in front (CSS below
+    // ACIL-MOB). closeRightDrawer clears the class.
+    function _gxRevealSetup(why) {
+      try {
+        var m = document.getElementById('gaia-automation-module') || document.querySelector('.gaia-automation-module');
+        if (m) { m.classList.remove('is-hidden'); m.style.display = ''; }
+      } catch (_m) {}
+      try { document.documentElement.classList.add('gx-setup-front'); } catch (_h) {}
+      try { if (typeof window._gaiaConciergeResolve === 'function') window._gaiaConciergeResolve(why || 'template_setup'); } catch (_c) {}
+    }
+    window._gxRevealSetup = _gxRevealSetup;
+
     // Template kullan → önce auth flow, sonra prompt gönder
     window.gaiaUseTmpl = function (id, mode) {
       const t = allTemplates.find(x => x.id === id || x._id === id || x.slug === id || x.Slug === id);
@@ -5199,6 +5217,7 @@
         return;
       }
       window.gaiaCloseTmplDetail();
+      _gxRevealSetup('template_setup');
       // analytics — plain (non-featured) template setup begins inside the app
       gxaOnce('setup:'+id, 'template_setup_start', {template_id:String(id||''), setup_mode:mode||'custom', ready_to_use:false});
       const prompt = mode === 'quick'
@@ -5363,19 +5382,36 @@
         try { window.gaiaUseTmpl(tid, 'custom'); }
         catch(e){ console.error('[TMPL] deep-link başlatma hatası:', e && e.message); }
       }
+      // SEO-UX TMPL-FAST (24.11): the single record is fetched AT ONCE, next to the catalog. Waiting for the whole
+      // catalog (553 templates, sequential 50-row pages) cost 8-10 s on desktop and 20-24 s on 4G before the setup
+      // even started. Whichever arrives first starts the setup (start() runs once).
+      var single = null, singleAsked = false;
+      function askSingle(){
+        if (singleAsked) return; singleAsked = true;
+        try {
+          fetch(_TMPL_API + '/' + encodeURIComponent(tid), { headers:{ Accept:'application/json' } })
+            .then(function(r){ return r.ok ? r.json() : null; })
+            .then(function(j){
+              var row = j && (j.response || j); if(!row || (!row._id && !row.id)) return;
+              // same normalization as gaiaLoadTemplatesFromAPI (array fields may arrive as a single value)
+              var t = Object.assign({}, row); t.id = t._id || t.id; t.slug = t.Slug || t.slug || '';
+              ['sector','tags','integrations','mcp_tools','how_it_works','benefits','use_cases'].forEach(function(k){ t[k] = Array.isArray(t[k]) ? t[k] : (t[k] ? [t[k]] : []); });
+              single = t;
+            })
+            .catch(function(e){ console.warn('[TMPL] deep-link tek kayit fetch hatasi:', e && e.message); });
+        } catch(e){}
+      }
       var tries = 0;
       var iv = setInterval(function(){
         tries++;
         var ready = typeof window.gaiaUseTmpl === 'function' && typeof window.gaiaStartAuthFlow === 'function';
+        if (ready) askSingle();
         var have  = ready && allTemplates && allTemplates.some(function(x){ return x.id===tid || x._id===tid || x.slug===tid || x.Slug===tid; });
         if (have){ clearInterval(iv); start(null); return; }   // (a) katalog geldi → direkt başlat
-        if (tries > 80){                                       // (b) ~20sn: katalog gelmedi/başarısız → tek kaydı çek
+        if (ready && single){ clearInterval(iv); start(single); return; }   // (b) tek kayit once geldi → onunla başlat
+        if (tries > 160){                                      // (c) ~40 sn: ikisi de gelmedi → vazgec
           clearInterval(iv);
-          if (!ready){ console.warn('[TMPL] deep-link: gaiaUseTmpl/authFlow hazır değil, iptal'); return; }
-          fetch(_TMPL_API + '/' + encodeURIComponent(tid), { headers:{ Accept:'application/json' } })
-            .then(function(r){ return r.ok ? r.json() : null; })
-            .then(function(j){ var row = j && (j.response || j); if(!row) return; var t = Object.assign({}, row); t.id = t._id || t.id; t.slug = t.Slug || t.slug || ''; start(t); })
-            .catch(function(e){ console.error('[TMPL] deep-link fallback fetch hatası:', e && e.message); });
+          console.warn('[TMPL] deep-link: ne katalog ne tek kayit geldi' + (ready ? '' : ' (gaiaUseTmpl/authFlow hazır değil)'));
         }
       }, 250);
     };
@@ -9989,6 +10025,7 @@
       }
       if (drawerBackdrop) drawerBackdrop.classList.add('is-hidden');
       if (moduleViewEl) moduleViewEl.classList.add('is-hidden');
+      try { document.documentElement.classList.remove('gx-setup-front'); } catch (_h) {}   // SEO-UX TMPL-VISIBLE
       state.isOpen = false;
       state.userClosed = true;
       setLauncherCollapsed(true);
@@ -17034,8 +17071,39 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       else gW('D20/T07-fix: bekleyen tetikleyiciler PARK edildi (' + String(reason || '') + '), ilgisiz onayla enable edilmez:', ids);
       return ids;
     };
+    // 24.11 AI-TRIG-STASH: GAD açılışında silinen (DISABLED) yeni tetikleyici id'leri. id → { ts, source }.
+    // _gadRestoreStashedTrigIds: o anki ajanın tetikleyici listesinde (_gadTrigIds) olan ve bayat olmayan
+    // id'leri _gadNewTrigIds'e geri koyar (idempotent). Listede olmayan id dokunulmadan bekler, 30 dk'da düşer.
+    window._gadNewTrigStash = window._gadNewTrigStash || {};
+    window._gadStashNewTrigIds = function (ids, source) {
+      var st = window._gadNewTrigStash || (window._gadNewTrigStash = {});
+      var n = 0;
+      (ids || []).forEach(function (id) {
+        id = String(id || '').trim();
+        if (id && !st[id]) { st[id] = { ts: Date.now(), source: String(source || '') }; n++; }
+      });
+      if (n) gL('AI-TRIG-STASH: yeni tetikleyici kimlikleri saklandı (GAD açılışı silmez):', Object.keys(st));
+      return n;
+    };
+    window._gadRestoreStashedTrigIds = function () {
+      var st = window._gadNewTrigStash || {};
+      var cur = (typeof _gadTrigIds !== 'undefined' && Array.isArray(_gadTrigIds)) ? _gadTrigIds : [];
+      var now = Date.now(), back = [];
+      Object.keys(st).forEach(function (id) {
+        var e = st[id] || {};
+        if ((now - (e.ts || now)) > _GAD_PENDING_STALE_MS) { delete st[id]; return; }
+        if (cur.indexOf(id) >= 0) {
+          if (_gadNewTrigIds.indexOf(id) < 0) _gadNewTrigIds.push(id);
+          delete st[id];
+          back.push(id);
+        }
+      });
+      if (back.length) gL('AI-TRIG-STASH: bu ajanın tetikleyicileri enable kuyruğuna geri alındı:', back);
+      return back;
+    };
     window._gadEnableNewTriggers = function (opts) {
       opts = opts || {};
+      try { window._gadRestoreStashedTrigIds(); } catch (_rsE) {}
       var _toEnable = [];
       var _pushU = function (id) { id = String(id || '').trim(); if (id && _toEnable.indexOf(id) < 0) _toEnable.push(id); };
       var _now = Date.now(), _flow = window._gadPendingCreateFlowId || 0;
@@ -17089,6 +17157,7 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
     // listeye kopyalar (tekilleştirerek). Bir sonraki gaiaOpenAgentDashboard yalnız _gadNewTrigIds'i siler.
     function _gadSnapshotPendingCreateTrigIds() {
       if (!window._gadPendingCreateTrigIds) window._gadPendingCreateTrigIds = [];
+      try { if (typeof window._gadRestoreStashedTrigIds === 'function') window._gadRestoreStashedTrigIds(); } catch (_rsE) {}   // 24.11 AI-TRIG-STASH
       // T07-fix: her commit yeni bir akış; o anda bekleyen her id (picker'dan gelen dahil) bu akışa
       // damgalanır. Önceki akıştan park'ta kalanlar bu akışın teyidiyle enable EDİLMEZ.
       window._gadPendingCreateFlowId = (window._gadPendingCreateFlowId || 0) + 1;
@@ -23849,6 +23918,12 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
       _gadDelivered = false; // D17 (fragile 20214 P2): teslim bayrağı her açılışta sıfır
       // STATE FIX: önceki dashboard cancel ile kapandıysa _gadNewTrigIds populate kalmış olabilir
       // → bu sefer approve'da yanlış (önceki agent'ın) trigger'ları enable etmeye çalışırdı.
+      // 24.11 AI-TRIG-STASH: AI sohbeti create_trigger'ı GAD açılmadan ÖNCE koşar (discovery) → id buraya
+      // girer, sonra aiToolCall GAD'ı açar ve bu satır listeyi siliyordu → onayda enable edilecek id kalmıyor,
+      // tetikleyici Composio'da DISABLED kalıyor, ajan yeni mailde hiç koşmuyordu (canlı 24.11 Denge Mobil,
+      // ti_8exVYQJtIpmV). Silmek yerine zaman damgasıyla stash'e alınır; onay/commit anında YALNIZ açılan
+      // ajanın kendi tetikleyici listesinde (_gadTrigIds) olanlar geri döner (önceki ajanın id'si sızmaz).
+      try { if (typeof window._gadStashNewTrigIds === 'function') window._gadStashNewTrigIds(_gadNewTrigIds, 'gad-open'); } catch (_stE) {}
       _gadNewTrigIds = [];
       // T11-fix: onaysız kalmış ('unconfirmed' / teslim sonrası 'creating') flagship taahhüdü burada biter:
       // _gadOnCreateConfirmed kancası sökülür, bekleyen DISABLED tetikleyici silinir. Aksi halde bu yeni
@@ -24743,6 +24818,10 @@ ${_connectedArr.map(s => '\u2022 ' + s).join('\n')}
         _pbOrigParent = pb.parentNode;
         _pbOrigNext   = pb.nextSibling;
         _pbSavedStyle = pb.getAttribute('style') || '';
+        // 24.11 NO-TRANSLATE: Chrome sayfa cevirisi editordeki talimati yerinde ceviriyor (<font style="vertical-align:
+        // inherit"> sarmalayicilari) ve Kaydet cevrilmis metni SystemMessage olarak yaziyordu (canli Denge Mobil 24.11:
+        // "parlaklastiran", "gunes" gibi bozuk Turkce talimat). Hidrasyondan ONCE isaretlenir; cevirmen bu alt agaca dokunmaz.
+        try { pb.setAttribute('translate', 'no'); pb.classList.add('notranslate'); } catch (_ntE) {}
 
         if (isCreate && typeof window.bubble_fn_hydratePromptBuilder === 'function') {
           // action_tools OTORİTE: prose tokenize edilir, sonra seçili ama prose'da olmayan tool'lar garanti edilir
@@ -47506,6 +47585,11 @@ html[data-octo-ws="1"] [data-octo-ws-gutter="1"] { margin-left: 0 !important; }
   html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) #stagebar,
   html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baUfaHaM,
   html:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]) .baVczaM { opacity: 1 !important; }
+  /* SEO-UX TMPL-VISIBLE (24.11): while a template setup is in front (html.gx-setup-front, set by _gxRevealSetup),
+     the restored full-screen Bubble menu (z 1504) must not cover the setup chat on a phone. Only while the module is
+     really open (:has): any other path that hides the module brings the menu back without touching the class. */
+  html.gx-setup-front:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]):has(#gaia-automation-module:not(.is-hidden)) #sideMenu,
+  html.gx-setup-front:not([data-octo-ws="1"]):not([data-octo-ws-m="1"]):has(#gaia-automation-module:not(.is-hidden)) .baUfaHw { visibility: hidden !important; pointer-events: none !important; }
 }
 /* Classic menu: Bubble menusu sol kenarda cekmece (kendi z'si 1504), bar altta; menuyu kapatan ok gizli
    (kapatilirsa Done sonrasi gorunmez kalirdi). */
