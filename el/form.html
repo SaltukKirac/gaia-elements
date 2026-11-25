@@ -19554,8 +19554,10 @@
                 max: () => (hasExternalUploader ? bdf_readInt(state.externalUploaderMaxFilesByField[field.key], maxFiles) : maxFiles),
                 feed: (files, name, done, isLive) => addFolderFiles(Promise.resolve({ files, folders: [name], truncated: false }), done, isLive)
               };
-              // Yeni kayıtta birden çok vaka klasörü: "klasör başına bir kayıt" önerilir, istenirse hepsi bu kayda.
-              const offerBulkHere = () => !hasExistingBubbleData() && !BDF_BULK.running && bdf_bulkCanRun();
+              // FORM-TEK-KAYIT (25.11, Saltuk: "formdaki evrak yükleyiciden klasör seçildiği zaman her zaman tek kayda eklenecek"):
+              // the form's own uploader never splits a folder into records any more; every file of the chosen / dropped folders goes
+              // to the record that is open. "One record per folder" stays on the table (Folders button / drop on the table).
+              const offerBulkHere = () => false;
 
               // Yakalama aşaması: klasör içeren bırakma Bubble uploader'ın kendi işleyicisine ve aşağıdaki olağan
               // drop'a ulaşmaz (onlar klasörü 0 baytlık bozuk dosya sanır). Yalnız dosya bırakmaları eskisi gibi akar.
