@@ -343,6 +343,24 @@
         margin: 4px 0 8px 2px;
         justify-content: flex-start;
     }
+    /* GB-2611 (26.11 geri bildirim 2, md. 5: "Görev talimatları yerinde hâlâ eğik çizgi var"): the bare "/" read as a stray
+       character; it is a key, so it looks like one (TR: "[/] tuşuyla özel alan ya da eylem ekleyin"). */
+    .inline-hint .inline-hint-key {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        box-sizing: border-box;
+        font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-style: normal;
+        color: #334155;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-bottom-width: 2px;
+        border-radius: 5px;
+    }
     .top-actions {
         display: flex;
         align-items: center;
@@ -894,7 +912,7 @@
     <div class="container">
 
         <div class="inline-hint">
-            <strong>/</strong> to add a custom field or action
+            <kbd class="inline-hint-key">/</kbd> to add a custom field or action
         </div>
 
         <div class="editor-shell">
@@ -997,7 +1015,7 @@
                         spellcheck="false"
                         aria-autocomplete="none"
                     />
-                    <button class="palette-fs-close" id="paletteCloseBtn" title="Kapat (Esc)">×</button>
+                    <button class="palette-fs-close" id="paletteCloseBtn" title="Close (Esc)">×</button>
                 </div>
                 <!-- Tab bar -->
                 <div class="palette-fs-tabs" id="ptabBar">

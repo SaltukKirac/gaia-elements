@@ -279,6 +279,27 @@
     'More': 'Daha fazla',
     'Refresh': 'Yenile',
     'Done': 'Tamam',
+    // GB-2611 (26.11 uygulama geri bildirimi 2, md. 3-4): Bubble'in kendi pencereleri (kayit bilgi paneli, kopyalama bildirimi,
+    // alanlari yonet, yeni alan). Cok kelimeli oldugu icin her yerde guvenli; yazim hatali asil metinler de (Costum, fied, Assing).
+    '✅ Done': '✅ Tamam',
+    'Copied object successfully': 'Kayıt kopyalandı',
+    'Quick Actions': 'Hızlı eylemler',
+    'Add Note': 'Not ekle',
+    'Select lists': 'Liste seçin',
+    'Apply to user': 'Kullanıcıya uygula',
+    'Search fied': 'Alan listesinde ara',
+    'Search field': 'Alan listesinde ara',
+    'Assing Referance field to Table': 'Tabloya referans alanı ekle',
+    'Assign Reference field to Table': 'Tabloya referans alanı ekle',
+    'Create a new data type for': 'Yeni alan ekleyin:',
+    'Costum field name': 'Alan adı',
+    'Custom field name': 'Alan adı',
+    'Custom field type': 'Alan türü',
+    'Choose an option...': 'Bir seçenek seçin...',
+    'Type here...': 'Buraya yazın...',
+    'Comma seperated values': 'Virgülle ayrılmış değerler',
+    'Comma separated values': 'Virgülle ayrılmış değerler',
+    '...edit me...': 'Seçenekler',
     'OK': 'Tamam',
     'Ok': 'Tamam',
     'Yes': 'Evet',
@@ -470,7 +491,7 @@
     'Routing Name': 'Yönlendirme adı',
     '✓ Create and Add to Prompt': '✓ Oluştur ve komut metnine ekle',
     'Flow Prompt Builder': 'Akış komut düzenleyici',
-    'to add a custom field or action': 'özel alan ya da eylem eklemek için',
+    'to add a custom field or action': 'tuşuyla özel alan ya da eylem ekleyin',   // GB-2611 md. 5: önünde [/] tuşu
     'Native Tools': 'Yerleşik araçlar',
     'Image Generation': 'Görsel üretme',
     'Web Search': 'Web araması',
@@ -1136,6 +1157,8 @@
   // Kod karsilastirmasi olanlar BILEREK YOK: Apps, Home, Files, Dropdown, Tab. CTX kelimeleri (Type, Press, Choose) da yok.
   // Prompt builder icinde Architect TR_EN alt dizeleri ('Veri', 'Alanlar', 'Uygulamalar'...) Turkce karsiliklarda buyuk harfle GECMEZ.
   var SCOPED = {
+    // GB-2611: Bubble kayit bilgi paneli (sag ustteki (i)); kapsam isareti bilgiPaneli() koyar
+    'Stage:': 'Aşama:', 'Stage': 'Aşama', 'Lists': 'Listeler', 'Relations': 'İlişkiler', 'Push': 'Uygula', 'Meta': 'Bilgi',
     // octo kabugu / ajan paneli
     'Schedule': 'Zamanla', 'Change': 'Değiştir', 'Default': 'Varsayılan', 'Later': 'Sonra', 'Start': 'Başlat',
     'Label': 'Etiket', 'Labels': 'Etiketler', 'Preview': 'Önizleme', 'Signature': 'İmza', 'Timezone': 'Saat dilimi',
@@ -1256,6 +1279,7 @@
     var r = false;
     for (var p = el; p && p.nodeType === 1 && p !== D.body && p !== D.documentElement; p = p.parentNode) {
       if (p.id && hasPfx(p.id)) { r = true; break; }
+      if (p.hasAttribute && p.hasAttribute('data-gx-tr-scope')) { r = true; break; }   // GB-2611 bilgi paneli
       var c = p.className;
       if (typeof c === 'string' && c) {
         var parts = c.split(/\s+/);
@@ -1340,11 +1364,31 @@
     return false;
   }
 
+  // GB-2611 (md. 3): Bubble'in kayit bilgi paneli (Stage / Lists / Relations / Quick Actions / Meta / Notes) bizim kutumuz degil,
+  // tek kelimeler musteri verisi olabildigi icin kapsam disiydi. "Quick Actions" basligini tasiyan, "Relations" ve "Meta"yi de
+  // iceren en yakin ata kapsam isareti alir; tek kelimeler yalniz orada cevrilir. Kapatma window.__gxNoBilgiPaneli = true.
+  function bilgiPaneli(v, p) {
+    if (W.__gxNoBilgiPaneli) return;
+    var t = v.replace(/\s+/g, ' ').trim();
+    if (t !== 'Quick Actions' && t !== 'Hızlı eylemler') return;
+    for (var e = p, up = 0; e && e.nodeType === 1 && e !== D.body && up < 8; e = e.parentNode, up++) {
+      if (e.hasAttribute('data-gx-tr-scope')) return;
+      var all = e.textContent || '';
+      if ((all.indexOf('Relations') >= 0 || all.indexOf('İlişkiler') >= 0) && (all.indexOf('Meta') >= 0 || all.indexOf('Bilgi') >= 0)) {
+        e.setAttribute('data-gx-tr-scope', 'bilgi');
+        if (scopeCache) scopeCache = new WeakMap();
+        queue(e);
+        return;
+      }
+    }
+  }
+
   function doText(n) {
     var v = n.nodeValue;
     if (!v || v.length > 200 || !/[A-Za-z]/.test(v)) return;
     var p = n.parentNode;
     if (!p) return;
+    bilgiPaneli(v, p);
     var out = tr(v, p, p);
     if (out === null) return;
     if (skipped(p)) return;
@@ -1415,6 +1459,14 @@
 
   function start() {
     try { D.documentElement.setAttribute('lang', 'tr'); } catch (e) { /* ignore */ }
+    // GB-2611 (md. 4): telefonda Chrome'un kendi sayfa cevirisi bizim Turkcemizin ustune ikinci ceviri yapiyordu
+    // ("_created" → "_oluşturuldu", anlamsiz "sürdü"). Turkce kipte sayfa zaten Turkce: Google ceviri onerilmesin.
+    // (html'e translate="no" KONMAZ: SKIP_SEL onu gorup her seyi atlardi.) Kapatma window.__gxNoCeviriKapat = true.
+    try {
+      if (!W.__gxNoCeviriKapat && !D.querySelector('meta[name="google"][content="notranslate"]')) {
+        var gm = D.createElement('meta'); gm.name = 'google'; gm.content = 'notranslate'; (D.head || D.documentElement).appendChild(gm);
+      }
+    } catch (e) { /* ignore */ }
     queue(D.body);
     var mo = new MutationObserver(function (recs) {
       gen++;   // ozellik yolu (doAttrs) flush beklemez: her gozlemci turu ayri gecis

@@ -8502,10 +8502,17 @@
         else text = bdf_stageT("Process: ", "Süreç: ") + (info.curName || bdf_stageT("none", "yok"));
         var tEl = chip.querySelector(".bdf-stage-chip-text");
         if (tEl && tEl.textContent !== text) tEl.textContent = text;
-        var cls = "bdf-stage-chip" + (kind ? " is-" + kind : "") + (info ? "" : " is-static");
+        // GB-TEK-MENU (26.11 geri bildirim 2, md. 2: "Süreç ve eylem aynı şeyleri değiştiriyor, neden iki farklı buton?"): the action
+        // menu already lists every button with its target process and a "Move to another process" section, so the chip is only a
+        // label of the current process; one menu changes things. Off: window.__bdfNoTekMenu = true (chip opens its own list again).
+        var tek = !window.__bdfNoTekMenu;
+        var cls = "bdf-stage-chip" + (kind ? " is-" + kind : "") + (info && !tek ? "" : " is-static") + (tek ? " is-label" : "");
         if (chip.className !== cls) chip.className = cls;
-        chip.disabled = !info || bdfStage.moving;
-        chip.title = info ? bdf_stageT("Change this record's process", "Bu kaydın sürecini değiştir") : "";
+        chip.disabled = !info || bdfStage.moving || tek;
+        chip.setAttribute("aria-haspopup", tek ? "false" : "menu");
+        chip.title = info ? (tek ? bdf_stageT("Current process. Use the action menu to change it.", "Kaydın şu anki süreci. Değiştirmek için eylem menüsünü kullanın.")
+          : bdf_stageT("Change this record's process", "Bu kaydın sürecini değiştir")) : "";
+        if (tek && byId("bdfStagePop")) bdf_stagePopClose();
         chip.hidden = false;
         main.classList.add("has-stage");   // the chip keeps its width, the action menu button narrows (20.11 canlı: "S..." ezilmesi)
       }
@@ -22250,6 +22257,22 @@
     #bdf-root.bdf-gb-bar .action-split > .action-chevron-btn { flex: 0 0 auto; }
     #bdf-root.bdf-gb-bar .action-split > .action-trigger-btn { flex: 1 1 auto; }
 
+    /* GB-TEK-MENU (26.11 md. 2): the process chip is a quiet label, not a second dropdown; the first row (label, Edit, ⋯) never wraps */
+    #bdf-root button.bdf-stage-chip.is-label { background: transparent; border-color: transparent; padding-left: 2px; color: var(--gx-ink-2, #475569);
+      font-weight: 600; cursor: default; flex: 0 1 auto; min-width: 0; }
+    #bdf-root button.bdf-stage-chip.is-label .bdf-stage-chip-caret { display: none; }
+    #bdf-root button.bdf-stage-chip.is-label:hover { background: transparent; }
+    #bdf-root button.bdf-stage-chip.is-label.is-busy, #bdf-root button.bdf-stage-chip.is-label.is-ok, #bdf-root button.bdf-stage-chip.is-label.is-err { padding-left: 10px; }
+    #bdf-root button.bdf-stage-chip.is-label.is-busy { background: #f1f5f9; }
+    #bdf-root button.bdf-stage-chip.is-label.is-ok { background: #f0fdf4; color: var(--gx-ok, #15803d); }
+    #bdf-root button.bdf-stage-chip.is-label.is-err { background: #fef2f2; color: var(--gx-err, #dc2626); }
+    @container bdfbar (max-width: 520px) {
+      #bdf-root.bdf-gb-bar .action-main.has-stage > .bdf-stage-chip.is-label { max-width: calc(100% - 130px); }
+    }
+
+    /* MENU-EKRAN-ICI (26.11 md. 1): ⋯ menu stays inside the screen (it opened to the left of the button, off-screen) */
+    #bdf-root .more-actions .action-menu.bdf-gb-kaydir { max-width: calc(100vw - 16px); }
+
     /* ALAN-KUTU */
     #bdf-root.bdf-gb-box .field-control:not(.toggle):not(.file-field-control):not(:has(> .field-input[readonly])) {
       background-color: #f8fafc; box-shadow: inset 0 0 0 1px #e2e8f0; }
@@ -22311,6 +22334,27 @@
       var c = lab.control || (lab.htmlFor ? D.getElementById(lab.htmlFor) : null);
       if (c && c.classList && c.classList.contains('is-date-input')) e.preventDefault();
     }, true);
+    // MENU-EKRAN-ICI (26.11 geri bildirim 2, md. 1: "üç noktaya basınca açılan alan sayfa dışına çıkıyor"): the ⋯ menu is anchored to
+    // the button's right edge; when the bar wraps the ⋯ lands at the left and the menu opened off-screen. After it opens, any part
+    // outside the screen is pulled back in (8 px margin). Off: window.__bdfNoMenuKaydir = true.
+    function menuKaydir() {
+      var m = D.getElementById('moreActionsMenu');
+      if (!m) return;
+      m.style.left = ''; m.style.right = ''; m.classList.remove('bdf-gb-kaydir');
+      if (W.__bdfNoMenuKaydir || !m.classList.contains('open')) return;
+      var host = m.offsetParent || m.parentNode;
+      if (!host || !host.getBoundingClientRect) return;
+      m.classList.add('bdf-gb-kaydir');
+      var vw = D.documentElement.clientWidth || W.innerWidth, r = m.getBoundingClientRect(), h = host.getBoundingClientRect();
+      if (r.left < 8) { m.style.right = 'auto'; m.style.left = Math.round(8 - h.left) + 'px'; }
+      else if (r.right > vw - 8) { m.style.right = 'auto'; m.style.left = Math.round(vw - 8 - r.width - h.left) + 'px'; }
+    }
+    D.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#moreActionsBtn')) setTimeout(function () { try { menuKaydir(); } catch (x) { } }, 0);
+    }, true);   // capture: the form's own ⋯ handler stops the click before it reaches the document
+    try { W.addEventListener('resize', function () { try { menuKaydir(); } catch (x) { } }); } catch (e) { /* ignore */ }
+    W.__bdfGbMenuKaydir = menuKaydir;
     tick();
     setInterval(function () { try { tick(); } catch (e) { /* ignore */ } }, 1000);
     try { D.addEventListener('focusin', function (e) { try { if (!W.__bdfNoYazimCizgi && e.target && e.target.closest && e.target.closest('#bdf-root')) yazim(root()); } catch (x) { } }, true); } catch (e) { }
