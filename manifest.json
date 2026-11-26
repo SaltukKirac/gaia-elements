@@ -1,8 +1,8 @@
 {
   "repo": "SaltukKirac/gaia-elements",
   "channel": "geri-bildirim-2511",
-  "rev": 77,
-  "updated": "2026-11-25T17:28:00Z",
+  "rev": 78,
+  "updated": "2026-11-26T14:39:21Z",
   "elements": {
     "aithia-pricing": {
       "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -13,28 +13,38 @@
       "updated": "2026-10-23T10:01:19Z"
     },
     "architect": {
-      "commit": "78ebd4b30d2905ee2ec7b73ac966c328c93bf559",
+      "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
       "path": "el/architect.html",
-      "blob": "d436f51dffb9027d4c3c6da61b92228a4bd8e412",
-      "bytes": 4269832,
+      "blob": "4c307d85d8109826b5cdd532b48497abb686a35c",
+      "bytes": 4276109,
       "title": "AI Architect / GAD (+ Octo shell) - app page",
-      "updated": "2026-10-27T16:50:45Z"
+      "updated": "11/25/2026 19:31:33",
+      "from": "main"
     },
     "form": {
-      "commit": "15ef733b24dfc294f2fcc9b83a2c11e154919a72",
+      "commit": "df81cccad6b8e7a1d9eaca2a5b90abe541693774",
       "path": "el/form.html",
-      "blob": "ea74b442414bc46e56f81db2835b67a65b93a6c2",
-      "bytes": 1066183,
+      "blob": "c4c87f2e1d9afd5c5ba5a21345542b25f5a35c6e",
+      "bytes": 1069925,
       "title": "Dynamic form - app page",
-      "updated": "2026-11-25T17:28:00Z"
+      "updated": "2026-11-26T14:39:21Z"
+    },
+    "guide-ux": {
+      "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
+      "path": "el/guide-ux.html",
+      "blob": "154ad40a5b544303be9591b5108217fa4299758f",
+      "bytes": 14745,
+      "title": "Guide / app page fixes - /guides/<slug>, /apps/<slug> (auto, no Bubble stub)",
+      "updated": "11/25/2026 19:31:33",
+      "from": "main"
     },
     "lang-tr": {
-      "commit": "15ef733b24dfc294f2fcc9b83a2c11e154919a72",
+      "commit": "df81cccad6b8e7a1d9eaca2a5b90abe541693774",
       "path": "el/lang-tr.html",
-      "blob": "5cd123249f17ac7d29c7773332b36826beeddcab",
-      "bytes": 82300,
+      "blob": "20ac223f912967542acf2fe914dbc46b38a567cb",
+      "bytes": 85547,
       "title": "Turkish UI layer - app page (auto, no Bubble stub)",
-      "updated": "2026-11-25T17:28:00Z"
+      "updated": "2026-11-26T14:39:21Z"
     },
     "onboarding": {
       "commit": "f39ee569c4627b019ecd98938b52097296c54535",
@@ -53,12 +63,12 @@
       "updated": "2026-09-24T21:46:46Z"
     },
     "prompt-builder": {
-      "commit": "6f749e8393441588b6dbc2467a1f2200252e809a",
+      "commit": "df81cccad6b8e7a1d9eaca2a5b90abe541693774",
       "path": "el/prompt-builder.html",
-      "blob": "83a371e9f4d3357120e2d124d2d0df7506627eae",
-      "bytes": 119482,
+      "blob": "d9995ee25f1ec46759a477d67b873abdf7d080d8",
+      "bytes": 120255,
       "title": "Prompt Builder - app page",
-      "updated": "2026-11-20T19:22:00Z"
+      "updated": "2026-11-26T14:39:21Z"
     },
     "table": {
       "commit": "15ef733b24dfc294f2fcc9b83a2c11e154919a72",
@@ -69,12 +79,13 @@
       "updated": "2026-11-25T17:28:00Z"
     },
     "template-page": {
-      "commit": "5017b506044fe9c64606cef4a9bf00a3b28e88b8",
+      "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
       "path": "el/template-page.html",
-      "blob": "ea4781cce9230c7fff12a9102a770d9e64326336",
-      "bytes": 286439,
+      "blob": "9b60ce094eb74b770db2a4869df97450bf35edcc",
+      "bytes": 287199,
       "title": "Template detail page (public, /template/<slug>)",
-      "updated": "2026-10-22T09:24:24Z"
+      "updated": "11/25/2026 19:31:33",
+      "from": "main"
     },
     "templates-button": {
       "commit": "b9aef8edee91bc5c6981d3f94130c64f5e160353",
