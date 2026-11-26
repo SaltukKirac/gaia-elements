@@ -1,8 +1,8 @@
 {
     "repo":  "SaltukKirac/gaia-elements",
     "channel":  "main",
-    "rev":  78,
-    "updated":  "2026-11-25T19:31:33Z",
+    "rev":  79,
+    "updated":  "2026-11-26T19:31:32Z",
     "elements":  {
                      "aithia-pricing":  {
                                             "commit":  "d33173268149bc693fb961125ae5b4273044e63a",
@@ -13,12 +13,12 @@
                                             "updated":  "2026-10-23T10:01:19Z"
                                         },
                      "architect":  {
-                                       "commit":  "6566a5183c38b17a76baef8cabdd589a5d238dbf",
+                                       "commit":  "491cbc53bd004b3a3ad2e7c41d6165f7bf5727dc",
                                        "path":  "el/architect.html",
-                                       "blob":  "4c307d85d8109826b5cdd532b48497abb686a35c",
-                                       "bytes":  4276109,
+                                       "blob":  "01906b50c786ff8565d4fd6dde87e35e103ad76e",
+                                       "bytes":  4278308,
                                        "title":  "AI Architect / GAD (+ Octo shell) - app page",
-                                       "updated":  "2026-11-25T19:31:33Z"
+                                       "updated":  "2026-11-26T19:31:32Z"
                                    },
                      "form":  {
                                   "commit":  "28895eecb42d270954f61fc8954df9b9c4873905",
