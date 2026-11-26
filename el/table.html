@@ -6380,7 +6380,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const birak = await dtKkKilit(id, true);   // KLASOR-IZLE: the folder's lock: no tab reads it for new files while Gaia writes there
         try {
           // under the lock: the folder may have been linked again / unlinked in another tab, or its link sync done there meanwhile
-          if (s.kk && !(await dtKkTazele(id, s.kk))) { dtSiraliFail(id, bicim, s, 'The folder of this file changed in another tab. Press Klasör again.'); return; }
+          if (_dtSirali.get(key) !== s) return;
+          const benim = !s.kk || _dtKk.get(id) === s.kk;
+          if (s.kk && !(await dtKkTazele(id, s.kk))) {
+            if (_dtSirali.get(key) !== s) return;
+            if (!benim) { _dtSirali.delete(key); try { dtSiraliPaint(id); } catch (e) {} return; }   // unlinked here / another person: no job any more
+            dtSiraliFail(id, bicim, s, 'The folder of this file changed in another tab. Press Klasör again.');
+            return;
+          }
           if (_dtSirali.get(key) !== s) return;
           if (s.kk && s.kip === 'bagla' && !s.kk.bagla) s.kip = '';
           await dtSiraliYaz(id, bicim, s, d);
@@ -6584,18 +6591,29 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     // only the names a complete look saw gone (gitti) go
     // A copy of an older state (another tab, an older copy of this script) never writes over a newer link of the record, nor brings
     // back a folder that was unlinked there (bag._idb: this bag is known to be in IndexedDB)
+    let atla = '', yeni = null;
     const p = dtSiraliYerDb('readwrite', st => {
       let son = null;
       const g = st.get(k);
       g.onsuccess = () => {
         let e = null;
         try { e = g.result; } catch (x) { e = null; }
-        if ((e && Number(e.at) > Number(v.at)) || (!e && bag._idb)) return;
+        if (e && Number(e.at) > Number(v.at)) { atla = 'yeni'; yeni = e; return; }
+        if (!e && bag._idb) { atla = 'yok'; return; }
         try { if (e && e.bilinen && v.bilinen && Number(e.at) === Number(v.at)) v.bilinen = dtKkBilinenBirles(e.bilinen, v.bilinen, gitti); } catch (x) {}
         try { son = st.put(v, k); } catch (x) { son = null; }
       };
       return { get result() { return son ? son.result : null; } };
-    }).then(x => { if (x) bag._idb = true; return x; });
+    }).then(x => {
+      if (x) bag._idb = true;
+      // not written: this copy's bag is not the record's folder any more. Memory follows at once; a 'kaydet' this call sent is withdrawn
+      if (atla && _dtKk.get(id) === bag) {
+        if (atla === 'yeni' && yeni && yeni.h) { yeni._idb = true; _dtKk.set(id, yeni); }
+        else { _dtKk.delete(id); _dtKkOto.delete(id); if (_dtKkSunucuda.has(id)) { _dtKkSunucuda.delete(id); dtKkSunucu('birak', { id: id }); } }
+        try { dtKkIzleUnut(id); dtSiraliPaint(id); } catch (e) {}
+      }
+      return x;
+    });
     try { _dtKkYazim.set(id, p); } catch (e) {}
     return p;
   }
@@ -7360,6 +7378,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (v === undefined) {   // unlinked in another tab: forgotten here too (that tab told the server)
       if (!bag._idb) return true;   // this copy's own first save did not land (yet): nothing to follow
       _dtKk.delete(id); _dtKkOto.delete(id); dtKkIzleUnut(id);
+      if (_dtKkSunucuda.has(id)) { _dtKkSunucuda.delete(id); dtKkSunucu('birak', { id: id }); }   // this tab told the server too: withdrawn
       try { dtSiraliPaint(id); } catch (e) {}
       return false;
     }
@@ -7426,15 +7445,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     _dtKkIzleTarar = true;
     let birak = null;
     try {
-      let izin = 'granted';
-      try { if (typeof bag.h.queryPermission === 'function') izin = await bag.h.queryPermission({ mode: 'read' }); } catch (e) { izin = 'denied'; }
-      iz.izinYok = izin !== 'granted';
-      dtKkIzinKart();
-      if (iz.izinYok) return;
       birak = await dtKkKilit(id, false);
       if (!birak) return;   // another tab, or an older copy of this script, works in this folder now (a change seen stays to be read)
-      // KLASOR-BAGLA: until the link sync worked (here or in another tab: read just now), that sync learns the folder, not a look
-      if (!(await dtKkTazele(id, bag)) || bag.bagla || dtKkIzleMesgul(id) || dtKkIzleIsVar(iz)) return;
+      if (!(await dtKkTazele(id, bag)) || dtKkIzleMesgul(id) || dtKkIzleIsVar(iz)) return;   // IndexedDB only: no permission needed
+      let izin = 'granted';
+      try { if (typeof bag.h.queryPermission === 'function') izin = await bag.h.queryPermission({ mode: 'read' }); } catch (e) { izin = 'denied'; }
+      // KLASOR-BAGLA: until the link sync worked (here or in another tab: read just now), that sync learns the folder, not a look; the
+      // Allow card is only for folders that are watched once allowed (the Klasör press of a link sync asks for itself)
+      iz.izinYok = !bag.bagla && izin !== 'granted';
+      dtKkIzinKart();
+      if (izin !== 'granted' || bag.bagla) return;
       const dis = await dtKkIzleDisla(id, bag, iz);
       if (!dis) { iz.bekle = new Map(); iz.hazir = []; iz.sor = false; iz.bekleAt = 0; dtKkIzleKart(id); return; }
       iz.kirli = false;
@@ -7509,6 +7529,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // a folder upload that cannot be tried again keeps only the file names (its in-memory copies go)
   function dtKkIsBosalt(j) { if (j && j.klasor && Array.isArray(j.files)) j.files = j.files.map(f => ({ name: String((f && f.name) || ''), size: Number(f && f.size) || 0 })); }
+  // the person's own selection when upload j opens its record: a finished folder upload whose selection is still owed (it is put back
+  // 4 s after done, the next upload may start at 1.8 s) puts it back first
+  function dtKkSecimOnce(j) {
+    _dtEkle.forEach(x => { if (x !== j && x.klasor && Array.isArray(x.secim) && (x.st === 'done' || x.st === 'error')) dtKkIzleSecimGeri(x); });
+    return dtKkSecimAl();
+  }
   function dtKkSecimAl() { try { return typeof getSelectedUniqueIds === 'function' ? getSelectedUniqueIds() : null; } catch (e) { return null; } }
   // after an upload from the folder: the rows the person had selected, as before (the upload selects its record to open it). A
   // selection the person changed meanwhile stays.
@@ -8491,7 +8517,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const si = Array.isArray(state.rawRows) ? state.rawRows.findIndex(r => rowIdOf(r) === j.rid) : -1;
     if (si < 0) { dtEkleSayfaHata(j, 'This file is not in the table any more.'); return; }
     j.sent = true; j.acAt = Date.now(); j.acDeneme = 1;
-    if (j.klasor) { try { j.secim = dtKkSecimAl(); } catch (e) {} }   // KLASOR-IZLE: the person's selection as the record opens (it comes back after)
+    try { const sec = dtKkSecimOnce(j); if (j.klasor) j.secim = sec; } catch (e) {}   // KLASOR-IZLE: the person's selection as the record opens (it comes back after)
     window.__gxKlasorTeslim = { id: j.rid, files: j.files, at: Date.now(), kart: '', etiket: j.etiket, auto: true, sayfa: true, is: j.id,
       kuru: window.__gxKlasorKuru === true, rapor: (o) => dtEkleSayfaRapor(j, o) };
     try { if (typeof dtGezClose === 'function') dtGezClose(); } catch (e) {}
