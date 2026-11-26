@@ -6413,7 +6413,19 @@
     window.gaiaTriggerManager = {
       // payload'ı Bubble plugin üzerinden server.js'e gönderir
       manageTrigger: function (action_type, params = {}) {
+        // 26.11 TRIG-PAYLAS-KORU: sunucunun "zaten vardı" (existing) dediği tetikleyici aynı kutuya bağlı başka bir asistanın
+        // canlı tetikleyicisidir; kurulum temizliği / geri alma onu SİLMEZ (silinirse o asistan da mail almaz). Yalnız
+        // kullanıcının Aktif tetikleyiciler panelinden onaylayarak sildiği (user:true) gider.
+        if (action_type === 'delete') {
+          var _pkId = String((params && (params.trigger_instance_id || params.trigger_id)) || '').trim();
+          var _pkUser = !!(params && params.user === true);
+          if (_pkId && !_pkUser && window._gadSharedTrigIds && Object.prototype.hasOwnProperty.call(window._gadSharedTrigIds, _pkId)) {
+            console.warn('[TRIGGER MANAGER] TRIG-PAYLAS-KORU: paylaşılan tetikleyici silinmedi (başka asistan kullanıyor):', _pkId);
+            return;
+          }
+        }
         const payload = { action_type: action_type, ...params };
+        if (action_type === 'delete' && payload.user === true) delete payload.user;   // 26.11 TRIG-PAYLAS-KORU: işaret sunucuya gitmez
         if (window.__GAIA_HUB__ && window.__GAIA_HUB__.slug && !payload.trigger_slug && action_type === 'create') {
           payload.trigger_slug = window.__GAIA_HUB__.slug;
         }
@@ -6469,6 +6481,18 @@
         try {
           const res = typeof responseRaw === "string" ? JSON.parse(responseRaw) : responseRaw;
           if (!res || typeof res !== 'object') { console.warn('[TRIGGER MANAGER] boş/geçersiz cevap yutuldu'); return; }
+
+          // 26.11 TRIG-PAYLAS-KORU: create / upsert cevabında existing:true (Composio upsert 200 = aynı hesap + aynı ayarla
+          // VAR OLAN tetikleyici) gelirse kimlik paylaşılan diye işaretlenir; manageTrigger('delete') temizlikte onu silmez.
+          // Yalnız işaret koyar, akışa dokunmaz (aşağıdaki D19 eşlemesi ve geç cevap temizliği aynen çalışır).
+          try {
+            var _shD = (res.data && typeof res.data === 'object') ? res.data : res;
+            var _shId = String((_shD && (_shD.id || _shD.trigger_id || _shD.triggerId || _shD.trigger_instance_id)) || '').trim();
+            if (_shD && _shD.existing === true && /^ti_[A-Za-z0-9_-]{4,80}$/.test(_shId)) {
+              (window._gadSharedTrigIds = window._gadSharedTrigIds || {})[_shId] = Date.now();
+              console.log('[TRIGGER MANAGER] TRIG-PAYLAS-KORU: paylaşılan tetikleyici işaretlendi (temizlikte silinmez):', _shId);
+            }
+          } catch (_shE) {}
 
           // ── D19: istek-başına eşleme (HER ŞEYDEN ÖNCE) ────────────────────────
           // server.js (D10) req_id'yi yankılar. Bubble plugin BAŞARILI cevabı `result.data || result`
@@ -6988,7 +7012,8 @@
             window._gaiaDisabledTrigsCache.forEach(function(v) { _dtcLS.push(v); });
             localStorage.setItem('gaia_disabled_trigs', JSON.stringify(_dtcLS));
           } catch(_e) {}
-          window.gaiaTriggerManager.manageTrigger(action, { trigger_instance_id: trigId });
+          // 26.11 TRIG-PAYLAS-KORU: panelden onaylı silme kullanıcının kararıdır, paylaşılan tetikleyici de silinir (user:true).
+          window.gaiaTriggerManager.manageTrigger(action, action === 'delete' ? { trigger_instance_id: trigId, user: true } : { trigger_instance_id: trigId });
         };
 
         // ── Kart HTML ───────────────────────────────────────────────────────────
