@@ -7966,7 +7966,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try { const o = new FileSystemObserver(() => { const x = _dtKkKok.get(k.key); if (x) x.son = 0; }); await o.observe(k.h, { recursive: true }); if (_dtKkKok.get(k.key) === k) k.goz = o; else o.disconnect(); } catch (e) { k.goz = null; }
   }
   // one look at a root (bakNo: a newer look started by the 2-minute reset makes this one stop acting)
+  // 27.11 (Saltuk: "işlem yapılıp yapılmadığını anlayamıyorum"): while a look runs the status window says so
   async function dtKokBak(key) {
+    const k = _dtKkKok.get(key);
+    if (k) { k.okunuyor = true; dtKokPanelCiz(); }
+    try { await dtKokBak0(key); }
+    finally { if (k) { k.okunuyor = false; k.sonAt = Date.now(); } dtKokPanelCiz(); }
+  }
+  async function dtKokBak0(key) {
     const k = dtKokDurum(key);
     if (!k || !k.h) return;
     k.son = Date.now();
@@ -7982,6 +7989,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (k.ilk) dtKokIlkKart(k, 'Reading ' + dtKkKartAd(k) + '...');   // 27.11 (Saltuk: "yeniden bak diyene kadar hiçbir şey yapılmadı"): the person sees it work
     try { l = await dtKokTara(k); } catch (e) { dtKokIz('read failed', (e && e.name) + ': ' + (e && e.message)); if (k.ilk) dtKokIlkKart(k, 'Could not read ' + dtKkKartAd(k) + ' (' + ((e && e.name) || 'error') + '). Gaia tries again in a moment.'); return; }   // offline share: tried again at the next look
     if (!guncel()) return;
+    k.sonL = l.map(x => ({ ad: x.ad, ust: x.ust, anahtar: x.anahtar }));   // the status window lists these
     if (k.ilk) dtKokIlkKart(k, l.length + ' case folders found, linking them to their records...');
     dtKokGozle(k);
     if (k.v !== 2) {   // a root watched before the path keys (27.11): what is there now is known; the person re-syncs to choose again
@@ -8240,6 +8248,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function dtKokEsle(k, l) {
     const haric = new Set(k.haric || []);
     const es = dtKokEslesme(l.filter(x => !haric.has(x.anahtar)));   // KOK-SECIM: unticked folders are left alone
+    k.belirsiz = es.belirsiz;
     dtKokSay(k, l, es);
     for (const [id, x] of es) {
       const eski = _dtKk.get(id);
@@ -8286,7 +8295,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
             if (ok) { k1.izinYok = false; k1.son = 0; dtKokCip(); try { dtIslerSil('kok-izin'); } catch (e) {} dtKokTik(); }
             return;
           }
-          try { dtKokDurumKart(); } catch (e) {}
+          try { dtKokPanel(); } catch (e) { try { dtKokDurumKart(); } catch (e2) {} }
         });
         b.parentNode.insertBefore(c, b.nextSibling);
       }
@@ -8306,6 +8315,98 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       dtKokCip();
       showWakeToast('Gaia stopped watching ' + dtKkKartAd(k) + '. Nothing in the folder changed.', 'success');
     }, href: '', msg: '' });
+  }
+  // KOK-DURUM (27.11, Saltuk: "bağlantıyı kesip tekrar bağlasam da işlem yapılıp yapılmadığını anlayamıyorum"): one window that
+  // lists every case folder of the watched root and what is happening to it now (linked to which record and its sync: queued /
+  // running / done with what it wrote / failed; becoming a new record; waiting for a copy; left alone), the last look's time and a
+  // "Look again" that shows the reading. It opens by itself after Start and from the chip; it redraws every 1.5 s while open.
+  function dtKokEtiket(id) {
+    const raw = (state.rawRows || []).find(r => rowIdOf(r) === id);
+    let pl = '';
+    try { for (const kk in (raw || {})) if (dtNormKey(kk) === 'plaka') pl = String(raw[kk] == null ? '' : raw[kk]).trim(); } catch (e) {}
+    return [raw ? dtIslerEtiket(raw) : '', pl].filter(Boolean).join(' · ') || ('…' + String(id).slice(-6));
+  }
+  function dtKokKlasorDurum(k, x, idOf) {
+    const an = x.anahtar;
+    if ((k.haric || []).indexOf(an) >= 0) return ['Left alone (unticked)', '#64748b'];
+    if (k.yapim instanceof Map && k.yapim.has(an)) return ['Becoming a new record in a new tab', '#b45309'];
+    const a = k.aday instanceof Map ? k.aday.get(an) : null;
+    if (a) return [a.hazir ? 'New: becoming a record now' : 'New: waiting until copying ends', '#b45309'];
+    const id = idOf.get(dtKkKucuk(x.ad));
+    if (id) {
+      const r = 'Record ' + dtKokEtiket(id), j = _dtSirali.get(dtSiraliKey(id, 'klasor'));
+      if (j && j.st === 'working') return [r + ': syncing now', '#1d4ed8'];
+      if (j && j.st === 'ask') return [r + ': its sync waits for your answer on the row', '#b45309'];
+      if (j && j.st === 'done') return [r + ': synced. ' + dtKkOzetMetni(j, true), '#15803d'];
+      if (j && j.st === 'error') return [r + ': sync failed. ' + String(j.msg || '').slice(0, 120), '#b91c1c'];
+      if ((k.sira || []).indexOf(id) >= 0) return [r + ': linked, its sync is queued', '#1d4ed8'];
+      return [r + ': linked', '#15803d'];
+    }
+    if (k.belirsiz && k.belirsiz.has(an)) return ['Unclear: its name fits several records, left alone', '#64748b'];
+    return ['Not linked: it was there before (left alone)', '#64748b'];
+  }
+  function dtKokPanelKapat() { const o = document.getElementById('dt-kok-durum'); if (o) o.remove(); if (window.__dtKokPanelT) { clearInterval(window.__dtKokPanelT); window.__dtKokPanelT = null; } }
+  function dtKokPanel() {
+    const k = Array.from(_dtKkKok.values())[0];
+    if (!k) return;
+    dtKokPanelKapat();
+    const o = document.createElement('div');
+    o.id = 'dt-kok-durum';
+    o.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(15,23,42,.35);display:flex;align-items:center;justify-content:center;font:13px/1.45 system-ui,sans-serif;color:#0f172a';
+    o.innerHTML = '<div role="dialog" aria-modal="true" style="background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(15,23,42,.25);width:min(620px,94vw);max-height:84vh;display:flex;flex-direction:column">'
+      + '<div style="padding:16px 18px 8px"><div class="t" style="font-size:16px;font-weight:600"></div><div class="a" role="status" aria-live="polite" style="color:#475569;margin-top:4px"></div></div>'
+      + '<div class="l" style="overflow:auto;padding:0 18px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0"></div>'
+      + '<div style="padding:12px 18px;display:flex;gap:8px;justify-content:space-between"><button class="d" type="button" style="padding:8px 14px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#b91c1c;cursor:pointer"></button>'
+      + '<span style="display:flex;gap:8px"><button class="y" type="button" style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer"></button><button class="k" type="button" style="padding:8px 14px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer"></button></span></div></div>';
+    o.querySelector('.d').textContent = 'Stop watching';
+    o.querySelector('.y').textContent = 'Look again';
+    o.querySelector('.k').textContent = 'Close';
+    o.querySelector('.k').addEventListener('click', dtKokPanelKapat);
+    o.querySelector('.y').addEventListener('click', () => { const k1 = Array.from(_dtKkKok.values())[0]; if (!k1) return; k1.son = 0; k1.okunuyor = true; dtKokPanelCiz(); try { dtKokTik(); } catch (e) {} });
+    o.querySelector('.d').addEventListener('click', () => {
+      const k1 = Array.from(_dtKkKok.values())[0];
+      dtKokPanelKapat(); dtKokHepsiniBirak(); dtKokCip();
+      if (k1) showWakeToast('Gaia stopped watching ' + dtKkKartAd(k1) + '. Nothing in the folder changed.', 'success');
+    });
+    o.addEventListener('mousedown', (e) => { if (e.target === o) dtKokPanelKapat(); });
+    document.body.appendChild(o);
+    dtKokPanelCiz();
+    window.__dtKokPanelT = setInterval(() => { if (!document.getElementById('dt-kok-durum')) { clearInterval(window.__dtKokPanelT); window.__dtKokPanelT = null; return; } dtKokPanelCiz(); }, 1500);
+  }
+  function dtKokPanelCiz() {
+    try {
+      const o = document.getElementById('dt-kok-durum');
+      if (!o) return;
+      const k = Array.from(_dtKkKok.values())[0];
+      if (!k) { dtKokPanelKapat(); return; }
+      const yaz = (el, t) => { if (el.dataset.en !== t) { el.dataset.en = t; el.textContent = t; } };   // the Turkish layer rewrites the text: compare with what was written
+      yaz(o.querySelector('.t'), 'Sync status of ' + dtKkKartAd(k));
+      const idOf = new Map();
+      _dtKk.forEach((b, id) => { if (b && (b.kaynak === 'kok' || b.kaynak === 'bagla') && b.ad) idOf.set(dtKkKucuk(b.ad), id); });
+      const l = Array.isArray(k.sonL) ? k.sonL : [];
+      const satir = l.map(x => [x, dtKokKlasorDurum(k, x, idOf)]);
+      const bagli = satir.filter(([, d]) => d[1] === '#15803d' || d[1] === '#1d4ed8').length, yeni = satir.filter(([, d]) => d[1] === '#b45309').length, hata = satir.filter(([, d]) => d[1] === '#b91c1c').length;
+      const sn = k.sonAt ? Math.max(0, Math.round((Date.now() - k.sonAt) / 1000)) : -1;
+      const ust = k.izinYok ? 'Gaia has no permission for this folder: press the chip on the toolbar to allow it.'
+        : k.okunuyor ? 'Reading the folder now...'
+        : !l.length ? (sn < 0 ? 'Waiting for the first look...' : 'No case folders found (a case folder holds documents itself).')
+        : l.length + ' case folders: ' + bagli + ' linked to their records, ' + yeni + ' becoming new records' + (hata ? ', ' + hata + ' failed' : '') + '. Last look ' + sn + ' s ago.';
+      yaz(o.querySelector('.a'), ust);
+      const liste = o.querySelector('.l');
+      const imza = satir.map(([x, d]) => x.anahtar + d[0]).join('|');
+      if (liste.dataset.imza === imza) return;
+      liste.dataset.imza = imza;
+      liste.textContent = '';
+      satir.forEach(([x, d]) => {
+        const r = document.createElement('div');
+        r.style.cssText = 'padding:8px 0;border-bottom:1px solid #f1f5f9';
+        const n = document.createElement('div'); n.style.cssText = 'font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        n.textContent = (x.ust && x.ust !== k.ad ? x.ust + ' / ' : '') + x.ad;
+        const w = document.createElement('div'); w.style.cssText = 'font-size:12px;color:' + d[1];
+        w.textContent = d[0];
+        r.appendChild(n); r.appendChild(w); liste.appendChild(r);
+      });
+    } catch (e) {}
   }
   // --- KOK-SECIM (27.11, Saltuk: "tablodaki klasör ikonuna tıklayınca sync mi çoklu ekleme mi diye sorsun; sync olduğu zaman klasörü
   // tanıma süreci olmalı ... ardından o klasör ile tablom tam sync olsun, isimlendirmeler vb."): the Folders button asks first. "Sync
@@ -8447,6 +8548,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       ['kok-bekle:', 'kok-sekme:', 'kok-ilk:'].forEach(p => { try { dtIslerSil(p + k0.key); } catch (e) {} });   // folders being made keep their lock and mark
     });
     try { dtIslerSil('kok-izin'); } catch (e) {}
+    try { dtKokPanelKapat(); } catch (e) {}
     dtKokIz('stopped watching');
   }
   async function dtKokBaslat(h, l, sec, kayitOf, eylem) {
@@ -8465,6 +8567,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     else showWakeToast('Gaia syncs ' + dtKkKartAd(k) + ': ' + (sec.size - yeni) + ' folders join their records' + (yeni ? ', ' + yeni + ' become new records' : '') + '.', 'success');
     dtKokCip();
     _dtKokTarar = false;   // a look still running belongs to the root just replaced (it stops acting by itself)
+    try { dtKokPanel(); } catch (e) {}   // KOK-DURUM: the person watches the folders move
     try { dtKokTik(); } catch (e) {}
   }
   try { if (dtKkOn()) { dtKkYukle(); dtKkKanal(); } } catch (e) {}
