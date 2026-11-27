@@ -913,6 +913,7 @@
     // KOK-KLASOR (27.11): izlenen kök klasör
     'Watch this folder?': 'Bu klasör izlensin mi?',
     'Look again': 'Yeniden bak',
+    'Action for each new record': 'Her yeni kayıt için eylem',
     'Sync with a folder': 'Klasörle senkronize et',
     'Link the office folder: each case folder joins its record, both sides stay complete': 'Ofis klasörünü bağla: her dosya klasörü kendi kaydına bağlanır, iki taraf da tam kalır',
     'Add folders as records': 'Klasörleri kayıt olarak ekle',
@@ -1265,6 +1266,7 @@
     [/^Chrome did not give Gaia that folder \((.+)\)\. Type its path in the Folder box of the dialog and press Select Folder\.$/, function (m) { return 'Chrome klasörü Gaia\'ya vermedi (' + m[1] + '). Pencerenin altındaki Klasör kutusuna yolunu yazıp Klasör Seç\'e basın.'; }],
     [/^Could not read (.+) \((.+)\)\.$/, function (m) { return m[1] + ' okunamadı (' + m[2] + ').'; }],
     [/^Gaia could not show what it found \((.+)\)\.$/, function (m) { return 'Gaia bulduklarını gösteremedi (' + m[1] + ').'; }],
+    [/^New folders in (.+) wait: the Gaia server does not make records from folders yet\.$/, function (m) { return m[1] + ' içindeki yeni klasörler bekliyor: Gaia sunucusu klasörden kayıt açmayı henüz yapmıyor.'; }],
     [/^Sync (.+) with this table$/, function (m) { return m[1] + ' klasörünü bu tabloyla senkronize et'; }],
     [/^(\d+) case folders found: (\d+) join their records, (\d+) become new records\. Untick what Gaia should leave alone\. Folders that only hold folders \(an insurer, a year\) are not records\.$/, function (m) { return m[1] + ' dosya klasörü bulundu: ' + m[2] + ' tanesi kendi kaydına bağlanacak, ' + m[3] + ' tanesi yeni kayıt olacak. Gaia\'nın dokunmamasını istediklerinin işaretini kaldır. Yalnız klasör içeren klasörler (sigorta, yıl) kayıt değildir.'; }],
     [/^Joins record (.+)$/, function (m) { return m[1] + ' kaydına bağlanacak'; }],

@@ -7108,7 +7108,10 @@
       // KOK-KLASOR (27.11 Saltuk: "üst klasörü bağla, içeri eklenen yeni klasör otomatik Gaia'da kayıt olsun"): tablo, bağlı kök
       // klasörde yeni bir dosya klasörü bulunca buradan verir. Kart yok; kişinin klasör kartında son seçtiği aksiyon kullanılır (yoksa
       // yalnız kaydedilir). Sıra meşgulse false: tablo sonra yeniden dener.
-      BDF_BULK.offerAuto = (fileList) => {
+      // KOK-SECIM: tablonun tanıma ekranı aksiyon listesini buradan alır; seçilen aksiyon offerAuto'ya gelir.
+      BDF_BULK.actions = () => { try { return bdf_bulkActionList().filter((o) => o && o.id && o.name).map((o) => ({ id: String(o.id), name: String(o.name) })); } catch (_) { return []; } };
+      BDF_BULK.lastAction = () => { try { return String(localStorage.getItem(BDF_BULK_ACTION_KEY) || ""); } catch (_) { return ""; } };
+      BDF_BULK.offerAuto = (fileList, eylem) => {
         const G = BDF_BULK;
         if (!bdf_bulkCanRun() || G.running || G.view === "confirm") return false;
         if (G.view === "remote" && G.remote && (G.remote.state === "opening" || G.remote.state === "run" || G.remote.state === "quiet")) return false;
@@ -7116,7 +7119,9 @@
         if (!res || !res.groups || !res.groups.length) return false;
         let ad = "";
         try { ad = String(localStorage.getItem(BDF_BULK_ACTION_KEY) || ""); } catch (_) { ad = ""; }
-        const act = ad ? (bdf_bulkActionList().find((o) => o && o.name === ad) || null) : null;
+        // eylem: tanıma ekranında seçilen ({id, name}; name "" = yalnız kaydet); yoksa klasör kartında son seçilen
+        if (eylem && typeof eylem === "object") ad = String(eylem.name || "");
+        const act = ad ? (bdf_bulkActionList().find((o) => o && (o.name === ad || (eylem && eylem.id && String(o.id) === String(eylem.id)))) || null) : null;
         G.offer = { groups: res.groups, loose: 0, more: 0, whole: null, allHere: null, openedAt: Date.now(), action: act ? { id: act.id, name: act.name } : null, auto: true };
         console.log("[BULK] KOK-KLASOR new folder from the linked root", { folders: res.groups.length, action: act ? act.name : "" });
         bdf_bulkStartInTab(res.groups);
