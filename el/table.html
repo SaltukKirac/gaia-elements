@@ -6282,7 +6282,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     if (_dtSirali.get(key) && _dtSirali.get(key).st === 'working') return;
     const s = { raw: raw, etiket: dtIslerEtiket(raw), st: 'working', bicim: bicim, job: '', durumUrl: '', directFails: 0, directOff: false, k: 0, n: 0, queued: false, skipped: [], skippedCount: 0, url: '', exp: 0, msg: '', t0: Date.now(), fails: 0, dir: dir, zip: zip, klasor: '', saved: 0, yaz: false,
-      kk: kk, onay: onay, kip: kip || '', yeni: 0, vardi: 0, tasindi: 0, adsiz: 0, geri: false };
+      kk: kk, onay: onay, kip: kip || '', yeni: 0, vardi: 0, tasindi: 0, adsiz: 0, olmadi: 0, geri: false };
     _dtSirali.set(key, s);
     dtSiraliPaint(id);
     // GX-SIRALI-YENIDEN (19.11, test: "bazen PDF'e dönüştürmede sorun çıkıyor, hata veriyor"): the start call gave up at Gaia's ~25 s
@@ -6393,7 +6393,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const key = dtSiraliKey(id, bicim);
     const canli = () => _dtSirali.get(key) === s;
     const files = d.files.filter(f => f && f.url && f.name);
-    s.yaz = true; s.k = 0; s.n = files.length; s.skipped = []; s.skippedCount = 0; s.yeni = 0; s.vardi = 0; s.tasindi = 0; s.adsiz = 0;
+    s.yaz = true; s.k = 0; s.n = files.length; s.skipped = []; s.skippedCount = 0; s.yeni = 0; s.vardi = 0; s.tasindi = 0; s.adsiz = 0; s.olmadi = 0;
     let root = s.dir;
     if (s.kk) s.klasor = dtSiraliAd(s.kk.ad || (s.dir && s.dir.name)) || 'your folder';
     else {
@@ -6427,7 +6427,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     s.saved = s.yeni;
     if (!s.yeni && !s.vardi) { dtSiraliFail(id, bicim, s, 'No file could be saved. Try again.'); return; }
     if (s.kk) {
-      s.kk.duzen = true;
+      s.kk.duzen = !(s.kk.kaynak === 'birak' && s.olmadi && !s.tasindi);   // KK-TILDE: nothing could be renamed: still "not organized", Organize asks again
       s.kk.n = dtKkSatirSay(id);
       if (geri && geri.tasindi.length) s.kk.geri = geri;
       _dtKkOto.set(id, s.kk.n);
@@ -6770,7 +6770,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) {}
   }
   // --- 2) the files of a folder and the server's list
-  function dtKkCop(ad) { const t = String(ad || ''); return !t || t.charAt(0) === '.' || /^~gaia-/i.test(t) || /^(desktop\.ini|thumbs\.db)$/i.test(t); }
+  function dtKkCop(ad) { const t = String(ad || ''); return !t || t.charAt(0) === '.' || /^~gaia-/i.test(t) || /^gaia-gecici-/i.test(t) || /^(desktop\.ini|thumbs\.db)$/i.test(t); }
   // local files under a folder: [{ yol: 'a/b.pdf', parca: ['a'], ad: 'b.pdf', boy, h, f, oz }]
   async function dtKkTara(root) {
     const out = [];
@@ -6886,13 +6886,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // phase B: the found files get their office order names. Each first steps aside under a temporary name in its own folder (so a
   // name held by another listed file is free), the log is saved, then each goes to its place. A file that cannot go there goes back.
   // → how many reached their office order name
+  // KK-TILDE (27.11, measured in a real Chrome on a local disk and on a network share): Chrome refuses a move to a name that starts
+  // with "~" (TypeError), so the old temporary name "~gaia-…" made every Organize rename nothing, silently. The temporary name is
+  // "gaia-gecici-…" now, and a file Chrome does not let Gaia rename is counted and said on the card (olmadi).
   async function dtKkTasi(c, tasi, geri) {
     const yolda = [];
-    let k = 0;
+    let k = 0, olmadi = 0, neden = '';
     for (const x of tasi) {
-      const t = '~gaia-' + c.tag + '-' + (k++) + '.tmp';
+      const t = 'gaia-gecici-' + c.tag + '-' + (k++) + '.tmp';
       const m = { from: x.y.yol, tmp: x.y.parca.concat(t).join('/'), to: '' };
-      try { await x.y.h.move(t); } catch (e) { continue; }
+      try { await x.y.h.move(t); } catch (e) { olmadi += 1; neden = neden || String((e && e.name) || 'error'); continue; }
       c.dolu.delete(x.y.yol.toLowerCase());
       geri.tasindi.push(m); yolda.push([x, m]);
     }
@@ -6906,13 +6909,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         m.to = x.hedef.parca.concat(ad).join('/');
         yerinde += 1;
       } catch (e) {
+        olmadi += 1; neden = neden || String((e && e.name) || 'error');
         try { const d0 = await dtKkDizin(c.root, x.y.parca), a0 = dtKkBosAd(c.dolu, x.y.parca, x.y.ad); await x.y.h.move(d0, a0); m.to = x.y.parca.concat(a0).join('/'); }
         catch (e2) { m.to = m.tmp; }   // stays under the temporary name; Undo finds it there
       }
       c.dolu.add(m.to.toLowerCase());
     }
     await c.gunluk();
-    return yerinde;
+    if (olmadi) { try { log('[KAYIT-KLASOR] ' + olmadi + ' rename(s) refused: ' + neden); } catch (e) {} }
+    return { yerinde, olmadi };
   }
   // phase C: a missing file, written under its name (never over another file)
   async function dtKkYeniYaz(c, x) {
@@ -6933,7 +6938,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     s.vardi = p.sonuc.filter(x => x.tur === 'var').length;
     if (p.tasi.length && p.tasiOlur) {
       p.c.gunluk = async () => { if (s.kk) { s.kk.geri = geri; await dtKkKaydet(id, s.kk); } };
-      s.tasindi = await dtKkTasi(p.c, p.tasi, geri);
+      const t = await dtKkTasi(p.c, p.tasi, geri);
+      s.tasindi = t.yerinde; s.olmadi = t.olmadi;
     } else s.adsiz = p.tasi.length;   // this browser cannot rename: they keep their names
     let next = 0;
     await Promise.all(Array.from({ length: Math.min(DT_SIRALI_PAR, p.yeni.length) }, async () => {
@@ -6955,7 +6961,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const atla = s.skippedCount ? ', ' + s.skippedCount + ' skipped' : '';
     if (!s.vardi) return 'Saved ' + dtKkSay(Number(s.saved) || 0, 'file') + ' into ' + (kisa ? (s.klasor || 'the folder') : 'the folder ' + s.klasor) + atla;
     return dtKkSay(s.yeni, 'new file') + ' added, ' + s.vardi + ' already there' + (s.tasindi ? ' (' + s.tasindi + ' renamed to office order)' : '')
-      + (s.adsiz ? ', ' + s.adsiz + ' kept their names (this browser cannot rename)' : '') + ' in ' + s.klasor + atla;
+      + (s.adsiz ? ', ' + s.adsiz + ' kept their names (this browser cannot rename)' : '')
+      + (s.olmadi ? ', ' + dtKkSay(s.olmadi, 'file') + ' could not be renamed (open in another program?)' : '') + ' in ' + s.klasor + atla;
   }
   function dtKkSorMetni(s) {
     const p = s.plan || { var: 0, tasi: 0, yeni: 0, olur: true };
