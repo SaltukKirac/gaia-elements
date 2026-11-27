@@ -8096,6 +8096,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtKokSecimKapat() { const m = document.getElementById('dt-kok-secim'); if (m) m.remove(); document.removeEventListener('mousedown', dtKokSecimDis, true); }
   function dtKokSecimDis(e) { const m = document.getElementById('dt-kok-secim'); if (m && !m.contains(e.target) && e.target !== els.foldersButton) dtKokSecimKapat(); }
   function dtKokSecimAc(api) {
+    dtKokIz('menu');
     dtKokSecimKapat();
     const b = els.foldersButton, r = b.getBoundingClientRect();
     const m = document.createElement('div');
@@ -8118,15 +8119,26 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     document.body.appendChild(m);
     setTimeout(() => document.addEventListener('mousedown', dtKokSecimDis, true), 0);
   }
+  function dtKokIz(m, x) { try { console.info('[KOK] ' + m, x === undefined ? '' : x); } catch (e) {} }   // always on: the steps of a sync, for a tester's console
   async function dtKokSenkronSec() {
     let h = null;
+    const t0 = Date.now();
+    dtKokIz('folder dialog');
     try { h = await window.showDirectoryPicker({ id: 'gaia-kok', mode: 'readwrite' }); }
-    catch (e) { if (e && e.name !== 'AbortError') showWakeToast('Press the folder button again to choose the folder.', 'success'); return; }
-    if (!h || h.kind !== 'directory') return;
+    catch (e) {
+      dtKokIz('folder dialog ended', (e && e.name) + ' after ' + (Date.now() - t0) + ' ms');
+      // closed at once = Cancel; after a while = a folder was chosen but Chrome refused it (a known Chrome on Windows bug answers
+      // every pick with AbortError; a protected folder too)
+      if (!(e && e.name === 'AbortError' && Date.now() - t0 < 1500)) showWakeToast('Chrome did not give Gaia that folder (' + ((e && e.name) || 'error') + '). Type its path in the Folder box of the dialog and press Select Folder.', 'error');
+      return;
+    }
+    if (!h || h.kind !== 'directory') { dtKokIz('not a folder'); return; }
+    dtKokIz('chosen', h.name);
     showWakeToast('Reading ' + dtKkKartAd({ ad: h.name }) + '...', 'info');
     let l = [];
-    try { l = await dtKokTara({ h, bilinen: [] }); } catch (e) { showWakeToast('Could not read ' + dtKkKartAd({ ad: h.name }) + '.', 'error'); return; }
-    dtKokOnizleme(h, l);
+    try { l = await dtKokTara({ h, bilinen: [] }); } catch (e) { dtKokIz('read failed', (e && e.name) + ': ' + (e && e.message)); showWakeToast('Could not read ' + dtKkKartAd({ ad: h.name }) + ' (' + ((e && e.name) || 'error') + ').', 'error'); return; }
+    dtKokIz('case folders found', l.length + ' in ' + (Date.now() - t0) + ' ms');
+    try { dtKokOnizleme(h, l); dtKokIz('preview shown'); } catch (e) { dtKokIz('preview failed', (e && e.name) + ': ' + (e && e.message)); showWakeToast('Gaia could not show what it found (' + ((e && e.name) || 'error') + ').', 'error'); }
   }
   // what Gaia found, before anything happens
   function dtKokOnizleme(h, l) {
