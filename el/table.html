@@ -6272,7 +6272,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           }
         }
         catch (e) {
-          if (e && e.name === 'AbortError') return;   // the person closed the dialog: nothing to say
+          if (e && e.name === 'AbortError') { dtKkAgYardim('klasor', () => dtSiraliStart(raw, bicim, 'zip')); return; }   // closed, or a network place closed to websites (AG-KLASOR): offer one download
           if (denedi && e && e.name === 'SecurityError') { _dtSiraliYer = null; showWakeToast('Press Klasör again to pick where to save.', 'success'); return; }   // the click was used up by the prompt; GX-INDIR-ZIP: forget the refused place so the next press opens a fresh picker
           _dtSiraliNoFolder = true;                    // a frame / policy that refuses the folder API: ZIP from now on
           showWakeToast('This browser cannot save into a folder here, so the files come as one download.', 'success');
@@ -6592,6 +6592,31 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return p === 'granted';
     } catch (e) { return false; }
   }
+  // --- AG-KLASOR (27.11.2026, Saltuk: "ağ üzerinde duran dosyaları klasör olarak seçemiyorduk; Türkiye'de eksperler hep ağ içinde
+  // klasörleme yapıyor"). What Chrome does with a network folder (read from chrome_file_system_access_permission_context.cc, main,
+  // 27.11.2026; base::NormalizeFilePath turns a mapped drive letter Z:\ into its \\server\share path first, so a mapped drive gets the
+  // same rules): the folder dialog and a dropped folder's handle are CLOSED to websites when the \\server name looks local (localhost,
+  // 127.0.0.1, ".", "?", wsl.localhost, mac, psf, vmware-host, .host, vboxsvr, vboxsrv, the Remote Desktop drive "tsclient", the
+  // Citrix drive "client") or has any character other than A-Z a-z 0-9 . - _ (Turkish letters, a space, the "@" of a WebDAV place
+  // \\nas@SSL\DavWWWRoot), and for the admin shares C$..Z$, ADMIN$, IPC$, PRINT$, FAX$. Everything else on the network is open:
+  // \\SUNUCU\EKSPERTIZ, \\192.168.1.20\Evrak, a hidden share Evrak$, a DFS path, a drive letter mapped to one of those. A closed place
+  // shows Chrome's own "contains system files" box; the dialog then answers like a cancel (AbortError), so the page cannot tell it from
+  // a closed dialog. A dropped closed folder: getAsFileSystemHandle rejects (AbortError) while the old entries API still reads its files.
+  // So the upload never depends on the handle, and after a dialog that gave nothing the Activity panel offers the other way (the
+  // browser's own folder chooser / one download). Only the record folder part (organize in place, later sync) needs an open place.
+  // Off: window.__gxNoAgYardim = true.
+  function dtKkAgYardim(tur, alt) {
+    try {
+      if (window.__gxNoAgYardim || !dtIslerOn()) return;
+      const yer = 'a network place that websites may not open (a D$ share, a server name with Turkish letters, a Remote Desktop drive)';
+      const kart = tur === 'birak'
+        ? { title: 'Adding your folders', line: 'Gaia adds these folders, but cannot keep them in office order on this computer: they are on ' + yer + '. Share the folder as \\\\SERVER\\EKSPERTIZ to keep them in order.' }
+        : tur === 'klasor'
+          ? { title: 'Place not chosen', line: 'If Windows said it cannot open that folder, it is on ' + yer + '. Pick a folder on this computer, or get the files as one download.', altLabel: 'Download as one file' }
+          : { title: 'Folders not added', line: 'If Windows said it cannot open that folder, it is on ' + yer + '. Choose it another way: the files are added the same.', altLabel: 'Choose another way' };
+      dtIslerSet('kk-ag:' + tur, Object.assign({ sub: '', state: 'done', k: 0, n: 0, href: '', msg: '', onRetry: null, anaLabel: '', onAna: null }, kart, { onAlt: typeof alt === 'function' && kart.altLabel ? alt : null, altLabel: typeof alt === 'function' ? (kart.altLabel || '') : '' }));
+    } catch (e) {}
+  }
   // --- 1) dropped / chosen folders wait for their records
   function dtKkUstEkle(h) {
     if (!h || h.kind !== 'directory' || !dtKkOn()) return;
@@ -6606,7 +6631,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!dtKkOn() || !dt) return;
     const ps = [];
     try { Array.from(dt.items || []).forEach(it => { if (it && it.kind === 'file' && typeof it.getAsFileSystemHandle === 'function') ps.push(it.getAsFileSystemHandle()); }); } catch (e) {}
-    ps.forEach(p => Promise.resolve(p).then(h => { if (h && h.kind === 'directory') dtKkUstEkle(h); }, () => {}));
+    let kapali = 0;   // AG-KLASOR: a folder on a network place closed to websites (its files still come through the entries API)
+    ps.forEach(p => Promise.resolve(p).then(h => { if (h && h.kind === 'directory') dtKkUstEkle(h); }, (e) => { if (!kapali++ && e && e.name === 'AbortError') dtKkAgYardim('birak'); }));
   }
   function dtKkSecVar() { return dtKkOn() && !_dtKkSecYok && !window.__gxNoKkSec; }
   // "Folders" with the browser's folder dialog: the same files the old chooser gave (File + webkitRelativePath), plus the folder handle
@@ -6614,7 +6640,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let h = null;
     try { h = await window.showDirectoryPicker({ id: 'gaia-dava', mode: 'read' }); }
     catch (e) {
-      if (e && e.name === 'AbortError') return;   // closed: nothing to say
+      if (e && e.name === 'AbortError') {   // closed, or a network place closed to websites (AG-KLASOR): offer the browser's own chooser
+        dtKkAgYardim('sec', () => { try { if (!els.foldersInput || !dtBulkAvailable()) return; els.foldersInput.value = ''; els.foldersInput.click(); } catch (_) {} });
+        return;
+      }
       _dtKkSecYok = true;                          // a frame / policy that refuses the dialog: the old chooser from now on
       showWakeToast('Press Folders again to choose the folders.');
       return;
