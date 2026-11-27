@@ -6281,7 +6281,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
           }
         }
         catch (e) {
-          if (e && e.name === 'AbortError') return;   // the person closed the dialog: nothing to say
+          if (e && e.name === 'AbortError') { dtKkAgYardim('klasor', () => dtSiraliStart(raw, bicim, 'zip')); return; }   // closed, or a network place closed to websites (AG-KLASOR): offer one download
           if (denedi && e && e.name === 'SecurityError') { _dtSiraliYer = null; showWakeToast('Press Klasör again to pick where to save.', 'success'); return; }   // the click was used up by the prompt; GX-INDIR-ZIP: forget the refused place so the next press opens a fresh picker
           _dtSiraliNoFolder = true;                    // a frame / policy that refuses the folder API: ZIP from now on
           showWakeToast('This browser cannot save into a folder here, so the files come as one download.', 'success');
@@ -6291,7 +6291,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     if (_dtSirali.get(key) && _dtSirali.get(key).st === 'working') return;
     const s = { raw: raw, etiket: dtIslerEtiket(raw), st: 'working', bicim: bicim, job: '', durumUrl: '', directFails: 0, directOff: false, k: 0, n: 0, queued: false, skipped: [], skippedCount: 0, url: '', exp: 0, msg: '', t0: Date.now(), fails: 0, dir: dir, zip: zip, klasor: '', saved: 0, yaz: false,
-      kk: kk, onay: onay, kip: kip || '', yeni: 0, vardi: 0, tasindi: 0, adsiz: 0, geri: false };
+      kk: kk, onay: onay, kip: kip || '', yeni: 0, vardi: 0, tasindi: 0, adsiz: 0, olmadi: 0, geri: false };
     _dtSirali.set(key, s);
     dtSiraliPaint(id);
     // GX-SIRALI-YENIDEN (19.11, test: "bazen PDF'e dönüştürmede sorun çıkıyor, hata veriyor"): the start call gave up at Gaia's ~25 s
@@ -6419,7 +6419,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const key = dtSiraliKey(id, bicim);
     const canli = () => _dtSirali.get(key) === s;
     const files = d.files.filter(f => f && f.url && f.name);
-    s.yaz = true; s.k = 0; s.n = files.length; s.skipped = []; s.skippedCount = 0; s.yeni = 0; s.vardi = 0; s.tasindi = 0; s.adsiz = 0;
+    s.yaz = true; s.k = 0; s.n = files.length; s.skipped = []; s.skippedCount = 0; s.yeni = 0; s.vardi = 0; s.tasindi = 0; s.adsiz = 0; s.olmadi = 0;
     let root = s.dir;
     if (s.kk) s.klasor = dtSiraliAd(s.kk.ad || (s.dir && s.dir.name)) || 'your folder';
     else {
@@ -6454,7 +6454,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!s.yeni && !s.vardi && (s.kip !== 'bagla' || s.skippedCount)) { dtSiraliFail(id, bicim, s, 'No file could be saved. Try again.'); return; }   // KLASOR-BAGLA: a record with nothing to write is linked all the same
     let yalniz = [];
     if (s.kk) {
-      s.kk.duzen = true;
+      s.kk.duzen = !(s.kk.kaynak === 'birak' && s.olmadi && !s.tasindi);   // KK-TILDE: nothing could be renamed: still "not organized", Organize asks again
       s.kk.n = dtKkSatirSay(id);
       if (geri && geri.tasindi.length) s.kk.geri = geri;
       _dtKkOto.set(id, s.kk.n);
@@ -6663,6 +6663,34 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       return p === 'granted';
     } catch (e) { return false; }
   }
+  // --- AG-KLASOR (27.11.2026, Saltuk: "ağ üzerinde duran dosyaları klasör olarak seçemiyorduk; Türkiye'de eksperler hep ağ içinde
+  // klasörleme yapıyor"). What Chrome does with a network folder (read from chrome_file_system_access_permission_context.cc, main,
+  // 27.11.2026; base::NormalizeFilePath turns a mapped drive letter Z:\ into its \\server\share path first, so a mapped drive gets the
+  // same rules): the folder dialog and a dropped folder's handle are CLOSED to websites when the \\server name looks local (localhost,
+  // 127.0.0.1, ".", "?", wsl.localhost, mac, psf, vmware-host, .host, vboxsvr, vboxsrv, the Remote Desktop drive "tsclient", the
+  // Citrix drive "client") or has any character other than A-Z a-z 0-9 . - _ (Turkish letters, a space, the "@" of a WebDAV place
+  // \\nas@SSL\DavWWWRoot), and for the admin shares C$..Z$, ADMIN$, IPC$, PRINT$, FAX$. Everything else on the network is open:
+  // \\SUNUCU\EKSPERTIZ, \\192.168.1.20\Evrak, a hidden share Evrak$, a DFS path, a drive letter mapped to one of those. A closed place
+  // shows Chrome's own "contains system files" box; the dialog then answers like a cancel (AbortError), so the page cannot tell it from
+  // a closed dialog. A dropped closed folder: getAsFileSystemHandle rejects (AbortError) while the old entries API still reads its files.
+  // So the upload never depends on the handle, and after a dialog that gave nothing the Activity panel offers the other way (the
+  // browser's own folder chooser / one download). Only the record folder part (organize in place, later sync) needs an open place.
+  // Off: window.__gxNoAgYardim = true.
+  function dtKkAgYardim(tur, alt) {
+    try {
+      if (window.__gxNoAgYardim || !dtIslerOn()) return;
+      // 27.11 measured on this computer (Chrome 151, Turkish): the box reads "Bu klasör açılamaz · Sistem dosyaları içerdiği için ...
+      // bu klasörü açamaz" with "Farklı bir klasör seçin" / "İptal"
+      const yer = 'a network place that websites may not open (a D$ share, a server name with Turkish letters, a Remote Desktop drive, or a drive letter mapped to one of those)';
+      const kutu = 'If Chrome said it cannot open that folder because it contains system files, it is on ' + yer + '. ';
+      const kart = tur === 'birak'
+        ? { title: 'Adding your folders', line: 'Gaia adds these folders, but cannot keep them in office order on this computer: they are on ' + yer + '. Share the folder as \\\\SERVER\\EKSPERTIZ to keep them in order.' }
+        : tur === 'klasor'
+          ? { title: 'Place not chosen', line: kutu + 'Pick a folder on this computer, or get the files as one download.', altLabel: 'Download as one file' }
+          : { title: 'Folders not added', line: kutu + 'Choose it another way: the files are added the same.', altLabel: 'Choose another way' };
+      dtIslerSet('kk-ag:' + tur, Object.assign({ sub: '', state: 'done', k: 0, n: 0, href: '', msg: '', onRetry: null, anaLabel: '', onAna: null }, kart, { onAlt: typeof alt === 'function' && kart.altLabel ? alt : null, altLabel: typeof alt === 'function' ? (kart.altLabel || '') : '' }));
+    } catch (e) {}
+  }
   // --- 1) dropped / chosen folders wait for their records
   function dtKkUstEkle(h) {
     if (!h || h.kind !== 'directory' || !dtKkOn()) return;
@@ -6677,7 +6705,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!dtKkOn() || !dt) return;
     const ps = [];
     try { Array.from(dt.items || []).forEach(it => { if (it && it.kind === 'file' && typeof it.getAsFileSystemHandle === 'function') ps.push(it.getAsFileSystemHandle()); }); } catch (e) {}
-    ps.forEach(p => Promise.resolve(p).then(h => { if (h && h.kind === 'directory') dtKkUstEkle(h); }, () => {}));
+    let kapali = 0;   // AG-KLASOR: a folder on a network place closed to websites (its files still come through the entries API)
+    ps.forEach(p => Promise.resolve(p).then(h => { if (h && h.kind === 'directory') dtKkUstEkle(h); }, (e) => { if (!kapali++ && e && e.name === 'AbortError') dtKkAgYardim('birak'); }));
   }
   function dtKkSecVar() { return dtKkOn() && !_dtKkSecYok && !window.__gxNoKkSec; }
   // "Folders" with the browser's folder dialog: the same files the old chooser gave (File + webkitRelativePath), plus the folder handle
@@ -6685,7 +6714,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let h = null;
     try { h = await window.showDirectoryPicker({ id: 'gaia-dava', mode: 'read' }); }
     catch (e) {
-      if (e && e.name === 'AbortError') return;   // closed: nothing to say
+      if (e && e.name === 'AbortError') {   // closed, or a network place closed to websites (AG-KLASOR): offer the browser's own chooser
+        dtKkAgYardim('sec', () => { try { if (!els.foldersInput || !dtBulkAvailable()) return; els.foldersInput.value = ''; els.foldersInput.click(); } catch (_) {} });
+        return;
+      }
       _dtKkSecYok = true;                          // a frame / policy that refuses the dialog: the old chooser from now on
       showWakeToast('Press Folders again to choose the folders.');
       return;
@@ -6828,7 +6860,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     } catch (e) {}
   }
   // --- 2) the files of a folder and the server's list
-  function dtKkCop(ad) { const t = String(ad || ''); return !t || t.charAt(0) === '.' || /^~gaia-/i.test(t) || /^(desktop\.ini|thumbs\.db)$/i.test(t); }
+  function dtKkCop(ad) { const t = String(ad || ''); return !t || t.charAt(0) === '.' || /^~gaia-/i.test(t) || /^gaia-gecici-/i.test(t) || /^(desktop\.ini|thumbs\.db)$/i.test(t); }
   // local files under a folder: [{ yol: 'a/b.pdf', parca: ['a'], ad: 'b.pdf', boy, h, f, oz }]
   async function dtKkTara(root) {
     const out = [];
@@ -6946,13 +6978,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // phase B: the found files get their office order names. Each first steps aside under a temporary name in its own folder (so a
   // name held by another listed file is free), the log is saved, then each goes to its place. A file that cannot go there goes back.
   // → how many reached their office order name
+  // KK-TILDE (27.11, measured in a real Chrome on a local disk and on a network share): Chrome refuses a move to a name that starts
+  // with "~" (TypeError), so the old temporary name "~gaia-…" made every Organize rename nothing, silently. The temporary name is
+  // "gaia-gecici-…" now, and a file Chrome does not let Gaia rename is counted and said on the card (olmadi).
   async function dtKkTasi(c, tasi, geri) {
     const yolda = [];
-    let k = 0;
+    let k = 0, olmadi = 0, neden = '';
     for (const x of tasi) {
-      const t = '~gaia-' + c.tag + '-' + (k++) + '.tmp';
+      const t = 'gaia-gecici-' + c.tag + '-' + (k++) + '.tmp';
       const m = { from: x.y.yol, tmp: x.y.parca.concat(t).join('/'), to: '' };
-      try { await x.y.h.move(t); } catch (e) { continue; }
+      try { await x.y.h.move(t); } catch (e) { olmadi += 1; neden = neden || String((e && e.name) || 'error'); continue; }
       c.dolu.delete(x.y.yol.toLowerCase());
       geri.tasindi.push(m); yolda.push([x, m]);
     }
@@ -6966,13 +7001,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         m.to = x.hedef.parca.concat(ad).join('/');
         yerinde += 1;
       } catch (e) {
+        olmadi += 1; neden = neden || String((e && e.name) || 'error');
         try { const d0 = await dtKkDizin(c.root, x.y.parca), a0 = dtKkBosAd(c.dolu, x.y.parca, x.y.ad); await x.y.h.move(d0, a0); m.to = x.y.parca.concat(a0).join('/'); }
         catch (e2) { m.to = m.tmp; }   // stays under the temporary name; Undo finds it there
       }
       c.dolu.add(m.to.toLowerCase());
     }
     await c.gunluk();
-    return yerinde;
+    if (olmadi) { try { log('[KAYIT-KLASOR] ' + olmadi + ' rename(s) refused: ' + neden); } catch (e) {} }
+    return { yerinde, olmadi };
   }
   // phase C: a missing file, written under its name (never over another file)
   async function dtKkYeniYaz(c, x) {
@@ -6997,7 +7034,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (s.kk && s.kk.koru) { /* KLASOR-BAGLA: a linked folder keeps the person's names (found files are only counted) */ }
     else if (p.tasi.length && p.tasiOlur) {
       p.c.gunluk = async () => { if (s.kk) { s.kk.geri = geri; await dtKkKaydet(id, s.kk); } };
-      s.tasindi = await dtKkTasi(p.c, p.tasi, geri);
+      const t = await dtKkTasi(p.c, p.tasi, geri);
+      s.tasindi = t.yerinde; s.olmadi = t.olmadi;
     } else s.adsiz = p.tasi.length;   // this browser cannot rename: they keep their names
     let next = 0;
     await Promise.all(Array.from({ length: Math.min(DT_SIRALI_PAR, p.yeni.length) }, async () => {
@@ -7020,7 +7058,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (s.kip === 'bagla') return (kisa ? 'Linked: ' : 'Linked ' + s.klasor + ': ') + dtKkSay(Number(s.yeni) || 0, 'missing file') + ' added, ' + (Number(s.vardi) || 0) + ' already there' + atla;   // KLASOR-BAGLA
     if (!s.vardi) return 'Saved ' + dtKkSay(Number(s.saved) || 0, 'file') + ' into ' + (kisa ? (s.klasor || 'the folder') : 'the folder ' + s.klasor) + atla;
     return dtKkSay(s.yeni, 'new file') + ' added, ' + s.vardi + ' already there' + (s.tasindi ? ' (' + s.tasindi + ' renamed to office order)' : '')
-      + (s.adsiz ? ', ' + s.adsiz + ' kept their names (this browser cannot rename)' : '') + ' in ' + s.klasor + atla;
+      + (s.adsiz ? ', ' + s.adsiz + ' kept their names (this browser cannot rename)' : '')
+      + (s.olmadi ? ', ' + dtKkSay(s.olmadi, 'file') + ' could not be renamed (open in another program?)' : '') + ' in ' + s.klasor + atla;
   }
   function dtKkSorMetni(s) {
     const p = s.plan || { var: 0, tasi: 0, yeni: 0, olur: true };
@@ -7786,7 +7825,152 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const esc = typeof escapeHtml === 'function' ? escapeHtml : (t) => String(t).replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';');
     const bag = dtKkAl(id);
     if (!bag) return '<button class="dt-gez-act" type="button" data-gez-act="kk-bagla" title="Pick the folder of this file on your computer. Linking downloads and uploads nothing; then each side gets only what it is missing, and new files you put in the folder go to the file by themselves">Link folder</button>';
-    return '<button class="dt-gez-act" type="button" data-gez-act="kk-coz" title="' + esc('Gaia forgets the folder ' + (dtSiraliAd(bag.ad) || '') + ' for this file. Nothing in the folder changes') + '">Unlink folder</button>';
+    return dtGezginHtml(id) + '<button class="dt-gez-act" type="button" data-gez-act="kk-coz" title="' + esc('Gaia forgets the folder ' + (dtSiraliAd(bag.ad) || '') + ' for this file. Nothing in the folder changes') + '">Unlink folder</button>';
+  }
+  // === GEZGINDE-AC (27.11.2026, Saltuk: "yolu kopyala istemiyorum, gerçek Gezgin'de aç") ===
+  //  "Open in File Explorer" opens the folder of this record (or a watched folder) in Windows File Explorer. The browser never knows
+  //  a folder's full path (a folder handle has only a name), so the path lives in the Gaia folder helper on this computer
+  //  (gaia-klasor.exe, through the Gaia Bridge extension; window event "gaiaBridgeKlasor" {requestId, op, id, parts?, nonce?, ad?,
+  //  kayit?} → "gaiaBridgeKlasorResult" {requestId, ok, neden?}). The page sends only a place id and folder NAMES below it:
+  //   - a watched root (KOK-KLASOR, id = its key) or the remembered save place (id 'yer:<user>') when the folder is inside it:
+  //     parts = root.resolve(folder); one link per root, then every record under it opens with no question;
+  //   - otherwise the record's own folder (id = 'kayit:<user>:<record>', no parts).
+  //  Linking a place once: the page writes a hidden '.gaia-link-<random>' file in it (dot files are never synced), the helper opens
+  //  Windows' folder window, the person picks the same folder, the helper finds the file there and remembers the path on this
+  //  computer only; the page removes the file. No helper / old extension: a card says what to do, with the folder name to copy and
+  //  where it is; nothing pretends to know the path. Off: window.__gxNoGezgin = true.
+  const DT_GEZ_YARDIMCI_URL = '';   // where the helper is downloaded from (decided with the signing certificate); empty: "ask the Gaia team"
+  let _dtGezMesgul = false;
+  function dtGezOn() { try { return !window.__gxNoGezgin && dtKkOn() && /Windows/i.test(navigator.userAgent || ''); } catch (e) { return false; } }
+  function dtGezKlasorKoprusu() { try { return document.documentElement.getAttribute('data-gaia-bridge-klasor') === '1'; } catch (e) { return false; } }
+  function dtGezIstek(istek, ms) {
+    return new Promise(resolve => {
+      const requestId = 'klasor_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+      let timer = null;
+      const onResult = ev => {
+        let d = null;
+        try { d = typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail; } catch (e) { d = null; }
+        if (!d || d.requestId !== requestId) return;
+        window.removeEventListener('gaiaBridgeKlasorResult', onResult);
+        clearTimeout(timer);
+        resolve(d);
+      };
+      window.addEventListener('gaiaBridgeKlasorResult', onResult);
+      timer = setTimeout(() => { window.removeEventListener('gaiaBridgeKlasorResult', onResult); resolve({ ok: false, neden: 'zaman' }); }, ms || 20000);
+      window.dispatchEvent(new CustomEvent('gaiaBridgeKlasor', { detail: JSON.stringify(Object.assign({ requestId }, istek)) }));
+    });
+  }
+  function dtGezKayitNo(id) { const s = String(id || ''); return /^[A-Za-z0-9_-]{1,64}$/.test(s) ? s : undefined; }
+  // where a record's folder is: inside a watched root / the save place (folder names below it), or the folder itself
+  async function dtGezHedef(id) {
+    const bag = dtKkAl(id);
+    if (!bag || !bag.h || bag.h.kind !== 'directory') return null;
+    const kokler = Array.from(_dtKkKok.values()).filter(k => k && k.h && !k.birakildi).map(k => ({ id: k.key, h: k.h, ad: k.ad }));
+    if (_dtSiraliYer && _dtSiraliYer.kind === 'directory') kokler.push({ id: 'yer:' + (_dtKkUid || ''), h: _dtSiraliYer, ad: _dtSiraliYer.name });
+    const klasor = bag.h.name || dtSiraliAd(bag.ad);
+    for (const k of kokler) {
+      let p = null;
+      try { p = typeof k.h.resolve === 'function' ? await k.h.resolve(bag.h) : null; } catch (e) { p = null; }
+      if (Array.isArray(p) && p.length <= 32) return { id: k.id, h: k.h, ad: k.ad, parts: p, kayit: dtGezKayitNo(id), klasor };
+    }
+    return { id: dtKkAnahtar(id), h: bag.h, ad: klasor, parts: [], kayit: dtGezKayitNo(id), klasor };
+  }
+  // link a place once: the hidden file proves to the helper that the folder picked in its window is this one
+  async function dtGezEsle(t) {
+    let izin = 'prompt';
+    try { izin = await t.h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
+    if (izin !== 'granted') { try { izin = await t.h.requestPermission({ mode: 'readwrite' }); } catch (e) {} }
+    if (izin !== 'granted') return { ok: false, neden: 'izin' };
+    const b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    const nonce = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    const dosya = '.gaia-link-' + nonce;
+    try {
+      const fh = await t.h.getFileHandle(dosya, { create: true });
+      const w = await fh.createWritable();
+      await w.write('Gaia: this file proves which folder you picked. It is removed by itself in a moment.');
+      await w.close();
+    } catch (e) { return { ok: false, neden: 'yazilamadi' }; }
+    showWakeToast('A Windows window opens: choose ' + (t.ad || 'the same folder') + ' there once. Gaia remembers it on this computer.', 'success');
+    try { return await dtGezIstek({ op: 'esle', id: t.id, nonce, ad: String(t.ad || '').slice(0, 200) }, 10 * 60000); }
+    finally { try { await t.h.removeEntry(dosya); } catch (e) {} }
+  }
+  async function dtGezAcHedef(t) {
+    if (!t) { showWakeToast('This file has no folder on this computer yet.', 'error'); return; }
+    if (_dtGezMesgul) return;
+    if (!dtBridgeInstalled()) { dtGezKart(t, 'eklenti_yok'); return; }
+    if (!dtGezKlasorKoprusu()) { dtGezKart(t, 'eklenti_eski'); return; }
+    _dtGezMesgul = true;
+    try {
+      const ac = () => dtGezIstek(Object.assign({ op: 'ac', id: t.id, parts: t.parts }, t.kayit ? { kayit: t.kayit } : {}), 20000);
+      let r = await ac();
+      if (!r.ok && (r.neden === 'eslesme_yok' || r.neden === 'kok_yok' || r.neden === 'bulunamadi')) {
+        const e = await dtGezEsle(t);
+        if (!e.ok) { if (e.neden !== 'vazgecildi') dtGezKart(t, e.neden); return; }
+        r = await ac();
+      }
+      if (r.ok) { showWakeToast('Opened ' + (t.klasor || 'the folder') + ' in File Explorer.', 'success'); return; }
+      dtGezKart(t, r.neden || 'yardimci_hata');
+    } finally { _dtGezMesgul = false; }
+  }
+  async function dtGezginAc(id) { return dtGezAcHedef(await dtGezHedef(id)); }
+  // what went wrong, in plain words, with what the person can do now; the folder name to copy and where it is (never a full path)
+  function dtGezKart(t, neden) {
+    const yer = t ? [t.ad].concat(t.parts || []).filter(Boolean).join(' › ') : '';
+    const metin = {
+      eklenti_yok: 'Install the Gaia Bridge extension: it opens folders through the Gaia folder helper.',
+      eklenti_eski: 'Update the Gaia Bridge extension: it opens folders from version 2026.11.27.1 on.',
+      eklenti_izin: 'Gaia Bridge asks for one new permission to open folders, and Chrome keeps it off until you accept. Open chrome://extensions, turn Gaia Bridge on and accept.',
+      eklenti: 'The Gaia Bridge extension did not answer. Reload the page and try again.',
+      yardimci_yok: DT_GEZ_YARDIMCI_URL
+        ? 'This computer needs the Gaia folder helper once: download it, double-click it (no admin rights needed), then press again.'
+        : 'This computer needs the Gaia folder helper once: ask the Gaia team for gaia-klasor.exe, double-click it (no admin rights needed), then press again.',
+      yardimci_izin: 'The folder helper refuses this copy of Gaia Bridge, or a company setting blocks it. Double-click gaia-klasor.exe again: it repairs itself and says what blocks it.',
+      yardimci_coktu: 'The folder helper stopped. Press again; if it keeps happening, double-click gaia-klasor.exe again to repair it.',
+      yardimci_hata: 'The folder helper did not answer. Press again.',
+      zaman: 'The folder helper did not answer in time. Press again.',
+      izin: 'Gaia needs permission for this folder to link it once. Press again and allow it.',
+      yazilamadi: 'Gaia could not write in this folder to link it (read only or offline). Check the folder and press again.',
+      eslesmedi: 'That was a different folder. Press again and choose the same folder in the Windows window.',
+      baska_kayit: 'The folder Gaia found belongs to another record now. Link this file to its folder again (Unlink folder, then Link folder).',
+      bulunamadi: 'The folder is not there any more: it was moved or renamed. Link it again with Link folder.',
+      gecersiz: 'This folder name cannot be opened from Gaia.',
+    }[neden] || 'Gaia could not open the folder. Press again.';
+    const eski = document.getElementById('dt-gez-kart');
+    if (eski) eski.remove();
+    const o = document.createElement('div');
+    o.id = 'dt-gez-kart';
+    o.style.cssText = 'position:fixed;inset:0;z-index:2147483001;background:rgba(15,23,42,.35);display:flex;align-items:center;justify-content:center;font:13px/1.45 system-ui,sans-serif;color:#0f172a';
+    o.innerHTML = '<div role="dialog" aria-modal="true" aria-labelledby="dt-gez-kart-t" style="background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(15,23,42,.25);width:min(480px,94vw);padding:16px 18px">'
+      + '<div id="dt-gez-kart-t" class="t" style="font-size:16px;font-weight:600"></div><div class="m" style="color:#334155;margin-top:8px"></div>'
+      + '<div class="y" style="color:#64748b;margin-top:10px;font-size:12px;overflow-wrap:anywhere"></div>'
+      + '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px"><a class="i" target="_blank" rel="noopener noreferrer" hidden style="padding:8px 14px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;text-decoration:none"></a>'
+      + '<button class="c" type="button" style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer"></button>'
+      + '<button class="k" type="button" style="padding:8px 14px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer"></button></div></div>';
+    o.querySelector('.t').textContent = 'Open in File Explorer';
+    o.querySelector('.m').textContent = metin;
+    const yerEl = o.querySelector('.y');
+    if (yer) { yerEl.appendChild(document.createTextNode('Where: ')); const b = document.createElement('b'); b.textContent = yer; yerEl.appendChild(b); }
+    const c = o.querySelector('.c');
+    c.textContent = 'Copy folder name';
+    c.hidden = !(t && t.klasor);
+    c.addEventListener('click', () => {
+      try { navigator.clipboard.writeText(t.klasor).then(() => showWakeToast('Folder name copied: paste it in File Explorer search.', 'success'), () => {}); } catch (e) {}
+    });
+    const i = o.querySelector('.i');
+    if (DT_GEZ_YARDIMCI_URL && neden === 'yardimci_yok') { i.hidden = false; i.href = DT_GEZ_YARDIMCI_URL; i.textContent = 'Download the helper'; }
+    o.querySelector('.k').textContent = 'Close';
+    const kapat = () => { o.remove(); document.removeEventListener('keydown', esc, true); };
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); kapat(); } };
+    o.querySelector('.k').addEventListener('click', kapat);
+    o.addEventListener('mousedown', (e) => { if (e.target === o) kapat(); });
+    document.addEventListener('keydown', esc, true);
+    document.body.appendChild(o);
+    try { o.querySelector('.k').focus({ preventScroll: true }); } catch (e) {}
+  }
+  function dtGezginHtml(id) {
+    if (!dtGezOn() || !dtKkAl(id)) return '';
+    return '<button class="dt-gez-act" type="button" data-gez-act="kk-gezgin" title="Open the folder of this file in Windows File Explorer">Open in File Explorer</button>';
   }
   // === KOK-KLASOR (27.11.2026, Saltuk: "toplu klasör seçim kısmında direkt olarak üst klasörü bağla; bundan sonra içeri eklenen yeni
   // klasör otomatik Gaia'da kayıt olur ... ağ klasörlerinde çalışıyor olmalı"; yapı "sigorta > dosyalar, yıl > dosyalar ya da doğrudan
@@ -8154,12 +8338,32 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         showWakeToast('Gaia could not make a record for the folder ' + dtKkKartAd({ ad: a.ad }) + '. Add it with Folders.', 'error');
         continue;
       }
+      // 27.11 test (Ömer: the upload of a network folder's files hung 15+ min): the files are read here, before the new tab gets them
+      // (a network share's file read later in another tab may hang or fail); a folder that cannot be read now is tried again later
+      const bellek = await dtKokBellek(a.dosyalar || []);
+      if (!bellek) { dtKkSunucu('kok_birak', { anahtar, sekme: dtKokSekme() }); a.sorAt = Date.now(); a.hazir = false; dtKokIz('could not read the files of ' + a.ad + ' now; tried again later'); continue; }
+      a.dosyalar = bellek;
       await dtKokIsaretYaz(a.h, { durum: 'yapiliyor', at: Date.now(), sekme: dtKokSekme() });
       bizim.push([anahtar, a]);
     }
     if (!bizim.length) return;
     k.sekmeBekle = bizim; k.sekmeEngel = false;
     dtKokGonder(k, api);
+  }
+  // the files of a case folder copied into memory (with their folder path); null when one cannot be read (locked, gone, network blip).
+  // Above 300 MB in all the files stay as they are (memory) and are read by the upload tab itself.
+  async function dtKokBellek(l) {
+    const toplam = l.reduce((t, f) => t + (Number(f && f.size) || 0), 0);
+    if (toplam > 300 * 1048576) return l;
+    const out = [];
+    for (const f of l) {
+      try {
+        const g = new File([await f.arrayBuffer()], f.name, { type: f.type || '', lastModified: f.lastModified });
+        try { Object.defineProperty(g, 'webkitRelativePath', { value: f.webkitRelativePath || f.name, configurable: true }); } catch (e) {}
+        out.push(g);
+      } catch (e) { dtKokIz('a file could not be read', (f && f.name) + ' · ' + ((e && e.name) || 'error')); return null; }
+    }
+    return out;
   }
   // hand the taken folders to the queue (a new tab), one group per case folder with its key as token; true when the tab opened
   function dtKokGonder(k, api) {
@@ -8433,9 +8637,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       + '<div style="padding:16px 18px 8px"><div class="t" style="font-size:16px;font-weight:600"></div><div class="a" role="status" aria-live="polite" style="color:#475569;margin-top:4px"></div></div>'
       + '<div class="l" style="overflow:auto;padding:0 18px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0"></div>'
       + '<div style="padding:12px 18px;display:flex;gap:8px;justify-content:space-between"><button class="d" type="button" style="padding:8px 14px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#b91c1c;cursor:pointer"></button>'
-      + '<span style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="z" type="button" hidden style="padding:8px 14px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;cursor:pointer"></button><button class="y" type="button" style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer"></button><button class="k" type="button" style="padding:8px 14px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer"></button></span></div></div>';
+      + '<span style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="g" type="button" hidden style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer"></button><button class="z" type="button" hidden style="padding:8px 14px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;cursor:pointer"></button><button class="y" type="button" style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer"></button><button class="k" type="button" style="padding:8px 14px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer"></button></span></div></div>';
     o.querySelector('.d').textContent = 'Stop watching';
     o.querySelector('.y').textContent = 'Look again';
+    // GEZGINDE-AC: the watched folder itself, in Windows File Explorer
+    o.querySelector('.g').textContent = 'Open in File Explorer';
+    o.querySelector('.g').hidden = !dtGezOn();
+    o.querySelector('.g').addEventListener('click', () => { const k1 = Array.from(_dtKkKok.values())[0]; if (k1) dtGezAcHedef({ id: k1.key, h: k1.h, ad: k1.ad, parts: [], klasor: k1.ad }); });
     o.querySelector('.z').textContent = 'Sync the folders left alone';
     // the folders left alone (unticked, there before, linked another way, failed) join now: linked to their records or made new ones
     o.querySelector('.z').addEventListener('click', () => {
@@ -8490,12 +8698,23 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       liste.textContent = '';
       satir.forEach(([x, d]) => {
         const r = document.createElement('div');
-        r.style.cssText = 'padding:8px 0;border-bottom:1px solid #f1f5f9';
+        r.style.cssText = 'padding:8px 0;border-bottom:1px solid #f1f5f9;display:flex;gap:10px;align-items:center';
+        const sol = document.createElement('div'); sol.style.cssText = 'flex:1;min-width:0';
         const n = document.createElement('div'); n.style.cssText = 'font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
         n.textContent = (x.ust && x.ust !== k.ad ? x.ust + ' / ' : '') + x.ad;
         const w = document.createElement('div'); w.style.cssText = 'font-size:12px;color:' + d[1];
         w.textContent = d[0];
-        r.appendChild(n); r.appendChild(w); liste.appendChild(r);
+        sol.appendChild(n); sol.appendChild(w); r.appendChild(sol);
+        if (dtGezOn()) {   // GEZGINDE-AC
+          const ac = document.createElement('button');
+          ac.type = 'button'; ac.textContent = 'Open'; ac.title = 'Open this folder in Windows File Explorer';
+          ac.style.cssText = 'flex:none;padding:4px 10px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer;font-size:12px';
+          const parts = String(x.ust || '').split('/').filter(Boolean).concat(x.ad);
+          const kid = idOf.get(dtKkKucuk(x.ad));
+          ac.addEventListener('click', () => dtGezAcHedef({ id: k.key, h: k.h, ad: k.ad, parts, kayit: kid ? dtGezKayitNo(kid) : undefined, klasor: x.ad }));
+          r.appendChild(ac);
+        }
+        liste.appendChild(r);
       });
     } catch (e) {}
   }
@@ -9496,7 +9715,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (si >= 0) { j.acDeneme += 1; j.acAt = now; t.at = now; dtEkleIsciAc(si); return true; }
     }
     let msg = '';
-    if (j.st === 'opening' && now - j.t0 > 150000) msg = 'The file did not open. Try again.';
+    if (j.st === 'opening' && now - j.t0 > 150000) msg = 'The record did not open, so the files were not added. Close any open record and try again.';   // 27.11 test: "file" read as a document
     else if (j.st !== 'opening' && now - j.last > 150000) msg = j.kayit ? "Saving did not finish. Check the file's documents before you add them again." : 'The upload stopped. Try again.';
     if (msg) { dtEkleSayfaHata(j, msg); return false; }
     return true;
@@ -9877,6 +10096,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (act === 'kk-geri') { event.preventDefault(); dtIslerKaynak(el); dtKkGeriAl(g.id); return; }   // KAYIT-KLASOR
     if (act === 'kk-bagla') { event.preventDefault(); dtIslerKaynak(el); try { dtKkBagla(g.raw); } catch (e) {} return; }   // KLASOR-BAGLA: synchronous up to the folder dialog
     if (act === 'kk-coz') { event.preventDefault(); dtKkCoz(g.id); return; }
+    if (act === 'kk-gezgin') { event.preventDefault(); try { dtGezginAc(g.id); } catch (e) {} return; }   // GEZGINDE-AC
     if (act === 'kk-burada') { event.preventDefault(); dtIslerKaynak(el); try { dtSiraliStart(g.raw, 'klasor', 'burada'); } catch (e) {} return; }   // synchronous up to the folder dialog
     if (act === 'ask-no') { event.preventDefault(); g.ask = null; dtGezRender('pick'); return; }
     if (act === 'kural') { event.preventDefault(); if (g.kural) dtKuralKapat(g); else dtKuralAc(g); return; }   // EVRAK-DUZEN-NOT
