@@ -1,8 +1,8 @@
 {
     "repo": "SaltukKirac/gaia-elements",
     "channel": "klasor-iki-yon",
-    "rev": 81,
-    "updated": "2026-11-26T01:05:03Z",
+    "rev": 82,
+    "updated": "2026-11-27T07:18:40Z",
     "elements": {
         "aithia-pricing": {
             "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -13,20 +13,21 @@
             "updated": "2026-10-23T10:01:19Z"
         },
         "architect": {
-            "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
+            "commit": "491cbc53bd004b3a3ad2e7c41d6165f7bf5727dc",
             "path": "el/architect.html",
-            "blob": "4c307d85d8109826b5cdd532b48497abb686a35c",
-            "bytes": 4276109,
+            "blob": "01906b50c786ff8565d4fd6dde87e35e103ad76e",
+            "bytes": 4278308,
             "title": "AI Architect / GAD (+ Octo shell) - app page",
-            "updated": "2026-11-25T19:31:33Z"
+            "updated": "2026-11-26T19:31:32Z",
+            "from": "main"
         },
         "form": {
-            "commit": "28895eecb42d270954f61fc8954df9b9c4873905",
+            "commit": "93d5a18fb4d0d62a6e471293454214a9de3761e5",
             "path": "el/form.html",
-            "blob": "78dc05d001b25308414cb1422d970d183f8437fa",
-            "bytes": 1056729,
+            "blob": "506158e581347387e603c14acfa43a3df48d264b",
+            "bytes": 1058128,
             "title": "Dynamic form - app page",
-            "updated": "2026-11-25T09:00:20Z"
+            "updated": "2026-11-27T07:18:40Z"
         },
         "guide-ux": {
             "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
@@ -37,12 +38,12 @@
             "updated": "2026-11-25T19:31:33Z"
         },
         "lang-tr": {
-            "commit": "28769a1480786ad59763c7427bb42817ea205377",
+            "commit": "93d5a18fb4d0d62a6e471293454214a9de3761e5",
             "path": "el/lang-tr.html",
-            "blob": "daae106d5e96aee15be7b15645e7bb930fdf3c6e",
-            "bytes": 86725,
+            "blob": "464b062fa30f6a54ab32bfb16a27bf7cc6ad1c1d",
+            "bytes": 88614,
             "title": "Turkish UI layer - app page (auto, no Bubble stub)",
-            "updated": "2026-11-26T01:05:03Z"
+            "updated": "2026-11-27T07:18:40Z"
         },
         "onboarding": {
             "commit": "f39ee569c4627b019ecd98938b52097296c54535",
@@ -69,12 +70,12 @@
             "updated": "2026-11-25T19:01:37Z"
         },
         "table": {
-            "commit": "28769a1480786ad59763c7427bb42817ea205377",
+            "commit": "93d5a18fb4d0d62a6e471293454214a9de3761e5",
             "path": "el/table.html",
-            "blob": "a12d3e85ce582ac030e2f7d48d4817098215ddff",
-            "bytes": 1041584,
+            "blob": "12b8ecf9d2fa55d06fe8ca5c746573fa40e93912",
+            "bytes": 1056434,
             "title": "Dynamic table (tablev2) - app page",
-            "updated": "2026-11-26T01:05:03Z"
+            "updated": "2026-11-27T07:18:40Z"
         },
         "template-page": {
             "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
