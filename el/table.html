@@ -6645,7 +6645,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if ((v.u || '') !== (uid || '')) return;   // another person's waiting folder
       const eski = now - (Number(v.at) || 0) > DT_KK_UST_MS;
       if (k.indexOf('ust:') === 0) { if (eski || !v.h) dtKkYaz(k, null); else if (!_dtKkUst.some(u => u.key === k)) _dtKkUst.push({ key: k, h: v.h, ad: v.ad, at: v.at }); }
-      else if (k.indexOf('bagla:') === 0) { if (eski || !Array.isArray(v.urls)) dtKkYaz(k, null); else if (!_dtKkBagla.some(b => b.key === k)) _dtKkBagla.push({ key: k, ad: v.ad, urls: v.urls, at: v.at }); }
+      else if (k.indexOf('bagla:') === 0) { if (eski || !Array.isArray(v.urls)) dtKkYaz(k, null); else if (!_dtKkBagla.some(b => b.key === k)) _dtKkBagla.push({ key: k, ad: v.ad, urls: v.urls, at: v.at, token: v.token || '' }); }
     });
     dtKkSaatKur();
     let say = 0;
@@ -6717,10 +6717,11 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtKkKayitGeldi(m) {
     const ad = String((m && m.ad) || '').slice(0, 200);
     const urls = Array.isArray(m && m.urls) ? m.urls.map(String).filter(Boolean).slice(0, 500) : [];
-    if (!ad || !urls.length || !dtKkOn() || !dtKkKullanici() || !_dtKkUst.length) return;   // no folder handle of this person here
+    const token = /^[a-f0-9]{64}$/.test(String((m && m.token) || '')) ? String(m.token) : '';   // KOK-KLASOR: the case folder's key
+    if (!ad || !urls.length || !dtKkOn() || !dtKkKullanici() || (!_dtKkUst.length && !(token && dtKokYapimH(token)))) return;   // no folder handle of this person here
     const at = Date.now(), key = 'bagla:' + at.toString(36) + Math.random().toString(36).slice(2, 5);
-    _dtKkBagla.push({ key, ad, urls, at });
-    dtKkYaz(key, { ad, urls, at, u: _dtKkUid || '' });
+    _dtKkBagla.push({ key, ad, urls, at, token });
+    dtKkYaz(key, { ad, urls, at, token, u: _dtKkUid || '' });
     dtKkSaatKur();
     dtKkBaglaKontrol();
   }
@@ -6764,12 +6765,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const id = rowIdOf(raw);
         bitir();
         if (_dtKk.has(id)) continue;
-        const h = await dtKkUstBul(b.ad);
+        const h = (b.token && dtKokYapimH(b.token)) || await dtKkUstBul(b.ad);   // KOK-KLASOR: the token names the very case folder
         if (!dtKkKullanici()) return;   // the person changed while the folder was looked up
         if (!h) { try { log('[KAYIT-KLASOR] no folder handle for the saved folder of ' + id); } catch (e) {} continue; }
         await dtKkKaydet(id, { h, ad: h.name || b.ad, kaynak: 'birak', duzen: false, n: 0, geri: null, at: Date.now() });
         try { log('[KAYIT-KLASOR] record ' + id + ' remembers its folder'); } catch (e) {}
-        try { await dtKokKaydoldu(id, h); } catch (e) {}   // KOK-KLASOR: a folder the watched root's queue made
+        try { await dtKokKaydoldu(id, h, b.token || ''); } catch (e) {}   // KOK-KLASOR: a folder the watched root's queue made
         dtSiraliPaint(id);
       }
     } finally { _dtKkBaglaniyor = false; }
@@ -7786,32 +7787,50 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   //  id, and every other computer that watches the root links the same folder to that record. Network shares: known case folders are
   //  not listed again (only the grouping folders are), read every 60 s (sooner while a new one settles).
   //  Off: window.__gxNoKokKlasor = true.
-  const DT_KOK_ARA = 60000, DT_KOK_ADAY_ARA = 5000, DT_KOK_SAKIN = 10000, DT_KOK_DERIN = 5, DT_KOK_DIZIN_MAX = 4000, DT_KOK_YAPIM_MS = 30 * 60000, DT_KOK_DENEME = 3;
-  const _dtKkKok = new Map();                  // 'kok:<user>:<n>' → { key, h, ad, at, bilinen: [anahtar], aday: Map, yapim: Map, son, izinYok }
-  const _dtKokAnahtarlar = new Map();          // 'üst/ad' (lower case) → anahtar
-  let _dtKokTarar = false;
-  function dtKokOn() { try { return dtKkIzleOn() && !window.__gxNoKokKlasor; } catch (e) { return false; } }
-  async function dtKokAnahtar(ust, ad) {
-    const k = dtKkKucuk(ust) + '/' + dtKkKucuk(ad);
+  const DT_KOK_ARA = 20000, DT_KOK_ADAY_ARA = 5000, DT_KOK_SAKIN = 10000, DT_KOK_DERIN = 5, DT_KOK_DIZIN_MAX = 20000, DT_KOK_YAPIM_MS = 45 * 60000, DT_KOK_YENILE_MS = 10 * 60000, DT_KOK_DENEME = 3, DT_KOK_PARTI = 25;
+  const _dtKkKok = new Map();                  // 'kok:<user>:<n>' → { key, h, ad, at, v, bilinen: [anahtar], haric, eylem, aday: Map, yapim: Map, son, izinYok, sira }
+  const _dtKokAnahtarlar = new Map();          // relative path (lower case) → anahtar
+  let _dtKokTarar = false;                     // false, or when the running look started
+  // the upload tab of the folder queue (?gxbulk=…) only makes the records it was given: it never watches a root itself
+  function dtKokYukleSekmesi() { try { return /[?&]gxbulk=/.test(location.search || '') || Boolean(sessionStorage.getItem('gx_bulk_tab')); } catch (e) { return false; } }
+  function dtKokOn() { try { return dtKkIzleOn() && !window.__gxNoKokKlasor && !dtKokYukleSekmesi(); } catch (e) { return false; } }
+  // this tab's own mark for the server lock: the same person in two tabs / on two computers are two takers
+  function dtKokSekme() {
+    try { let s = sessionStorage.getItem('gx_kok_sekme'); if (!s || !/^[a-z0-9]{8,32}$/.test(s)) { s = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10)).slice(0, 24); sessionStorage.setItem('gx_kok_sekme', s); } return s; }
+    catch (e) { return window.__gxKokSekme || (window.__gxKokSekme = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10)).slice(0, 24)); }
+  }
+  // a case folder's key: its path from the root (so AXA/34 KL 55 and ALLIANZ/34 KL 55 are two), SHA-256 (no name leaves the page)
+  async function dtKokAnahtar(yol) {
+    const k = dtKkKucuk(yol);
     if (_dtKokAnahtarlar.has(k)) return _dtKokAnahtarlar.get(k);
     let a = '';
-    try { a = await dtKkOzet(new TextEncoder().encode('gaia-kok\n' + k)); } catch (e) { a = ''; }
-    if (a) { if (_dtKokAnahtarlar.size > 20000) _dtKokAnahtarlar.clear(); _dtKokAnahtarlar.set(k, a); }
+    try { a = await dtKkOzet(new TextEncoder().encode('gaia-kok2\n' + k)); } catch (e) { a = ''; }
+    if (a) { if (_dtKokAnahtarlar.size > 40000) _dtKokAnahtarlar.clear(); _dtKokAnahtarlar.set(k, a); }
     return a;
   }
-  function dtKokDurum(key) { const k = _dtKkKok.get(key); if (k) { if (!k.aday) k.aday = new Map(); if (!k.yapim) k.yapim = new Map(); } return k; }
+  function dtKokDurum(key) {
+    const k = _dtKkKok.get(key);
+    if (!k) return k;
+    if (!k.aday) k.aday = new Map();
+    if (!(k.yapim instanceof Map)) { const m = new Map(); (Array.isArray(k.yapim) ? k.yapim : []).forEach(y => { if (y && y.an && y.h) m.set(y.an, { h: y.h, ad: y.ad, at: Number(y.at) || Date.now(), yenile: 0 }); }); k.yapim = m; }   // after a reload
+    return k;
+  }
   function dtKokKaydet(k) {
     dtKkKullanici();
     _dtKkKok.set(k.key, k);
     dtKkSaatKur();
-    return dtKkYaz(k.key, { h: k.h, ad: k.ad || '', at: k.at, u: _dtKkUid || '', bilinen: Array.isArray(k.bilinen) ? k.bilinen.slice(-20000) : null, haric: Array.isArray(k.haric) ? k.haric.slice(-20000) : [], eylem: k.eylem || null });
+    const yapim = k.yapim instanceof Map ? Array.from(k.yapim.entries()).map(([an, y]) => ({ an, h: y.h, ad: y.ad, at: y.at })) : (Array.isArray(k.yapim) ? k.yapim : []);
+    return dtKkYaz(k.key, { h: k.h, ad: k.ad || '', at: k.at, v: 2, u: _dtKkUid || '', bilinen: Array.isArray(k.bilinen) ? k.bilinen.slice(-40000) : null, haric: Array.isArray(k.haric) ? k.haric.slice(-40000) : [], eylem: k.eylem || null, yapim });
   }
-  // the case folders under the root: [{ h, ad, ust, anahtar, isaret }] — known ones (bilinen) are not listed again
+  // the case folders under the root: [{ h, ad, yol, ust, anahtar, isaret }] — known ones (bilinen) are not listed again. A folder with
+  // documents of its own is a case folder, unless 3 or more of its sub folders hold documents themselves (an insurer or year folder
+  // with a stray file in it). out.tam = every folder was looked at; out.kokDosya = the root itself holds documents.
   async function dtKokTara(k) {
     const out = [], bil = new Set(k.bilinen || []);
     let dizin = 0;
-    const gez = async (d, derin) => {
-      if (derin > DT_KOK_DERIN || dizin >= DT_KOK_DIZIN_MAX) return;
+    const belgeVar = async (d) => { try { for await (const [ad, h] of d.entries()) { if (h.kind === 'file' && ad !== '.gaia' && !dtKkGecici(ad)) return true; } } catch (e) {} return false; };
+    const gez = async (d, parca) => {
+      if (parca.length > DT_KOK_DERIN || dizin >= DT_KOK_DIZIN_MAX) return null;
       const altlar = [];
       let dosya = false, isaret = false;
       for await (const [ad, h] of d.entries()) {
@@ -7820,17 +7839,23 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         else if (!dtKkGecici(ad)) dosya = true;
       }
       dizin += 1;
-      if (dosya && derin > 0) return { dava: true, isaret };   // a case folder: what is under it belongs to it
+      if (!parca.length && dosya) out.kokDosya = true;
+      if (dosya && parca.length) {
+        let dolu = 0;
+        if (altlar.length >= 3 && !isaret) { for (const [, h] of altlar.slice(0, 12)) { if (await belgeVar(h)) dolu++; if (dolu >= 3) break; } }
+        if (dolu < 3) return { dava: true, isaret };   // a case folder: what is under it belongs to it
+      }
       for (const [ad, h] of altlar) {
         if (dizin >= DT_KOK_DIZIN_MAX) break;
-        const anahtar = await dtKokAnahtar(d.name, ad);
-        if (anahtar && bil.has(anahtar)) { out.push({ h, ad, ust: d.name, anahtar, bilinen: true }); continue; }
-        const r = await gez(h, derin + 1);
-        if (r && r.dava) out.push({ h, ad, ust: d.name, anahtar, isaret: r.isaret });
+        const p = parca.concat(ad), yol = p.join('/');
+        const anahtar = await dtKokAnahtar(yol);
+        if (anahtar && bil.has(anahtar)) { out.push({ h, ad, yol, ust: parca.join('/'), anahtar, bilinen: true }); continue; }
+        const r = await gez(h, p);
+        if (r && r.dava) out.push({ h, ad, yol, ust: parca.join('/'), anahtar, isaret: r.isaret });
       }
       return null;
     };
-    await gez(k.h, 0);
+    await gez(k.h, []);
     out.tam = dizin < DT_KOK_DIZIN_MAX;
     return out;
   }
@@ -7848,6 +7873,16 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const imza = l.map(f => (f.webkitRelativePath || f.name) + ':' + f.size + ':' + f.lastModified).sort().join('|');
     return { l, imza };
   }
+  // the record a folder is already linked to on this computer (added earlier with "Add folders as records", linked by hand)
+  async function dtKokBagliKayit(x) {
+    for (const [id, b] of Array.from(_dtKk.entries())) {
+      if (!b || !b.h || dtKkKucuk(b.ad || b.h.name) !== dtKkKucuk(x.ad)) continue;
+      let ayni = false;
+      try { ayni = await b.h.isSameEntry(x.h); } catch (e) { ayni = false; }
+      if (ayni) return id;
+    }
+    return '';
+  }
   // a record of this computer's person is now linked to that folder (the record made for it, here or on another computer)
   async function dtKokBagla(id, h) {
     if (!id || !h || !idMiKk(id)) return;
@@ -7855,24 +7890,32 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (eski && eski.h) { let ayni = false; try { ayni = await eski.h.isSameEntry(h); } catch (e) { ayni = false; } if (ayni) return; }
     await dtKkKaydet(id, { h, ad: h.name, kaynak: 'kok', duzen: true, koru: false, n: dtKkSatirSay(id), geri: null, at: Date.now(), bilinen: null });   // Gaia's names, every time (Saltuk 27.11)
     try { log('[KOK-KLASOR] record ' + id + ' linked to its folder in the root'); } catch (e) {}
+    const k0 = Array.from(_dtKkKok.values())[0];
+    if (k0 && (k0.sira || (k0.sira = [])).indexOf(id) < 0) k0.sira.push(id);   // its sync starts
     try { dtSiraliPaint(id); } catch (e) {}
   }
   function idMiKk(v) { return /^\d{10,16}x\d{10,22}$/.test(String(v || '')); }
+  // the folder a token (the case folder's key, carried by the folder queue) stands for: one this tab handed over
+  function dtKokYapimH(token) {
+    for (const k of Array.from(_dtKkKok.values())) { const kd = dtKokDurum(k.key), y = kd && kd.yapim.get(token); if (y && y.h) return y.h; }
+    return null;
+  }
   // KAYIT-KLASOR bound a just-saved record to a folder: one the root's queue made? → the server, the '.gaia' file, the root learn it
-  async function dtKokKaydoldu(id, h) {
+  async function dtKokKaydoldu(id, h, token) {
     for (const k of Array.from(_dtKkKok.values())) {
       const kd = dtKokDurum(k.key);
       for (const [anahtar, y] of Array.from(kd.yapim.entries())) {
-        let ayni = y.h === h;
-        if (!ayni) { try { ayni = await y.h.isSameEntry(h); } catch (e) { ayni = false; } }
+        let ayni = token ? anahtar === token : y.h === h;
+        if (!ayni && !token) { try { ayni = await y.h.isSameEntry(h); } catch (e) { ayni = false; } }
         if (!ayni) continue;
         kd.yapim.delete(anahtar);
         if ((kd.bilinen || []).indexOf(anahtar) < 0) kd.bilinen = (kd.bilinen || []).concat(anahtar);
         dtKokKaydet(kd);
         dtKkSunucu('kok_kayit', { anahtar, id });
-        await dtKokIsaretYaz(h, { kayit: id, at: Date.now() });
+        await dtKokIsaretYaz(y.h, { kayit: id, at: Date.now() });
         const bag = _dtKk.get(id);
         if (bag) { bag.kaynak = 'kok'; bag.koru = false; bag.duzen = true; bag.n = dtKkSatirSay(id); await dtKkKaydet(id, bag); }
+        if ((kd.sira || (kd.sira = [])).indexOf(id) < 0) kd.sira.push(id);   // the sync: Gaia's names into the folder now
         try { dtIslerSil('kok-yapim:' + anahtar); } catch (e) {}
         dtKokBekleKart(kd);
         return true;
@@ -7880,20 +7923,36 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     return false;
   }
-  // one look at a root
+  // Chrome tells about changes under the root (Chrome 133+; network shares often do not): the next look comes at once
+  async function dtKokGozle(k) {
+    if (typeof FileSystemObserver !== 'function' || k.goz !== undefined) return;
+    k.goz = null;
+    try { const o = new FileSystemObserver(() => { const x = _dtKkKok.get(k.key); if (x) x.son = 0; }); await o.observe(k.h, { recursive: true }); if (_dtKkKok.get(k.key) === k) k.goz = o; else o.disconnect(); } catch (e) { k.goz = null; }
+  }
+  // one look at a root (bakNo: a newer look started by the 2-minute reset makes this one stop acting)
   async function dtKokBak(key) {
     const k = dtKokDurum(key);
     if (!k || !k.h) return;
     k.son = Date.now();
+    const no = (k.bakNo = (k.bakNo || 0) + 1);
+    const guncel = () => _dtKkKok.get(key) === k && k.bakNo === no;
     let izin = 'granted';
     try { if (typeof k.h.queryPermission === 'function') izin = await k.h.queryPermission({ mode: 'readwrite' }); } catch (e) { izin = 'denied'; }
     k.izinYok = izin !== 'granted';
-    dtKokIzinKart();
-    if (k.izinYok) return;
+    dtKokIzinKart(); dtKokCip();
+    if (k.izinYok) { dtKokIz('no permission for ' + k.ad, izin); return; }
     let l;
-    try { l = await dtKokTara(k); } catch (e) { return; }   // offline share: tried again at the next look
-    if (_dtKkKok.get(key) !== k) return;
+    const t0 = Date.now();
+    try { l = await dtKokTara(k); } catch (e) { dtKokIz('read failed', (e && e.name) + ': ' + (e && e.message)); return; }   // offline share: tried again at the next look
+    if (!guncel()) return;
+    dtKokGozle(k);
+    if (k.v !== 2) {   // a root watched before the path keys (27.11): what is there now is known; the person re-syncs to choose again
+      k.v = 2; k.bilinen = l.map(x => x.anahtar).filter(Boolean); k.haric = []; await dtKokKaydet(k);
+      dtKokIz('keys renewed for ' + k.ad); return;
+    }
+    dtKokIz('look at ' + k.ad, l.length + ' case folders, ' + (Date.now() - t0) + ' ms, new ' + l.filter(x => !x.bilinen && !(k.bilinen || []).includes(x.anahtar)).length + (l.tam ? '' : ', NOT COMPLETE (too many folders)'));
     await dtKokEsle(k, l);   // KOK-ESLE: each case folder (old ones too) ↔ its record in this table
+    if (!guncel()) return;
     if (!Array.isArray(k.bilinen)) {   // the first look: the case folders already there are known; only later ones become records
       k.bilinen = l.map(x => x.anahtar).filter(Boolean);
       await dtKokKaydet(k);
@@ -7902,75 +7961,85 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const bil = new Set(k.bilinen), now = Date.now(), gorulen = new Set();
     let degisti = false;
     for (const x of l) {
+      if (!guncel()) return;
       if (!x.anahtar || x.bilinen || bil.has(x.anahtar) || k.yapim.has(x.anahtar)) continue;
-      if (dtKokEslesme([x]).size) { bil.add(x.anahtar); degisti = true; continue; }   // KOK-ESLE: a record of it is in the table already
-      gorulen.add(x.anahtar);
-      // made by another computer already (its '.gaia' file names the record): this computer links it too
+      const es = dtKokEslesme([x]);
+      if (es.size || es.belirsiz.size) { bil.add(x.anahtar); degisti = true; continue; }   // KOK-ESLE: a record of it is in the table (several: left alone)
+      const bagli = await dtKokBagliKayit(x);
+      if (bagli) { bil.add(x.anahtar); degisti = true; continue; }   // linked to a record already: no second record
+      // its '.gaia' file: made by another computer / tab (names the record: linked here too), or being made right now (wait)
       if (x.isaret) {
         const o = await dtKokIsaretOku(x.h);
         if (o && idMiKk(o.kayit)) { bil.add(x.anahtar); degisti = true; k.aday.delete(x.anahtar); await dtKokBagla(String(o.kayit), x.h); continue; }
+        if (o && o.durum === 'yapiliyor' && now - (Number(o.at) || 0) < DT_KOK_YAPIM_MS && o.sekme !== dtKokSekme()) { dtKokIz('being made elsewhere', x.yol); continue; }
       }
+      gorulen.add(x.anahtar);
       const { l: dosyalar, imza } = await dtKokDosyalar(x.h);
       const a = k.aday.get(x.anahtar);
-      if (!a || a.imza !== imza) { k.aday.set(x.anahtar, { h: x.h, ad: x.ad, imza, at: now, deneme: a ? a.deneme : 0 }); continue; }
+      if (!a || a.imza !== imza) { k.aday.set(x.anahtar, { h: x.h, ad: x.ad, yol: x.yol, imza, at: now, deneme: a ? a.deneme : 0, sorAt: a ? a.sorAt : 0 }); continue; }
       if (now - a.at < DT_KOK_SAKIN || !dosyalar.length) continue;   // a copy may still run
       a.dosyalar = dosyalar; a.hazir = true;
     }
-    k.aday.forEach((a, an) => { if (!gorulen.has(an)) k.aday.delete(an); });   // gone / renamed
+    k.aday.forEach((a, an) => { if (!gorulen.has(an)) k.aday.delete(an); });   // gone / renamed / taken elsewhere
     if (degisti) { k.bilinen = Array.from(bil); await dtKokKaydet(k); }
-    // folders taken here that never got their record (the queue failed or the page closed): given back, tried again later
-    k.yapim.forEach((y, an) => { if (now - y.at > DT_KOK_YAPIM_MS) { k.yapim.delete(an); dtKkSunucu('kok_birak', { anahtar: an }); dtKokIsaretSil(y.h); try { dtIslerSil('kok-yapim:' + an); } catch (e) {} } });
-    await dtKokYap(k);
+    // folders this tab handed over: the lock and the mark are kept fresh while the record is made; a folder whose record never came
+    // (the upload tab failed or was closed) is given back after 45 min and tried again
+    for (const [an, y] of Array.from(k.yapim.entries())) {
+      if (now - y.at > DT_KOK_YAPIM_MS) { k.yapim.delete(an); dtKkSunucu('kok_birak', { anahtar: an, sekme: dtKokSekme() }); dtKokIsaretSil(y.h); try { dtIslerSil('kok-yapim:' + an); } catch (e) {} dtKokKaydet(k); continue; }
+      if (now - (y.yenile || y.at) > DT_KOK_YENILE_MS) { y.yenile = now; dtKkSunucu('kok_kilit', { anahtar: an, sekme: dtKokSekme() }); dtKokIsaretYaz(y.h, { durum: 'yapiliyor', at: now, sekme: dtKokSekme() }); }
+    }
+    if (!l.tam) return;   // a cut look does not make records (an old folder past the cut would look new)
+    await dtKokYap(k, guncel);
   }
-  // the settled new folders → one computer takes each (server lock) → ONE new tab of the form's folder queue makes their records
+  // the settled new folders → one taker each (server lock per tab) → ONE new tab of the form's folder queue makes their records
   // (27.11 Saltuk: "yeni kayıtları kesinlikle yeni sekmede açmalı"): the person's own tab never runs it, so it does not wait for a
   // free page. Chrome blocks a tab opened without a press: then a card asks for the press ("Open in a new tab").
-  async function dtKokYap(k) {
+  async function dtKokYap(k, guncel) {
     const api = typeof dtBulkApi === 'function' ? dtBulkApi() : null;
-    if (k.sekmeBekle && k.sekmeBekle.length) { dtKokSekmeKart(k); return; }   // waiting for the person's press
-    const hazir = Array.from(k.aday.entries()).filter(([, a]) => a.hazir);
+    if (k.sekmeBekle && k.sekmeBekle.length) { if (k.sekmeEngel) dtKokSekmeKart(k); else dtKokGonder(k, api); return; }   // blocked: the press; busy: again
+    const now = Date.now();
+    const hazir = Array.from(k.aday.entries()).filter(([, a]) => a.hazir && !(a.sorAt && now - a.sorAt < 60000)).slice(0, DT_KOK_PARTI);
     dtKokBekleKart(k);
     if (!hazir.length || !api || typeof api.offerAuto !== 'function') return;
-    if (!dtKkPaylas()) return;   // without the server, two computers could make the same record
+    if (!dtKkPaylas()) { if (_dtKkSunucuYok && !k.sunucuDendi) { k.sunucuDendi = true; showWakeToast('New folders in ' + dtKkKartAd(k) + ' wait: the Gaia server does not make records from folders yet.', 'success'); } return; }
     const bizim = [];
     for (const [anahtar, a] of hazir) {
-      const r = await dtKkSunucu('kok_kilit', { anahtar });
-      if (!r || typeof r !== 'object') {
-        if (!k.sunucuDendi) { k.sunucuDendi = true; dtKokIz('the server cannot share new folders yet: no record made'); showWakeToast('New folders in ' + dtKkKartAd(k) + ' wait: the Gaia server does not make records from folders yet.', 'success'); }
-        return;
-      }
+      if (guncel && !guncel()) return;
+      const r = await dtKkSunucu('kok_kilit', { anahtar, sekme: dtKokSekme() });
+      if (!r || typeof r !== 'object') { dtKokIz('server did not answer for a folder; tried again later'); a.sorAt = Date.now(); continue; }
       if (!r.sahip) {
         if (idMiKk(r.kayit)) { k.aday.delete(anahtar); k.bilinen = (k.bilinen || []).concat(anahtar); await dtKokKaydet(k); await dtKokBagla(String(r.kayit), a.h); }
-        continue;   // another computer is making it now
+        else a.sorAt = Date.now();   // another tab / computer is making it: asked again in a minute
+        continue;
       }
-      if ((a.deneme = (a.deneme || 0) + 1) > DT_KOK_DENEME) {
+      if ((a.deneme || 0) >= DT_KOK_DENEME) {
         k.aday.delete(anahtar); k.bilinen = (k.bilinen || []).concat(anahtar); await dtKokKaydet(k);
-        dtKkSunucu('kok_birak', { anahtar });
+        dtKkSunucu('kok_birak', { anahtar, sekme: dtKokSekme() });
         showWakeToast('Gaia could not make a record for the folder ' + dtKkKartAd({ ad: a.ad }) + '. Add it with Folders.', 'error');
         continue;
       }
-      await dtKokIsaretYaz(a.h, { durum: 'yapiliyor', at: Date.now() });
-      dtKkUstEkle(a.h);   // KAYIT-KLASOR: the saved record remembers this folder
+      await dtKokIsaretYaz(a.h, { durum: 'yapiliyor', at: Date.now(), sekme: dtKokSekme() });
       bizim.push([anahtar, a]);
     }
     if (!bizim.length) return;
-    k.sekmeBekle = bizim;
+    k.sekmeBekle = bizim; k.sekmeEngel = false;
     dtKokGonder(k, api);
   }
-  // hand the taken folders to the queue (a new tab); true when the tab opened
+  // hand the taken folders to the queue (a new tab), one group per case folder with its key as token; true when the tab opened
   function dtKokGonder(k, api) {
     const bizim = k.sekmeBekle || [];
     if (!bizim.length || !api) return false;
-    const dosyalar = [];
-    bizim.forEach(([, a]) => (a.dosyalar || []).forEach(f => dosyalar.push(f)));
+    const groups = bizim.map(([anahtar, a]) => ({ name: a.ad, token: anahtar, files: a.dosyalar || [] }));
     let r = false;
-    try { r = api.offerAuto(dosyalar, k.eylem || undefined); } catch (e) { r = false; }
-    dtKokIz('folder queue', r === true ? bizim.length + ' folder(s) in a new tab' : String(r));
-    if (r === 'engel') { dtKokSekmeKart(k); return false; }   // Chrome blocked the tab: a press opens it
-    if (r !== true) return false;                              // the queue is busy: the next look tries again
-    k.sekmeBekle = null;
+    try { r = api.offerAuto({ groups }, k.eylem || undefined); } catch (e) { r = false; }
+    dtKokIz('folder queue', r === true ? bizim.length + ' folder(s) in a new tab' : r === 'engel' ? 'new tab blocked by Chrome' : 'queue busy, again at the next look');
+    if (r === 'engel') { k.sekmeEngel = true; dtKokSekmeKart(k); return false; }   // Chrome blocked the tab: a press opens it
+    if (r !== true) return false;                                                  // the queue is busy: the next look tries again
+    k.sekmeBekle = null; k.sekmeEngel = false;
     try { dtIslerSil('kok-sekme:' + k.key); } catch (e) {}
-    bizim.forEach(([anahtar, a]) => { k.aday.delete(anahtar); k.yapim.set(anahtar, { h: a.h, ad: a.ad, at: Date.now() }); });
+    const now = Date.now();
+    bizim.forEach(([anahtar, a]) => { a.deneme = (a.deneme || 0) + 1; k.aday.delete(anahtar); k.yapim.set(anahtar, { h: a.h, ad: a.ad, at: now, yenile: now }); });
+    dtKokKaydet(k);   // a reload keeps them (no second record)
     dtKokBekleKart(k);
     return true;
   }
@@ -7987,13 +8056,14 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const bek = k.aday ? k.aday.size : 0, yap = k.yapim ? k.yapim.size : 0, kart = 'kok-bekle:' + k.key;
     if (!bek && !yap) { try { dtIslerSil(kart); } catch (e) {} return; }
     const line = yap ? 'Making ' + dtKkSay(yap, 'record') + ' in a new tab' + (bek ? ', ' + dtKkSay(bek, 'more folder') + ' waiting' : '') : dtKkSay(bek, 'new folder') + ' found, waiting until copying ends';
-    dtIslerSet(kart, { title: 'New folders in ' + dtKkKartAd(k), sub: '', state: 'working', k: 0, n: 0, line, href: '', msg: '', onRetry: null });
+    dtIslerSet(kart, { title: 'New folders in ' + dtKkKartAd(k), sub: '', state: 'done', line, href: '', msg: '', onRetry: null });
   }
   // every 4 s (dtKkTik): the root whose look is due (one at a time; sooner while a new folder settles)
   function dtKokTik() {
     try { dtKokCip(); } catch (e) {}
     if (!dtKokOn() || !_dtKkKok.size) return;
     try { dtKokSiraYurut(); } catch (e) {}
+    if (_dtKokTarar && Date.now() - _dtKokTarar > 120000) { dtKokIz('a look took over 2 min (network folder?): looking again'); _dtKokTarar = false; }
     if (_dtKokTarar || document.hidden) return;
     const now = Date.now();
     let sec = '', secAt = Infinity;
@@ -8004,8 +8074,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (due <= now && due < secAt) { sec = key; secAt = due; }
     });
     if (!sec) return;
-    _dtKokTarar = true;
-    dtKokBak(sec).catch(() => {}).then(() => { _dtKokTarar = false; });
+    _dtKokTarar = now;
+    const t0 = now;
+    dtKokBak(sec).catch((e) => { dtKokIz('look failed', (e && e.name) + ': ' + (e && e.message)); }).then(() => { if (_dtKokTarar === t0) _dtKokTarar = false; });
   }
   function dtKokIzinKart() {
     if (!dtIslerOn()) return;
@@ -8014,6 +8085,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     dtIslerSet('kok-izin', { title: 'Watched folders', sub: '', state: 'done', line: 'Gaia makes records for new folders in ' + dtKkKartAd(l[0]) + ' after you allow it.', anaLabel: 'Allow', onAna: async () => {
       for (const k of l) { try { if ((await k.h.requestPermission({ mode: 'readwrite' })) !== 'granted') break; k.izinYok = false; k.son = 0; } catch (e) { break; } }
       dtKokIzinKart();
+      dtKokIz('permission given: looking now');
+      try { dtKokTik(); } catch (e) {}
     }, altLabel: '', onAlt: null, href: '', msg: '' });
   }
   // "Folders" chose a folder: offer to watch it (or, a watched one, to stop)
@@ -8048,31 +8121,48 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   // at a time): the documents the folder is missing are written, the found files get the office order names (every time, Undo keeps
   // the log), and the folder's own files go to the record by themselves (KLASOR-IZLE, when the page is free; more than 100 asked).
   function dtKokNorm(t) { return String(t == null ? '' : t).toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ÇĞİÖŞÜ]+/g, ''); }
+  // a record's file number and plate as patterns that match only whole: "34 ABC 1234" ~ "34ABC1234" ~ "34-abc-1234", never inside
+  // "X34ABC12345"; the file number never inside a longer number
+  const DT_KOK_HARF = 'A-Z0-9ÇĞİÖŞÜ';
+  function dtKokDesen(v, enAz) {
+    const s = String(v == null ? '' : v).toLocaleUpperCase('tr-TR');
+    const parca = s.match(new RegExp('[0-9]+|[A-ZÇĞİÖŞÜ]+', 'g')) || [];
+    if (parca.join('').length < enAz) return null;
+    return new RegExp('(^|[^' + DT_KOK_HARF + '])' + parca.join('[^' + DT_KOK_HARF + ']*') + '($|[^' + DT_KOK_HARF + '])');
+  }
   function dtKokSatirIzi(raw) {
     let no = '', plaka = '';
-    try { for (const k in (raw || {})) { const n = dtNormKey(k); if (n === 'hasardosyano') no = dtKokNorm(raw[k]); else if (n === 'plaka') plaka = dtKokNorm(raw[k]); } } catch (e) {}
-    return { no: no.length >= 5 ? no : '', plaka: plaka.length >= 5 ? plaka : '' };
+    try { for (const k in (raw || {})) { const n = dtNormKey(k); if (n === 'hasardosyano') no = raw[k]; else if (n === 'plaka') plaka = raw[k]; } } catch (e) {}
+    return { no: dtKokDesen(no, 5), plaka: dtKokDesen(plaka, 5) };
   }
-  // → Map(id → { h, ad, anahtar }) for the folders that match exactly one record (and that record only that folder)
+  // → Map(id → { h, ad, anahtar }) for the folders that match exactly one record (and that record only that folder); .belirsiz =
+  // the keys of folders that match several records or share their record with another folder (shown, left alone)
   function dtKokEslesme(l) {
     const satirlar = (Array.isArray(state.rawRows) ? state.rawRows : []).filter(r => r && !r.__gxPend && rowIdOf(r)).map(r => ({ id: rowIdOf(r), iz: dtKokSatirIzi(r) })).filter(x => x.iz.no || x.iz.plaka);
-    const kac = new Map(), adaylar = [];
+    const kac = new Map(), adaylar = [], belirsiz = new Set();
     l.forEach(x => {
-      const n = dtKokNorm(x.ad);
-      let hit = satirlar.filter(s => s.iz.no && n.indexOf(s.iz.no) >= 0);
-      if (!hit.length) hit = satirlar.filter(s => s.iz.plaka && n.indexOf(s.iz.plaka) >= 0);
+      const n = String(x.ad || '').toLocaleUpperCase('tr-TR');
+      const hNo = satirlar.filter(s => s.iz.no && s.iz.no.test(n)), hPl = satirlar.filter(s => s.iz.plaka && s.iz.plaka.test(n));
+      const hit = hNo.length ? hNo : hPl;
+      // several records, or the file number of one and the plate of another: unclear (left alone)
+      if (hit.length > 1 || (hNo.length === 1 && hPl.length && !hPl.some(s => s.id === hNo[0].id))) { belirsiz.add(x.anahtar); return; }
       if (hit.length !== 1) return;
       adaylar.push([hit[0].id, x]);
       kac.set(hit[0].id, (kac.get(hit[0].id) || 0) + 1);
     });
     const out = new Map();
-    adaylar.forEach(([id, x]) => { if (kac.get(id) === 1) out.set(id, x); });
+    adaylar.forEach(([id, x]) => { if (kac.get(id) === 1) out.set(id, x); else belirsiz.add(x.anahtar); });
+    out.belirsiz = belirsiz;
     return out;
   }
   async function dtKokEsle(k, l) {
     const haric = new Set(k.haric || []);
     const es = dtKokEslesme(l.filter(x => !haric.has(x.anahtar)));   // KOK-SECIM: unticked folders are left alone
-    k.eslesen = es.size; k.toplam = l.length;
+    // the chip: case folders (not left alone) that a record of this person keeps, out of all of them
+    const izli = l.filter(x => !haric.has(x.anahtar)), adlar = new Set();
+    _dtKk.forEach(b => { if (b && b.kaynak === 'kok' && b.ad) adlar.add(dtKkKucuk(b.ad)); });
+    es.forEach(x => adlar.add(dtKkKucuk(x.ad)));
+    k.eslesen = izli.filter(x => adlar.has(dtKkKucuk(x.ad))).length; k.toplam = izli.length;
     for (const [id, x] of es) {
       const eski = _dtKk.get(id);
       if (eski && eski.h) { let ayni = false; try { ayni = await eski.h.isSameEntry(x.h); } catch (e) { ayni = false; } if (ayni) continue; if (eski.kaynak !== 'kok') continue; }   // a folder the person linked by hand stays
@@ -8110,11 +8200,20 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         c = document.createElement('button');
         c.id = 'dt-kok-chip'; c.type = 'button'; c.className = 'dt-kok-chip';
         c.style.cssText = 'margin-left:6px;padding:2px 8px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;font:12px/20px system-ui,sans-serif;color:#334155;cursor:pointer;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis';
-        c.addEventListener('click', () => { try { dtKokDurumKart(); } catch (e) {} });
+        c.addEventListener('click', async () => {
+          const k1 = Array.from(_dtKkKok.values())[0];
+          if (k1 && k1.izinYok) {   // the permission the Allow card asked for (the card may have been closed): the press asks Chrome
+            let ok = false;
+            try { ok = (await k1.h.requestPermission({ mode: 'readwrite' })) === 'granted'; } catch (e) { ok = false; }
+            if (ok) { k1.izinYok = false; k1.son = 0; dtKokCip(); try { dtIslerSil('kok-izin'); } catch (e) {} dtKokTik(); }
+            return;
+          }
+          try { dtKokDurumKart(); } catch (e) {}
+        });
         b.parentNode.insertBefore(c, b.nextSibling);
       }
       c.hidden = false;
-      const t = dtKkKartAd(k) + (k.toplam ? ' · ' + (k.eslesen || 0) + '/' + k.toplam : '');
+      const t = dtKkKartAd(k) + (k.izinYok ? ' · allow' : k.toplam ? ' · ' + (k.eslesen || 0) + '/' + k.toplam : '');
       if (c.textContent !== t) c.textContent = t;
       c.title = 'Watched folder: ' + dtKkKartAd(k) + (k.toplam ? '. ' + (k.eslesen || 0) + ' of ' + k.toplam + ' folders are linked to their records' : '');
     } catch (e) {}
@@ -8124,7 +8223,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!k || !dtIslerOn()) return;
     dtKkKartAc('kok-durum');
     dtIslerSet('kok-durum', { title: 'Watched folder', sub: '', state: 'done', line: dtKkKartAd(k) + ': ' + (k.eslesen || 0) + ' of ' + (k.toplam || 0) + ' folders are linked to their records. A folder is linked when its name holds the record\'s file number or plate.', anaLabel: 'Look again', onAna: () => { k.son = 0; try { dtIslerSil('kok-durum'); } catch (e) {} }, altLabel: 'Stop watching', onAlt: () => {
-      _dtKkKok.delete(k.key); dtKkYaz(k.key, null); try { dtIslerSil('kok-durum'); } catch (e) {} dtKokCip();
+      dtKokHepsiniBirak();
+      try { dtIslerSil('kok-durum'); } catch (e) {}
+      dtKokCip();
       showWakeToast('Gaia stopped watching ' + dtKkKartAd(k) + '. Nothing in the folder changed.', 'success');
     }, href: '', msg: '' });
   }
@@ -8169,7 +8270,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       dtKokIz('folder dialog ended', (e && e.name) + ' after ' + (Date.now() - t0) + ' ms');
       // closed at once = Cancel; after a while = a folder was chosen but Chrome refused it (a known Chrome on Windows bug answers
       // every pick with AbortError; a protected folder too)
-      if (!(e && e.name === 'AbortError' && Date.now() - t0 < 1500)) showWakeToast('Chrome did not give Gaia that folder (' + ((e && e.name) || 'error') + '). Type its path in the Folder box of the dialog and press Select Folder.', 'error');
+      if (!(e && e.name === 'AbortError')) showWakeToast('Chrome did not give Gaia that folder (' + ((e && e.name) || 'error') + '). Type its path in the Folder box of the dialog and press Select Folder.', 'error');
+      else if (Date.now() - t0 > 4000) showWakeToast('No folder was chosen. If you chose one, type its path in the Folder box of the dialog and press Select Folder.', 'success');
       return;
     }
     if (!h || h.kind !== 'directory') { dtKokIz('not a folder'); return; }
@@ -8177,13 +8279,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     showWakeToast('Reading ' + dtKkKartAd({ ad: h.name }) + '...', 'info');
     let l = [];
     try { l = await dtKokTara({ h, bilinen: [] }); } catch (e) { dtKokIz('read failed', (e && e.name) + ': ' + (e && e.message)); showWakeToast('Could not read ' + dtKkKartAd({ ad: h.name }) + ' (' + ((e && e.name) || 'error') + ').', 'error'); return; }
+    for (const x of l) {
+      if (x.isaret) { const o = await dtKokIsaretOku(x.h); if (o && idMiKk(o.kayit)) x.kayit = String(o.kayit); }   // made from this folder before
+      if (!x.kayit) { const b = await dtKokBagliKayit(x); if (b) x.kayit = b; }                                      // linked to a record already
+    }
     dtKokIz('case folders found', l.length + ' in ' + (Date.now() - t0) + ' ms');
     try { dtKokOnizleme(h, l); dtKokIz('preview shown'); } catch (e) { dtKokIz('preview failed', (e && e.name) + ': ' + (e && e.message)); showWakeToast('Gaia could not show what it found (' + ((e && e.name) || 'error') + ').', 'error'); }
   }
   // what Gaia found, before anything happens
   function dtKokOnizleme(h, l) {
-    const es = dtKokEslesme(l), kayitOf = new Map();
+    const es = dtKokEslesme(l.filter(x => !x.kayit)), kayitOf = new Map();
     es.forEach((x, id) => kayitOf.set(x.anahtar, id));
+    const belirsiz = es.belirsiz || new Set();
     const etiket = (id) => { const raw = (state.rawRows || []).find(r => rowIdOf(r) === id); let pl = ''; try { for (const kk in (raw || {})) if (dtNormKey(kk) === 'plaka') pl = String(raw[kk] == null ? '' : raw[kk]).trim(); } catch (e) {} return [raw ? dtIslerEtiket(raw) : '', pl].filter(Boolean).join(' · ') || id; };
     let o = document.getElementById('dt-kok-on');
     if (o) o.remove();
@@ -8193,25 +8300,32 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const k = document.createElement('div');
     k.setAttribute('role', 'dialog'); k.setAttribute('aria-modal', 'true');
     k.style.cssText = 'background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(15,23,42,.25);width:min(620px,94vw);max-height:84vh;display:flex;flex-direction:column';
-    const yeniN = l.length - es.size;
-    k.innerHTML = '<div style="padding:16px 18px 8px"><div class="t" style="font-size:16px;font-weight:600"></div><div class="a" style="color:#475569;margin-top:4px"></div></div>'
+    const yeniN = l.filter(x => !kayitOf.has(x.anahtar) && !x.kayit && !belirsiz.has(x.anahtar)).length, onceN = l.filter(x => !kayitOf.has(x.anahtar) && x.kayit).length;
+    k.innerHTML = '<div style="padding:16px 18px 8px"><div class="t" style="font-size:16px;font-weight:600"></div><div class="a" style="color:#475569;margin-top:4px"></div><div class="u" style="color:#b45309;margin-top:6px;font-size:12px"></div></div>'
       + '<div class="k" style="padding:0 18px 10px;display:flex;flex-direction:column;gap:4px"><label style="cursor:pointer"><input type="radio" name="dt-kok-kapsam" value="hepsi" checked> <span class="k1"></span></label><label style="cursor:pointer"><input type="radio" name="dt-kok-kapsam" value="sonra"> <span class="k2"></span></label></div>'
       + '<div class="l" style="overflow:auto;padding:0 18px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0"></div>'
       + '<div class="e" style="padding:10px 18px 0;display:flex;gap:10px;align-items:center"><span class="el" style="color:#475569"></span><select class="es" style="flex:1;max-width:280px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff"></select></div>'
       + '<div style="padding:12px 18px;display:flex;gap:8px;justify-content:flex-end"><button class="i" type="button" style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer"></button><button class="b" type="button" style="padding:8px 14px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer"></button></div>';
     k.querySelector('.t').textContent = 'Sync ' + dtKkKartAd({ ad: h.name }) + ' with this table';
-    k.querySelector('.a').textContent = l.length + ' case folders found: ' + es.size + ' join their records, ' + yeniN + ' become new records. Untick what Gaia should leave alone. Folders that only hold folders (an insurer, a year) are not records.';
+    k.querySelector('.a').textContent = l.length + ' case folders found: ' + (es.size + onceN) + ' join their records, ' + yeniN + ' become new records. Untick what Gaia should leave alone. Folders that only hold folders (an insurer, a year) are not records.';
+    // what the person should know before Start
+    const uyar = [];
+    if (!l.tam) uyar.push('The folder is very large: Gaia looked at the first ' + DT_KOK_DIZIN_MAX + ' folders only.');
+    if (l.kokDosya) uyar.push('This folder holds documents itself: if it is one case, choose the office folder above it instead.');
+    if (yeniN) uyar.push('Only records loaded in this table are matched: clear the table\'s search and filters first, or a case already in Gaia becomes a second record.');
+    const u = k.querySelector('.u');
+    uyar.forEach(s => { const d = document.createElement('div'); d.textContent = s; u.appendChild(d); });   // one sentence each (translated one by one)
     const liste = k.querySelector('.l');
     if (!l.length) liste.innerHTML = '<p style="padding:14px 0;color:#64748b">No case folders found (a case folder holds documents itself).</p>';
     l.forEach(x => {
       const row = document.createElement('label');
       row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer';
-      row.innerHTML = '<input type="checkbox" checked style="margin-top:3px"><span style="flex:1;min-width:0"><span class="n" style="display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span class="w" style="display:block;font-size:12px"></span></span>';
+      row.innerHTML = '<input type="checkbox"' + (belirsiz.has(x.anahtar) ? ' disabled' : ' checked') + ' style="margin-top:3px"><span style="flex:1;min-width:0"><span class="n" style="display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span class="w" style="display:block;font-size:12px"></span></span>';
       row.querySelector('input').dataset.anahtar = x.anahtar;
       row.querySelector('.n').textContent = (x.ust && x.ust !== h.name ? x.ust + ' / ' : '') + x.ad;
       const id = kayitOf.get(x.anahtar), w = row.querySelector('.w');
-      w.textContent = id ? 'Joins record ' + etiket(id) : 'New record';
-      w.style.color = id ? '#15803d' : '#b45309';
+      w.textContent = id ? 'Joins record ' + etiket(id) : x.kayit ? 'Joins the record made from it before' : belirsiz.has(x.anahtar) ? 'Unclear: its name fits several records, left alone (rename the folder to link it)' : 'New record';
+      w.style.color = id || x.kayit ? '#15803d' : belirsiz.has(x.anahtar) ? '#64748b' : '#b45309';
       liste.appendChild(row);
     });
     // KOK-SECIM (27.11 Saltuk: "otomatik yeni oluşturma aksiyonunu da seçmem gerekirdi"): the action each new record runs
@@ -8222,7 +8336,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     try { son = api && typeof api.lastAction === 'function' ? api.lastAction() : ''; } catch (e) { son = ''; }
     const esec = k.querySelector('.es');
     k.querySelector('.el').textContent = 'Action for each new record';
-    [{ id: '', name: '' }].concat(acts).forEach(a => { const op = document.createElement('option'); op.value = a.id; op.textContent = a.name || 'Save only'; if (a.name && a.name === son) op.selected = true; esec.appendChild(op); });
+    const secenek = acts.length ? [{ id: '', name: '' }].concat(acts) : [{ id: '__son', name: 'The action chosen last on the folder card' }];
+    secenek.forEach(a => { const op = document.createElement('option'); op.value = a.id; op.textContent = a.name || 'Save only'; if (a.name && a.name === son) op.selected = true; esec.appendChild(op); });
 
     // 27.11 Saltuk: "şimdiye kadarkileri değil bundan sonra eklenenleri sync et" seçeneği
     k.querySelector('.k1').textContent = 'The folders there now too (the list below)';
@@ -8234,7 +8349,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     k.querySelector('.i').addEventListener('click', () => o.remove());
     k.querySelector('.b').addEventListener('click', async () => {
       const sec = kapsam() === 'sonra' ? new Set() : new Set(Array.from(liste.querySelectorAll('input:checked')).map(i => i.dataset.anahtar));
-      const eylem = acts.find(a => a.id === esec.value) || { id: '', name: '' };
+      const eylem = esec.value === '__son' ? null : (acts.find(a => a.id === esec.value) || { id: '', name: '' });
       o.remove();
       await dtKokBaslat(h, l, sec, kayitOf, eylem);
     });
@@ -8243,17 +8358,27 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     document.body.appendChild(o);
   }
   // Start: the ticked folders join their records or become new ones; unticked ones are left alone for good
+  // every watched root of this person goes (IndexedDB too); their cards and waiting folders with them
+  function dtKokHepsiniBirak() {
+    Array.from(_dtKkKok.values()).forEach(k0 => {
+      _dtKkKok.delete(k0.key); dtKkYaz(k0.key, null);
+      try { if (k0.goz) k0.goz.disconnect(); } catch (e) {}
+      ['kok-bekle:', 'kok-sekme:'].forEach(p => { try { dtIslerSil(p + k0.key); } catch (e) {} });   // folders being made keep their lock and mark
+    });
+    try { dtIslerSil('kok-izin'); } catch (e) {}
+    dtKokIz('stopped watching');
+  }
   async function dtKokBaslat(h, l, sec, kayitOf, eylem) {
     dtKkKullanici();
-    for (const k0 of Array.from(_dtKkKok.values())) { let ayni = false; try { ayni = await k0.h.isSameEntry(h); } catch (e) { ayni = false; } if (ayni) { _dtKkKok.delete(k0.key); dtKkYaz(k0.key, null); } }
+    dtKokHepsiniBirak();   // one watched folder at a time (the chip shows it)
     const at = Date.now(), bilinen = [], haric = [];
     l.forEach(x => {
       if (!sec.has(x.anahtar)) { bilinen.push(x.anahtar); haric.push(x.anahtar); return; }   // left alone
-      if (kayitOf.has(x.anahtar)) bilinen.push(x.anahtar);                                     // joins its record
+      if (kayitOf.has(x.anahtar)) bilinen.push(x.anahtar);                                     // joins its record (by name)
     });                                                                                         // the rest: new records (KOK-KLASOR)
-    const k = { key: 'kok:' + (_dtKkUid || '') + ':' + at.toString(36), h, ad: h.name, at, bilinen, haric, eylem: eylem || null, son: 0 };
+    const k = { key: 'kok:' + (_dtKkUid || '') + ':' + at.toString(36), h, ad: h.name, at, v: 2, bilinen, haric, eylem: eylem || null, son: 0 };
     await dtKokKaydet(k);
-    const yeni = l.filter(x => sec.has(x.anahtar) && !kayitOf.has(x.anahtar)).length;
+    const yeni = l.filter(x => sec.has(x.anahtar) && !kayitOf.has(x.anahtar) && !x.kayit).length;
     if (!sec.size) showWakeToast('Gaia watches ' + dtKkKartAd(k) + ': new folders put in it become records.', 'success');
     else showWakeToast('Gaia syncs ' + dtKkKartAd(k) + ': ' + (sec.size - yeni) + ' folders join their records' + (yeni ? ', ' + yeni + ' become new records' : '') + '.', 'success');
     dtKokCip();
@@ -8432,6 +8557,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!dtIslerOn() || !id || !job) return;
     if (_dtIslerGizli.has(String(id))) { if (_dtIslerGizli.get(String(id)) === job.state) return; _dtIslerGizli.delete(String(id)); }
     const eski = _dtIsler.get(String(id));
+    // KOK-KLASOR (27.11 Saltuk: "aktivite kısmında titreme oluyor"): cards set again on every look with the same words (only their
+    // button functions are new) are kept as they are: no redraw, no fly-in
+    if (eski && Object.keys(job).every(k => typeof job[k] === 'function' || job[k] === eski[k])) { Object.keys(job).forEach(k => { if (typeof job[k] === 'function') eski[k] = job[k]; }); return; }
     const j = Object.assign({}, eski || {}, job);
     if (!eski) j.at = Date.now();
     if (eski && (job.n !== eski.n || job.state !== eski.state)) { delete j.tk0; delete j.kk0; }   // a new phase: a new pace

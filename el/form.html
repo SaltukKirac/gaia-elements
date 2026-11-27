@@ -6200,7 +6200,7 @@
         const chan = new BroadcastChannel(`gx-bulk-${id}`);
         const R = G.remote = {
           id, w, chan, state: "opening", at: Date.now(), last: Date.now(), sent: false,
-          groups: groups.map((g) => ({ name: g.name, files: g.files, truncated: g.truncated })),
+          groups: groups.map((g) => ({ name: g.name, files: g.files, truncated: g.truncated, token: g.token || "" })),
           action: act ? { id: act.id, name: act.name } : null, tkey: bdf_bulkTableKey(), user: bdf_bulkUserKey(), snap: null
         };
         chan.onmessage = (ev) => {
@@ -6535,7 +6535,7 @@
         try {
           if (!job || !Array.isArray(job.urls) || !job.urls.length || typeof BroadcastChannel !== "function") return;
           const ch = new BroadcastChannel("gx-kayit-klasor");
-          ch.postMessage({ t: "kayit", ad: String(job.name || ""), urls: job.urls.slice(0, 500).map(String) });
+          ch.postMessage({ t: "kayit", ad: String(job.name || ""), urls: job.urls.slice(0, 500).map(String), token: String((job.group && job.group.token) || "") });   // KOK-KLASOR
           setTimeout(() => { try { ch.close(); } catch (_) { } }, 1000);
         } catch (_) { }
       }
@@ -7119,7 +7119,11 @@
         const G = BDF_BULK;
         if (!bdf_bulkCanRun() || G.running || G.view === "confirm") return false;
         if (G.view === "remote" && G.remote && (G.remote.state === "opening" || G.remote.state === "run" || G.remote.state === "quiet")) return false;
-        const res = bdf_bulkGroupsFromFolderInput(fileList);
+        // tablo her dosya klasörünü kendi grubu olarak verir ({groups:[{name, token, files}]}): klasörün alt klasörleri (Foto, Evrak)
+        // ayrı kayıt olmaz, aynı adlı iki klasör karışmaz; token kaydedilince tabloya geri gider (doğru klasör bağlanır)
+        const res = (fileList && Array.isArray(fileList.groups))
+          ? { groups: fileList.groups.filter((g) => g && g.name && Array.isArray(g.files) && g.files.length).slice(0, BDF_BULK_MAX_FOLDERS).map((g) => ({ name: String(g.name), token: String(g.token || ""), files: g.files.slice(0, BDF_FOLDER_MAX_SCAN), truncated: g.files.length > BDF_FOLDER_MAX_SCAN })) }
+          : bdf_bulkGroupsFromFolderInput(fileList);
         if (!res || !res.groups || !res.groups.length) return false;
         let ad = "";
         try { ad = String(localStorage.getItem(BDF_BULK_ACTION_KEY) || ""); } catch (_) { ad = ""; }
