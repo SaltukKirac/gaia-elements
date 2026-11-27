@@ -7953,6 +7953,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         if ((kd.sira || (kd.sira = [])).indexOf(id) < 0) kd.sira.push(id);   // the sync: Gaia's names into the folder now
         try { dtIslerSil('kok-yapim:' + anahtar); } catch (e) {}
         dtKokBekleKart(kd);
+        kd.son = 0;   // the next tick (4 s) looks again: the chip and the card count the new record now
         return true;
       }
     }
@@ -7978,8 +7979,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (k.izinYok) { dtKokIz('no permission for ' + k.ad, izin); return; }
     let l;
     const t0 = Date.now();
-    try { l = await dtKokTara(k); } catch (e) { dtKokIz('read failed', (e && e.name) + ': ' + (e && e.message)); return; }   // offline share: tried again at the next look
+    if (k.ilk) dtKokIlkKart(k, 'Reading ' + dtKkKartAd(k) + '...');   // 27.11 (Saltuk: "yeniden bak diyene kadar hiçbir şey yapılmadı"): the person sees it work
+    try { l = await dtKokTara(k); } catch (e) { dtKokIz('read failed', (e && e.name) + ': ' + (e && e.message)); if (k.ilk) dtKokIlkKart(k, 'Could not read ' + dtKkKartAd(k) + ' (' + ((e && e.name) || 'error') + '). Gaia tries again in a moment.'); return; }   // offline share: tried again at the next look
     if (!guncel()) return;
+    if (k.ilk) dtKokIlkKart(k, l.length + ' case folders found, linking them to their records...');
     dtKokGozle(k);
     if (k.v !== 2) {   // a root watched before the path keys (27.11): what is there now is known; the person re-syncs to choose again
       k.v = 2; k.bilinen = l.map(x => x.anahtar).filter(Boolean); k.haric = []; await dtKokKaydet(k);
@@ -7995,6 +7998,12 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     const bil = new Set(k.bilinen), now = Date.now(), gorulen = new Set();
     let degisti = false;
+    // the '.gaia' files and their records' state, 6 at a time (a network share and Gaia answer slowly one by one)
+    const oku = l.filter(x => x.anahtar && !x.bilinen && !bil.has(x.anahtar) && !k.yapim.has(x.anahtar) && x.isaret);
+    for (let i = 0; i < oku.length; i += 6) {
+      await Promise.all(oku.slice(i, i + 6).map(async x => { try { x.isaretO = await dtKokIsaretOku(x.h); if (x.isaretO && idMiKk(x.isaretO.kayit)) await dtKokKayitDurum(String(x.isaretO.kayit)); } catch (e) {} }));
+      if (!guncel()) return;
+    }
     for (const x of l) {
       if (!guncel()) return;
       if (!x.anahtar || x.bilinen || bil.has(x.anahtar) || k.yapim.has(x.anahtar)) continue;
@@ -8003,7 +8012,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       // its '.gaia' file names the record it was made into (here, another tab, another computer), or says it is being made right
       // now (wait); this computer may have linked it to a record too. That record is linked (no second record) unless it was deleted:
       // then the folder is a new case again
-      const o = x.isaret ? await dtKokIsaretOku(x.h) : null;
+      const o = x.isaret ? (x.isaretO !== undefined ? x.isaretO : await dtKokIsaretOku(x.h)) : null;
       const isaretId = o && idMiKk(o.kayit) ? String(o.kayit) : '';
       if (!isaretId && o && o.durum === 'yapiliyor' && now - (Number(o.at) || 0) < DT_KOK_YAPIM_MS && o.sekme !== dtKokSekme()) { dtKokIz('being made elsewhere', x.yol); continue; }
       const once = await dtKokOnceki(x, isaretId);
@@ -8022,9 +8031,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       gorulen.add(x.anahtar);
       const { l: dosyalar, imza } = await dtKokDosyalar(x.h);
       const a = k.aday.get(x.anahtar);
-      if (!a || a.imza !== imza) { k.aday.set(x.anahtar, { h: x.h, ad: x.ad, yol: x.yol, imza, at: now, deneme: a ? a.deneme : 0, sorAt: a ? a.sorAt : 0 }); continue; }
-      if (now - a.at < DT_KOK_SAKIN || !dosyalar.length) continue;   // a copy may still run
-      a.dosyalar = dosyalar; a.hazir = true;
+      // a folder the person saw in the preview and chose was there already: no copy to wait for
+      const hemen = k.hemen && k.hemen.has(x.anahtar);
+      if (!hemen && (!a || a.imza !== imza)) { k.aday.set(x.anahtar, { h: x.h, ad: x.ad, yol: x.yol, imza, at: now, deneme: a ? a.deneme : 0, sorAt: a ? a.sorAt : 0 }); continue; }
+      if (hemen && !a) k.aday.set(x.anahtar, { h: x.h, ad: x.ad, yol: x.yol, imza, at: now, deneme: 0, sorAt: 0 });
+      if (hemen) k.hemen.delete(x.anahtar);
+      if ((!hemen && now - a.at < DT_KOK_SAKIN) || !dosyalar.length) continue;   // a copy may still run
+      const a2 = k.aday.get(x.anahtar); a2.dosyalar = dosyalar; a2.hazir = true;
     }
     k.aday.forEach((a, an) => { if (!gorulen.has(an)) k.aday.delete(an); });   // gone / renamed / taken elsewhere
     if (degisti) { k.bilinen = Array.from(bil); await dtKokKaydet(k); }
@@ -8035,8 +8048,21 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (now - y.at > DT_KOK_YAPIM_MS) { k.yapim.delete(an); dtKkSunucu('kok_birak', { anahtar: an, sekme: dtKokSekme() }); dtKokIsaretSil(y.h); try { dtIslerSil('kok-yapim:' + an); } catch (e) {} dtKokKaydet(k); continue; }
       if (now - (y.yenile || y.at) > DT_KOK_YENILE_MS) { y.yenile = now; dtKkSunucu('kok_kilit', { anahtar: an, sekme: dtKokSekme() }); dtKokIsaretYaz(y.h, { durum: 'yapiliyor', at: now, sekme: dtKokSekme() }); }
     }
-    if (!l.tam) return;   // a cut look does not make records (an old folder past the cut would look new)
-    await dtKokYap(k, guncel);
+    if (l.tam) await dtKokYap(k, guncel);   // a cut look does not make records (an old folder past the cut would look new)
+    if (!guncel()) return;
+    k.ilk = false;
+    if (k.ilkKart) { dtKokIlkKart(k, null); if (!k.aday.size && !k.yapim.size) k.ilkKart = false; }   // kept up to date until the new records are made
+  }
+  // the card of the first look after Start: working while it reads, then what it did (the 'kok-bekle' card carries new records on)
+  function dtKokIlkKart(k, line) {
+    if (!dtIslerOn()) return;
+    const kart = 'kok-ilk:' + k.key;
+    try {
+      dtKkKartAc(kart);
+      if (line) { dtIslerSet(kart, { title: 'Syncing ' + dtKkKartAd(k), sub: '', state: 'working', line, href: '', msg: '', onRetry: null }); return; }
+      const yeni = (k.aday ? k.aday.size : 0) + (k.yapim ? k.yapim.size : 0);
+      dtIslerSet(kart, { title: 'Syncing ' + dtKkKartAd(k), sub: '', state: 'done', line: (k.eslesen || 0) + ' of ' + (k.toplam || 0) + ' folders are linked to their records' + (yeni ? ', ' + dtKkSay(yeni, 'new record') + ' on the way' : '') + '.', href: '', msg: '', onRetry: null });
+    } catch (e) {}
   }
   // the settled new folders → one taker each (server lock per tab) → ONE new tab of the form's folder queue makes their records
   // (27.11 Saltuk: "yeni kayıtları kesinlikle yeni sekmede açmalı"): the person's own tab never runs it, so it does not wait for a
@@ -8418,7 +8444,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     Array.from(_dtKkKok.values()).forEach(k0 => {
       _dtKkKok.delete(k0.key); dtKkYaz(k0.key, null);
       try { if (k0.goz) k0.goz.disconnect(); } catch (e) {}
-      ['kok-bekle:', 'kok-sekme:'].forEach(p => { try { dtIslerSil(p + k0.key); } catch (e) {} });   // folders being made keep their lock and mark
+      ['kok-bekle:', 'kok-sekme:', 'kok-ilk:'].forEach(p => { try { dtIslerSil(p + k0.key); } catch (e) {} });   // folders being made keep their lock and mark
     });
     try { dtIslerSil('kok-izin'); } catch (e) {}
     dtKokIz('stopped watching');
@@ -8431,12 +8457,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!sec.has(x.anahtar)) { bilinen.push(x.anahtar); haric.push(x.anahtar); return; }   // left alone
       if (kayitOf.has(x.anahtar)) bilinen.push(x.anahtar);                                     // joins its record (by name)
     });                                                                                         // the rest: new records (KOK-KLASOR)
-    const k = { key: 'kok:' + (_dtKkUid || '') + ':' + at.toString(36), h, ad: h.name, at, v: 2, bilinen, haric, eylem: eylem || null, son: 0 };
+    const k = { key: 'kok:' + (_dtKkUid || '') + ':' + at.toString(36), h, ad: h.name, at, v: 2, bilinen, haric, eylem: eylem || null, son: 0, ilk: true, ilkKart: true,
+      hemen: new Set(l.filter(x => sec.has(x.anahtar) && !kayitOf.has(x.anahtar) && !x.kayit).map(x => x.anahtar)) };
     await dtKokKaydet(k);
     const yeni = l.filter(x => sec.has(x.anahtar) && !kayitOf.has(x.anahtar) && !x.kayit).length;
     if (!sec.size) showWakeToast('Gaia watches ' + dtKkKartAd(k) + ': new folders put in it become records.', 'success');
     else showWakeToast('Gaia syncs ' + dtKkKartAd(k) + ': ' + (sec.size - yeni) + ' folders join their records' + (yeni ? ', ' + yeni + ' become new records' : '') + '.', 'success');
     dtKokCip();
+    _dtKokTarar = false;   // a look still running belongs to the root just replaced (it stops acting by itself)
+    try { dtKokTik(); } catch (e) {}
   }
   try { if (dtKkOn()) { dtKkYukle(); dtKkKanal(); } } catch (e) {}
   /* KAYIT-KLASOR-END */
