@@ -1,8 +1,8 @@
 {
     "repo": "SaltukKirac/gaia-elements",
     "channel": "klasor-iki-yon",
-    "rev": 88,
-    "updated": "2026-11-27T10:36:09Z",
+    "rev": 89,
+    "updated": "2026-11-27T10:48:48Z",
     "elements": {
         "aithia-pricing": {
             "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -38,12 +38,12 @@
             "updated": "2026-11-25T19:31:33Z"
         },
         "lang-tr": {
-            "commit": "f20c05263f52d37dee8737f4d4b2650f91b780b6",
+            "commit": "fad08856307b754dde29af075600a34427ac3541",
             "path": "el/lang-tr.html",
-            "blob": "d42f14587749368a8c517294a9ee61118baf60e1",
-            "bytes": 103199,
+            "blob": "1ee5ffcbd5af251b3659260402942389f9869ed6",
+            "bytes": 103330,
             "title": "Turkish UI layer - app page (auto, no Bubble stub)",
-            "updated": "2026-11-27T10:36:09Z"
+            "updated": "2026-11-27T10:48:48Z"
         },
         "onboarding": {
             "commit": "f39ee569c4627b019ecd98938b52097296c54535",
@@ -70,12 +70,12 @@
             "updated": "2026-11-25T19:01:37Z"
         },
         "table": {
-            "commit": "f20c05263f52d37dee8737f4d4b2650f91b780b6",
+            "commit": "fad08856307b754dde29af075600a34427ac3541",
             "path": "el/table.html",
-            "blob": "2b1b2527097f71b192ef5956691f2b78156c6e69",
-            "bytes": 1089595,
+            "blob": "be44bfb4d480ad832cbe39d05984fb2468804bee",
+            "bytes": 1092882,
             "title": "Dynamic table (tablev2) - app page",
-            "updated": "2026-11-27T10:36:09Z"
+            "updated": "2026-11-27T10:48:48Z"
         },
         "template-page": {
             "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
