@@ -7791,6 +7791,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   const _dtKkKok = new Map();                  // 'kok:<user>:<n>' → { key, h, ad, at, v, bilinen: [anahtar], haric, eylem, aday: Map, yapim: Map, son, izinYok, sira }
   const _dtKokAnahtarlar = new Map();          // relative path (lower case) → anahtar
   let _dtKokTarar = false;                     // false, or when the running look started
+  const _dtKokKayitDurumu = new Map();         // record id → { d: 'live'|'gone'|'', at } (a folder's earlier record, read from Gaia)
   // the upload tab of the folder queue (?gxbulk=…) only makes the records it was given: it never watches a root itself
   function dtKokYukleSekmesi() { try { return /[?&]gxbulk=/.test(location.search || '') || Boolean(sessionStorage.getItem('gx_bulk_tab')); } catch (e) { return false; } }
   function dtKokOn() { try { return dtKkIzleOn() && !window.__gxNoKokKlasor && !dtKokYukleSekmesi(); } catch (e) { return false; } }
@@ -7887,14 +7888,48 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   async function dtKokBagla(id, h) {
     if (!id || !h || !idMiKk(id)) return;
     const eski = _dtKk.get(id);
-    if (eski && eski.h) { let ayni = false; try { ayni = await eski.h.isSameEntry(h); } catch (e) { ayni = false; } if (ayni) return; }
-    await dtKkKaydet(id, { h, ad: h.name, kaynak: 'kok', duzen: true, koru: false, n: dtKkSatirSay(id), geri: null, at: Date.now(), bilinen: null });   // Gaia's names, every time (Saltuk 27.11)
-    try { log('[KOK-KLASOR] record ' + id + ' linked to its folder in the root'); } catch (e) {}
+    let ayni = false;
+    if (eski && eski.h) { try { ayni = await eski.h.isSameEntry(h); } catch (e) { ayni = false; } }
+    // the same folder linked before: added as a record ('birak') or saved by Klasör ('yer') becomes the root's (Gaia's names, the
+    // sync); one the person linked by hand keeping the office's names ('bagla') stays so. Either way its sync runs once now.
+    if (!ayni || (eski.kaynak !== 'kok' && eski.kaynak !== 'bagla')) {
+      await dtKkKaydet(id, { h, ad: h.name, kaynak: 'kok', duzen: true, koru: false, n: dtKkSatirSay(id), geri: null, at: Date.now(), bilinen: ayni ? (eski.bilinen || null) : null });   // Gaia's names, every time (Saltuk 27.11)
+      try { log('[KOK-KLASOR] record ' + id + ' linked to its folder in the root'); } catch (e) {}
+    }
     const k0 = Array.from(_dtKkKok.values())[0];
     if (k0 && (k0.sira || (k0.sira = [])).indexOf(id) < 0) k0.sira.push(id);   // its sync starts
     try { dtSiraliPaint(id); } catch (e) {}
   }
   function idMiKk(v) { return /^\d{10,16}x\d{10,22}$/.test(String(v || '')); }
+  // 27.11 (Saltuk: test records deleted, the root synced again): is the record a folder was made into / linked to still in Gaia?
+  // 'live' (a row of this table, or Gaia has it), 'gone' (deleted: the folder becomes a new record), '' (cannot tell: taken as live,
+  // never a second record on a guess)
+  async function dtKokKayitDurum(id) {
+    if (!idMiKk(id)) return 'gone';
+    if ((state.rawRows || []).some(r => r && !r.__gxPend && rowIdOf(r) === id)) return 'live';
+    const c = _dtKokKayitDurumu.get(id), now = Date.now();
+    if (c && now - c.at < (c.d ? 10 * 60000 : 60000)) return c.d;
+    let d = '';
+    try { d = typeof dtGoneRead === 'function' ? await dtGoneRead(id) : ''; } catch (e) { d = ''; }
+    d = d === 'gone' || d === 'live' ? d : '';
+    _dtKokKayitDurumu.set(id, { d, at: now });
+    return d;
+  }
+  // the records a case folder was linked to before: its '.gaia' file (any computer), this computer's link → the first one still in
+  // Gaia; the deleted ones are forgotten (the link here, the '.gaia' file) → { id, silindi }
+  async function dtKokOnceki(x, isaretId) {
+    const ids = [];
+    if (idMiKk(isaretId)) ids.push(String(isaretId));
+    const bagli = await dtKokBagliKayit(x);
+    if (bagli && ids.indexOf(bagli) < 0) ids.push(bagli);
+    let silindi = false;
+    for (const id of ids) {
+      const d = await dtKokKayitDurum(id);
+      if (d !== 'gone') return { id, silindi };
+      silindi = true;
+    }
+    return { id: '', silindi };
+  }
   // the folder a token (the case folder's key, carried by the folder queue) stands for: one this tab handed over
   function dtKokYapimH(token) {
     for (const k of Array.from(_dtKkKok.values())) { const kd = dtKokDurum(k.key), y = kd && kd.yapim.get(token); if (y && y.h) return y.h; }
@@ -7965,13 +8000,24 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (!x.anahtar || x.bilinen || bil.has(x.anahtar) || k.yapim.has(x.anahtar)) continue;
       const es = dtKokEslesme([x]);
       if (es.size || es.belirsiz.size) { bil.add(x.anahtar); degisti = true; continue; }   // KOK-ESLE: a record of it is in the table (several: left alone)
-      const bagli = await dtKokBagliKayit(x);
-      if (bagli) { bil.add(x.anahtar); degisti = true; continue; }   // linked to a record already: no second record
-      // its '.gaia' file: made by another computer / tab (names the record: linked here too), or being made right now (wait)
-      if (x.isaret) {
-        const o = await dtKokIsaretOku(x.h);
-        if (o && idMiKk(o.kayit)) { bil.add(x.anahtar); degisti = true; k.aday.delete(x.anahtar); await dtKokBagla(String(o.kayit), x.h); continue; }
-        if (o && o.durum === 'yapiliyor' && now - (Number(o.at) || 0) < DT_KOK_YAPIM_MS && o.sekme !== dtKokSekme()) { dtKokIz('being made elsewhere', x.yol); continue; }
+      // its '.gaia' file names the record it was made into (here, another tab, another computer), or says it is being made right
+      // now (wait); this computer may have linked it to a record too. That record is linked (no second record) unless it was deleted:
+      // then the folder is a new case again
+      const o = x.isaret ? await dtKokIsaretOku(x.h) : null;
+      const isaretId = o && idMiKk(o.kayit) ? String(o.kayit) : '';
+      if (!isaretId && o && o.durum === 'yapiliyor' && now - (Number(o.at) || 0) < DT_KOK_YAPIM_MS && o.sekme !== dtKokSekme()) { dtKokIz('being made elsewhere', x.yol); continue; }
+      const once = await dtKokOnceki(x, isaretId);
+      if (!guncel()) return;
+      if (once.id) {
+        bil.add(x.anahtar); degisti = true; k.aday.delete(x.anahtar);
+        await dtKokBagla(once.id, x.h);
+        if (once.id !== isaretId) await dtKokIsaretYaz(x.h, { kayit: once.id, at: Date.now() });   // other computers link it too
+        continue;
+      }
+      if (once.silindi) {
+        if (isaretId) await dtKokIsaretSil(x.h);
+        for (const [id, b] of Array.from(_dtKk.entries())) { let ayni = false; try { ayni = Boolean(b && b.h) && await b.h.isSameEntry(x.h); } catch (e) { ayni = false; } if (ayni) dtKkUnut(id); }
+        dtKokIz('its earlier record was deleted: a new record', x.yol);
       }
       gorulen.add(x.anahtar);
       const { l: dosyalar, imza } = await dtKokDosyalar(x.h);
@@ -7982,6 +8028,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     k.aday.forEach((a, an) => { if (!gorulen.has(an)) k.aday.delete(an); });   // gone / renamed / taken elsewhere
     if (degisti) { k.bilinen = Array.from(bil); await dtKokKaydet(k); }
+    dtKokSay(k, l);   // the chip counts what this look linked too
     // folders this tab handed over: the lock and the mark are kept fresh while the record is made; a folder whose record never came
     // (the upload tab failed or was closed) is given back after 45 min and tried again
     for (const [an, y] of Array.from(k.yapim.entries())) {
@@ -8008,7 +8055,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       const r = await dtKkSunucu('kok_kilit', { anahtar, sekme: dtKokSekme() });
       if (!r || typeof r !== 'object') { dtKokIz('server did not answer for a folder; tried again later'); a.sorAt = Date.now(); continue; }
       if (!r.sahip) {
-        if (idMiKk(r.kayit)) { k.aday.delete(anahtar); k.bilinen = (k.bilinen || []).concat(anahtar); await dtKokKaydet(k); await dtKokBagla(String(r.kayit), a.h); }
+        // the record made for it (another computer): linked; one deleted that the server still names: asked again in a minute
+        if (idMiKk(r.kayit) && (await dtKokKayitDurum(String(r.kayit))) !== 'gone') { k.aday.delete(anahtar); k.bilinen = (k.bilinen || []).concat(anahtar); await dtKokKaydet(k); await dtKokBagla(String(r.kayit), a.h); }
         else a.sorAt = Date.now();   // another tab / computer is making it: asked again in a minute
         continue;
       }
@@ -8155,14 +8203,18 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     out.belirsiz = belirsiz;
     return out;
   }
+  // the chip: case folders (not left alone) that a record of this person keeps (linked from the root, or by hand), out of all of them
+  function dtKokSay(k, l, es) {
+    const haric = new Set(k.haric || []), izli = l.filter(x => !haric.has(x.anahtar)), adlar = new Set();
+    _dtKk.forEach(b => { if (b && (b.kaynak === 'kok' || b.kaynak === 'bagla') && b.ad) adlar.add(dtKkKucuk(b.ad)); });
+    if (es) es.forEach(x => adlar.add(dtKkKucuk(x.ad)));
+    k.eslesen = izli.filter(x => adlar.has(dtKkKucuk(x.ad))).length; k.toplam = izli.length;
+    dtKokCip();
+  }
   async function dtKokEsle(k, l) {
     const haric = new Set(k.haric || []);
     const es = dtKokEslesme(l.filter(x => !haric.has(x.anahtar)));   // KOK-SECIM: unticked folders are left alone
-    // the chip: case folders (not left alone) that a record of this person keeps, out of all of them
-    const izli = l.filter(x => !haric.has(x.anahtar)), adlar = new Set();
-    _dtKk.forEach(b => { if (b && b.kaynak === 'kok' && b.ad) adlar.add(dtKkKucuk(b.ad)); });
-    es.forEach(x => adlar.add(dtKkKucuk(x.ad)));
-    k.eslesen = izli.filter(x => adlar.has(dtKkKucuk(x.ad))).length; k.toplam = izli.length;
+    dtKokSay(k, l, es);
     for (const [id, x] of es) {
       const eski = _dtKk.get(id);
       if (eski && eski.h) { let ayni = false; try { ayni = await eski.h.isSameEntry(x.h); } catch (e) { ayni = false; } if (ayni) continue; if (eski.kaynak !== 'kok') continue; }   // a folder the person linked by hand stays
@@ -8279,10 +8331,13 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     showWakeToast('Reading ' + dtKkKartAd({ ad: h.name }) + '...', 'info');
     let l = [];
     try { l = await dtKokTara({ h, bilinen: [] }); } catch (e) { dtKokIz('read failed', (e && e.name) + ': ' + (e && e.message)); showWakeToast('Could not read ' + dtKkKartAd({ ad: h.name }) + ' (' + ((e && e.name) || 'error') + ').', 'error'); return; }
-    for (const x of l) {
-      if (x.isaret) { const o = await dtKokIsaretOku(x.h); if (o && idMiKk(o.kayit)) x.kayit = String(o.kayit); }   // made from this folder before
-      if (!x.kayit) { const b = await dtKokBagliKayit(x); if (b) x.kayit = b; }                                      // linked to a record already
-    }
+    // the record each folder was made into before ('.gaia' file) or is linked to on this computer, if Gaia still has it
+    const isler = l.map(x => async () => {
+      const o = x.isaret ? await dtKokIsaretOku(x.h) : null;
+      const once = await dtKokOnceki(x, o && o.kayit);
+      if (once.id) x.kayit = once.id; else if (once.silindi) x.silindi = true;
+    });
+    for (let i = 0; i < isler.length; i += 6) await Promise.all(isler.slice(i, i + 6).map(f => f().catch(() => {})));
     dtKokIz('case folders found', l.length + ' in ' + (Date.now() - t0) + ' ms');
     try { dtKokOnizleme(h, l); dtKokIz('preview shown'); } catch (e) { dtKokIz('preview failed', (e && e.name) + ': ' + (e && e.message)); showWakeToast('Gaia could not show what it found (' + ((e && e.name) || 'error') + ').', 'error'); }
   }
@@ -8324,7 +8379,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       row.querySelector('input').dataset.anahtar = x.anahtar;
       row.querySelector('.n').textContent = (x.ust && x.ust !== h.name ? x.ust + ' / ' : '') + x.ad;
       const id = kayitOf.get(x.anahtar), w = row.querySelector('.w');
-      w.textContent = id ? 'Joins record ' + etiket(id) : x.kayit ? 'Joins the record made from it before' : belirsiz.has(x.anahtar) ? 'Unclear: its name fits several records, left alone (rename the folder to link it)' : 'New record';
+      w.textContent = id ? 'Joins record ' + etiket(id) : x.kayit ? 'Joins the record made from it before' : belirsiz.has(x.anahtar) ? 'Unclear: its name fits several records, left alone (rename the folder to link it)' : x.silindi ? 'New record (the record made from it before was deleted)' : 'New record';
       w.style.color = id || x.kayit ? '#15803d' : belirsiz.has(x.anahtar) ? '#64748b' : '#b45309';
       liste.appendChild(row);
     });
