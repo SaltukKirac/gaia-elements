@@ -7105,6 +7105,23 @@
         if (!bdf_bulkCanRun()) return false;
         return bdf_bulkOffer(bdf_bulkGroupsFromFolderInput(fileList), allHere);
       };
+      // KOK-KLASOR (27.11 Saltuk: "üst klasörü bağla, içeri eklenen yeni klasör otomatik Gaia'da kayıt olsun"): tablo, bağlı kök
+      // klasörde yeni bir dosya klasörü bulunca buradan verir. Kart yok; kişinin klasör kartında son seçtiği aksiyon kullanılır (yoksa
+      // yalnız kaydedilir). Sıra meşgulse false: tablo sonra yeniden dener.
+      BDF_BULK.offerAuto = (fileList) => {
+        const G = BDF_BULK;
+        if (!bdf_bulkCanRun() || G.running || G.view === "confirm") return false;
+        if (G.view === "remote" && G.remote && (G.remote.state === "opening" || G.remote.state === "run" || G.remote.state === "quiet")) return false;
+        const res = bdf_bulkGroupsFromFolderInput(fileList);
+        if (!res || !res.groups || !res.groups.length) return false;
+        let ad = "";
+        try { ad = String(localStorage.getItem(BDF_BULK_ACTION_KEY) || ""); } catch (_) { ad = ""; }
+        const act = ad ? (bdf_bulkActionList().find((o) => o && o.name === ad) || null) : null;
+        G.offer = { groups: res.groups, loose: 0, more: 0, whole: null, allHere: null, openedAt: Date.now(), action: act ? { id: act.id, name: act.name } : null, auto: true };
+        console.log("[BULK] KOK-KLASOR new folder from the linked root", { folders: res.groups.length, action: act ? act.name : "" });
+        bdf_bulkStartInTab(res.groups);
+        return true;
+      };
       if (!BDF_BULK.timer) BDF_BULK.timer = setInterval(() => { try { if (BDF_BULK.tick) BDF_BULK.tick(); } catch (e) { console.warn("[BULK] tick", e); } }, 500);
       if (BDF_BULK.view) { try { bdf_bulkRender(); } catch (_) { } }
 
