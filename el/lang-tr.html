@@ -912,6 +912,7 @@
     'Klasör saves every file in that folder. Pick the folder of this file only.': 'Klasör tüm dosyaları o klasöre kaydediyor. Yalnız bu dosyanın klasörünü seçin.',
     // KOK-KLASOR (27.11): izlenen kök klasör
     'Watch this folder?': 'Bu klasör izlensin mi?',
+    'Look again': 'Yeniden bak',
     'Watch': 'İzle',
     'Stop watching': 'İzlemeyi bırak',
     'Watched folder': 'İzlenen klasör',
@@ -1253,6 +1254,8 @@
     [/^Gaia watches (.+): new folders put in it become records\.$/, function (m) { return 'Gaia ' + m[1] + ' klasörünü izliyor: içine konan yeni klasörler kayıt olur.'; }],
     [/^Gaia makes records for new folders in (.+) after you allow it\.$/, function (m) { return 'İzin verdiğinizde Gaia, ' + m[1] + ' içindeki yeni klasörler için kayıt açar.'; }],
     [/^Gaia could not make a record for the folder (.+)\. Add it with Folders\.$/, function (m) { return 'Gaia ' + m[1] + ' klasörü için kayıt açamadı. Klasörler düğmesiyle ekleyin.'; }],
+    [/^(.+): (\d+) of (\d+) folders are linked to their records\. A folder is linked when its name holds the record's file number or plate\.$/, function (m) { return m[1] + ': ' + m[3] + ' klasörün ' + m[2] + ' tanesi kendi kaydına bağlı. Adında kaydın hasar dosya no\'su ya da plakası geçen klasör bağlanır.'; }],
+    [/^Watched folder: (.+?)(?:\. (\d+) of (\d+) folders are linked to their records)?$/, function (m) { return 'İzlenen klasör: ' + m[1] + (m[2] ? '. ' + m[3] + ' klasörün ' + m[2] + ' tanesi kendi kaydına bağlı' : ''); }],
     [/^New folder in (.+)$/, function (m) { return m[1] + ' içinde yeni klasör'; }],
     [/^Making a record for (.+)$/, function (m) { return m[1] + ' için kayıt açılıyor'; }],
     [/^New in your folder (.+)\. Opening the file$/, function (m) { return m[1] + ' klasöründe yeni. Dosya açılıyor'; }],

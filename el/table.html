@@ -7325,13 +7325,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const yalniz = bagla ? p.c.yerel.filter(y => !p.c.alinan.has(y) && !dtKkGecici(y.ad) && y.boy > 0) : [];
     const b = dtKkBilinenAl(bag) || { yol: new Set(), sig: new Set() };
     const ekle = (y) => { if (y && y.yol) { b.yol.add(dtKkKucuk(y.yol)); b.sig.add(dtKkImza(y)); } };
-    if (!bag.bilinen || bagla) p.c.yerel.forEach(ekle);
+    const kokYalniz = bagla && bag.kaynak === 'kok' ? new Set(yalniz) : null;   // KOK-ESLE: they go to the record by themselves
+    if (!bag.bilinen || bagla) p.c.yerel.forEach(y => { if (!kokYalniz || !kokYalniz.has(y)) ekle(y); });
     p.c.alinan.forEach(ekle);   // matched a document of the record ("already there"): never uploaded back, even after an interrupted run
     (p.c.yazilan || []).forEach(k => b.yol.add(dtKkKucuk(k)));
     (p.c.yazilanSig || []).forEach(sg => b.sig.add(sg));   // a file Gaia wrote and the person renamed before the next look
     (s.kk.geri && Array.isArray(s.kk.geri.tasindi) ? s.kk.geri.tasindi : []).forEach(m => { if (m && m.to) b.yol.add(dtKkKucuk(m.to)); });
     dtKkBilinenKur(bag, b.yol, b.sig);
-    if (bagla) bag.teklif = yalniz.length ? yalniz.map(y => dtKkKucuk(y.yol)).slice(0, DT_KK_TARA_MAX) : null;
+    if (bagla) bag.teklif = yalniz.length && !kokYalniz ? yalniz.map(y => dtKkKucuk(y.yol)).slice(0, DT_KK_TARA_MAX) : null;
+    if (kokYalniz) yalniz.length = 0;
     // what the watcher had seen as new and the sync just matched or wrote does not wait any more; a folder that is back is watched again
     const iz = _dtKkIzle.get(id);
     if (iz) {
@@ -7852,7 +7854,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!id || !h || !idMiKk(id)) return;
     const eski = _dtKk.get(id);
     if (eski && eski.h) { let ayni = false; try { ayni = await eski.h.isSameEntry(h); } catch (e) { ayni = false; } if (ayni) return; }
-    await dtKkKaydet(id, { h, ad: h.name, kaynak: 'kok', duzen: true, koru: true, n: dtKkSatirSay(id), geri: null, at: Date.now(), bilinen: null });
+    await dtKkKaydet(id, { h, ad: h.name, kaynak: 'kok', duzen: true, koru: false, n: dtKkSatirSay(id), geri: null, at: Date.now(), bilinen: null });   // Gaia's names, every time (Saltuk 27.11)
     try { log('[KOK-KLASOR] record ' + id + ' linked to its folder in the root'); } catch (e) {}
     try { dtSiraliPaint(id); } catch (e) {}
   }
@@ -7871,7 +7873,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         dtKkSunucu('kok_kayit', { anahtar, id });
         await dtKokIsaretYaz(h, { kayit: id, at: Date.now() });
         const bag = _dtKk.get(id);
-        if (bag) { bag.kaynak = 'kok'; bag.koru = true; bag.duzen = true; bag.n = dtKkSatirSay(id); await dtKkKaydet(id, bag); }
+        if (bag) { bag.kaynak = 'kok'; bag.koru = false; bag.duzen = true; bag.n = dtKkSatirSay(id); await dtKkKaydet(id, bag); }
         try { dtIslerSil('kok-yapim:' + anahtar); } catch (e) {}
         return true;
       }
@@ -7891,6 +7893,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let l;
     try { l = await dtKokTara(k); } catch (e) { return; }   // offline share: tried again at the next look
     if (_dtKkKok.get(key) !== k) return;
+    await dtKokEsle(k, l);   // KOK-ESLE: each case folder (old ones too) ↔ its record in this table
     if (!Array.isArray(k.bilinen)) {   // the first look: the case folders already there are known; only later ones become records
       k.bilinen = l.map(x => x.anahtar).filter(Boolean);
       await dtKokKaydet(k);
@@ -7900,6 +7903,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     let degisti = false;
     for (const x of l) {
       if (!x.anahtar || x.bilinen || bil.has(x.anahtar) || k.yapim.has(x.anahtar)) continue;
+      if (dtKokEslesme([x]).size) { bil.add(x.anahtar); degisti = true; continue; }   // KOK-ESLE: a record of it is in the table already
       gorulen.add(x.anahtar);
       // made by another computer already (its '.gaia' file names the record): this computer links it too
       if (x.isaret) {
@@ -7948,7 +7952,10 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   }
   // every 4 s (dtKkTik): the root whose look is due (one at a time; sooner while a new folder settles)
   function dtKokTik() {
-    if (!dtKokOn() || !_dtKkKok.size || _dtKokTarar || document.hidden) return;
+    try { dtKokCip(); } catch (e) {}
+    if (!dtKokOn() || !_dtKkKok.size) return;
+    try { dtKokSiraYurut(); } catch (e) {}
+    if (_dtKokTarar || document.hidden) return;
     const now = Date.now();
     let sec = '', secAt = Infinity;
     _dtKkKok.forEach((k, key) => {
@@ -7994,6 +8001,92 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       await dtKokKaydet({ key: 'kok:' + (_dtKkUid || '') + ':' + at.toString(36), h, ad: h.name, at, bilinen: null, son: 0 });
       showWakeToast('Gaia watches ' + dtKkKartAd({ ad: h.name }) + ': new folders put in it become records.', 'success');
     }, altLabel: 'Not now', onAlt: () => { try { dtIslerSil('kok-teklif'); } catch (e) {} }, href: '', msg: '' });
+  }
+  // --- KOK-ESLE (27.11, Saltuk: "isimlendirilmemiş, eksik evrakları olan ağdaki bir ana klasörü tabloma bağlıyorum, klasörümün adını
+  // orada görüyorum, her öğe otomatik olarak kendi klasörü ile bağlanmış oluyor ve 2 yollu sync başlıyor"): every case folder of the
+  // watched root, the ones there before too, is matched to its record in this table by its name (the record's Hasar Dosya No, else
+  // its plate, in the folder's name; only one folder ↔ one record). A matched record remembers that folder and its sync starts (two
+  // at a time): the documents the folder is missing are written, the found files get the office order names (every time, Undo keeps
+  // the log), and the folder's own files go to the record by themselves (KLASOR-IZLE, when the page is free; more than 100 asked).
+  function dtKokNorm(t) { return String(t == null ? '' : t).toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ÇĞİÖŞÜ]+/g, ''); }
+  function dtKokSatirIzi(raw) {
+    let no = '', plaka = '';
+    try { for (const k in (raw || {})) { const n = dtNormKey(k); if (n === 'hasardosyano') no = dtKokNorm(raw[k]); else if (n === 'plaka') plaka = dtKokNorm(raw[k]); } } catch (e) {}
+    return { no: no.length >= 5 ? no : '', plaka: plaka.length >= 5 ? plaka : '' };
+  }
+  // → Map(id → { h, ad, anahtar }) for the folders that match exactly one record (and that record only that folder)
+  function dtKokEslesme(l) {
+    const satirlar = (Array.isArray(state.rawRows) ? state.rawRows : []).filter(r => r && !r.__gxPend && rowIdOf(r)).map(r => ({ id: rowIdOf(r), iz: dtKokSatirIzi(r) })).filter(x => x.iz.no || x.iz.plaka);
+    const kac = new Map(), adaylar = [];
+    l.forEach(x => {
+      const n = dtKokNorm(x.ad);
+      let hit = satirlar.filter(s => s.iz.no && n.indexOf(s.iz.no) >= 0);
+      if (!hit.length) hit = satirlar.filter(s => s.iz.plaka && n.indexOf(s.iz.plaka) >= 0);
+      if (hit.length !== 1) return;
+      adaylar.push([hit[0].id, x]);
+      kac.set(hit[0].id, (kac.get(hit[0].id) || 0) + 1);
+    });
+    const out = new Map();
+    adaylar.forEach(([id, x]) => { if (kac.get(id) === 1) out.set(id, x); });
+    return out;
+  }
+  async function dtKokEsle(k, l) {
+    const es = dtKokEslesme(l);
+    k.eslesen = es.size; k.toplam = l.length;
+    for (const [id, x] of es) {
+      const eski = _dtKk.get(id);
+      if (eski && eski.h) { let ayni = false; try { ayni = await eski.h.isSameEntry(x.h); } catch (e) { ayni = false; } if (ayni) continue; if (eski.kaynak !== 'kok') continue; }   // a folder the person linked by hand stays
+      await dtKkKaydet(id, { h: x.h, ad: x.h.name, kaynak: 'kok', duzen: true, koru: false, bagla: true, n: 0, geri: null, at: Date.now(), bilinen: null });
+      try { dtKkIzleUnut(id); dtSiraliPaint(id); } catch (e) {}
+      if ((k.sira || (k.sira = [])).indexOf(id) < 0) k.sira.push(id);
+    }
+    dtKokCip();
+  }
+  // the matched records' syncs, two at a time
+  function dtKokSiraYurut() {
+    let calisan = 0;
+    _dtSirali.forEach((s, key) => { if (s && s.st === 'working' && /:klasor$/.test(key)) calisan++; });
+    _dtKkKok.forEach(k => {
+      while (k.sira && k.sira.length && calisan < 2) {
+        const id = k.sira.shift(), raw = (state.rawRows || []).find(r => rowIdOf(r) === id), bag = _dtKk.get(id);
+        if (!raw || !bag || bag.kaynak !== 'kok') continue;
+        const cur = _dtSirali.get(dtSiraliKey(id, 'klasor'));
+        if (cur && (cur.st === 'working' || cur.st === 'ask')) continue;
+        _dtSirali.delete(dtSiraliKey(id, 'klasor'));
+        dtSiraliStart(raw, 'klasor', 'oto');   // no prompt: the permission came with the root
+        calisan++;
+      }
+    });
+  }
+  // the watched root on the toolbar: its name, how many folders are linked; a press shows them and offers Stop watching
+  function dtKokCip() {
+    try {
+      const b = els.foldersButton;
+      if (!b || !b.parentNode) return;
+      let c = document.getElementById('dt-kok-chip');
+      const k = Array.from(_dtKkKok.values())[0];
+      if (!k || !dtKokOn()) { if (c) c.hidden = true; return; }
+      if (!c) {
+        c = document.createElement('button');
+        c.id = 'dt-kok-chip'; c.type = 'button'; c.className = 'dt-kok-chip';
+        c.style.cssText = 'margin-left:6px;padding:2px 8px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;font:12px/20px system-ui,sans-serif;color:#334155;cursor:pointer;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis';
+        c.addEventListener('click', () => { try { dtKokDurumKart(); } catch (e) {} });
+        b.parentNode.insertBefore(c, b.nextSibling);
+      }
+      c.hidden = false;
+      const t = dtKkKartAd(k) + (k.toplam ? ' · ' + (k.eslesen || 0) + '/' + k.toplam : '');
+      if (c.textContent !== t) c.textContent = t;
+      c.title = 'Watched folder: ' + dtKkKartAd(k) + (k.toplam ? '. ' + (k.eslesen || 0) + ' of ' + k.toplam + ' folders are linked to their records' : '');
+    } catch (e) {}
+  }
+  function dtKokDurumKart() {
+    const k = Array.from(_dtKkKok.values())[0];
+    if (!k || !dtIslerOn()) return;
+    dtKkKartAc('kok-durum');
+    dtIslerSet('kok-durum', { title: 'Watched folder', sub: '', state: 'done', line: dtKkKartAd(k) + ': ' + (k.eslesen || 0) + ' of ' + (k.toplam || 0) + ' folders are linked to their records. A folder is linked when its name holds the record\'s file number or plate.', anaLabel: 'Look again', onAna: () => { k.son = 0; try { dtIslerSil('kok-durum'); } catch (e) {} }, altLabel: 'Stop watching', onAlt: () => {
+      _dtKkKok.delete(k.key); dtKkYaz(k.key, null); try { dtIslerSil('kok-durum'); } catch (e) {} dtKokCip();
+      showWakeToast('Gaia stopped watching ' + dtKkKartAd(k) + '. Nothing in the folder changed.', 'success');
+    }, href: '', msg: '' });
   }
   try { if (dtKkOn()) { dtKkYukle(); dtKkKanal(); } } catch (e) {}
   /* KAYIT-KLASOR-END */
