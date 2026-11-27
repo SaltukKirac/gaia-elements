@@ -6608,12 +6608,15 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   function dtKkAgYardim(tur, alt) {
     try {
       if (window.__gxNoAgYardim || !dtIslerOn()) return;
-      const yer = 'a network place that websites may not open (a D$ share, a server name with Turkish letters, a Remote Desktop drive)';
+      // 27.11 measured on this computer (Chrome 151, Turkish): the box reads "Bu klasör açılamaz · Sistem dosyaları içerdiği için ...
+      // bu klasörü açamaz" with "Farklı bir klasör seçin" / "İptal"
+      const yer = 'a network place that websites may not open (a D$ share, a server name with Turkish letters, a Remote Desktop drive, or a drive letter mapped to one of those)';
+      const kutu = 'If Chrome said it cannot open that folder because it contains system files, it is on ' + yer + '. ';
       const kart = tur === 'birak'
         ? { title: 'Adding your folders', line: 'Gaia adds these folders, but cannot keep them in office order on this computer: they are on ' + yer + '. Share the folder as \\\\SERVER\\EKSPERTIZ to keep them in order.' }
         : tur === 'klasor'
-          ? { title: 'Place not chosen', line: 'If Windows said it cannot open that folder, it is on ' + yer + '. Pick a folder on this computer, or get the files as one download.', altLabel: 'Download as one file' }
-          : { title: 'Folders not added', line: 'If Windows said it cannot open that folder, it is on ' + yer + '. Choose it another way: the files are added the same.', altLabel: 'Choose another way' };
+          ? { title: 'Place not chosen', line: kutu + 'Pick a folder on this computer, or get the files as one download.', altLabel: 'Download as one file' }
+          : { title: 'Folders not added', line: kutu + 'Choose it another way: the files are added the same.', altLabel: 'Choose another way' };
       dtIslerSet('kk-ag:' + tur, Object.assign({ sub: '', state: 'done', k: 0, n: 0, href: '', msg: '', onRetry: null, anaLabel: '', onAna: null }, kart, { onAlt: typeof alt === 'function' && kart.altLabel ? alt : null, altLabel: typeof alt === 'function' ? (kart.altLabel || '') : '' }));
     } catch (e) {}
   }
