@@ -6014,6 +6014,14 @@
       // BULK-VEIL (13.11 Saltuk: "yeni sekmede önde bir şey olsun, o sekmenin tek amacının evrak yüklemek olduğu anlaşılsın, yalnız
       // yüklemeyle ilgili şeyleri göreyim"): yükleme sekmesinde sayfanın üstünde tam ekran düz bir örtü ve ortada yükleme kartı.
       // Örtü yalnız görünüşü kapatır; sıra formu kendi çağrılarıyla kullanır (tıklama gerekmez).
+      // 27.11 (Saltuk: "yeni açılan sekmede Türkçe İngilizce arası glitch oluyor"): the Turkish layer translates these lines in place, so
+      // comparing textContent with the English line rewrote them on every tick (English, then Turkish again). Compare with what was written.
+      function bdf_metinYaz(el, t) {
+        t = String(t == null ? "" : t);
+        if (el.__gxEn === t && el.textContent) return;
+        el.__gxEn = t; el.textContent = t;
+      }
+
       function bdf_bulkSyncVeil() {
         const G = BDF_BULK;
         let v = document.getElementById("gx-bulk-veil");
@@ -6031,8 +6039,8 @@
           : G.tabGot ? "This tab only adds your folders to Gaia and closes itself when done. Go back to your other tab and keep working."
           : "Getting the upload ready. This tab only adds your folders to Gaia and closes itself when done.";
         const hEl = v.querySelector(".gxv-h"), pEl = v.querySelector(".gxv-p");
-        if (hEl && hEl.textContent !== h) hEl.textContent = h;
-        if (pEl && pEl.textContent !== p) pEl.textContent = p;
+        if (hEl) bdf_metinYaz(hEl, h);
+        if (pEl) bdf_metinYaz(pEl, p);
         const card = document.getElementById("gx-bulk-card");
         if (card) card.classList.add("is-tab");
       }
@@ -6267,7 +6275,7 @@
         const bar = card.querySelector(".gxb-bar>i");
         if (!t || !bar) { bdf_bulkRender(); return; }
         const line = R.snap.paused ? `Paused in the upload tab. ${R.snap.pm || ""}`.trim() : `In another tab: ${R.snap.pill || "Starting"}`;
-        if (t.textContent !== line) t.textContent = line;
+        bdf_metinYaz(t, line);
         bar.style.width = `${Number(R.snap.pct || 0)}%`;
       }
 
@@ -6998,14 +7006,14 @@
           const bar = card.querySelector(".gxb-bar>i");
           if (bar) bar.style.width = `${p.pct}%`;
           const pillT = card.querySelector(".gxb-pill-t");
-          if (pillT) { const t = bdf_bulkPillLine(); if (pillT.textContent !== t) pillT.textContent = t; }
+          if (pillT) { const t = bdf_bulkPillLine(); bdf_metinYaz(pillT, t); }
           const meta = card.querySelector(".gxb-meta");
-          if (meta) { const t = bdf_bulkMetaLine(); if (meta.textContent !== t) meta.textContent = t; }
+          if (meta) { const t = bdf_bulkMetaLine(); bdf_metinYaz(meta, t); }
           const cur = G.jobs[G.i];
           const curS = card.querySelector("li.is-cur .gxb-s");
-          if (cur && curS) { const t = bdf_bulkJobLabel(cur); if (curS.textContent !== t) curS.textContent = t; }
+          if (cur && curS) { const t = bdf_bulkJobLabel(cur); bdf_metinYaz(curS, t); }
           const status = card.querySelector(".gxb-status");
-          if (cur && status && !G.paused) { const t = `${cur.name}: ${bdf_bulkJobLabel(cur)}`; if (status.textContent !== t) status.textContent = t; }
+          if (cur && status && !G.paused) { const t = `${cur.name}: ${bdf_bulkJobLabel(cur)}`; bdf_metinYaz(status, t); }
         } catch (_) { bdf_bulkRender(); }
       }
 

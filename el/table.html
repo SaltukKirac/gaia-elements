@@ -8318,7 +8318,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       }
       c.hidden = false;
       const t = dtKkKartAd(k) + (k.izinYok ? ' · allow' : k.toplam ? ' · ' + (k.eslesen || 0) + '/' + k.toplam : '');
-      if (c.textContent !== t) c.textContent = t;
+      if (c.__gxEn !== t || !c.textContent) { c.__gxEn = t; c.textContent = t; }   // the Turkish layer rewrites the text: compare with what was written (no flicker)
       c.title = 'Watched folder: ' + dtKkKartAd(k) + (k.toplam ? '. ' + (k.eslesen || 0) + ' of ' + k.toplam + ' folders are linked to their records' : '');
     } catch (e) {}
   }
