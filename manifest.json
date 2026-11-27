@@ -1,8 +1,8 @@
 {
     "repo": "SaltukKirac/gaia-elements",
     "channel": "klasor-iki-yon",
-    "rev": 92,
-    "updated": "2026-11-27T11:23:21Z",
+    "rev": 93,
+    "updated": "2026-11-27T11:43:47Z",
     "elements": {
         "aithia-pricing": {
             "commit": "d33173268149bc693fb961125ae5b4273044e63a",
@@ -22,12 +22,12 @@
             "from": "main"
         },
         "form": {
-            "commit": "f20c05263f52d37dee8737f4d4b2650f91b780b6",
+            "commit": "d9a8262938545e2c26b7c76ffdedfb1d57138c30",
             "path": "el/form.html",
-            "blob": "6b1db60c559df7a7c4b577180f967f6404d5ac47",
-            "bytes": 1060136,
+            "blob": "4e044b35db4c028ff2798927080d93531d936df6",
+            "bytes": 1060421,
             "title": "Dynamic form - app page",
-            "updated": "2026-11-27T10:36:09Z"
+            "updated": "2026-11-27T11:43:47Z"
         },
         "guide-ux": {
             "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
@@ -38,12 +38,12 @@
             "updated": "2026-11-25T19:31:33Z"
         },
         "lang-tr": {
-            "commit": "6229e55a4b7161e6a938a39e9687ab59d9519536",
+            "commit": "d9a8262938545e2c26b7c76ffdedfb1d57138c30",
             "path": "el/lang-tr.html",
             "blob": "98137e00cf3fc3173441084219763338aa555331",
             "bytes": 107453,
             "title": "Turkish UI layer - app page (auto, no Bubble stub)",
-            "updated": "2026-11-27T11:23:21Z"
+            "updated": "2026-11-27T11:43:47Z"
         },
         "onboarding": {
             "commit": "f39ee569c4627b019ecd98938b52097296c54535",
@@ -70,12 +70,12 @@
             "updated": "2026-11-25T19:01:37Z"
         },
         "table": {
-            "commit": "6229e55a4b7161e6a938a39e9687ab59d9519536",
+            "commit": "d9a8262938545e2c26b7c76ffdedfb1d57138c30",
             "path": "el/table.html",
-            "blob": "82811482478a462cb7407a4393760a4b30f5bcea",
-            "bytes": 1109903,
+            "blob": "6f6d1e3338b624e61ed94740c015bcc0301ed57e",
+            "bytes": 1110019,
             "title": "Dynamic table (tablev2) - app page",
-            "updated": "2026-11-27T11:23:21Z"
+            "updated": "2026-11-27T11:43:47Z"
         },
         "template-page": {
             "commit": "6566a5183c38b17a76baef8cabdd589a5d238dbf",
