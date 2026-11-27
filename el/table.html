@@ -7841,7 +7841,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
   //  where it is; nothing pretends to know the path. Off: window.__gxNoGezgin = true.
   const DT_GEZ_YARDIMCI_URL = '';   // where the helper is downloaded from (decided with the signing certificate); empty: "ask the Gaia team"
   let _dtGezMesgul = false;
-  function dtGezOn() { try { return !window.__gxNoGezgin && dtKkOn() && /Windows/i.test(navigator.userAgent || ''); } catch (e) { return false; } }
+  // 27.11 test (Ömer): everyone without the new Gaia Bridge saw "Open" buttons that only said "update the extension". Until the extension
+  // with folder opening (2026.11.27.1) reaches people, the buttons show only where it runs. window.__gxGezginHep = true: always (test)
+  function dtGezOn() { try { return !window.__gxNoGezgin && dtKkOn() && /Windows/i.test(navigator.userAgent || '') && (dtGezKlasorKoprusu() || window.__gxGezginHep === true); } catch (e) { return false; } }
   function dtGezKlasorKoprusu() { try { return document.documentElement.getAttribute('data-gaia-bridge-klasor') === '1'; } catch (e) { return false; } }
   function dtGezIstek(istek, ms) {
     return new Promise(resolve => {
@@ -8229,6 +8231,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     dtKokIz('look at ' + k.ad, l.length + ' case folders, ' + (Date.now() - t0) + ' ms, new ' + l.filter(x => !x.bilinen && !(k.bilinen || []).includes(x.anahtar)).length + (l.tam ? '' : ', NOT COMPLETE (too many folders)'));
     await dtKokEsle(k, l);   // KOK-ESLE: each case folder (old ones too) ↔ its record in this table
     if (!guncel()) return;
+    dtKokBorcluSira(k);
     if (!Array.isArray(k.bilinen)) {   // the first look: the case folders already there are known; only later ones become records
       k.bilinen = l.map(x => x.anahtar).filter(Boolean);
       k.bilinen.forEach(an => dtKokNeden(k, an, 'ilk'));
@@ -8524,6 +8527,21 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     }
     dtKokCip();
   }
+  // 27.11 test (Ömer: PLAKA-3 only "linked", a file copied into it never went to the record): a folder linked by name owes its first sync
+  // (bag.bagla) and KLASOR-IZLE does not watch it before that sync; the queue lives in memory, so a reload lost it for good. Every look
+  // queues the owed syncs again (a failed one at most every 10 min).
+  function dtKokBorcluSira(k) {
+    const now = Date.now(), satir = new Set((state.rawRows || []).filter(r => r && !r.__gxPend).map(rowIdOf));
+    if (!(k.borcAt instanceof Map)) k.borcAt = new Map();
+    _dtKk.forEach((b, id) => {
+      if (!b || b.kaynak !== 'kok' || !b.bagla || !satir.has(id) || (k.sira || []).indexOf(id) >= 0) return;
+      const j = _dtSirali.get(dtSiraliKey(id, 'klasor'));
+      if (j && (j.st === 'working' || j.st === 'ask')) return;
+      if (now - (k.borcAt.get(id) || 0) < 10 * 60000) return;
+      k.borcAt.set(id, now);
+      (k.sira || (k.sira = [])).push(id);
+    });
+  }
   // the matched records' syncs, two at a time
   function dtKokSiraYurut() {
     let calisan = 0;
@@ -8606,7 +8624,9 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       if (j && j.st === 'done') return [r + ': synced. ' + dtKkOzetMetni(j, true), '#15803d'];
       if (j && j.st === 'error') return [r + ': sync failed. ' + String(j.msg || '').slice(0, 120), '#b91c1c'];
       if ((k.sira || []).indexOf(id) >= 0) return [r + ': linked, its sync is queued', '#1d4ed8'];
-      return [r + ': linked', '#15803d'];
+      const b = _dtKk.get(id);
+      if (b && b.bagla) return [r + ': linked, its first sync is owed (new files are watched after it)', '#1d4ed8'];
+      return [r + ': linked, new files in the folder go to the record', '#15803d'];
     }
     if (k.belirsiz && k.belirsiz.has(an)) return ['Unclear: its name fits several records, left alone (rename the folder to link it)', '#64748b'];
     if (nd.indexOf('baska:') === 0) return ['Its name matches record ' + dtKokEtiket(nd.slice(6)) + ', which is linked to another folder: left alone', '#64748b', true];
@@ -8692,7 +8712,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       liste.dataset.birak = birak.join(',');
       const z = o.querySelector('.z');
       z.hidden = !birak.length || k.okunuyor;
-      const imza = satir.map(([x, d]) => x.anahtar + d[0]).join('|');
+      const imza = (dtGezOn() ? 'g|' : '') + satir.map(([x, d]) => x.anahtar + d[0]).join('|');   // GEZGINDE-AC: the Open buttons come when the extension says it can
       if (liste.dataset.imza === imza) return;
       liste.dataset.imza = imza;
       liste.textContent = '';

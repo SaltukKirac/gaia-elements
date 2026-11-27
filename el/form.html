@@ -19178,7 +19178,8 @@
                 const metaName = document.createElement("strong");
                 metaName.textContent = String(file.name ?? "");
                 const metaSize = document.createElement("span");
-                { const by = Number(file.size) || 0; metaSize.textContent = by < 1024 ? `${by} B` : by < 1048576 ? `${Math.round(by / 1024)} KB` : `${(by / 1048576).toFixed(1)} MB`; }   // 27.11 test: 1 KB files showed "0 KB"
+                // 27.11 test: 1 KB files showed "0 KB", then "0 B": an uploaded file's entry often carries no size. Shown only when known.
+                { const by = Number(file.size) || Number(file.raw && file.raw.size) || Number(file.file && file.file.size) || 0; metaSize.textContent = !by ? "" : by < 1024 ? `${by} B` : by < 1048576 ? `${Math.round(by / 1024)} KB` : `${(by / 1048576).toFixed(1)} MB`; }
                 meta.append(metaName, metaSize);
 
                 if (isImage) {
