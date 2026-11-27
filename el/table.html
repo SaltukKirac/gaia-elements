@@ -6692,7 +6692,6 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     showWakeToast('Reading folders...');
     let l = [];
     try { l = await dtKkDosyalar(h); } catch (e) { l = []; }
-    dtKokTeklif(h);   // KOK-KLASOR: watch it from now on?
     if (!l.length) { showWakeToast('That folder has no files.'); return; }
     dtKkUstEkle(h);
     api.offerFileList(l);
@@ -7805,7 +7804,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     dtKkKullanici();
     _dtKkKok.set(k.key, k);
     dtKkSaatKur();
-    return dtKkYaz(k.key, { h: k.h, ad: k.ad || '', at: k.at, u: _dtKkUid || '', bilinen: Array.isArray(k.bilinen) ? k.bilinen.slice(-20000) : null });
+    return dtKkYaz(k.key, { h: k.h, ad: k.ad || '', at: k.at, u: _dtKkUid || '', bilinen: Array.isArray(k.bilinen) ? k.bilinen.slice(-20000) : null, haric: Array.isArray(k.haric) ? k.haric.slice(-20000) : [] });
   }
   // the case folders under the root: [{ h, ad, ust, anahtar, isaret }] — known ones (bilinen) are not listed again
   async function dtKokTara(k) {
@@ -8031,7 +8030,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     return out;
   }
   async function dtKokEsle(k, l) {
-    const es = dtKokEslesme(l);
+    const haric = new Set(k.haric || []);
+    const es = dtKokEslesme(l.filter(x => !haric.has(x.anahtar)));   // KOK-SECIM: unticked folders are left alone
     k.eslesen = es.size; k.toplam = l.length;
     for (const [id, x] of es) {
       const eski = _dtKk.get(id);
@@ -8087,6 +8087,105 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
       _dtKkKok.delete(k.key); dtKkYaz(k.key, null); try { dtIslerSil('kok-durum'); } catch (e) {} dtKokCip();
       showWakeToast('Gaia stopped watching ' + dtKkKartAd(k) + '. Nothing in the folder changed.', 'success');
     }, href: '', msg: '' });
+  }
+  // --- KOK-SECIM (27.11, Saltuk: "tablodaki klasör ikonuna tıklayınca sync mi çoklu ekleme mi diye sorsun; sync olduğu zaman klasörü
+  // tanıma süreci olmalı ... ardından o klasör ile tablom tam sync olsun, isimlendirmeler vb."): the Folders button asks first. "Sync
+  // with a folder" picks the office's folder, reads it and shows what it found before anything happens: each case folder with the
+  // record it links to, or "new record"; the person unticks what should be left alone and presses Start. Only names are read here
+  // (no file leaves the computer). "Add folders as records" is the bulk card as before.
+  function dtKokSecimKapat() { const m = document.getElementById('dt-kok-secim'); if (m) m.remove(); document.removeEventListener('mousedown', dtKokSecimDis, true); }
+  function dtKokSecimDis(e) { const m = document.getElementById('dt-kok-secim'); if (m && !m.contains(e.target) && e.target !== els.foldersButton) dtKokSecimKapat(); }
+  function dtKokSecimAc(api) {
+    dtKokSecimKapat();
+    const b = els.foldersButton, r = b.getBoundingClientRect();
+    const m = document.createElement('div');
+    m.id = 'dt-kok-secim';
+    m.setAttribute('role', 'menu');
+    m.style.cssText = 'position:fixed;z-index:2147483000;top:' + Math.round(r.bottom + 6) + 'px;left:' + Math.round(Math.max(8, r.left - 120)) + 'px;width:300px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,.16);padding:6px;font:13px/1.4 system-ui,sans-serif;color:#0f172a';
+    const satir = (baslik, alt, fn) => {
+      const x = document.createElement('button');
+      x.type = 'button'; x.setAttribute('role', 'menuitem');
+      x.style.cssText = 'display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer';
+      x.innerHTML = '<span style="display:block;font-weight:600"></span><span style="display:block;color:#64748b;font-size:12px"></span>';
+      x.children[0].textContent = baslik; x.children[1].textContent = alt;
+      x.addEventListener('mouseenter', () => { x.style.background = '#f1f5f9'; });
+      x.addEventListener('mouseleave', () => { x.style.background = 'none'; });
+      x.addEventListener('click', () => { dtKokSecimKapat(); fn(); });   // the press opens the folder dialog (its first await)
+      m.appendChild(x);
+    };
+    satir('Sync with a folder', 'Link the office folder: each case folder joins its record, both sides stay complete', () => { dtKokSenkronSec(); });
+    satir('Add folders as records', 'Each folder you choose becomes a new record', () => { if (dtKkSecVar()) dtKkSec(api); else { try { els.foldersInput.value = ''; } catch (e) {} els.foldersInput.click(); } });
+    document.body.appendChild(m);
+    setTimeout(() => document.addEventListener('mousedown', dtKokSecimDis, true), 0);
+  }
+  async function dtKokSenkronSec() {
+    let h = null;
+    try { h = await window.showDirectoryPicker({ id: 'gaia-kok', mode: 'readwrite' }); }
+    catch (e) { if (e && e.name !== 'AbortError') showWakeToast('Press the folder button again to choose the folder.', 'success'); return; }
+    if (!h || h.kind !== 'directory') return;
+    showWakeToast('Reading ' + dtKkKartAd({ ad: h.name }) + '...', 'info');
+    let l = [];
+    try { l = await dtKokTara({ h, bilinen: [] }); } catch (e) { showWakeToast('Could not read ' + dtKkKartAd({ ad: h.name }) + '.', 'error'); return; }
+    dtKokOnizleme(h, l);
+  }
+  // what Gaia found, before anything happens
+  function dtKokOnizleme(h, l) {
+    const es = dtKokEslesme(l), kayitOf = new Map();
+    es.forEach((x, id) => kayitOf.set(x.anahtar, id));
+    const etiket = (id) => { const raw = (state.rawRows || []).find(r => rowIdOf(r) === id); let pl = ''; try { for (const kk in (raw || {})) if (dtNormKey(kk) === 'plaka') pl = String(raw[kk] == null ? '' : raw[kk]).trim(); } catch (e) {} return [raw ? dtIslerEtiket(raw) : '', pl].filter(Boolean).join(' · ') || id; };
+    let o = document.getElementById('dt-kok-on');
+    if (o) o.remove();
+    o = document.createElement('div');
+    o.id = 'dt-kok-on';
+    o.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(15,23,42,.35);display:flex;align-items:center;justify-content:center;font:13px/1.45 system-ui,sans-serif;color:#0f172a';
+    const k = document.createElement('div');
+    k.setAttribute('role', 'dialog'); k.setAttribute('aria-modal', 'true');
+    k.style.cssText = 'background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(15,23,42,.25);width:min(620px,94vw);max-height:84vh;display:flex;flex-direction:column';
+    const yeniN = l.length - es.size;
+    k.innerHTML = '<div style="padding:16px 18px 8px"><div class="t" style="font-size:16px;font-weight:600"></div><div class="a" style="color:#475569;margin-top:4px"></div></div>'
+      + '<div class="l" style="overflow:auto;padding:0 18px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0"></div>'
+      + '<div style="padding:12px 18px;display:flex;gap:8px;justify-content:flex-end"><button class="i" type="button" style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer"></button><button class="b" type="button" style="padding:8px 14px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer"></button></div>';
+    k.querySelector('.t').textContent = 'Sync ' + dtKkKartAd({ ad: h.name }) + ' with this table';
+    k.querySelector('.a').textContent = l.length + ' case folders found: ' + es.size + ' join their records, ' + yeniN + ' become new records. Untick what Gaia should leave alone. Folders that only hold folders (an insurer, a year) are not records.';
+    const liste = k.querySelector('.l');
+    if (!l.length) liste.innerHTML = '<p style="padding:14px 0;color:#64748b">No case folders found (a case folder holds documents itself).</p>';
+    l.forEach(x => {
+      const row = document.createElement('label');
+      row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer';
+      row.innerHTML = '<input type="checkbox" checked style="margin-top:3px"><span style="flex:1;min-width:0"><span class="n" style="display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span class="w" style="display:block;font-size:12px"></span></span>';
+      row.querySelector('input').dataset.anahtar = x.anahtar;
+      row.querySelector('.n').textContent = (x.ust && x.ust !== h.name ? x.ust + ' / ' : '') + x.ad;
+      const id = kayitOf.get(x.anahtar), w = row.querySelector('.w');
+      w.textContent = id ? 'Joins record ' + etiket(id) : 'New record';
+      w.style.color = id ? '#15803d' : '#b45309';
+      liste.appendChild(row);
+    });
+    k.querySelector('.i').textContent = 'Cancel';
+    k.querySelector('.b').textContent = 'Start';
+    k.querySelector('.i').addEventListener('click', () => o.remove());
+    k.querySelector('.b').addEventListener('click', async () => {
+      const sec = new Set(Array.from(liste.querySelectorAll('input:checked')).map(i => i.dataset.anahtar));
+      o.remove();
+      await dtKokBaslat(h, l, sec, kayitOf);
+    });
+    o.appendChild(k);
+    o.addEventListener('mousedown', (e) => { if (e.target === o) o.remove(); });
+    document.body.appendChild(o);
+  }
+  // Start: the ticked folders join their records or become new ones; unticked ones are left alone for good
+  async function dtKokBaslat(h, l, sec, kayitOf) {
+    dtKkKullanici();
+    for (const k0 of Array.from(_dtKkKok.values())) { let ayni = false; try { ayni = await k0.h.isSameEntry(h); } catch (e) { ayni = false; } if (ayni) { _dtKkKok.delete(k0.key); dtKkYaz(k0.key, null); } }
+    const at = Date.now(), bilinen = [], haric = [];
+    l.forEach(x => {
+      if (!sec.has(x.anahtar)) { bilinen.push(x.anahtar); haric.push(x.anahtar); return; }   // left alone
+      if (kayitOf.has(x.anahtar)) bilinen.push(x.anahtar);                                     // joins its record
+    });                                                                                         // the rest: new records (KOK-KLASOR)
+    const k = { key: 'kok:' + (_dtKkUid || '') + ':' + at.toString(36), h, ad: h.name, at, bilinen, haric, son: 0 };
+    await dtKokKaydet(k);
+    const yeni = l.filter(x => sec.has(x.anahtar) && !kayitOf.has(x.anahtar)).length;
+    showWakeToast('Gaia syncs ' + dtKkKartAd(k) + ': ' + (sec.size - yeni) + ' folders join their records' + (yeni ? ', ' + yeni + ' become new records' : '') + '.', 'success');
+    dtKokCip();
   }
   try { if (dtKkOn()) { dtKkYukle(); dtKkKanal(); } } catch (e) {}
   /* KAYIT-KLASOR-END */
@@ -17384,6 +17483,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     if (!window.__dtBulkSyncTimer) window.__dtBulkSyncTimer = setInterval(() => { try { if (window.__dtBulkSync) window.__dtBulkSync(); } catch (_) {} }, 2000);
     els.foldersButton.addEventListener('click', () => {
       if (!dtBulkAvailable()) return;
+      // KOK-SECIM: sync with a folder, or add folders as records?
+      if (dtKokOn() && dtKkSecVar()) { const api = dtBulkApi(); if (api) { dtKokSecimAc(api); return; } }
       // KAYIT-KLASOR: the browser's folder dialog keeps the folder's handle, so each record can remember its folder
       if (dtKkSecVar()) { const api = dtBulkApi(); if (api) { dtKkSec(api); return; } }
       try { els.foldersInput.value = ''; } catch (_) {}
