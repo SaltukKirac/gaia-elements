@@ -6172,11 +6172,13 @@
       }
 
       // Kişinin sekmesi: yükleme sekmesini açar, klasörleri gönderir, ilerlemeyi kartta gösterir.
-      function bdf_bulkStartInTab(groups) {
+      // sekmeZorunlu (KOK-KLASOR, 27.11 Saltuk: "yeni kayıtları kesinlikle yeni sekmede açmalı"): sekme açılamazsa bu sekmede
+      // çalışmaz, false döner (tablo kişiye "yeni sekmede aç" kartı gösterir). Açıldıysa true.
+      function bdf_bulkStartInTab(groups, sekmeZorunlu) {
         const G = BDF_BULK;
-        if (!groups || !groups.length) return;
+        if (!groups || !groups.length) return false;
         // window.__gxBulkSameTab = true: eski yol (bu sekmede); kapatma anahtarı ve yerel düzenek için.
-        if (typeof BroadcastChannel !== "function" || G.tabId || window.__gxBulkSameTab === true) { bdf_bulkStart(groups); return; }
+        if (typeof BroadcastChannel !== "function" || G.tabId || window.__gxBulkSameTab === true) { if (sekmeZorunlu) return false; bdf_bulkStart(groups); return true; }
         const offerNow = G.offer;
         const acts = bdf_bulkActionList();
         const w0 = offerNow && offerNow.action;
@@ -6186,13 +6188,14 @@
         try { const u = new URL(location.href); u.searchParams.set(BDF_BULK_TAB_PARAM, id); u.searchParams.delete("start"); url = u.toString(); } catch (_) { url = ""; }
         let w = null;
         try { w = url ? window.open(url, "_blank") : null; } catch (_) { w = null; }
+        if (!w && sekmeZorunlu) { console.warn("[BULK] KOK-KLASOR: the upload tab did not open (blocked?); not run here"); return false; }
         if (!w) {
           console.warn("[BULK] the upload tab did not open (blocked?), running here");
           bdf_bulkStart(groups);
           G.bg = true;
           G.tabNote = "Your browser did not open a new tab, so the folders are added here.";
           bdf_bulkRender();
-          return;
+          return true;
         }
         const chan = new BroadcastChannel(`gx-bulk-${id}`);
         const R = G.remote = {
@@ -6230,6 +6233,7 @@
         G.view = "remote";
         console.log("[BULK] upload tab opened", { id, folders: R.groups.length, action: R.action ? R.action.name : "" });
         bdf_bulkRender();
+        return true;
       }
 
       // Kişinin sekmesinde: yükleme sekmesi açıldı ama hazır olmadı / sustu mu?
@@ -7124,7 +7128,7 @@
         const act = ad ? (bdf_bulkActionList().find((o) => o && (o.name === ad || (eylem && eylem.id && String(o.id) === String(eylem.id)))) || null) : null;
         G.offer = { groups: res.groups, loose: 0, more: 0, whole: null, allHere: null, openedAt: Date.now(), action: act ? { id: act.id, name: act.name } : null, auto: true };
         console.log("[BULK] KOK-KLASOR new folder from the linked root", { folders: res.groups.length, action: act ? act.name : "" });
-        bdf_bulkStartInTab(res.groups);
+        if (!bdf_bulkStartInTab(res.groups, true)) { G.offer = null; return "engel"; }   // always a new tab; blocked: the table asks for a press
         return true;
       };
       if (!BDF_BULK.timer) BDF_BULK.timer = setInterval(() => { try { if (BDF_BULK.tick) BDF_BULK.tick(); } catch (e) { console.warn("[BULK] tick", e); } }, 500);

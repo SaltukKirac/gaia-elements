@@ -7874,6 +7874,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
         const bag = _dtKk.get(id);
         if (bag) { bag.kaynak = 'kok'; bag.koru = false; bag.duzen = true; bag.n = dtKkSatirSay(id); await dtKkKaydet(id, bag); }
         try { dtIslerSil('kok-yapim:' + anahtar); } catch (e) {}
+        dtKokBekleKart(kd);
         return true;
       }
     }
@@ -7921,36 +7922,72 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     k.yapim.forEach((y, an) => { if (now - y.at > DT_KOK_YAPIM_MS) { k.yapim.delete(an); dtKkSunucu('kok_birak', { anahtar: an }); dtKokIsaretSil(y.h); try { dtIslerSil('kok-yapim:' + an); } catch (e) {} } });
     await dtKokYap(k);
   }
-  // the next settled new folder → one computer takes it → the form's folder queue
+  // the settled new folders → one computer takes each (server lock) → ONE new tab of the form's folder queue makes their records
+  // (27.11 Saltuk: "yeni kayıtları kesinlikle yeni sekmede açmalı"): the person's own tab never runs it, so it does not wait for a
+  // free page. Chrome blocks a tab opened without a press: then a card asks for the press ("Open in a new tab").
   async function dtKokYap(k) {
-    const a0 = Array.from(k.aday.entries()).find(([, a]) => a.hazir);
-    if (!a0) return;
-    const [anahtar, a] = a0;
     const api = typeof dtBulkApi === 'function' ? dtBulkApi() : null;
-    if (!api || typeof api.offerAuto !== 'function' || dtKkIzleSerbest()) return;   // the page is busy: the next look tries again
+    if (k.sekmeBekle && k.sekmeBekle.length) { dtKokSekmeKart(k); return; }   // waiting for the person's press
+    const hazir = Array.from(k.aday.entries()).filter(([, a]) => a.hazir);
+    dtKokBekleKart(k);
+    if (!hazir.length || !api || typeof api.offerAuto !== 'function') return;
     if (!dtKkPaylas()) return;   // without the server, two computers could make the same record
-    const r = await dtKkSunucu('kok_kilit', { anahtar });
-    if (!r || typeof r !== 'object') {
-      if (!k.sunucuDendi) { k.sunucuDendi = true; dtKokIz('the server cannot share new folders yet: no record made'); showWakeToast('New folders in ' + dtKkKartAd(k) + ' wait: the Gaia server does not make records from folders yet.', 'success'); }
-      return;
+    const bizim = [];
+    for (const [anahtar, a] of hazir) {
+      const r = await dtKkSunucu('kok_kilit', { anahtar });
+      if (!r || typeof r !== 'object') {
+        if (!k.sunucuDendi) { k.sunucuDendi = true; dtKokIz('the server cannot share new folders yet: no record made'); showWakeToast('New folders in ' + dtKkKartAd(k) + ' wait: the Gaia server does not make records from folders yet.', 'success'); }
+        return;
+      }
+      if (!r.sahip) {
+        if (idMiKk(r.kayit)) { k.aday.delete(anahtar); k.bilinen = (k.bilinen || []).concat(anahtar); await dtKokKaydet(k); await dtKokBagla(String(r.kayit), a.h); }
+        continue;   // another computer is making it now
+      }
+      if ((a.deneme = (a.deneme || 0) + 1) > DT_KOK_DENEME) {
+        k.aday.delete(anahtar); k.bilinen = (k.bilinen || []).concat(anahtar); await dtKokKaydet(k);
+        dtKkSunucu('kok_birak', { anahtar });
+        showWakeToast('Gaia could not make a record for the folder ' + dtKkKartAd({ ad: a.ad }) + '. Add it with Folders.', 'error');
+        continue;
+      }
+      await dtKokIsaretYaz(a.h, { durum: 'yapiliyor', at: Date.now() });
+      dtKkUstEkle(a.h);   // KAYIT-KLASOR: the saved record remembers this folder
+      bizim.push([anahtar, a]);
     }
-    if (!r.sahip) {
-      if (idMiKk(r.kayit)) { k.aday.delete(anahtar); k.bilinen = (k.bilinen || []).concat(anahtar); await dtKokKaydet(k); await dtKokBagla(String(r.kayit), a.h); }
-      return;   // another computer is making it now
-    }
-    if ((a.deneme = (a.deneme || 0) + 1) > DT_KOK_DENEME) {
-      k.aday.delete(anahtar); k.bilinen = (k.bilinen || []).concat(anahtar); await dtKokKaydet(k);
-      dtKkSunucu('kok_birak', { anahtar });
-      showWakeToast('Gaia could not make a record for the folder ' + dtKkKartAd({ ad: a.ad }) + '. Add it with Folders.', 'error');
-      return;
-    }
-    await dtKokIsaretYaz(a.h, { durum: 'yapiliyor', at: Date.now() });
-    dtKkUstEkle(a.h);   // KAYIT-KLASOR: the saved record remembers this folder
-    if (!api.offerAuto(a.dosyalar, k.eylem || undefined)) { a.hazir = false; return; }   // the action chosen on the preview   // the queue is busy: the folder stays ours, next look again
-    k.aday.delete(anahtar);
-    k.yapim.set(anahtar, { h: a.h, ad: a.ad, at: Date.now() });
-    try { log('[KOK-KLASOR] a new folder in the root goes to the folder queue'); } catch (e) {}
-    if (dtIslerOn()) dtIslerSet('kok-yapim:' + anahtar, { title: 'New folder in ' + dtKkKartAd(k), sub: '', state: 'working', k: 0, n: 0, line: 'Making a record for ' + dtKkKartAd({ ad: a.ad }), href: '', msg: '', onRetry: null });
+    if (!bizim.length) return;
+    k.sekmeBekle = bizim;
+    dtKokGonder(k, api);
+  }
+  // hand the taken folders to the queue (a new tab); true when the tab opened
+  function dtKokGonder(k, api) {
+    const bizim = k.sekmeBekle || [];
+    if (!bizim.length || !api) return false;
+    const dosyalar = [];
+    bizim.forEach(([, a]) => (a.dosyalar || []).forEach(f => dosyalar.push(f)));
+    let r = false;
+    try { r = api.offerAuto(dosyalar, k.eylem || undefined); } catch (e) { r = false; }
+    dtKokIz('folder queue', r === true ? bizim.length + ' folder(s) in a new tab' : String(r));
+    if (r === 'engel') { dtKokSekmeKart(k); return false; }   // Chrome blocked the tab: a press opens it
+    if (r !== true) return false;                              // the queue is busy: the next look tries again
+    k.sekmeBekle = null;
+    try { dtIslerSil('kok-sekme:' + k.key); } catch (e) {}
+    bizim.forEach(([anahtar, a]) => { k.aday.delete(anahtar); k.yapim.set(anahtar, { h: a.h, ad: a.ad, at: Date.now() }); });
+    dtKokBekleKart(k);
+    return true;
+  }
+  function dtKokSekmeKart(k) {
+    if (!dtIslerOn()) { showWakeToast('Allow pop-ups for this site: Gaia opens a new tab to make records from new folders.', 'success'); return; }
+    const n = (k.sekmeBekle || []).length;
+    dtKkKartAc('kok-sekme:' + k.key);
+    dtIslerSet('kok-sekme:' + k.key, { title: 'New folders in ' + dtKkKartAd(k), sub: '', state: 'done', line: dtKkSay(n, 'new folder') + ' ready to become records. Chrome blocked the new tab; press to open it (allow pop-ups for this site to skip this).',
+      anaLabel: 'Open in a new tab', onAna: () => { const api = typeof dtBulkApi === 'function' ? dtBulkApi() : null; if (!dtKokGonder(k, api)) showWakeToast('Chrome blocked the new tab. Allow pop-ups for this site in the address bar, then press again.', 'error'); }, altLabel: '', onAlt: null, href: '', msg: '' });
+  }
+  // a card while new folders settle or their records are made (the person sees that something is on its way)
+  function dtKokBekleKart(k) {
+    if (!dtIslerOn()) return;
+    const bek = k.aday ? k.aday.size : 0, yap = k.yapim ? k.yapim.size : 0, kart = 'kok-bekle:' + k.key;
+    if (!bek && !yap) { try { dtIslerSil(kart); } catch (e) {} return; }
+    const line = yap ? 'Making ' + dtKkSay(yap, 'record') + ' in a new tab' + (bek ? ', ' + dtKkSay(bek, 'more folder') + ' waiting' : '') : dtKkSay(bek, 'new folder') + ' found, waiting until copying ends';
+    dtIslerSet(kart, { title: 'New folders in ' + dtKkKartAd(k), sub: '', state: 'working', k: 0, n: 0, line, href: '', msg: '', onRetry: null });
   }
   // every 4 s (dtKkTik): the root whose look is due (one at a time; sooner while a new folder settles)
   function dtKokTik() {
@@ -8158,6 +8195,7 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     k.style.cssText = 'background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(15,23,42,.25);width:min(620px,94vw);max-height:84vh;display:flex;flex-direction:column';
     const yeniN = l.length - es.size;
     k.innerHTML = '<div style="padding:16px 18px 8px"><div class="t" style="font-size:16px;font-weight:600"></div><div class="a" style="color:#475569;margin-top:4px"></div></div>'
+      + '<div class="k" style="padding:0 18px 10px;display:flex;flex-direction:column;gap:4px"><label style="cursor:pointer"><input type="radio" name="dt-kok-kapsam" value="hepsi" checked> <span class="k1"></span></label><label style="cursor:pointer"><input type="radio" name="dt-kok-kapsam" value="sonra"> <span class="k2"></span></label></div>'
       + '<div class="l" style="overflow:auto;padding:0 18px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0"></div>'
       + '<div class="e" style="padding:10px 18px 0;display:flex;gap:10px;align-items:center"><span class="el" style="color:#475569"></span><select class="es" style="flex:1;max-width:280px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff"></select></div>'
       + '<div style="padding:12px 18px;display:flex;gap:8px;justify-content:flex-end"><button class="i" type="button" style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer"></button><button class="b" type="button" style="padding:8px 14px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer"></button></div>';
@@ -8185,12 +8223,17 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const esec = k.querySelector('.es');
     k.querySelector('.el').textContent = 'Action for each new record';
     [{ id: '', name: '' }].concat(acts).forEach(a => { const op = document.createElement('option'); op.value = a.id; op.textContent = a.name || 'Save only'; if (a.name && a.name === son) op.selected = true; esec.appendChild(op); });
-    if (!yeniN) k.querySelector('.e').style.display = 'none';
+
+    // 27.11 Saltuk: "şimdiye kadarkileri değil bundan sonra eklenenleri sync et" seçeneği
+    k.querySelector('.k1').textContent = 'The folders there now too (the list below)';
+    k.querySelector('.k2').textContent = 'Only folders added from now on (the ones there now are left alone)';
+    const kapsam = () => { const x = k.querySelector('input[name="dt-kok-kapsam"]:checked'); return x ? x.value : 'hepsi'; };
+    k.querySelectorAll('input[name="dt-kok-kapsam"]').forEach(x => x.addEventListener('change', () => { const s = kapsam() === 'sonra'; liste.style.opacity = s ? '.4' : ''; liste.querySelectorAll('input').forEach(i => { i.disabled = s; }); }));
     k.querySelector('.i').textContent = 'Cancel';
     k.querySelector('.b').textContent = 'Start';
     k.querySelector('.i').addEventListener('click', () => o.remove());
     k.querySelector('.b').addEventListener('click', async () => {
-      const sec = new Set(Array.from(liste.querySelectorAll('input:checked')).map(i => i.dataset.anahtar));
+      const sec = kapsam() === 'sonra' ? new Set() : new Set(Array.from(liste.querySelectorAll('input:checked')).map(i => i.dataset.anahtar));
       const eylem = acts.find(a => a.id === esec.value) || { id: '', name: '' };
       o.remove();
       await dtKokBaslat(h, l, sec, kayitOf, eylem);
@@ -8211,7 +8254,8 @@ const COLUMN_WIDTH_MULTIPLIER = 1.25;
     const k = { key: 'kok:' + (_dtKkUid || '') + ':' + at.toString(36), h, ad: h.name, at, bilinen, haric, eylem: eylem || null, son: 0 };
     await dtKokKaydet(k);
     const yeni = l.filter(x => sec.has(x.anahtar) && !kayitOf.has(x.anahtar)).length;
-    showWakeToast('Gaia syncs ' + dtKkKartAd(k) + ': ' + (sec.size - yeni) + ' folders join their records' + (yeni ? ', ' + yeni + ' become new records' : '') + '.', 'success');
+    if (!sec.size) showWakeToast('Gaia watches ' + dtKkKartAd(k) + ': new folders put in it become records.', 'success');
+    else showWakeToast('Gaia syncs ' + dtKkKartAd(k) + ': ' + (sec.size - yeni) + ' folders join their records' + (yeni ? ', ' + yeni + ' become new records' : '') + '.', 'success');
     dtKokCip();
   }
   try { if (dtKkOn()) { dtKkYukle(); dtKkKanal(); } } catch (e) {}
